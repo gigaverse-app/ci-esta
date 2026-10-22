@@ -30,6 +30,19 @@ The planner-failure branch is essential: missing evidence runs tests. Use the [c
 
 ## Declared execution inputs
 
+When one job conditionally runs different sets of work, pass that selection as
+`execution-context`. For example, a Django job that runs library tests, integration
+tests, or both can pass the normalized JSON `{"library":true,"integration":false}`.
+An identical Git tree alone does not establish that the same tests ran. Context
+values are compared exactly; produce them deterministically and include every
+runtime choice that changes the required validation.
+
+Keep the job name stable across these contexts. A later failure of that job
+conservatively revokes older proof, including a failure with a different context
+or head. This prevents a broader failed suite from being hidden by an older
+narrower pass, and the reverse. Missing context defaults to the existing receipt
+behavior for jobs whose complete work is fixed by their declared Git inputs.
+
 The optional `input-paths` array binds exact repository-relative files or directories instead of the entire tree. Include source, tests, workflows, setup scripts, lockfiles, configuration, generated-input sources, and pinned tools that can affect the verdict. Globs, absolute paths and ambiguous path segments are rejected.
 
 CI-esta cannot infer external dependencies, changed services, floating container tags, changed secrets or an incomplete input declaration. Use whole-tree identity unless you can audit the narrower set. Pin external inputs and keep scheduled full runs for state outside Git. An identical Git identity is evidence of identical declared inputs, not proof that the universe is unchanged.

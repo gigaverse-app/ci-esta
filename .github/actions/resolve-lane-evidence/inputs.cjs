@@ -135,9 +135,12 @@ async function inventoryIdentity(github, shared, repo, ref, paths) {
   return `inventory-v1 ${digest(lines)}`;
 }
 
-function validationReceipt(actionPath, testedIdentity) {
+function validationReceipt(actionPath, testedIdentity, executionContext = '') {
   const root = path.resolve(actionPath, '../../..');
   const hash = crypto.createHash('sha256').update(testedIdentity);
+  if (executionContext !== '') {
+    hash.update('\0execution-context-v1\0').update(JSON.stringify(executionContext)).update('\0');
+  }
   // PR<N> refs move. Bind proof to the downloaded shared implementation,
   // not just the consumer commit or the spelling of the shared ref.
   for (const directory of ['.github/actions', '.github/workflows', 'scripts', 'src/ci_esta']) {
