@@ -4,6 +4,45 @@ CI-esta reads GitHub's run and job APIs and writes one versioned JSON report, a 
 
 ## Add a reporting job
 
+For CI that already has a long critical path, prefer a separate completed-run
+observer. CI-esta uses this arrangement itself: reporting reads a finished run
+and cannot delay or decide its validation result. One reusable workflow owns
+the report installation and artifact publication; consumers only declare their
+source workflows and exact gate names.
+
+```yaml
+name: CI observability
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+jobs:
+  report:
+    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@<reviewed-commit>
+    with:
+      run-id: ${{ github.event.workflow_run.id }}
+      run-attempt: ${{ github.event.workflow_run.run_attempt }}
+      head-sha: ${{ github.event.workflow_run.head_sha }}
+      required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
+```
+
+The observer must land on the default branch before `workflow_run` triggers it.
+It observes success, failure and cancellation. It has read-only permissions,
+never checks out the observed commit, disables source artifact downloads and PR
+comments, and uses the existing reporter pinned to an immutable revision. This
+also allows observation of fork PRs without executing their code. The resulting
+workflow summary and `ci-esta-<run-id>-<attempt>` artifact contain Markdown,
+versioned JSON and Prometheus metrics. Inspect `collection_status` before using
+partial or unavailable measurements. An empty gate list leaves gate latency
+unassessed while still reporting jobs, steps and runner time.
+
+For a report inside the original workflow instead:
+
 Run this after your existing aggregate gate. Replace `Validation gate` with its exact display name. Pin the action to a reviewed commit SHA for production.
 
 ```yaml
