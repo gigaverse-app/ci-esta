@@ -43,6 +43,25 @@ BEFORE_NOW = datetime(2026, 7, 23, 5, 59, 59, tzinfo=timezone.utc)
 AFTER_NOW = datetime(2026, 7, 23, 6, 0, 1, tzinfo=timezone.utc)
 
 
+def test_exact_attempt_endpoints_preserve_historical_report_identity():
+    def respond(request):
+        prefix = f"/repos/{REPOSITORY}/actions/runs/{RUN_ID}/attempts/1"
+        if request.url.path == prefix:
+            return httpx.Response(200, json={"id": RUN_ID, "name": "CI", "run_attempt": 1,
+                "status": "completed", "created_at": NOW.isoformat(), "head_sha": HEAD_SHA})
+        assert request.url.path == prefix + "/jobs"
+        return httpx.Response(200, json={"total_count": 0, "jobs": []})
+
+    client = GitHubActionsClient(REPOSITORY, TOKEN, API_URL, transport=httpx.MockTransport(respond))
+    try:
+        assert client.get_run(RUN_ID, run_attempt=1).run_attempt == 1
+        assert client.list_jobs(RUN_ID, include_all_attempts=False, run_attempt=1) == []
+        with pytest.raises(ValueError):
+            client.list_jobs(RUN_ID, include_all_attempts=True, run_attempt=1)
+    finally:
+        client.close()
+
+
 def test_workflow_topology_reads_only_the_reported_commit_as_data():
     def respond(request):
         assert request.url.path == f"/repos/{REPOSITORY}/contents/.github/workflows/ci.yml"

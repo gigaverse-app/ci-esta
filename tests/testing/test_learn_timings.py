@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from ci_esta.testing.cli import main
+from ci_esta.testing.timing_feedback import main as feedback
 
 
 def test_real_pytest_report_drives_exact_file_shards(tmp_path, monkeypatch):
@@ -78,3 +79,16 @@ def test_unmapped_cases_are_reported_and_not_used_as_paths(tmp_path, capsys):
     assert main(["learn", str(report), "--working-directory", str(tmp_path), "--output", str(output)]) == 0
     assert json.loads(output.read_text()) == {"test_ok.py": 2}
     assert "unmapped_cases=1" in capsys.readouterr().out
+
+
+def test_action_glob_retains_source_reports_and_writes_summary(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    Path("test_ok.py").write_text("")
+    Path("junit-1.xml").write_text('<testsuite><testcase file="test_ok.py" time="2"/></testsuite>')
+    monkeypatch.setenv("INPUT_JUNIT_PATTERN", "junit-*.xml")
+    monkeypatch.setenv("INPUT_TIMING_OUTPUT", "durations.json")
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", "summary.md")
+    feedback()
+    assert json.loads(Path("durations.json").read_text()) == {"test_ok.py": 2}
+    assert Path("junit-1.xml").exists()
+    assert "Learned 1 test-file costs" in Path("summary.md").read_text()

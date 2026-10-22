@@ -292,6 +292,11 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
     reference_to_record: FullSuiteReferenceV1 | None = None
     try:
         run_metadata = client.get_run(config.run_id)
+        older_attempt = run_metadata.run_attempt != config.run_attempt
+        if older_attempt:
+            run_metadata = client.get_run(config.run_id, run_attempt=config.run_attempt)
+        if run_metadata.run_attempt != config.run_attempt or run_metadata.head_sha != config.commit_sha:
+            raise ValueError("source run attempt/head does not match the requested report identity")
         job_dependencies = config.job_dependencies
         if config.analyze_critical_path and not job_dependencies:
             try:
@@ -300,6 +305,12 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
                 errors.append(f"critical-path graph unavailable: {error}")
         try:
             latest_jobs = client.list_jobs(config.run_id, include_all_attempts=False)
+            if older_attempt or any(job.run_attempt != config.run_attempt for job in latest_jobs):
+                latest_jobs = client.list_jobs(
+                    config.run_id, include_all_attempts=False, run_attempt=config.run_attempt
+                )
+            if any(job.run_attempt != config.run_attempt for job in latest_jobs):
+                raise ValueError("job attempts do not match the requested report identity")
         except Exception as error:
             latest_jobs = []
             errors.append(f"latest-attempt jobs unavailable: {error}")
