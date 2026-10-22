@@ -20,6 +20,8 @@ Due application behavior
 
 CI-esta imports pytest-selective's `SelectionExplanation` and related models directly; it does not fork the selector. Upload the explanation JSON as a single-file artifact and pass its name through the report action's `test-selection-artifact`. Supply measured timings through the generic `pytest` extension. The report can explain why tests ran and compare against eligible full-suite references. CI-esta never changes the selection decision while rendering it.
 
+The inherited alpha reporter reads selection artifacts only when `post-sticky: 'true'`. A PR comment is posted only when `pull-request-number` is also supplied; leaving that input empty allows a summary/artifact report without posting. The basic observability examples disable this optional section explicitly.
+
 Selection and evidence reuse answer different questions: “what might this change affect?” and “was this exact declared work already completed successfully?” Keep conservative fallbacks at both layers.
 
 ## pytest-obligation: preserve what green means

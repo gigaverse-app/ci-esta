@@ -10,7 +10,7 @@
 - [x] The installed CLI can render an unavailable report offline without credentials. `tests/test_cli.py` invokes a separate Python process.
 - [x] Locked tests on Python 3.11 and 3.14, plus installed-wheel smoke on Python 3.11.
 - [x] Hosted CI validates the report action against GitHub's actual run/job APIs.
-- [ ] A disposable PR proves successful execution, reuse after an unrelated change, and forced execution on manual rerun.
+- [x] The extraction-validation PR proves successful execution, reuse after an unrelated change, and forced execution on manual rerun.
 
 ## Red-team findings
 
@@ -26,6 +26,8 @@ The initial source test extraction also caught a missing XML runtime dependency;
 | Scenario | Revision | Evidence | Result |
 | --- | --- | --- | --- |
 | First corrected PR validation | `a1cdb72939ad7dab66949ee44c99f81784ae6678` | [run 39840045077](https://github.com/gigaverse-app/ci-esta/actions/runs/39840045077) | Both Python suites executed, gate passed, report collected complete real API evidence |
+| Documentation-only follow-up | `c273e8f3cb233fe189578318af01c83a48e72a5e` | [run 39840366763, attempt 1](https://github.com/gigaverse-app/ci-esta/actions/runs/39840366763/attempts/1) | Both test lanes skipped on matching receipts; gate and real API report passed |
+| Explicit manual rerun | `c273e8f3cb233fe189578318af01c83a48e72a5e` | [run 39840366763, attempt 2](https://github.com/gigaverse-app/ci-esta/actions/runs/39840366763/attempts/2) | Both test lanes executed and passed; reuse was disabled as required |
 
 Local Windows validation on that revision passed 418 tests and Ruff. The actual CLI read the completed first workflow from GitHub and produced a complete report with a 35-second gate elapsed time and 55 observed runner seconds; this is a single workflow observation, not a speedup claim. The publisher sent an actual HTTP PUT to a disposable local HTTP receiver, which returned 202; repository grouping and payload were checked and the receiver shut down. This verifies transport, not a deployed Pushgateway service.
 
