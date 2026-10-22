@@ -11,6 +11,10 @@ permissions:
   checks: read
   pull-requests: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.run_attempt == 1 && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.run_attempt == 1 }}
+
 jobs:
   plan:
     name: Evidence plan
@@ -44,14 +48,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - uses: ./.github/actions/setup-cached-uv
         with:
           python-version: '3.11'
       - name: Install the Python 3.14 source-parser runtime
         run: |
           uv python install 3.14
           echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
-      - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run pytest -q -n 4
       - run: uv build
@@ -71,14 +74,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - uses: ./.github/actions/setup-cached-uv
         with:
           python-version: '3.14'
       - name: Install the Python 3.14 source-parser runtime
         run: |
           uv python install 3.14
           echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
-      - run: uv sync --locked
       - run: uv run pytest -q -n 4
       - name: ${{ needs.plan.outputs.receipt || 'Uncached validation completed' }}
         run: 'true'
@@ -86,7 +88,7 @@ jobs:
   gate:
     name: Validation gate
     needs: [plan, tests, compat]
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

@@ -18,8 +18,9 @@ the same work take 120 seconds. Conversely, making an off-path 20-second job ten
 seconds faster might not shorten a 60-second merge path at all. These are
 illustrations, not measurements from a CI-esta benchmark.
 
-CI-esta does not infer a causal dependency DAG. Read the workflow's `needs`,
-matrix limits, environments and service startup alongside the observed timeline.
+Enable [critical-path analysis](critical-path.md) to read the source workflow's
+`needs`, compute execution slack and separate execution from observed delays.
+Read matrix limits, environments and service startup alongside the observed timeline.
 Use explicit aggregate gates to define readiness. Never drop a prerequisite
 just because it appears slow; remove an edge only when the jobs do not exchange
 required outputs or evidence.
@@ -47,8 +48,9 @@ Begin with the package manager cache:
 - run: uv sync --locked
 ```
 
-This is not a `.venv` cache. CI-esta's inherited `setup-python-uv` also does not
-restore a complete environment. If measured installation cost justifies one,
+This is not a `.venv` cache. Use the new [setup-cached-uv action](environment-cache.md)
+to restore and validate a complete environment. The inherited `setup-python-uv`
+retains its original simpler contract. If measured installation cost justifies one,
 validate the restored interpreter, sync after partial matches, and rebuild on
 unusable caches. Skip synchronization only under a reviewed complete exact-key
 contract. Editable installs and workspace paths need special care. Save shared

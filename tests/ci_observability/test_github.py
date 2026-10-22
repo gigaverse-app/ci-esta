@@ -1,3 +1,4 @@
+import base64
 import io
 import zipfile
 from datetime import datetime, timezone
@@ -40,6 +41,23 @@ WORKFLOW_ID = 30095599
 BRANCH = "agent/example"
 BEFORE_NOW = datetime(2026, 7, 23, 5, 59, 59, tzinfo=timezone.utc)
 AFTER_NOW = datetime(2026, 7, 23, 6, 0, 1, tzinfo=timezone.utc)
+
+
+def test_workflow_topology_reads_only_the_reported_commit_as_data():
+    def respond(request):
+        assert request.url.path == f"/repos/{REPOSITORY}/contents/.github/workflows/ci.yml"
+        assert request.url.params["ref"] == HEAD_SHA
+        source = b"jobs:\n  test:\n    steps: [{run: NEVER_EXECUTE_THIS}]\n  gate:\n    needs: test\n"
+        return httpx.Response(200, json={"encoding": "base64", "size": len(source),
+                                        "content": base64.b64encode(source).decode()})
+
+    client = GitHubActionsClient(REPOSITORY, TOKEN, API_URL, transport=httpx.MockTransport(respond))
+    run = GitHubRunV1(id=RUN_ID, name="CI", run_attempt=1, status="completed", created_at=NOW,
+                      head_sha=HEAD_SHA, path=".github/workflows/ci.yml")
+    try:
+        assert client.workflow_dependencies(run) == {"test": [], "gate": ["test"]}
+    finally:
+        client.close()
 
 
 def _snapshot(

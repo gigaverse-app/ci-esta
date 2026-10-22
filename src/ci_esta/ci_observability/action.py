@@ -76,6 +76,8 @@ class ActionConfig(BaseModel):
     lane_selection_artifact: str = ""
     #: Keys the sticky, so several observed workflows each keep their own comment.
     sticky_key: str = ""
+    job_dependencies: dict[str, list[str]] = Field(default_factory=dict)
+    analyze_critical_path: bool = False
 
     @classmethod
     def from_environment(cls) -> "ActionConfig":
@@ -114,6 +116,9 @@ class ActionConfig(BaseModel):
             ),
             lane_selection_artifact=os.environ.get("INPUT_LANE_SELECTION_ARTIFACT", "").strip(),
             sticky_key=os.environ.get("INPUT_STICKY_KEY", "").strip(),
+            job_dependencies=TypeAdapter(dict[str, list[str]]).validate_json(
+                os.environ.get("INPUT_JOB_DEPENDENCIES_JSON", "{}")),
+            analyze_critical_path=os.environ.get("INPUT_ANALYZE_CRITICAL_PATH", "false").lower() == "true",
         )
 
 
@@ -287,6 +292,12 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
     reference_to_record: FullSuiteReferenceV1 | None = None
     try:
         run_metadata = client.get_run(config.run_id)
+        job_dependencies = config.job_dependencies
+        if config.analyze_critical_path and not job_dependencies:
+            try:
+                job_dependencies = client.workflow_dependencies(run_metadata)
+            except Exception as error:
+                errors.append(f"critical-path graph unavailable: {error}")
         try:
             latest_jobs = client.list_jobs(config.run_id, include_all_attempts=False)
         except Exception as error:
@@ -344,6 +355,7 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
             runner_sku_rates=config.runner_sku_rates,
             test_selection=test_selection,
             lane_selection=lane_selection,
+            job_dependencies=job_dependencies,
         )
         reference_to_record = _own_reference(report, config, run_metadata, observed_at)
     except Exception as error:
