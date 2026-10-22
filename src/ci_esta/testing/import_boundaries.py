@@ -25,7 +25,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
-from pytest_selective.ast_imports import iter_imports
+from pytest_selective.ast_imports import iter_imports, parse_ast
 
 
 class ImportBoundaryLayout(BaseModel):
@@ -398,7 +398,7 @@ def find_recursive_import_violations(
     source_files = sorted({path.resolve() for root in source_roots for path in _python_files(root)})
     for importer in source_files:
         importer_package = _importer_package(search_roots, importer)
-        tree = ast.parse(importer.read_text(encoding="utf-8"), filename=str(importer))
+        tree = parse_ast(importer.read_bytes(), filename=str(importer))
         for node in iter_imports(tree):
             for target in sorted(_resolved_import_targets(filesystem, importer_package, node)):
                 reason = _source_import_violation(
@@ -455,7 +455,7 @@ def find_recursive_import_violations(
             )
             continue
         importer_package = _importer_package(search_roots, importer)
-        tree = ast.parse(importer.read_text(encoding="utf-8"), filename=str(importer))
+        tree = parse_ast(importer.read_bytes(), filename=str(importer))
         for node in iter_imports(tree):
             for target in sorted(_resolved_import_targets(filesystem, importer_package, node)):
                 reason = _test_import_violation(

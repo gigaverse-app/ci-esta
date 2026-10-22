@@ -1,4 +1,5 @@
 import sys
+import warnings
 from pathlib import Path
 from unittest.mock import patch
 
@@ -62,6 +63,26 @@ def layout() -> ImportBoundaryLayout:
 
 def _violations(repo: Path, layout: ImportBoundaryLayout) -> list[str]:
     return [str(violation) for violation in find_recursive_import_violations(repo, layout)]
+
+
+@pytest.mark.parametrize("warning_policy", ["error", "always"])
+@pytest.mark.parametrize(
+    "importer",
+    [
+        "src/gv/ai/service/area/child/consumer.py",
+        "tests/test_service/test_area/test_child/test_leaf.py",
+    ],
+)
+def test_warning_policy_preserves_boundary_findings(
+    repo: Path, layout: ImportBoundaryLayout, warning_policy: str, importer: str
+) -> None:
+    _write(repo, importer, 'from gv.ai.service.root import VALUE\nPATTERN = "\\d"\n')
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter(warning_policy)
+        violations = _violations(repo, layout)
+    assert len(violations) == 1
+    assert "src/gv/ai/service/root.py" in violations[0]
+    assert caught == []
 
 
 class TestSourceBoundaries:
