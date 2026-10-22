@@ -1,4 +1,6 @@
+import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -9,6 +11,7 @@ from ci_esta.testing.local_shards import LocalShardRunConfig, run_local_shards
 
 SHARD_COUNT = 3
 FAILING_SHARD = 2
+LIVE_REPORT_DEADLINE_SECONDS = 5
 
 
 def _write_worker(path: Path, *, fail_one: bool) -> None:
@@ -69,6 +72,49 @@ def test_local_shards_wait_for_all_processes_and_report_any_failure(
     output = capsys.readouterr().out
     assert f"Shard {FAILING_SHARD}/{SHARD_COUNT} failed" in output
     assert f"worker={FAILING_SHARD}/{SHARD_COUNT}" in output
+
+
+@pytest.mark.parametrize("sibling_status", [0, 9])
+def test_live_reports_survive_a_blocked_first_shard(tmp_path: Path, sibling_status: int) -> None:
+    """A blocked first shard cannot hide sibling results or its own diagnostics."""
+    worker = tmp_path / "worker.py"
+    release = tmp_path / "release"
+    worker.write_text(
+        "import os, pathlib, time\n"
+        "shard = int(os.environ['GV_PYTEST_SHARD_INDEX'])\n"
+        "if shard == 1:\n"
+        "    print('watchdog diagnostic from blocked shard', flush=True)\n"
+        f"    while not pathlib.Path({str(release)!r}).exists():\n"
+        "        time.sleep(0.02)\n"
+        f"raise SystemExit({sibling_status} if shard == 2 else 0)\n"
+    )
+    launcher = (
+        "from pathlib import Path\n"
+        "from ci_esta.testing.local_shards import LocalShardRunConfig, run_local_shards\n"
+        "raise SystemExit(run_local_shards(LocalShardRunConfig("
+        f"shard_count=2, command={[sys.executable, str(worker)]!r}, "
+        f"log_dir=Path({str(tmp_path / 'logs')!r}), progress_interval_seconds=0.1)))\n"
+    )
+    report = tmp_path / "runner.log"
+    sibling_result = "passed" if sibling_status == 0 else "failed (exit 9)"
+    with report.open("w") as output, subprocess.Popen(
+        [sys.executable, "-c", launcher], stdout=output, stderr=subprocess.STDOUT
+    ) as process:
+        try:
+            deadline = time.monotonic() + LIVE_REPORT_DEADLINE_SECONDS
+            while time.monotonic() < deadline:
+                observed = report.read_text()
+                if f"Shard 2/2 {sibling_result}" in observed and "watchdog diagnostic" in observed:
+                    break
+                time.sleep(0.02)
+            assert process.poll() is None, observed
+            assert f"Shard 2/2 {sibling_result}" in observed
+            assert "Shard 1/2 still running" in observed
+            assert "watchdog diagnostic from blocked shard" in observed
+        finally:
+            release.touch()
+            process.wait(timeout=LIVE_REPORT_DEADLINE_SECONDS)
+    assert process.returncode == int(sibling_status != 0)
 
 
 def test_two_runner_ranges_execute_the_global_inventory_once(tmp_path: Path) -> None:
