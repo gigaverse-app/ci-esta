@@ -1,5 +1,7 @@
 """Collect GitHub Actions timing evidence or render an existing report locally."""
 
+from __future__ import annotations
+
 import argparse
 import os
 from datetime import datetime, timezone

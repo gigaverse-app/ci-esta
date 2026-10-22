@@ -1,0 +1,77 @@
+"""
+Run independent shard commands concurrently inside one CI runner.
+"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+from pathlib import Path
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class LocalShardRunConfig(BaseModel):
+    """
+    Validated local shard process configuration.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    shard_count: int = Field(ge=1)
+    command: list[str] = Field(min_length=1)
+    log_dir: Path
+    environment: dict[str, str] = Field(default_factory=dict)
+    success_tail_lines: int = Field(default=20, ge=0)
+    failure_tail_lines: int = Field(default=200, ge=0)
+
+
+def _tail(path: Path, line_count: int) -> str:
+    if line_count == 0:
+        return ""
+    return "".join(path.read_text(errors="replace").splitlines(keepends=True)[-line_count:])
+
+
+def run_local_shards(config: LocalShardRunConfig) -> int:
+    """
+    Run every configured shard, preserve every log, and aggregate status.
+    """
+    config.log_dir.mkdir(parents=True, exist_ok=True)
+    processes: list[tuple[int, subprocess.Popen[bytes]]] = []
+    try:
+        for shard_index in range(1, config.shard_count + 1):
+            log_path = config.log_dir / f"group-{shard_index}.log"
+            environment = {
+                **os.environ,
+                **config.environment,
+                "GV_PYTEST_SHARD_INDEX": str(shard_index),
+                "GV_PYTEST_SHARD_COUNT": str(config.shard_count),
+            }
+            with log_path.open("wb") as log:
+                process = subprocess.Popen(
+                    config.command,
+                    env=environment,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                )
+            processes.append((shard_index, process))
+
+        failed = False
+        for shard_index, process in processes:
+            return_code = process.wait()
+            passed = return_code == 0
+            failed = failed or not passed
+            status = "passed" if passed else f"failed (exit {return_code})"
+            print(f"Shard {shard_index}/{config.shard_count} {status}")
+            tail_lines = config.success_tail_lines if passed else config.failure_tail_lines
+            tail = _tail(config.log_dir / f"group-{shard_index}.log", tail_lines)
+            if tail:
+                print(tail, end="" if tail.endswith("\n") else "\n")
+        return int(failed)
+    except BaseException:
+        for _, process in processes:
+            if process.poll() is None:
+                process.terminate()
+        for _, process in processes:
+            process.wait()
+        raise

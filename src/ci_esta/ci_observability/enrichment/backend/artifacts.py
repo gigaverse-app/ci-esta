@@ -1,5 +1,7 @@
 """Parse backend-owned test artifacts and build visible repository signals."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
 from defusedxml import ElementTree as ET

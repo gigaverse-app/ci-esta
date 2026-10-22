@@ -1,0 +1,167 @@
+{
+ "source": "gigaverse-backend#4957 (probe), workflow test.yaml, one head eaf32c3",
+ "runs": {
+  "first": [
+   {
+    "name": "Plan test paths",
+    "conclusion": "success"
+   },
+   {
+    "name": "Sync deployment followups \u00b7 promotion checklist",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Lint OpenAPI compatibility",
+    "conclusion": "success"
+   },
+   {
+    "name": "Test unit behavior \u00b7 6 concurrent shards",
+    "conclusion": "success"
+   },
+   {
+    "name": "Check Python types, migrations and workflow policy",
+    "conclusion": "success"
+   },
+   {
+    "name": "Build image for tests",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Test search integration \u00b7 real OpenSearch",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Sync deployment followups \u00b7 PR comment",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Test migrations \u00b7 fresh apply and schema parity",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Resolve backend check gate",
+    "conclusion": "success"
+   },
+   {
+    "name": "Publish unit test artifacts",
+    "conclusion": "success"
+   },
+   {
+    "name": "Publish coverage / Publish coverage",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Publish shared CI observability \u00b7 fallback",
+    "conclusion": "skipped"
+   }
+  ],
+  "ready_immediately": [
+   {
+    "name": "Plan test paths",
+    "conclusion": "success"
+   },
+   {
+    "name": "Sync deployment followups \u00b7 promotion checklist",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Build image for tests",
+    "conclusion": "success"
+   },
+   {
+    "name": "Lint OpenAPI compatibility",
+    "conclusion": "success"
+   },
+   {
+    "name": "Check Python types, migrations and workflow policy",
+    "conclusion": "success"
+   },
+   {
+    "name": "Test unit behavior \u00b7 6 concurrent shards",
+    "conclusion": "success"
+   },
+   {
+    "name": "Sync deployment followups \u00b7 PR comment",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Test migrations \u00b7 fresh apply and schema parity",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Test search integration \u00b7 real OpenSearch",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Resolve backend check gate",
+    "conclusion": "success"
+   },
+   {
+    "name": "Publish unit test artifacts",
+    "conclusion": "success"
+   },
+   {
+    "name": "Publish coverage / Publish coverage",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Publish shared CI observability \u00b7 fallback",
+    "conclusion": "skipped"
+   }
+  ],
+  "ready_after_4_minutes": [
+   {
+    "name": "Plan test paths",
+    "conclusion": "success"
+   },
+   {
+    "name": "Sync deployment followups \u00b7 promotion checklist",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Check Python types, migrations and workflow policy",
+    "conclusion": "success"
+   },
+   {
+    "name": "Test unit behavior \u00b7 6 concurrent shards",
+    "conclusion": "success"
+   },
+   {
+    "name": "Lint OpenAPI compatibility",
+    "conclusion": "success"
+   },
+   {
+    "name": "Build image for tests",
+    "conclusion": "success"
+   },
+   {
+    "name": "Test migrations \u00b7 fresh apply and schema parity",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Test search integration \u00b7 real OpenSearch",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Sync deployment followups \u00b7 PR comment",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Resolve backend check gate",
+    "conclusion": "success"
+   },
+   {
+    "name": "Publish unit test artifacts",
+    "conclusion": "success"
+   },
+   {
+    "name": "Publish coverage / Publish coverage",
+    "conclusion": "skipped"
+   },
+   {
+    "name": "Publish shared CI observability \u00b7 fallback",
+    "conclusion": "skipped"
+   }
+  ]
+ }
+}

@@ -89,3 +89,23 @@ See [how the projects fit together](docs/integrations.md). Each can be adopted i
 Cost figures are estimates using configured rates, not billing records. Admission delay includes more than runner queue time. Evidence reuse is bounded by declared inputs, proof freshness and GitHub API visibility. No universal speedup is claimed. Existing backend-common consumers have not been automatically migrated.
 
 Apache-2.0. See [source provenance](PROVENANCE.md).
+
+
+## CI toolkit catalog
+
+CI-esta consolidates reusable CI execution, measurement and evidence tooling. The selectors themselves live in [pytest-selective](https://github.com/gigaverse-app/pytest-selective); source obligations live in [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation); dependency maintenance lives in [due](https://github.com/gigaverse-app/due).
+
+| Area | Tools | Python / pytest dependency |
+| --- | --- | --- |
+| GitHub Actions evidence | Independent lane receipts, incremental PR bases, inventory reuse, validation gates, stale-run cancellation | No pytest required |
+| Reporting | Run latency, critical dependencies, all-attempt runner cost, sticky summaries, Prometheus snapshots | Python CLI; accepts non-Python workflows |
+| Test execution | JUnit aggregation, duration merge, coverage floors, prior-failure canaries, local shard supervisor, completion receipts | pytest adapters; JUnit and coverage readers are reusable |
+| Selection integration | Cached impact planning, shard sizing, type-check scope | Calls pytest-selective; no copied selector |
+| Test hygiene | Import isolation, import boundaries, fixture expansion guard | Python source analysis |
+| Security and CI lint | Semgrep, Trivy, actionlint, shellcheck, changed diagnostic filtering | Any GitHub repository; scanner prerequisites apply |
+| Container evidence | OCI layer comparison, pull experiments, frozen runtime observers, Kubernetes node probes, ECR manifest reuse | Python orchestration; Docker/AWS/Kubernetes providers |
+| Live CI drills | Repeated-head, retag, main-moved and readiness scenarios with leased disposable PR slots | Existing Gigaverse consumer profiles; requires explicit live credentials |
+
+See the [action catalog](.github/actions/README.md), [migration inventory](docs/migration-inventory.json) and [preservation test plan](docs/migration-test-plan.md). Some actions retain the originating project's defaults (Python 3.14, coverage schedule, security labels); review their documented inputs. The optional dependency-token receipt adapter recognizes backend-common pins. Without that adapter, evidence uses exact dependency pins.
+
+The wheel includes action support resources. `ci_esta.resources.source_root()` locates them for compatibility imports; normal Actions users should use immutable GitHub `uses:` references. Install `ci-esta[pytest]` when loading `ci_esta.testing.pytest_completion` as a pytest plugin.

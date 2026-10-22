@@ -5,6 +5,8 @@ This module exists only so dashboard migration can happen without a telemetry
 gap; BE-751 removes it after the queries move to shared metric names.
 """
 
+from __future__ import annotations
+
 from pydantic import BaseModel, ConfigDict
 
 from ci_esta.ci_observability.enrichment.backend.models import (

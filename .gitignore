@@ -8,3 +8,5 @@ dist/
 ci-observability.json
 ci-observability.md
 ci-observability.prom
+
+*.log

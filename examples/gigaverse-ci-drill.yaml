@@ -1,0 +1,63 @@
+name: CI drill
+
+# Prove a backend-common CI change on real GitHub, in both consumers, before it merges.
+# A green bump PR proves only that one event on one commit passes; the drill re-triggers
+# already-validated commits on the generated update-backend-common-pr<N> branches and on
+# each consumer's main, and scores repeated work, red runs and wall time
+# (scripts/ci/ci_drill.py). It posts the scorecard and a `ci-drill` status on the PR.
+#
+# Trigger it by labelling a PR `ci-drill` (must pass, no regression against main) or
+# `ci-drill-improved` (must measurably improve on main), or dispatch it by PR number.
+# The drill itself is checked out from the default branch: the PR under test cannot
+# weaken the harness that judges it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_pr:
+        description: backend-common PR whose generated bump branches to drill
+        required: true
+        type: number
+      expect:
+        description: "pass: no repeats, no regression. improved: measurably better than main."
+        type: choice
+        options: [pass, improved]
+        default: pass
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       (github.event.label.name == 'ci-drill' || github.event.label.name == 'ci-drill-improved'))
+    # Serialize only admitted drills; unrelated labels cannot cancel or occupy the pool.
+    concurrency:
+      group: ci-drill-pool
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    # A drill waits for the bump branches, then runs 3 events per branch; each run is ~6 minutes.
+    # On top of that it may wait up to 60 minutes for a local driver to release the pool lease
+    # (the concurrency group above only queues hosted drills).
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - name: Drill both consumers against main
+        env:
+          # Reuses the bounded consumer PR pool and posts the result here.
+          GH_TOKEN: ${{ secrets.GV_CI_CROSS_REPO_TOKEN }}
+          SOURCE_PR: ${{ inputs.source_pr || github.event.pull_request.number }}
+          EXPECT: ${{ inputs.expect || (github.event.label.name == 'ci-drill-improved' && 'improved' || 'pass') }}
+          # Read from the environment, not argv: the drill script comes from the default branch,
+          # and a script that predates the flag would reject it.
+          CI_DRILL_LEASE_WAIT_MINUTES: "60"
+        run: >-
+          uv run --no-project --python 3.14 --with "$(python3 scripts/ci/ci_esta_requirement.py)" python -m scripts.ci.ci_drill
+          --source-pr "$SOURCE_PR" --compare-main --expect "$EXPECT" --post

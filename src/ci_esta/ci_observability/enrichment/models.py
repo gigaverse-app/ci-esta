@@ -1,5 +1,7 @@
 """Models shared by every enrichment profile."""
 
+from __future__ import annotations
+
 from ci_esta.ci_observability.models import PytestTimingMetadata, RepositorySignalV1
 
 # Both consumers redefined the shared report's repository-signal shape

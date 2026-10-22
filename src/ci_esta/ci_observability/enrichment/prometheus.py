@@ -1,5 +1,7 @@
 """Minimal Prometheus text-exposition parsing for build-metric artifacts."""
 
+from __future__ import annotations
+
 import re
 from pathlib import Path
 

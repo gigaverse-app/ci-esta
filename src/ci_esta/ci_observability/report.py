@@ -2,6 +2,8 @@
 Pure CI observability accounting and rendering.
 """
 
+from __future__ import annotations
+
 import math
 from datetime import datetime
 from decimal import Decimal

@@ -24,3 +24,5 @@ strings, JSON formatting) is preserved exactly as the consumer wrote it;
 source consumers can migrate their workflow invocations independently. This
 extraction does not claim those consumer migrations have already happened.
 """
+
+from __future__ import annotations

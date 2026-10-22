@@ -7,6 +7,8 @@ repo's pytest and Docker-build measurements that the shared reporter
 cannot infer.
 """
 
+from __future__ import annotations
+
 from enum import StrEnum
 from pathlib import Path
 from statistics import mean

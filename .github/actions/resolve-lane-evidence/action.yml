@@ -11,6 +11,12 @@ inputs:
       tree. Include workflow, setup scripts, dependency locks and upstream revision pins.
       Unchanged inputs still require a proven passing lane; a path match alone never skips.
     default: '[]'
+  dependency-token:
+    description: >-
+      Read access to backend-common. With it, a backend-common pin counts as the tree it
+      installs, so a retag between commits of one tree (PR<N> to v<N>) reuses every lane.
+      Without it pins are compared exactly.
+    default: ''
 outputs:
   receipt:
     description: Completion step name binding consumer merge tree and downloaded shared tooling.
@@ -27,12 +33,16 @@ runs:
         EVIDENCE_LANES: ${{ inputs.lanes }}
         EVIDENCE_INPUT_PATHS: ${{ inputs.input-paths }}
         TESTED_MERGE_SHA: ${{ github.sha }}
+        DEPENDENCY_TOKEN: ${{ inputs.dependency-token }}
       with:
+        # A dropped connection must not turn a normalized receipt into an exact-pin
+        # fallback and rerun every lane. github-script also applies this bounded
+        # policy to the dependency-token client; exhausted reads still fall back safely.
         retries: 2
         script: |
           const reused = {};
           const { testedIdentity, inventoryIdentity, validationReceipt } = require(`${process.env.GITHUB_ACTION_PATH}/inputs.cjs`);
-          const shared = null;
+          const shared = process.env.DEPENDENCY_TOKEN ? getOctokit(process.env.DEPENDENCY_TOKEN) : null;
           let tested;
           const paths = JSON.parse(process.env.EVIDENCE_INPUT_PATHS || '[]');
           try {
