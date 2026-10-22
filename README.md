@@ -193,3 +193,5 @@ See the [action catalog](.github/actions/README.md), [migration inventory](docs/
 The wheel includes action support resources. `ci_esta.resources.source_root()` locates them for compatibility imports; normal Actions users should use immutable GitHub `uses:` references. Install `ci-esta[pytest]` when loading `ci_esta.testing.pytest_completion` as a pytest plugin.
 
 Runner sizing, distributed shard pools and opt-in resource/pytest hang diagnostics: [runner recipes](docs/runners-and-diagnostics.md). Standard import rules use import-linter; filesystem-specific rules remain in the shared boundary checker.
+
+<!-- Matched docs/full CI measurement. This disposable probe will not be merged. -->
