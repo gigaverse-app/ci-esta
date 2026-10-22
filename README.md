@@ -21,7 +21,7 @@ Repeated CI work is easy to skip incorrectly: the previous workflow was green bu
 | `collect-pr-changes` | Collect a complete PR file list bound to the observed head and base; detect truncation and races |
 | `publish-prometheus-snapshot` | Replace a stable, repository-isolated Pushgateway group without run/SHA label growth |
 
-All six actions live in this repository. No hosted CI-esta service is required. Evidence and gate actions use JavaScript; reporting uses an isolated Python runtime. A pytest application is not required.
+All actions live in this repository. No hosted CI-esta service is required. Evidence and gate actions use JavaScript; reporting uses an isolated Python runtime. A pytest application is not required.
 
 ## Start by measuring one workflow
 
@@ -86,6 +86,26 @@ See [how the projects fit together](docs/integrations.md). Each can be adopted i
 
 **Alpha, extracted from Gigaverse's backend-common CI tools.** APIs and schemas may evolve. Git installs work; no PyPI or npm release is claimed. The reporting package currently installs pytest-selective from a pinned public Git revision. Python 3.11+ is required for the CLI; Actions do not require your application to use Python.
 
-Cost figures are estimates using configured rates, not billing records. Admission delay includes more than runner queue time. Evidence reuse is bounded by declared inputs, proof freshness and GitHub API visibility. No universal speedup is claimed. Existing backend-common consumers have not been automatically migrated.
+Cost figures are estimates using configured rates, not billing records. Admission delay includes more than runner queue time. Evidence reuse is bounded by declared inputs, proof freshness and GitHub API visibility. No universal speedup is claimed. The backend-common compatibility migration is tracked separately from publication; see [adoption](docs/upstreaming.md).
 
 Apache-2.0. See [source provenance](PROVENANCE.md).
+
+
+## CI toolkit catalog
+
+CI-esta consolidates reusable CI execution, measurement and evidence tooling. The selectors themselves live in [pytest-selective](https://github.com/gigaverse-app/pytest-selective); source obligations live in [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation); dependency maintenance lives in [due](https://github.com/gigaverse-app/due).
+
+| Area | Tools | Python / pytest dependency |
+| --- | --- | --- |
+| GitHub Actions evidence | Independent lane receipts, incremental PR bases, inventory reuse, validation gates, stale-run cancellation | No pytest required |
+| Reporting | Run latency, critical dependencies, all-attempt runner cost, sticky summaries, Prometheus snapshots | Python CLI; accepts non-Python workflows |
+| Test execution | JUnit aggregation, duration merge, coverage floors, prior-failure canaries, local shard supervisor, completion receipts | pytest adapters; JUnit and coverage readers are reusable |
+| Selection integration | Cached impact planning, shard sizing, type-check scope | Calls pytest-selective; no copied selector |
+| Test hygiene | Import isolation, import boundaries, fixture expansion guard | Python source analysis |
+| Security and CI lint | Semgrep, Trivy, actionlint, shellcheck, changed diagnostic filtering | Any GitHub repository; scanner prerequisites apply |
+| Container evidence | OCI layer comparison, pull experiments, frozen runtime observers, Kubernetes node probes, ECR manifest reuse | Python orchestration; Docker/AWS/Kubernetes providers |
+| Live CI drills | Repeated-head, retag, main-moved and readiness scenarios with leased disposable PR slots | Existing Gigaverse consumer profiles; requires explicit live credentials |
+
+See the [action catalog](.github/actions/README.md), [migration inventory](docs/migration-inventory.json) and [preservation test plan](docs/migration-test-plan.md). Some actions retain the originating project's defaults (Python 3.14, coverage schedule, security labels); review their documented inputs. The optional dependency-token receipt adapter recognizes backend-common pins. Without that adapter, evidence uses exact dependency pins.
+
+The wheel includes action support resources. `ci_esta.resources.source_root()` locates them for compatibility imports; normal Actions users should use immutable GitHub `uses:` references. Install `ci-esta[pytest]` when loading `ci_esta.testing.pytest_completion` as a pytest plugin.

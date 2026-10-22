@@ -10,6 +10,8 @@ is marked yellow, never opened: the sticky stays short on every PR, and the mark
 Repository paths come from whoever opened the PR, so every one goes through `markdown`.
 """
 
+from __future__ import annotations
+
 from pathlib import PurePosixPath
 
 from pytest_selective.impact_models import (

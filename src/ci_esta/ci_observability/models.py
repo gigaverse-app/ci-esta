@@ -2,6 +2,8 @@
 Versioned data contracts for shared CI observability.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum

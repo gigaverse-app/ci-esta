@@ -4,6 +4,8 @@ Both consumer repos carried byte-identical copies of these helpers; this
 is their single home now.
 """
 
+from __future__ import annotations
+
 import re
 from pathlib import Path
 

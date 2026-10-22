@@ -1,0 +1,510 @@
+{
+  "source_revision": "b6a2de0f58f18b78e544568d9ebd7371c8c30370",
+  "python": [
+    {
+      "source": "src/backend_common/testing/action.py",
+      "target": "src/ci_esta/testing/action.py"
+    },
+    {
+      "source": "src/backend_common/testing/artifacts.py",
+      "target": "src/ci_esta/testing/artifacts.py"
+    },
+    {
+      "source": "src/backend_common/testing/canary_action.py",
+      "target": "src/ci_esta/testing/canary_action.py"
+    },
+    {
+      "source": "src/backend_common/testing/canary_run.py",
+      "target": "src/ci_esta/testing/canary_run.py"
+    },
+    {
+      "source": "src/backend_common/testing/cli.py",
+      "target": "src/ci_esta/testing/cli.py"
+    },
+    {
+      "source": "src/backend_common/testing/coverage.py",
+      "target": "src/ci_esta/testing/coverage.py"
+    },
+    {
+      "source": "src/backend_common/testing/evidence.py",
+      "target": "src/ci_esta/testing/evidence.py"
+    },
+    {
+      "source": "src/backend_common/testing/gha_expressions.py",
+      "target": "src/ci_esta/testing/gha_expressions.py"
+    },
+    {
+      "source": "src/backend_common/testing/hygiene.py",
+      "target": "src/ci_esta/testing/hygiene.py"
+    },
+    {
+      "source": "src/backend_common/testing/import_boundaries.py",
+      "target": "src/ci_esta/testing/import_boundaries.py"
+    },
+    {
+      "source": "src/backend_common/testing/import_boundary_config.py",
+      "target": "src/ci_esta/testing/import_boundary_config.py"
+    },
+    {
+      "source": "src/backend_common/testing/junit.py",
+      "target": "src/ci_esta/testing/junit.py"
+    },
+    {
+      "source": "src/backend_common/testing/local_shards.py",
+      "target": "src/ci_esta/testing/local_shards.py"
+    },
+    {
+      "source": "src/backend_common/testing/pytest_completion.py",
+      "target": "src/ci_esta/testing/pytest_completion.py"
+    },
+    {
+      "source": "src/backend_common/testing/pytest_expansion.py",
+      "target": "src/ci_esta/testing/pytest_expansion.py"
+    },
+    {
+      "source": "src/backend_common/testing/workflow_policy.py",
+      "target": "src/ci_esta/testing/workflow_policy.py"
+    },
+    {
+      "source": "src/backend_common/testing/evidence_scripts/collect.sh",
+      "target": "src/ci_esta/testing/evidence_scripts/collect.sh"
+    },
+    {
+      "source": "src/backend_common/testing/evidence_scripts/verify.sh",
+      "target": "src/ci_esta/testing/evidence_scripts/verify.sh"
+    },
+    {
+      "source": "src/backend_common/image_evidence/cli.py",
+      "target": "src/ci_esta/image_evidence/cli.py"
+    },
+    {
+      "source": "src/backend_common/image_evidence/nodes.py",
+      "target": "src/ci_esta/image_evidence/nodes.py"
+    },
+    {
+      "source": "src/backend_common/image_evidence/observer.py",
+      "target": "src/ci_esta/image_evidence/observer.py"
+    },
+    {
+      "source": "src/backend_common/image_evidence/plan.py",
+      "target": "src/ci_esta/image_evidence/plan.py"
+    },
+    {
+      "source": "src/backend_common/image_evidence/pulls.sh",
+      "target": "src/ci_esta/image_evidence/pulls.sh"
+    },
+    {
+      "source": "src/backend_common/image_evidence/runtime.py",
+      "target": "src/ci_esta/image_evidence/runtime.py"
+    },
+    {
+      "source": "src/backend_common/image_evidence/__init__.py",
+      "target": "src/ci_esta/image_evidence/__init__.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/action.py",
+      "target": "src/ci_esta/ci_observability/action.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/github.py",
+      "target": "src/ci_esta/ci_observability/github.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/markdown.py",
+      "target": "src/ci_esta/ci_observability/markdown.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/models.py",
+      "target": "src/ci_esta/ci_observability/models.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/report.py",
+      "target": "src/ci_esta/ci_observability/report.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/selection.py",
+      "target": "src/ci_esta/ci_observability/selection.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/__init__.py",
+      "target": "src/ci_esta/ci_observability/__init__.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/ai.py",
+      "target": "src/ci_esta/ci_observability/enrichment/ai.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/cli.py",
+      "target": "src/ci_esta/ci_observability/enrichment/cli.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/models.py",
+      "target": "src/ci_esta/ci_observability/enrichment/models.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/primitives.py",
+      "target": "src/ci_esta/ci_observability/enrichment/primitives.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/profiles.py",
+      "target": "src/ci_esta/ci_observability/enrichment/profiles.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/prometheus.py",
+      "target": "src/ci_esta/ci_observability/enrichment/prometheus.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/__init__.py",
+      "target": "src/ci_esta/ci_observability/enrichment/__init__.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/__main__.py",
+      "target": "src/ci_esta/ci_observability/enrichment/__main__.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/backend/artifacts.py",
+      "target": "src/ci_esta/ci_observability/enrichment/backend/artifacts.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/backend/github.py",
+      "target": "src/ci_esta/ci_observability/enrichment/backend/github.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/backend/legacy.py",
+      "target": "src/ci_esta/ci_observability/enrichment/backend/legacy.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/backend/models.py",
+      "target": "src/ci_esta/ci_observability/enrichment/backend/models.py"
+    },
+    {
+      "source": "src/backend_common/ci_observability/enrichment/backend/__init__.py",
+      "target": "src/ci_esta/ci_observability/enrichment/backend/__init__.py"
+    },
+    {
+      "source": "scripts/ci/ci_drill.py",
+      "target": "src/ci_esta/drill.py"
+    },
+    {
+      "source": "scripts/ci/github_script_surface.py",
+      "target": "src/ci_esta/github_script_surface.py"
+    }
+  ],
+  "actions": [
+    "cancel-obsolete-pr-runs",
+    "ci-observability",
+    "ci-observability-enrichment",
+    "collect-pr-changes",
+    "collect-pytest-changes",
+    "coverage-policy",
+    "lint-ci-code",
+    "plan-pytest-shards",
+    "publish-prometheus-snapshot",
+    "pytest-canary-pr-state",
+    "pytest-expansion",
+    "pytest-failure-canary",
+    "pytest-timings",
+    "resolve-incremental-pr-base",
+    "resolve-lane-evidence",
+    "resolve-pytest-evidence",
+    "resolve-security-trigger",
+    "reuse-ecr-image",
+    "semgrep-scan",
+    "semgrep-scan-ci-code",
+    "setup-python-uv",
+    "test-impact",
+    "trivy-scan-ci-code",
+    "trivy-scan-image",
+    "typecheck-scope",
+    "validation-gate",
+    "verify-pytest-completion"
+  ],
+  "tests": [
+    {
+      "source": "tests/testing/git_repo.py",
+      "target": "tests/testing/git_repo.py"
+    },
+    {
+      "source": "tests/testing/test_canary_run.py",
+      "target": "tests/testing/test_canary_run.py"
+    },
+    {
+      "source": "tests/testing/test_canary_toolchain.py",
+      "target": "tests/testing/test_canary_toolchain.py"
+    },
+    {
+      "source": "tests/testing/test_cli.py",
+      "target": "tests/testing/test_cli.py"
+    },
+    {
+      "source": "tests/testing/test_coverage.py",
+      "target": "tests/testing/test_coverage.py"
+    },
+    {
+      "source": "tests/testing/test_gha_expressions.py",
+      "target": "tests/testing/test_gha_expressions.py"
+    },
+    {
+      "source": "tests/testing/test_hygiene.py",
+      "target": "tests/testing/test_hygiene.py"
+    },
+    {
+      "source": "tests/testing/test_import_boundaries.py",
+      "target": "tests/testing/test_import_boundaries.py"
+    },
+    {
+      "source": "tests/testing/test_import_boundary_config.py",
+      "target": "tests/testing/test_import_boundary_config.py"
+    },
+    {
+      "source": "tests/testing/test_junit.py",
+      "target": "tests/testing/test_junit.py"
+    },
+    {
+      "source": "tests/testing/test_local_shards.py",
+      "target": "tests/testing/test_local_shards.py"
+    },
+    {
+      "source": "tests/testing/test_pytest_canary_action.py",
+      "target": "tests/testing/test_pytest_canary_action.py"
+    },
+    {
+      "source": "tests/testing/test_pytest_canary_pr_state_action.py",
+      "target": "tests/testing/test_pytest_canary_pr_state_action.py"
+    },
+    {
+      "source": "tests/testing/test_pytest_completion.py",
+      "target": "tests/testing/test_pytest_completion.py"
+    },
+    {
+      "source": "tests/testing/test_pytest_evidence.py",
+      "target": "tests/testing/test_pytest_evidence.py"
+    },
+    {
+      "source": "tests/testing/test_pytest_expansion.py",
+      "target": "tests/testing/test_pytest_expansion.py"
+    },
+    {
+      "source": "tests/testing/test_pytest_timings_action.py",
+      "target": "tests/testing/test_pytest_timings_action.py"
+    },
+    {
+      "source": "tests/testing/test_workflow_policy.py",
+      "target": "tests/testing/test_workflow_policy.py"
+    },
+    {
+      "source": "tests/ci/test_lane_receipt.py",
+      "target": "tests/ci/test_lane_receipt.py"
+    },
+    {
+      "source": "tests/ci/test_inventory_evidence.py",
+      "target": "tests/ci/test_inventory_evidence.py"
+    },
+    {
+      "source": "tests/ci/test_image_evidence.py",
+      "target": "tests/ci/test_image_evidence.py"
+    },
+    {
+      "source": "tests/ci/test_ci_drill.py",
+      "target": "tests/ci/test_ci_drill.py"
+    },
+    {
+      "source": "tests/ci/test_drill_slots.py",
+      "target": "tests/ci/test_drill_slots.py"
+    },
+    {
+      "source": "tests/ci/ci_drill_probe_4957.json",
+      "target": "tests/ci/ci_drill_probe_4957.json"
+    },
+    {
+      "source": "tests/ci/test_coverage_policy.py",
+      "target": "tests/ci/test_coverage_policy.py"
+    },
+    {
+      "source": "tests/ci/test_security_change_scope.py",
+      "target": "tests/ci/test_security_change_scope.py"
+    },
+    {
+      "source": "tests/ci/test_typecheck_scope_action.py",
+      "target": "tests/ci/test_typecheck_scope_action.py"
+    },
+    {
+      "source": "tests/ci/test_semgrep_runner.py",
+      "target": "tests/ci/test_semgrep_runner.py"
+    },
+    {
+      "source": "tests/ci/test_github_rest_surface.py",
+      "target": "tests/ci/test_github_rest_surface.py"
+    },
+    {
+      "source": "tests/ci/image_evidence/test_nodes.py",
+      "target": "tests/ci/image_evidence/test_nodes.py"
+    },
+    {
+      "source": "tests/ci/image_evidence/test_pull_driver.py",
+      "target": "tests/ci/image_evidence/test_pull_driver.py"
+    },
+    {
+      "source": "tests/ci/image_evidence/test_pull_plan.py",
+      "target": "tests/ci/image_evidence/test_pull_plan.py"
+    },
+    {
+      "source": "tests/ci/image_evidence/test_runtime.py",
+      "target": "tests/ci/image_evidence/test_runtime.py"
+    },
+    {
+      "source": "tests/github_actions/test_reuse_ecr_image_action.py",
+      "target": "tests/github_actions/test_reuse_ecr_image_action.py"
+    },
+    {
+      "source": "tests/github_actions/test_trivy_scan_image_action.py",
+      "target": "tests/github_actions/test_trivy_scan_image_action.py"
+    }
+  ],
+  "scripts": [
+    {
+      "source": ".github/actions/cancel-obsolete-pr-runs/action.yml",
+      "target": ".github/actions/cancel-obsolete-pr-runs/action.yml"
+    },
+    {
+      "source": ".github/actions/ci-observability-enrichment/action.yml",
+      "target": ".github/actions/ci-observability-enrichment/action.yml"
+    },
+    {
+      "source": ".github/actions/collect-pytest-changes/action.yml",
+      "target": ".github/actions/collect-pytest-changes/action.yml"
+    },
+    {
+      "source": ".github/actions/coverage-policy/action.yml",
+      "target": ".github/actions/coverage-policy/action.yml"
+    },
+    {
+      "source": ".github/actions/lint-ci-code/action.yml",
+      "target": ".github/actions/lint-ci-code/action.yml"
+    },
+    {
+      "source": ".github/actions/lint-ci-code/filter_changed_diagnostics.py",
+      "target": ".github/actions/lint-ci-code/filter_changed_diagnostics.py"
+    },
+    {
+      "source": ".github/actions/lint-ci-code/validate_actions.py",
+      "target": ".github/actions/lint-ci-code/validate_actions.py"
+    },
+    {
+      "source": ".github/actions/plan-pytest-shards/action.yml",
+      "target": ".github/actions/plan-pytest-shards/action.yml"
+    },
+    {
+      "source": ".github/actions/pytest-canary-pr-state/action.yml",
+      "target": ".github/actions/pytest-canary-pr-state/action.yml"
+    },
+    {
+      "source": ".github/actions/pytest-expansion/action.yml",
+      "target": ".github/actions/pytest-expansion/action.yml"
+    },
+    {
+      "source": ".github/actions/pytest-failure-canary/action.yml",
+      "target": ".github/actions/pytest-failure-canary/action.yml"
+    },
+    {
+      "source": ".github/actions/pytest-failure-canary/README.md",
+      "target": ".github/actions/pytest-failure-canary/README.md"
+    },
+    {
+      "source": ".github/actions/pytest-timings/action.yml",
+      "target": ".github/actions/pytest-timings/action.yml"
+    },
+    {
+      "source": ".github/actions/resolve-pytest-evidence/action.yml",
+      "target": ".github/actions/resolve-pytest-evidence/action.yml"
+    },
+    {
+      "source": ".github/actions/resolve-security-trigger/action.yml",
+      "target": ".github/actions/resolve-security-trigger/action.yml"
+    },
+    {
+      "source": ".github/actions/resolve-security-trigger/inventory.cjs",
+      "target": ".github/actions/resolve-security-trigger/inventory.cjs"
+    },
+    {
+      "source": ".github/actions/resolve-security-trigger/scope.cjs",
+      "target": ".github/actions/resolve-security-trigger/scope.cjs"
+    },
+    {
+      "source": ".github/actions/reuse-ecr-image/action.yml",
+      "target": ".github/actions/reuse-ecr-image/action.yml"
+    },
+    {
+      "source": ".github/actions/reuse-ecr-image/reuse_ecr_image.sh",
+      "target": ".github/actions/reuse-ecr-image/reuse_ecr_image.sh"
+    },
+    {
+      "source": ".github/actions/semgrep-scan/action.yml",
+      "target": ".github/actions/semgrep-scan/action.yml"
+    },
+    {
+      "source": ".github/actions/semgrep-scan/setup.sh",
+      "target": ".github/actions/semgrep-scan/setup.sh"
+    },
+    {
+      "source": ".github/actions/semgrep-scan-ci-code/action.yml",
+      "target": ".github/actions/semgrep-scan-ci-code/action.yml"
+    },
+    {
+      "source": ".github/actions/setup-python-uv/action.yml",
+      "target": ".github/actions/setup-python-uv/action.yml"
+    },
+    {
+      "source": ".github/actions/test-impact/action.yml",
+      "target": ".github/actions/test-impact/action.yml"
+    },
+    {
+      "source": ".github/actions/trivy-scan-ci-code/action.yml",
+      "target": ".github/actions/trivy-scan-ci-code/action.yml"
+    },
+    {
+      "source": ".github/actions/trivy-scan-image/action.yml",
+      "target": ".github/actions/trivy-scan-image/action.yml"
+    },
+    {
+      "source": ".github/actions/typecheck-scope/action.yml",
+      "target": ".github/actions/typecheck-scope/action.yml"
+    },
+    {
+      "source": ".github/actions/typecheck-scope/proof.cjs",
+      "target": ".github/actions/typecheck-scope/proof.cjs"
+    },
+    {
+      "source": ".github/actions/typecheck-scope/scope.sh",
+      "target": ".github/actions/typecheck-scope/scope.sh"
+    },
+    {
+      "source": ".github/actions/verify-pytest-completion/action.yml",
+      "target": ".github/actions/verify-pytest-completion/action.yml"
+    },
+    {
+      "source": "scripts/ci/pytest_selective_requirement.py",
+      "target": "scripts/ci/pytest_selective_requirement.py"
+    },
+    {
+      "source": "scripts/ci/coverage-policy.cjs",
+      "target": "scripts/ci/coverage-policy.cjs"
+    },
+    {
+      "source": "scripts/ci/github_script_surface.py",
+      "target": "scripts/ci/github_script_surface.py"
+    }
+  ],
+  "workflow_primitives": [
+    {
+      "source": ".github/workflows/reusable-ci-code-validation.yaml",
+      "step": "changes",
+      "target": ".github/actions/collect-ci-changes/action.yml"
+    },
+    {
+      "source": ".github/workflows/reusable-current-pr-head.yaml",
+      "step": "current",
+      "target": ".github/actions/current-pr-head/action.yml"
+    }
+  ]
+}

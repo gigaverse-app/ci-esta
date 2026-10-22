@@ -1,5 +1,7 @@
 """Read shared facts back out of whichever consumer profile filled a report's ``extensions``."""
 
+from __future__ import annotations
+
 from pydantic import JsonValue, ValidationError
 
 from ci_esta.ci_observability.enrichment.ai import AiExtensions

@@ -1,0 +1,80 @@
+name: Scope a type check to what a change can affect
+description: >-
+  From a base that is proven to check clean, list the checked files whose import closure
+  reaches a change (pytest_selective.typecheck_scope). Any doubt is the full check:
+  no proof for the base, a changed global input, an unreadable pattern, a failed fetch or
+  computation, or a scope nearly as large as the project.
+inputs:
+  config:
+    description: The consumer's test-impact dependency graph configuration.
+    required: true
+  base:
+    description: The base to diff from, normally the PR base.
+    required: true
+  head:
+    description: The checked-out commit.
+    default: HEAD
+  checker-config:
+    description: The checker's config file (pyright-family), read for its include and exclude.
+    default: pyrightconfig.json
+  global-inputs:
+    description: >-
+      Whitespace-separated fnmatch patterns whose change alters every verdict: configuration,
+      the lock and manifest, stubs (list both `*.pyi` and `**/*.pyi`), and any path the checker
+      resolves imports from but the graph's module roots do not model.
+    required: true
+  max-fraction:
+    description: Scope size, as a fraction of checked files, at or above which the full check runs.
+    default: '0.6'
+  clean-base-checks:
+    description: >-
+      Newline-separated check-run names (they contain spaces, such as
+      `type-check / basedpyright`). The base is proven clean only by a successful check run
+      with one of these names on the base commit itself.
+    required: true
+outputs:
+  mode:
+    description: scoped (check `paths`), full, or none (no checked file can have changed).
+    value: ${{ steps.scope.outputs.mode }}
+  paths:
+    description: Newline-separated files to check when mode is scoped.
+    value: ${{ steps.scope.outputs.paths }}
+  reason:
+    description: Why this mode.
+    value: ${{ steps.scope.outputs.reason }}
+runs:
+  using: composite
+  steps:
+    - name: Prove the base checks clean
+      id: base
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+      env:
+        CLEAN_BASE: ${{ inputs.base }}
+        CLEAN_BASE_CHECKS: ${{ inputs.clean-base-checks }}
+      with:
+        script: |
+          const { provenClean, checkNames } = require(`${process.env.GITHUB_ACTION_PATH}/proof.cjs`);
+          const names = checkNames(process.env.CLEAN_BASE_CHECKS);
+          let proven = false;
+          try {
+            const runs = await github.paginate(github.rest.checks.listForRef, {
+              ...context.repo, ref: process.env.CLEAN_BASE, per_page: 100,
+            });
+            proven = provenClean(runs, names);
+          } catch (error) {
+            core.warning(`Could not read checks on ${process.env.CLEAN_BASE} (${error.message}); running the full check.`);
+          }
+          core.setOutput('proven', proven ? 'true' : 'false');
+    - name: Compute the scope
+      id: scope
+      shell: bash
+      env:
+        SCOPE_PROVEN: ${{ steps.base.outputs.proven }}
+        SCOPE_CONFIG: ${{ inputs.config }}
+        SCOPE_BASE: ${{ inputs.base }}
+        SCOPE_HEAD: ${{ inputs.head }}
+        SCOPE_CHECKER_CONFIG: ${{ inputs.checker-config }}
+        SCOPE_GLOBAL_INPUTS: ${{ inputs.global-inputs }}
+        SCOPE_MAX_FRACTION: ${{ inputs.max-fraction }}
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+      run: bash "$SHARED_ACTION_PATH/scope.sh"

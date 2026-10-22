@@ -1,0 +1,38 @@
+name: Check current pull request head
+description: Reject stale rerun admission by comparing the captured head SHA to the
+  live GitHub pull request.
+inputs:
+  pr-number:
+    description: Pull request number.
+    required: true
+  expected-head-sha:
+    description: Head SHA captured by the workflow attempt.
+    required: true
+outputs:
+  result:
+    description: true only when the live head matches.
+    value: ${{ steps.current.outputs.result }}
+runs:
+  using: composite
+  steps:
+  - name: Compare rerun SHA with live PR head
+    id: current
+    uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+    env:
+      PR_NUMBER: ${{ inputs.pr-number }}
+      EXPECTED_HEAD_SHA: ${{ inputs.expected-head-sha }}
+    with:
+      result-encoding: string
+      script: |
+        const prNumber = Number(process.env.PR_NUMBER);
+        const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
+        const { data: pull } = await github.rest.pulls.get({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          pull_number: prNumber,
+        });
+        const isCurrent = pull.head.sha === expectedHeadSha;
+        if (!isCurrent) {
+          core.notice(`Skipping obsolete rerun for ${expectedHeadSha}; PR #${prNumber} is now ${pull.head.sha}`);
+        }
+        return isCurrent ? 'true' : 'false';

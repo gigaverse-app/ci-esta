@@ -20,6 +20,11 @@ jobs:
       reused: ${{ steps.evidence.outputs.reused }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/current-pr-head
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
+          expected-head-sha: ${{ github.event.pull_request.head.sha }}
       - uses: ./.github/actions/collect-pr-changes
       - uses: ./.github/actions/resolve-lane-evidence
         id: evidence
@@ -42,6 +47,10 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: '3.11'
+      - name: Install the Python 3.14 source-parser runtime
+        run: |
+          uv python install 3.14
+          echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run pytest -q -n 4
@@ -65,6 +74,10 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: '3.14'
+      - name: Install the Python 3.14 source-parser runtime
+        run: |
+          uv python install 3.14
+          echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
       - run: uv sync --locked
       - run: uv run pytest -q -n 4
       - name: ${{ needs.plan.outputs.receipt || 'Uncached validation completed' }}

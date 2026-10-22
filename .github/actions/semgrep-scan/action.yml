@@ -1,0 +1,163 @@
+name: Scan source with Semgrep
+description: Run source and secret checks on an existing Docker-capable runner.
+inputs:
+  github-token:
+    description: Read-only contents token used only for the private diff-base fetch; never persisted.
+    default: ${{ github.token }}
+  configs:
+    description: Space-separated semgrep registry configs (each becomes --config).
+    required: false
+    default: "p/default p/python p/security-audit p/owasp-top-ten p/dockerfile p/secrets"
+  severity:
+    description: Minimum severity that fails the scan.
+    required: false
+    default: "ERROR"
+  exclude:
+    description: Space-separated path globs to exclude (each becomes --exclude).
+    required: false
+    default: ".devcontainer"
+  diff-exclude:
+    description: CI-owned paths omitted only from routine diff scans; full scans retain them.
+    default: ""
+  exclude-rules:
+    description: Space-separated rule ids to exclude (each becomes --exclude-rule).
+    required: false
+    default: "dockerfile.security.missing-user-entrypoint.missing-user-entrypoint javascript.lang.security.detect-insecure-websocket.detect-insecure-websocket"
+  extra-exclude-rules:
+    description: Additional space-separated rule ids appended to the shared exclusions.
+    required: false
+    default: ""
+  scan-scope:
+    description: Diff or full scan.
+    default: full
+  base-sha:
+    description: Proven diff base; missing evidence falls back to full scan.
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Use the pinned Semgrep image on this runner
+      shell: bash
+      run: bash "$GITHUB_ACTION_PATH/setup.sh"
+    # Semgrep CE findings are per-file, so scanning only the files this
+    # event changed answers "did this change introduce a finding" exactly.
+    # Full-tree coverage against ruleset drift belongs to explicit and
+    # scheduled runs (scope=full). Every uncertain branch (no base, base
+    # unfetchable) falls back to the full scan — never to skipping.
+    - name: Resolve scan targets
+      id: targets
+      env:
+        DIFF_EXCLUDES: ${{ inputs.diff-exclude }}
+        SCAN_SCOPE: ${{ inputs.scan-scope }}
+        BASE_SHA: ${{ inputs.base-sha }}
+        SCAN_GITHUB_TOKEN: ${{ inputs.github-token }}
+      shell: sh
+      run: |
+        set -eu
+        targets_file="changed-scan-targets.txt"
+        mode="full"
+        if [ "$SCAN_SCOPE" = "diff" ] && printf '%s' "$BASE_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+          git config --global --add safe.directory "$(pwd)"
+          # Checkout may intentionally discard credentials. Scope this read-only
+          # credential to the GitHub host and this one command, not .git/config.
+          auth=$(printf 'x-access-token:%s' "$SCAN_GITHUB_TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$auth"
+          # extraheader is multi-valued: reset inherited checkout headers first
+          # so Git sends exactly one Authorization header without mutating config.
+          if GIT_CONFIG_COUNT=2 \
+            GIT_CONFIG_KEY_0="http.${GITHUB_SERVER_URL}/.extraheader" \
+            GIT_CONFIG_VALUE_0="" \
+            GIT_CONFIG_KEY_1="http.${GITHUB_SERVER_URL}/.extraheader" \
+            GIT_CONFIG_VALUE_1="AUTHORIZATION: basic $auth" \
+            git fetch --depth=1 origin "$BASE_SHA"; then
+            git diff --name-only --diff-filter=ACMR "$BASE_SHA" HEAD > changed-scan-candidates.txt
+            # Explicit Semgrep file arguments bypass its directory exclusions. Remove
+            # CI-owned paths before deciding whether a scan needs a runner/image at all.
+            : > "$targets_file"
+            while IFS= read -r candidate; do
+              owned=false
+              for excluded in ${DIFF_EXCLUDES:-}; do
+                case "$candidate" in "$excluded"|"$excluded"/*) owned=true ;; esac
+              done
+              if [ "$owned" = false ]; then printf '%s\n' "$candidate" >> "$targets_file"; fi
+            done < changed-scan-candidates.txt
+            if [ -s "$targets_file" ]; then
+              mode="diff"
+            else
+              mode="empty"
+            fi
+          else
+            echo "::warning::Could not fetch diff base $BASE_SHA; falling back to a full scan."
+          fi
+        fi
+        echo "mode=$mode" >> "$GITHUB_OUTPUT"
+        if [ "$mode" = "empty" ]; then
+          {
+            echo "## 🔎 Semgrep SAST Report"
+            echo ""
+            echo "✅ Diff-scoped run: no added or modified files since \`$BASE_SHA\`; nothing to scan."
+          } >> "$GITHUB_STEP_SUMMARY"
+        fi
+
+    - name: Run semgrep scan
+      if: ${{ steps.targets.outputs.mode != 'empty' }}
+      env:
+        CONFIGS: ${{ inputs.configs }}
+        SEMGREP_SEVERITY: ${{ inputs.severity }}
+        EXCLUDES: ${{ inputs.exclude }}
+        DIFF_EXCLUDES: ${{ inputs.diff-exclude }}
+        EXCLUDE_RULES: ${{ inputs.exclude-rules }} ${{ inputs.extra-exclude-rules }}
+        SCAN_MODE: ${{ steps.targets.outputs.mode }}
+      shell: sh
+      run: |
+        set -eu
+        set -- scan
+        for c in $CONFIGS; do set -- "$@" --config "$c"; done
+        set -- "$@" --severity "$SEMGREP_SEVERITY"
+        for e in $EXCLUDES; do set -- "$@" --exclude "$e"; done
+        if [ "$SCAN_MODE" = "diff" ]; then
+          for e in $DIFF_EXCLUDES; do set -- "$@" --exclude "$e"; done
+        fi
+        for r in $EXCLUDE_RULES; do set -- "$@" --exclude-rule "$r"; done
+        set -- "$@" --error --json --output semgrep-results.json --
+
+        if [ "$SCAN_MODE" = "diff" ]; then
+          file_count=$(wc -l < changed-scan-targets.txt)
+          echo "Diff-scoped scan of $file_count changed file(s)"
+          while IFS= read -r changed_file; do
+            [ -n "$changed_file" ] || continue
+            set -- "$@" "$changed_file"
+          done < changed-scan-targets.txt
+          semgrep "$@"
+        else
+          semgrep "$@" .
+        fi
+
+    - name: Render findings to job summary
+      # Run regardless of PR context so workflow_dispatch / push runs are debuggable
+      # without having to fetch the JSON artifact or re-trigger as a PR.
+      if: always()
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+      with:
+        script: |
+          const fs = require('fs');
+          if (!fs.existsSync('semgrep-results.json')) return;
+          const data = JSON.parse(fs.readFileSync('semgrep-results.json', 'utf8'));
+          const results = data.results || [];
+
+          let body = '## 🔎 Semgrep SAST Report\n\n';
+          if (results.length === 0) {
+            body += '✅ No issues found\n';
+          } else {
+            body += '| Severity | Rule | File | Line | Message |\n';
+            body += '|----------|------|------|------|---------|\n';
+            for (const r of results) {
+              const sev = r.extra?.severity || 'unknown';
+              const msg = (r.extra?.message || '').substring(0, 80);
+              body += `| ${sev} | ${r.check_id} | ${r.path} | ${r.start.line} | ${msg} |\n`;
+            }
+            body += `\n**Total: ${results.length} findings**\n`;
+          }
+          await core.summary.addRaw(body).write();
+          core.info(body);
+          core.exportVariable('SEMGREP_REPORT', body);

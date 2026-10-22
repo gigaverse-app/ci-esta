@@ -2,6 +2,8 @@
 Typed GitHub API adapter for CI observability.
 """
 
+from __future__ import annotations
+
 import io
 import re
 import zipfile

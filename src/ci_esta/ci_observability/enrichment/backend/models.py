@@ -6,6 +6,8 @@ These compatibility models are the backend-owned boundary around CI-esta's share
 accounting or sticky rendering.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Literal
 

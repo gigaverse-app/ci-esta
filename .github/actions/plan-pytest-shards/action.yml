@@ -1,0 +1,40 @@
+name: Plan exhaustive pytest file shards
+description: Use the shared duration planner to assign every current test file exactly once.
+inputs:
+  working-directory:
+    description: Project root containing the pytest test roots.
+    required: true
+  test-root:
+    description: Test directory relative to working-directory.
+    default: tests
+  shards:
+    description: Number of independent shards.
+    required: true
+  durations:
+    description: Optional historical duration manifest relative to working-directory.
+    default: .test_durations
+  output-dir:
+    description: Output directory relative to working-directory.
+    default: test-shards
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
+    - name: Partition every current test module
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+        PYTHONPATH: ${{ github.action_path }}/../../../src
+        TEST_ROOT: ${{ inputs.test-root }}
+        SHARDS: ${{ inputs.shards }}
+        DURATIONS: ${{ inputs.durations }}
+        OUTPUT_DIR: ${{ inputs.output-dir }}
+      run: |
+        # Timing history changes weights only; discovery always includes new files.
+        if [ ! -f "$DURATIONS" ]; then printf '{}\n' > "$DURATIONS"; fi
+        uv run --no-project --python 3.14 --with 'pydantic>=2.11,<3' --with 'defusedxml>=0.7,<0.8' \
+          --with "$(python3 "$SHARED_ACTION_PATH/../../../scripts/ci/pytest_selective_requirement.py")" python -m ci_esta.testing.cli plan --exact-files \
+          --durations "$DURATIONS" --test-root "$TEST_ROOT" --shards "$SHARDS" --output-dir "$OUTPUT_DIR"

@@ -6,6 +6,8 @@ are chosen by whoever opens the PR, so none of them may end a code span, split a
 or add markup.
 """
 
+from __future__ import annotations
+
 import re
 
 LONGEST_BACKTICK_RUN = re.compile(r"`+")

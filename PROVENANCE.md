@@ -56,3 +56,5 @@ Initial source paths:
 - `tests/ci_observability/test_report.py`
 - `tests/ci_observability/test_selection.py`
 - `tests/github_actions/test_publish_prometheus_snapshot_action.py`
+
+The complete-toolkit extraction uses backend-common revision `b6a2de0f58f18b78e544568d9ebd7371c8c30370`; `docs/migration-inventory.json` maps the additional source files. Original Apache-2.0 ownership and notices are retained.

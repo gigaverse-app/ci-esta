@@ -1,0 +1,185 @@
+name: Shared CI observability enrichment
+description: >
+  Run one ci_esta.ci_observability.enrichment subcommand without
+  needing the repo's synced virtualenv — the runtime is ensured on the
+  runner's python3 and the module runs from this action's checkout. Jobs
+  that already carry a synced venv can invoke the module directly instead.
+
+inputs:
+  mode:
+    description: >
+      Subcommand: capture-pytest, build-backend, build-ai, legacy-metrics,
+      adopt-legacy-sticky, or render-selection.
+    required: true
+  # capture-pytest
+  shard-count:
+    description: Shard count whose timings are being captured.
+    required: false
+    default: ""
+  wall-time:
+    description: Wall-clock pytest time (e.g. "1m 34s" or seconds).
+    required: false
+    default: ""
+  total-time:
+    description: Summed per-test pytest time.
+    required: false
+    default: ""
+  timings-output:
+    description: capture-pytest metadata JSON output path.
+    required: false
+    default: ci-pytest-timings.json
+  # build-backend / build-ai
+  artifacts-dir:
+    description: >
+      Artifact directory: coverage/junit/timeline bundle for build-backend,
+      build metrics.prom tree for build-ai deploy runs. Empty uses the
+      subcommand's default.
+    required: false
+    default: ""
+  extension-output:
+    description: Typed extension JSON output path.
+    required: false
+    default: ci-observability-extension.json
+  signals-output:
+    description: Repository-signal JSON output path.
+    required: false
+    default: ci-observability-signals.json
+  # build-ai
+  workflow-class:
+    description: One of python_tests, type_check, non_default_tests, deploy.
+    required: false
+    default: ""
+  pytest-shard-count:
+    description: Shard count for python_tests runs; empty records it as unavailable.
+    required: false
+    default: ""
+  pytest-wall-time:
+    description: Wall-clock pytest time for build-ai python_tests runs.
+    required: false
+    default: ""
+  pytest-total-time:
+    description: Summed per-test pytest time for build-ai python_tests runs.
+    required: false
+    default: ""
+  # legacy-metrics
+  report:
+    description: Shared ci-observability.json report path.
+    required: false
+    default: ci-observability.json
+  extension:
+    description: Extension JSON path rendered by build-backend.
+    required: false
+    default: ci-observability-extension.json
+  metrics-output:
+    description: legacy-metrics Prometheus output path.
+    required: false
+    default: ci-timing-legacy.prom
+  # render-selection (reads timings-output as the pytest timings, when it exists)
+  explanation:
+    description: gv-test-impact affected --explanation-output file.
+    required: false
+    default: test-impact-explanation.json
+  full-suite-reference:
+    description: >
+      Measured full-suite run JSON the saving is computed against; empty or
+      missing leaves the saving unknown.
+    required: false
+    default: ""
+  selection-output:
+    description: Rendered test-selection Markdown section path.
+    required: false
+    default: ci-test-selection.md
+  # adopt-legacy-sticky (also needs GH_TOKEN in the step env)
+  pull-request:
+    description: Pull request number whose legacy sticky is adopted.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Ensure enrichment runtime
+      continue-on-error: true
+      shell: bash
+      env:
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        python3 -c 'import pytest_selective, defusedxml, httpx; from pydantic import TypeAdapter' 2>/dev/null ||
+          python3 -m pip install --disable-pip-version-check \
+            'defusedxml==0.7.1' 'httpx==0.28.1' 'pydantic==2.12.4' "$(python3 "$SHARED_ACTION_PATH/../../../scripts/ci/pytest_selective_requirement.py")"
+
+    - name: Run enrichment subcommand
+      shell: bash
+      env:
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_SHARD_COUNT: ${{ inputs.shard-count }}
+        INPUT_WALL_TIME: ${{ inputs.wall-time }}
+        INPUT_TOTAL_TIME: ${{ inputs.total-time }}
+        INPUT_TIMINGS_OUTPUT: ${{ inputs.timings-output }}
+        INPUT_ARTIFACTS_DIR: ${{ inputs.artifacts-dir }}
+        INPUT_EXTENSION_OUTPUT: ${{ inputs.extension-output }}
+        INPUT_SIGNALS_OUTPUT: ${{ inputs.signals-output }}
+        INPUT_WORKFLOW_CLASS: ${{ inputs.workflow-class }}
+        INPUT_PYTEST_SHARD_COUNT: ${{ inputs.pytest-shard-count }}
+        INPUT_PYTEST_WALL_TIME: ${{ inputs.pytest-wall-time }}
+        INPUT_PYTEST_TOTAL_TIME: ${{ inputs.pytest-total-time }}
+        INPUT_REPORT: ${{ inputs.report }}
+        INPUT_EXTENSION: ${{ inputs.extension }}
+        INPUT_METRICS_OUTPUT: ${{ inputs.metrics-output }}
+        INPUT_PULL_REQUEST: ${{ inputs.pull-request }}
+        INPUT_EXPLANATION: ${{ inputs.explanation }}
+        INPUT_FULL_SUITE_REFERENCE: ${{ inputs.full-suite-reference }}
+        INPUT_SELECTION_OUTPUT: ${{ inputs.selection-output }}
+        PYTHONPATH: ${{ github.action_path }}/../../../src
+      # Inputs reach the CLI as quoted env vars, never inline expression
+      # interpolation into the script. An empty build-ai shard count skips
+      # the flag so the module records it as unavailable instead of failing
+      # argparse int-parsing on "".
+      run: |
+        case "$INPUT_MODE" in
+          capture-pytest)
+            args=(capture-pytest --shard-count "$INPUT_SHARD_COUNT"
+                  --wall-time "$INPUT_WALL_TIME" --total-time "$INPUT_TOTAL_TIME"
+                  --out "$INPUT_TIMINGS_OUTPUT")
+            ;;
+          build-backend)
+            args=(build-backend --out "$INPUT_EXTENSION_OUTPUT" --signals-out "$INPUT_SIGNALS_OUTPUT")
+            if [ -n "$INPUT_ARTIFACTS_DIR" ]; then
+              args+=(--artifacts-dir "$INPUT_ARTIFACTS_DIR")
+            fi
+            ;;
+          build-ai)
+            args=(build-ai --workflow-class "$INPUT_WORKFLOW_CLASS")
+            if [ -n "$INPUT_PYTEST_SHARD_COUNT" ]; then
+              args+=(--pytest-shard-count "$INPUT_PYTEST_SHARD_COUNT")
+            fi
+            args+=(--pytest-wall-time "$INPUT_PYTEST_WALL_TIME")
+            args+=(--pytest-total-time "$INPUT_PYTEST_TOTAL_TIME")
+            if [ -n "$INPUT_ARTIFACTS_DIR" ]; then
+              args+=(--artifacts-dir "$INPUT_ARTIFACTS_DIR")
+            fi
+            args+=(--out "$INPUT_EXTENSION_OUTPUT" --signals-out "$INPUT_SIGNALS_OUTPUT")
+            ;;
+          legacy-metrics)
+            args=(legacy-metrics --report "$INPUT_REPORT"
+                  --extension "$INPUT_EXTENSION" --out "$INPUT_METRICS_OUTPUT")
+            ;;
+          adopt-legacy-sticky)
+            args=(adopt-legacy-sticky --pull-request "$INPUT_PULL_REQUEST")
+            ;;
+          render-selection)
+            args=(render-selection --explanation "$INPUT_EXPLANATION" --out "$INPUT_SELECTION_OUTPUT")
+            # Timings and the reference are optional measurements; the section shows them as unknown.
+            if [ -f "$INPUT_TIMINGS_OUTPUT" ]; then
+              args+=(--pytest "$INPUT_TIMINGS_OUTPUT")
+            fi
+            if [ -n "$INPUT_FULL_SUITE_REFERENCE" ] && [ -f "$INPUT_FULL_SUITE_REFERENCE" ]; then
+              args+=(--reference "$INPUT_FULL_SUITE_REFERENCE")
+            fi
+            ;;
+          *)
+            echo "::error::unknown enrichment mode '$INPUT_MODE'" >&2
+            exit 1
+            ;;
+        esac
+        python3 -m ci_esta.ci_observability.enrichment "${args[@]}"

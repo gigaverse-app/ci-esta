@@ -1,5 +1,7 @@
 """Best-effort GitHub access for backend-only log enrichment."""
 
+from __future__ import annotations
+
 import os
 import re
 

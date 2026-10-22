@@ -14,6 +14,8 @@ The backend profile's modules are imported inside their handlers, so
 parsing they do not use.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 from pathlib import Path
