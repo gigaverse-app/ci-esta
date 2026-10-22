@@ -66,3 +66,10 @@ ci-esta render ci-esta-report/ci-observability.json \
 The [published example](https://github.com/gigaverse-app/ci-esta/blob/main/docs/benchmarks/2026-10-22.md)
 shows source identities, limits and separate observer overhead. Use it as an
 evidence format, not an expected saving for a new project.
+
+For cache identity, learned timing feedback and parallelism, follow the
+[optimization guide](https://github.com/gigaverse-app/ci-esta/blob/main/docs/ci-optimization.md).
+The Gantt shows observed intervals, not a computed causal critical path. When
+auditing upstreaming, distinguish shipped, configured and live-verified states;
+the [adoption audit](https://github.com/gigaverse-app/ci-esta/blob/main/docs/adoption-audit.md)
+shows why an extraction inventory alone cannot establish completion.

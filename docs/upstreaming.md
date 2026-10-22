@@ -4,7 +4,7 @@ CI-esta consolidates the language-independent CI toolkit in one repository. The 
 
 ## Shipped here
 
-The complete action catalog, pytest execution/evidence and hygiene helpers, image measurement and live CI drill are now in this project. [The inventory](migration-inventory.json) maps each source path to its canonical owner. The distribution is `ci-esta`, the import namespace is `ci_esta`, and JavaScript helpers remain GitHub Actions assets rather than an npm package.
+The inventoried backend-common action catalog, pytest execution/evidence and hygiene helpers, image measurement and live CI drill are now in this project. [The inventory](migration-inventory.json) maps that source revision to canonical owners. It is not an inventory of every optimization in AI and Backend, or proof that every consumer uses the extracted implementation. See the [adoption audit](adoption-audit.md) for those gaps and the [optimization guide](ci-optimization.md) for adoption. The distribution is `ci-esta`, the import namespace is `ci_esta`, and JavaScript helpers remain GitHub Actions assets rather than an npm package.
 
 The optional dependency-token adapter preserves backend-common retag normalization. A retag can reuse positive evidence only when the dependency tree is identical; unreadable or ambiguous dependencies retain exact-pin or full-validation fallbacks. Manual reruns never reuse lane evidence.
 
