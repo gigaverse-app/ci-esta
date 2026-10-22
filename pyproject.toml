@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{name = "Gigaverse"}]
-dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7", "pytest-selective @ https://github.com/gigaverse-app/pytest-selective/archive/c2a1d0bed2e9a7819f754f730a7eca99044a860d.tar.gz"]
+dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7", "pytest-selective @ https://github.com/gigaverse-app/pytest-selective/archive/4acd29e638b1f52c8101c9f4ed4e1a17c8080abd.tar.gz"]
 keywords = ["github-actions", "ci-observability", "ci-optimization", "continuous-integration", "prometheus"]
 classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Developers", "Topic :: Software Development :: Build Tools", "Programming Language :: Python :: 3", "Typing :: Typed"]
 
