@@ -80,7 +80,7 @@ requires-dist = [
     { name = "httpx", specifier = ">=0.28,<1" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "pytest", marker = "extra == 'pytest'", specifier = ">=8" },
-    { name = "pytest-selective", url = "https://github.com/gigaverse-app/pytest-selective/archive/7cdab2621185f03689410ba92b84f93fea47e395.tar.gz" },
+    { name = "pytest-selective", url = "https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz" },
     { name = "pyyaml", specifier = ">=6,<7" },
 ]
 provides-extras = ["pytest"]
@@ -530,12 +530,12 @@ wheels = [
 [[package]]
 name = "pytest-selective"
 version = "0.1.0a1"
-source = { url = "https://github.com/gigaverse-app/pytest-selective/archive/7cdab2621185f03689410ba92b84f93fea47e395.tar.gz" }
+source = { url = "https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz" }
 dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { hash = "sha256:c992ee3703693e90caf5a80e6e2fcd661e1a22239b78ccfefecb2e9dfe2494db" }
+sdist = { hash = "sha256:b07ffb2bcf4e6cbcb44e528abd208365462559c43a14cc005f6c8df641b9bddd" }
 
 [package.metadata]
 requires-dist = [
