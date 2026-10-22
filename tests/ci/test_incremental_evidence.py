@@ -1324,4 +1324,3 @@ def test_inventory_cannot_reach_back_past_an_unidentified_failed_scan() -> None:
     result = _resolve_incremental_base(scenario)["result"]
     assert isinstance(result, dict)
     assert result["reused"] is False
-

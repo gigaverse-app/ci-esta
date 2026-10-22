@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         repository=args.repository, github_token=token, api_url=args.api_url,
         run_id=args.run_id, run_attempt=args.run_attempt, commit_sha=args.commit_sha,
         pull_request_number=None,
-        gate_selectors=[ActionsJobGateSelectorV1(kind=GateKind.ACTIONS_JOB, runner_name=name) for name in args.gate],
+        gate_selectors=[ActionsJobGateSelectorV1(kind=GateKind.ACTIONS_JOB, job_name=name) for name in args.gate],
         repository_signals=[], extensions={},
         report_output=args.output_dir / "ci-observability.json",
         markdown_output=args.output_dir / "ci-observability.md",

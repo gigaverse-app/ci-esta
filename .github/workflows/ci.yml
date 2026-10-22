@@ -26,7 +26,7 @@ jobs:
         with:
           lanes: '{"tests":"Test suite","compat":"Python compatibility"}'
           # Complete test/build inputs; docs and the disposable live probe do not affect these jobs.
-          input-paths: '[".github","src","tests","scripts","pyproject.toml","uv.lock","README.md","LICENSE"]'
+          input-paths: '[".github","src","tests","scripts","pyproject.toml","uv.lock","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
       - name: Record admission
         env:
           REUSED: ${{ steps.evidence.outputs.reused }}
@@ -93,7 +93,7 @@ jobs:
       - uses: ./.github/actions/ci-observability
         with:
           github-token: ${{ github.token }}
-          required-gates-json: '[{"kind":"actions_job","runner_name":"Validation gate"}]'
+          required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
           post-sticky: 'false'
           test-selection-artifact: ''
           full-suite-reference-artifact: ''

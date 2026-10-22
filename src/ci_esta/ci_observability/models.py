@@ -41,9 +41,17 @@ class ActionsJobGateSelectorV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     kind: Literal[GateKind.ACTIONS_JOB]
-    runner_name: str
+    runner_name: str | None = Field(default=None, min_length=1)
+    job_name: str | None = Field(default=None, min_length=1)
     display_name: str | None = None
     direct_prerequisites: list[DirectPrerequisiteV1] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def one_identity(self) -> "ActionsJobGateSelectorV1":
+        # Job display names and runner machine names are distinct GitHub API fields.
+        if (self.runner_name is None) == (self.job_name is None):
+            raise ValueError("Specify exactly one of job_name or runner_name")
+        return self
 
 
 class CommitStatusGateSelectorV1(BaseModel):

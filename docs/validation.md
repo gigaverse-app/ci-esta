@@ -17,6 +17,7 @@
 1. The source receipt scanner assumed backend-common directories existed. The portable regression failed; the scanner now hashes CI-esta's sources and manifests, handles absent optional directories, normalizes path separators and excludes bytecode caches.
 2. Ambiguous declared paths such as `a/./b` or backslash-separated paths could be interpreted as missing inputs. The regression failed before stricter validation; invalid declarations now fall back conservatively.
 3. Timings were readable only through named source-consumer profiles. The generic-profile regression failed; the same authoritative timing model now accepts the neutral `pytest` extension, preserving compatibility adapters.
+4. The first live run collected every job but could not match the required gate: the inherited selector used a runner machine name, not a job display name. Added explicit `job_name` selection with exactly-one-identity validation and rejection of ambiguous job matches. The new regression failed before implementation. Original live evidence: [run 39839452342](https://github.com/gigaverse-app/ci-esta/actions/runs/39839452342), revision `36626d1b70dcc77434e866bc23d32c02515aeaf3`.
 
 The initial source test extraction also caught a missing XML runtime dependency; the package declares it. Source-consumer workflow metadata tests remain in backend-common because those workflows are outside the extracted public product. The inherited reporter schema was regenerated against the locked dependencies.
 
