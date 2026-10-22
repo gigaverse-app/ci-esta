@@ -5,7 +5,7 @@ These projects address different stages of trustworthy development. They can be 
 | Project | Owns | How it fits |
 | --- | --- | --- |
 | [CI-esta](https://github.com/gigaverse-app/ci-esta) | CI execution evidence, admission and measurement | Reuse completed lanes and expose time/cost |
-| [pytest-selective](https://github.com/gigaverse-app/pytest-selective) | Explainable Python test selection and shard planning | Decide which test files or lanes are affected |
+| [pytest-selective](https://github.com/gigaverse-app/pytest-selective) | Explainable Python test selection, shard planning and scope/isolation guards | Decide which test files or lanes are affected |
 | [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation) | Crash, retry, lost-message and competing-operation conformance tests | Exercise the application's declared durable-work obligations |
 | [Due](https://github.com/gigaverse-app/due) | Durable application obligations for Django/PostgreSQL/Celery | Record and recover application work despite lost delivery or worker death |
 
@@ -32,4 +32,4 @@ External databases, queues and service versions can influence conformance result
 
 ## Due: application reliability and CI reliability
 
-Due's durable-work semantics belong in the application, while CI-esta handles validation workflows. CI-esta does not schedule Due obligations or replace its recovery machinery. Due projects can adopt the same observation and lane-evidence actions used by any Python or non-Python repository. This documentation describes a compatible workflow; it does not claim Due's production CI has migrated.
+Due's durable-work semantics belong in the application, while CI-esta handles validation workflows. CI-esta does not schedule Due obligations or replace its recovery machinery. Due projects can adopt the same observation and lane-evidence actions used by any Python or non-Python repository. The public projects adopt the shared completed-run observer separately from their validation gates; see their workflow pins for the deployed revision.
