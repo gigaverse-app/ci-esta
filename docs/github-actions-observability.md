@@ -67,7 +67,7 @@ reference leaves savings unmeasured. This configures observation, not test execu
 🧪 Test lanes · by pytest-selective       (when the run uploaded a lane plan; one square per lane)
 ⏱️ CI time and cost                        (collapsed beside a selection section)
    gantt: one row per job labeled with its run and ⏳ wait for a runner, orange
-   for the chain the merge waited on, a milestone at merge-ready
+   for the critical path, a green bar from merge-ready on
 [mark] Powered by CI-esta · run · schema
 ```
 

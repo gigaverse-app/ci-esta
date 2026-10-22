@@ -320,7 +320,7 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
     # One row per job, named in the left column; orange is the job that finished last before merge-ready.
     assert "    section Build image\n    2m 1s :crit, j0, 2000-01-01 00:00:10, 2000-01-01 00:02:11\n" in markdown
     assert "    section Required gate\n    59s :done, j1, 2000-01-01 00:00:10, 2000-01-01 00:01:09\n" in markdown
-    assert "    section ✅ merge-ready\n    2m 20s :milestone, crit, m, 2000-01-01 00:02:20, 2000-01-01 00:02:20\n" in markdown
+    assert "    section ✅ merge-ready 2m 20s\n    ✅ :active, m, 2000-01-01 00:02:20, 2000-01-01 00:03:02\n" in markdown
     assert "| Backend validation |" not in markdown
     assert "| Required gate | Plan | success |" in markdown
     assert "| Build: image | 1 | 61s | 2 | 1s | 59s |" in markdown
@@ -499,10 +499,10 @@ def test_active_skipped_reversed_and_missing_gate_data_are_explicit() -> None:
     assert report.merge_ready_from_creation_seconds is None
     markdown = render_markdown(report)
     assert "| gates running |" in markdown
-    # Before merge-ready there is no milestone, and the chain is the longest one so far.
+    # Before merge-ready there is no merge-ready bar, and the chain is the longest one so far.
     assert "orange is the longest chain" in markdown
     assert "    section Active (running)\n    2m 50s :crit, j0, 2000-01-01 00:00:10, 2000-01-01 00:03:00\n" in markdown
-    assert "merge-ready :milestone" not in markdown
+    assert "section ✅ merge-ready" not in markdown
     assert 'gate_conclusion="pending"' in render_prometheus(report)
 
 

@@ -3,8 +3,9 @@ Render the sticky's CI timeline as a Mermaid gantt chart.
 
 Each job is one row, named in the left column; its bar is its run, labeled with how long it took
 and how long it first waited for a runner. Orange marks the chain the merge waited on, and a
-milestone marks merge-ready. GitHub's Mermaid ignores `displayMode: compact`, so a wait cannot
-share its job's row as a bar of its own.
+green bar runs on from merge-ready. GitHub's Mermaid ignores `displayMode: compact`, so a wait
+cannot share its job's row as a bar of its own, and it ignores `rightPadding`, so the merge-ready
+bar is what keeps the last jobs clear of the zoom and pan buttons GitHub draws on the right edge.
 
 The chain comes from the critical-path analysis of the workflow's `needs` graph when it is
 complete. Without it, the chain is inferred from timestamps: GitHub creates a job when the jobs
@@ -28,6 +29,9 @@ CHAIN_GAP_SECONDS = 15.0
 CHAIN_SLACK_SECONDS = 3.0
 #: Waits shorter than this are not shown: they are noise at the chart's scale.
 SHOWN_QUEUE_SECONDS = 5.0
+#: The merge-ready bar extends the axis by this share of the run, so GitHub's zoom and pan
+#: buttons, drawn over the chart's right edge, cover it instead of the last jobs.
+CONTROLS_SHARE = 0.3
 #: Row labels are cut to this many characters; the left column is fixed width.
 LABEL_CHARACTERS = 32
 #: Bars are dates on a fixed origin, not bare seconds: GitHub's Mermaid does not parse `dateFormat X`
@@ -45,6 +49,8 @@ THEME = {
         "doneTaskBkgColor": "#3B82F6",
         "doneTaskBorderColor": "#2563EB",
         "critBkgColor": "#EA580C",
+        "activeTaskBkgColor": "#2EA043",
+        "activeTaskBorderColor": "#1A7F37",
         "critBorderColor": "#C2410C",
         "taskBkgColor": "#3B82F6",
         "taskBorderColor": "#2563EB",
@@ -64,8 +70,6 @@ THEME = {
         "barGap": 6,
         "topPadding": 44,
         "leftPadding": 230,
-        # GitHub overlays its zoom and pan buttons on the chart's right edge; keep the bars clear of them.
-        "rightPadding": 140,
         "sectionFontSize": 13,
         "fontSize": 12,
     },
@@ -201,10 +205,10 @@ def render_timeline(report: CiObservabilityReportV1) -> list[str]:
         tag = "crit" if job.job_id in chain else "done"
         lines.append(f"    {_bar_label(job)} :{tag}, j{index}, {_at(start)}, {_at(max(end, start + 1))}")
     if merge_ready is not None:
-        ready = _at(math.ceil(merge_ready))
+        ready = math.ceil(merge_ready)
         lines += [
-            "    section ✅ merge-ready",
-            f"    {format_seconds(merge_ready)} :milestone, crit, m, {ready}, {ready}",
+            f"    section ✅ merge-ready {format_seconds(merge_ready)}",
+            f"    ✅ :active, m, {_at(ready)}, {_at(ready + max(math.ceil(ready * CONTROLS_SHARE), 1))}",
         ]
     source = (
         "the critical path through the workflow's `needs` graph"
