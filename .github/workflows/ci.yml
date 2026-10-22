@@ -20,6 +20,11 @@ jobs:
       reused: ${{ steps.evidence.outputs.reused }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./.github/actions/current-pr-head
+        if: ${{ github.event_name == 'pull_request' }}
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
+          expected-head-sha: ${{ github.event.pull_request.head.sha }}
       - uses: ./.github/actions/collect-pr-changes
       - uses: ./.github/actions/resolve-lane-evidence
         id: evidence

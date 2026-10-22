@@ -18,4 +18,11 @@ The reusable CI implementation moves to CI-esta. backend-common retains its appl
 4. Run source CI and generated consumer bump CI; inspect individual job results and artifacts.
 5. Record revision-bound results and remaining gates before merging.
 
-Status: inventory in progress; no migration validation claimed yet.
+## Evidence ledger
+
+- `c990c5426301284edf3a99ae34593080afc8580c`: [hosted run 39845148497](https://github.com/gigaverse-app/ci-esta/actions/runs/39845148497) passed both Python versions, wheel build/install and real Actions API reporting. The extracted suite contains 979 tests.
+- The loop caught and repaired lost shell executable modes, the Python 3.14 parser runtime requirement, unsafe test-generated files entering the sdist, historical image-observer import compatibility, and dependency retag normalization.
+- backend-common's migration remains under verification in PR269. Its local migration-domain run passed 1,211 tests (56 skips); 74 compatibility contracts passed, and targeted alias type checking reports zero errors. These are development-tree results, not evidence of a merged consumer deployment.
+- Workflow change classification and current-head admission are a subsequent extraction batch. Their local public-boundary tests pass; hosted verification and downstream adoption remain pending.
+
+Completion requires the final source revision and generated consumer checks. Earlier green runs do not substitute for those gates.

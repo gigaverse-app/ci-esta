@@ -8,15 +8,17 @@ Each piece is matched to the shape of the shared work:
 
 | Piece | Kind | Reused by |
 |-------|------|-----------|
+| `collect-ci-changes` | composite action | workflow/action/shell change classification |
+| `current-pr-head` | composite action | live stale-rerun admission |
 | `resolve-security-trigger` | composite action | every security workflow, both repos |
 | `resolve-incremental-pr-base` | composite action | automatic security and CI-code PR validation |
 | `trivy-scan-image` | composite action | each repo's Trivy workflow |
-| `reusable-semgrep.yaml` | reusable workflow | each repo's Semgrep stub |
-| `lint-ci-code` | composite action | `reusable-ci-code-validation.yaml` |
-| `semgrep-scan-ci-code` | composite action | `reusable-ci-code-validation.yaml` |
-| `trivy-scan-ci-code` | composite action | `reusable-ci-code-validation.yaml` |
-| `reusable-ci-code-validation.yaml` | reusable workflow | path-filtered CI validation callers |
-| `reusable-current-pr-head.yaml` | reusable workflow | stale manual-rerun admission in PR validation |
+| `backend-common/reusable-semgrep.yaml` | reusable workflow | each repo's Semgrep stub |
+| `lint-ci-code` | composite action | `backend-common/reusable-ci-code-validation.yaml` |
+| `semgrep-scan-ci-code` | composite action | `backend-common/reusable-ci-code-validation.yaml` |
+| `trivy-scan-ci-code` | composite action | `backend-common/reusable-ci-code-validation.yaml` |
+| `backend-common/reusable-ci-code-validation.yaml` | reusable workflow | path-filtered CI validation callers |
+| `backend-common/reusable-current-pr-head.yaml` | reusable workflow | stale manual-rerun admission in PR validation |
 | `cancel-obsolete-pr-runs` | composite action | post-admission stale-run cancellation from existing jobs |
 | `setup-python-uv` | composite action | backend-common test and type-check workflows |
 | `publish-prometheus-snapshot` | composite action | bounded CI/build metric producers |
@@ -29,7 +31,7 @@ Each piece is matched to the shape of the shared work:
 
 For stale-rerun safety, first PR attempts use a PR-number concurrency group and
 reruns use their unique run ID, so a rerun can never replace or cancel current
-work. Call `reusable-current-pr-head.yaml` before a rerun's expensive jobs. A
+work. Call `backend-common/reusable-current-pr-head.yaml` before a rerun's expensive jobs. A
 first-attempt job also calls `cancel-obsolete-pr-runs`: this cancels a rerun
 that passed admission and then became stale, without adding a runner job. It
 resolves the current commit's first parent through check runs, avoiding
@@ -225,7 +227,7 @@ and does not depend on Poetry's global cache layout.
     scanners: vuln
 ```
 
-## `reusable-semgrep.yaml`
+## `backend-common/reusable-semgrep.yaml`
 
 Whole Semgrep job (runs in the `semgrep/semgrep` container, renders a job
 summary, posts a PR comment). Calls `resolve-security-trigger` internally, so the
@@ -274,7 +276,7 @@ actually common: the trigger gate and the scan policy.
 > backend-common reference from that one `pyproject.toml` revision (see
 > `update_ci_esta.yaml`, `sync_backend_common_status.yaml`).
 
-## `reusable-ci-code-validation.yaml`
+## `backend-common/reusable-ci-code-validation.yaml`
 
 Runs Actionlint, composite-action metadata validation, ShellCheck, targeted
 Semgrep, and Trivy configuration/secret scanning against changed files under

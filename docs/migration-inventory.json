@@ -494,5 +494,17 @@
       "source": "scripts/ci/github_script_surface.py",
       "target": "scripts/ci/github_script_surface.py"
     }
+  ],
+  "workflow_primitives": [
+    {
+      "source": ".github/workflows/reusable-ci-code-validation.yaml",
+      "step": "changes",
+      "target": ".github/actions/collect-ci-changes/action.yml"
+    },
+    {
+      "source": ".github/workflows/reusable-current-pr-head.yaml",
+      "step": "current",
+      "target": ".github/actions/current-pr-head/action.yml"
+    }
   ]
 }
