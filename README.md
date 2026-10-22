@@ -154,6 +154,8 @@ Receipts are recorded only after required work passes. Explicit reruns execute a
 | --- | --- |
 | Find slow jobs and estimate runner costs | [GitHub Actions observability](docs/github-actions-observability.md) |
 | Diagnose slow Python CI without cutting checks | [Python CI tuning](docs/python-ci-tuning.md) |
+| Combine caches, selection, timing and parallelism | [CI optimization guide](docs/ci-optimization.md) |
+| Check what is actually upstream and adopted | [Revision-bound adoption audit](docs/adoption-audit.md) |
 | Avoid repeating proven work | [Evidence reuse](docs/evidence-reuse.md) |
 | Integrate selection and conformance tests | [Project integrations](docs/integrations.md) |
 | Compare CI optimization approaches | [Alternatives](docs/alternatives.md) |
