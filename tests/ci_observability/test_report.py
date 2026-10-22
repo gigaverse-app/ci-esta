@@ -318,9 +318,9 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
         f"| {WORKFLOW_NAME} | 2m 20s | after 10s | Build: image · 2m 1s | 6 min | — |\n"
     ) in markdown
     # One row per job, named in the left column; orange is the job that finished last before merge-ready.
-    assert "    section Build image\n    2m 1s :crit, j0, 10, 131\n" in markdown
-    assert "    section Required gate\n    59s :done, j1, 10, 69\n" in markdown
-    assert "    section ✅ merge-ready\n    2m 20s :milestone, crit, m, 140, 140\n" in markdown
+    assert "    section Build image\n    2m 1s :crit, j0, 2000-01-01 00:00:10, 2000-01-01 00:02:11\n" in markdown
+    assert "    section Required gate\n    59s :done, j1, 2000-01-01 00:00:10, 2000-01-01 00:01:09\n" in markdown
+    assert "    section ✅ merge-ready\n    2m 20s :milestone, crit, m, 2000-01-01 00:02:20, 2000-01-01 00:02:20\n" in markdown
     assert "| Backend validation |" not in markdown
     assert "| Required gate | Plan | success |" in markdown
     assert "| Build: image | 1 | 61s | 2 | 1s | 59s |" in markdown
@@ -501,7 +501,7 @@ def test_active_skipped_reversed_and_missing_gate_data_are_explicit() -> None:
     assert "| gates running |" in markdown
     # Before merge-ready there is no milestone, and the chain is the longest one so far.
     assert "orange is the longest chain" in markdown
-    assert "    section Active (running)\n    2m 50s :crit, j0, 10, 180\n" in markdown
+    assert "    section Active (running)\n    2m 50s :crit, j0, 2000-01-01 00:00:10, 2000-01-01 00:03:00\n" in markdown
     assert "merge-ready :milestone" not in markdown
     assert 'gate_conclusion="pending"' in render_prometheus(report)
 
@@ -819,7 +819,9 @@ def test_the_sticky_marker_stays_out_of_the_visible_footer() -> None:
 
     assert footer == [
         STICKY_MARKER,
-        "<sub>🌴 Powered by [CI-esta](https://github.com/gigaverse-app/ci-esta): Let proven work rest. Measure the rest. "
+        '<sub><img src="https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/ci-esta-mark.svg" '
+        'alt="" width="14" height="14"> Powered by [CI-esta](https://github.com/gigaverse-app/ci-esta): '
+        "Let proven work rest. Measure the rest. "
         "· [Reading this report](https://github.com/gigaverse-app/ci-esta/blob/main/docs/github-actions-observability.md) "
         f"· [run {RUN_ID}](https://github.com/{REPOSITORY}/actions/runs/{RUN_ID}) · schema `ci-observability/v1`</sub>",
     ]

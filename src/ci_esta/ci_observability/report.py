@@ -552,7 +552,7 @@ def _footer(report: CiObservabilityReportV1, marker: str = STICKY_MARKER) -> lis
     return [
         f"{SNAPSHOT_MARKER_PREFIX}{sticky_snapshot(report).model_dump_json()} -->",
         marker,
-        f"<sub>🌴 Powered by [{brand.CI_ESTA}]({brand.CI_ESTA_URL}): {brand.TAGLINE} "
+        f"<sub>{brand.mark()} Powered by [{brand.CI_ESTA}]({brand.CI_ESTA_URL}): {brand.TAGLINE} "
         f"· [Reading this report]({brand.CI_ESTA_DOCS_URL}) "
         f"· [run {run}](https://github.com/{report.provenance.repository}/actions/runs/{run}) "
         f"· schema `{report.schema_version}`</sub>",

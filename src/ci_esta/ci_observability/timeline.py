@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import math
+from datetime import datetime, timedelta
 
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.lanes import job_family
@@ -28,6 +29,10 @@ CHAIN_SLACK_SECONDS = 3.0
 SHOWN_QUEUE_SECONDS = 5.0
 #: Row labels are cut to this many characters; the left column is fixed width.
 LABEL_CHARACTERS = 32
+#: Bars are dates on a fixed origin, not bare seconds: GitHub's Mermaid does not parse `dateFormat X`
+#: start times, and drew every bar from the axis origin.
+ORIGIN = datetime(2000, 1, 1)
+DATE_FORMAT = "YYYY-MM-DD HH:mm:ss"
 
 #: GitHub renders the chart on its own light or dark background, so every color has to read on
 #: both: saturated bars with white text, and mid-grey text outside them.
@@ -58,6 +63,8 @@ THEME = {
         "barGap": 6,
         "topPadding": 44,
         "leftPadding": 230,
+        # GitHub overlays its zoom and pan buttons on the chart's right edge; keep the bars clear of them.
+        "rightPadding": 140,
         "sectionFontSize": 13,
         "fontSize": 12,
     },
@@ -137,6 +144,11 @@ def _row_label(job: ObservedJobV1) -> str:
     return _label(name + (" (running)" if job.timing_status == TimingStatus.ACCRUED else ""))
 
 
+def _at(offset: int) -> str:
+    """An offset from workflow creation as a date on a fixed origin, so the axis reads minutes:seconds."""
+    return (ORIGIN + timedelta(seconds=offset)).strftime("%Y-%m-%d %H:%M:%S")
+
+
 def _bar_label(job: ObservedJobV1) -> str:
     """How long the job ran, and how long it first waited for a runner when that was noticeable."""
     label = format_seconds(job.wall_seconds) if job.wall_seconds is not None else "running"
@@ -157,23 +169,24 @@ def render_timeline(report: CiObservabilityReportV1) -> list[str]:
         if merge_ready is not None
         else "CI jobs from workflow creation · orange is the longest chain"
     )
+    latest = max([*(job.end_offset_seconds or 0 for job in jobs), merge_ready or 0])
     lines = [
         "```mermaid",
         f"%%{{init: {json.dumps(THEME)}}}%%",
         "gantt",
         f"    title {title}",
-        "    dateFormat X",
-        "    axisFormat %M:%S",
+        f"    dateFormat {DATE_FORMAT}",
+        f"    axisFormat {'%H:%M:%S' if latest >= 3600 else '%M:%S'}",
         "    todayMarker off",
     ]
-    # Each job is its own section, so its wait and its run share one row beside its name.
+    # Each job is its own section, so it gets one row beside its name.
     for index, job in enumerate(sorted(jobs, key=lambda item: (_ready_at(item), item.start_offset_seconds, item.name))):
         start, end = int(job.start_offset_seconds or 0), int(job.end_offset_seconds or 0)
         lines.append(f"    section {_row_label(job)}")
         tag = "crit" if job.job_id in chain else "done"
-        lines.append(f"    {_bar_label(job)} :{tag}, j{index}, {start}, {max(end, start + 1)}")
+        lines.append(f"    {_bar_label(job)} :{tag}, j{index}, {_at(start)}, {_at(max(end, start + 1))}")
     if merge_ready is not None:
-        ready = math.ceil(merge_ready)
+        ready = _at(math.ceil(merge_ready))
         lines += [
             "    section ✅ merge-ready",
             f"    {format_seconds(merge_ready)} :milestone, crit, m, {ready}, {ready}",

@@ -18,6 +18,7 @@ CI_ESTA_URL = "https://github.com/gigaverse-app/ci-esta"
 CI_ESTA_DOCS_URL = f"{CI_ESTA_URL}/blob/main/docs/github-actions-observability.md"
 ASSETS_URL = "https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets"
 BANNER_WIDTH = 640
+MARK_URL = f"{ASSETS_URL}/ci-esta-mark.svg"
 TAGLINE = "Let proven work rest. Measure the rest."
 SELECTIVE_URL = "https://github.com/gigaverse-app/pytest-selective"
 
@@ -50,6 +51,11 @@ def badge(item: Badge) -> str:
         f"![{alt}](https://img.shields.io/badge/{_shields(item.label)}-{_shields(item.value)}-{item.color}"
         f"?style=flat-square&labelColor={BADGE_LABEL_COLOR})"
     )
+
+
+def mark(size: int = 14) -> str:
+    """The CI-esta mark, sized to sit in a line of text."""
+    return f'<img src="{MARK_URL}" alt="" width="{size}" height="{size}">'
 
 
 def banner() -> str:

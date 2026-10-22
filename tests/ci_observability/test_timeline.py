@@ -97,6 +97,15 @@ def test_each_job_is_one_row_labeled_with_its_run_and_its_wait() -> None:
     assert gantt.index("section quality") < gantt.index("section tests · 3.11, ubuntu-latest")
 
 
+def test_bars_are_dates_github_parses_and_stay_clear_of_its_controls() -> None:
+    gantt = _gantt()
+
+    # GitHub's Mermaid drew every `dateFormat X` bar from the axis origin; dates parse everywhere.
+    assert "    dateFormat YYYY-MM-DD HH:mm:ss\n    axisFormat %M:%S\n" in gantt
+    assert "2m 49s · ⏳ 13s :crit, j4, 2000-01-01 00:00:52, 2000-01-01 00:03:41\n" in gantt
+    assert '"rightPadding": 140' in gantt
+
+
 def test_the_theme_reads_on_both_github_themes_and_never_draws_a_today_line() -> None:
     gantt = _gantt()
 

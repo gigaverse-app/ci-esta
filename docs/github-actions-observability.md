@@ -61,7 +61,7 @@ the ceiling. Grant `pull-requests: write` only when `post-sticky` is true.
 ⏱️ CI time and cost                        (collapsed beside a selection section)
    gantt: one row per job labeled with its run and ⏳ wait for a runner, orange
    for the chain the merge waited on, a milestone at merge-ready
-🌴 Powered by CI-esta · run · schema
+[mark] Powered by CI-esta · run · schema
 ```
 
 The badge line answers "can I merge, what ran, what did it cost" before any
