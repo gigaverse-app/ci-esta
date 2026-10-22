@@ -9,16 +9,18 @@ newline) is contract, not style.
 
 import ast
 import json
+import re
 from pathlib import Path
 
 import pytest
+import yaml
 
 import ci_esta.ci_observability.enrichment.cli as cli_module
 from ci_esta.ci_observability.enrichment.backend.artifacts import (
     build_extension,
 )
 from ci_esta.ci_observability.enrichment.backend.models import GitHubEnrichment
-from ci_esta.ci_observability.enrichment.cli import main
+from ci_esta.ci_observability.enrichment.cli import build_parser, main
 from ci_esta.ci_observability.enrichment.models import PytestTimingMetadata
 
 ACTION_PATH = Path(".github/actions/ci-observability-enrichment/action.yml")
@@ -181,3 +183,37 @@ class TestLazyProfileImports:
         }
         lazy_prefix = "ci_esta.ci_observability.enrichment.backend"
         assert not [module for module in module_level_imports if module.startswith(lazy_prefix)]
+
+
+class TestActionMetadata:
+    def test_action_wraps_the_module_for_venv_less_jobs(self) -> None:
+        action = yaml.safe_load(ACTION_PATH.read_text())
+        run_step = action["runs"]["steps"][1]
+
+        assert action["runs"]["using"] == "composite"
+        assert action["inputs"]["mode"]["required"] is True
+        assert action["inputs"]["extension-output"]["default"] == "ci-observability-extension.json"
+        assert action["inputs"]["signals-output"]["default"] == "ci-observability-signals.json"
+        assert "${{ github.action_path }}/../../../src" in run_step["env"]["PYTHONPATH"]
+        assert "python3 -m ci_esta.ci_observability.enrichment" in run_step["run"]
+        # Inputs reach the CLI through quoted env vars, never inline ${{ }}
+        # interpolation into the shell script.
+        assert "${{ inputs" not in run_step["run"]
+
+    def test_action_dispatch_covers_every_cli_subcommand(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """
+        A CLI subcommand the action cannot dispatch is unreachable from
+        the venv-less consumer jobs the action exists for."""
+        action = yaml.safe_load(ACTION_PATH.read_text())
+        dispatch_script = action["runs"]["steps"][1]["run"]
+        with pytest.raises(SystemExit):
+            build_parser().parse_args(["not-a-subcommand"])
+        error_text = capsys.readouterr().err
+        choices_match = re.search(r"\(choose from (.+)\)", error_text)
+        assert choices_match is not None, error_text
+        subcommands = {name.strip().strip("'") for name in choices_match.group(1).split(",")}
+
+        assert "capture-pytest" in subcommands
+        assert len(subcommands) == 6
+        for subcommand in subcommands:
+            assert f"{subcommand})" in dispatch_script

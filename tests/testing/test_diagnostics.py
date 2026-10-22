@@ -67,6 +67,11 @@ def test_resource_wrapper_forwards_termination_and_reaps_children(tmp_path: Path
         process.terminate()
         output, errors = process.communicate(timeout=5)
         assert process.returncode in (-signal.SIGTERM, 128 + signal.SIGTERM), output + errors
+        # The command group exits before its orphan is reaped by the runner's
+        # init process. Give that independent reaper a bounded opportunity.
+        deadline = time.monotonic() + 2
+        while Path(f"/proc/{child}").exists() and time.monotonic() < deadline:
+            time.sleep(0.02)
         with pytest.raises(ProcessLookupError):
             os.kill(child, 0)
     finally:

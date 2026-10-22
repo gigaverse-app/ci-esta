@@ -35,6 +35,10 @@ Plan bounded, consecutive ranges once, then execute the returned assignment:
 ci-esta-pytest pools --shards 55 --shards-per-runner 2 --github-output "$GITHUB_OUTPUT"
 ```
 
+For a planning job without application dependencies, use the composite action
+`.github/actions/plan-runner-pools` at a reviewed immutable revision with inputs
+`shards` and `shards-per-runner`. It exposes the same outputs as the CLI.
+
 The `pools` output is a JSON array suitable for a matrix's `pool` axis. Each object
 contains a stable string `id`, `shard_count`, `first_shard` and `last_shard`. The
 `count` output counts runners. The last pool may be smaller. Each global shard
