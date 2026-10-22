@@ -40,3 +40,33 @@ retain provenance and the complete DAG calculation. Source runs:
 See [the adoption tutorial](../critical-path-optimizations.md) for isolation and
 measurement requirements. Keep full checkpoints and validate the complete
 evidence after introducing parallel execution.
+
+## pytest-obligation: the bottleneck moves
+
+| Metric | Before, run 39866009916 | After, run 39869242309 |
+| --- | ---: | ---: |
+| Demos job | 325 s | 262 s |
+| Due integration job | 293 s | 159 s |
+| Saleor job, unchanged | 223 s | 286 s |
+| Validation gate elapsed | 506 s | 422 s |
+| Execution critical path | 338 s | 299 s |
+| Total job execution | 1,817 runner-s | 1,739 runner-s |
+
+Wagtail uses four xdist workers, with one migrated database cloned into four
+isolated worker databases through `ci-esta-postgres-clone`. Due's package and
+integration sessions also use four workers. Every existing coverage scan,
+required-case validator, profile validator and evidence upload remains enabled.
+The full run is green. The 68 procrastinate, 22 DBOS, 123 Wagtail and 970 Due
+integration test identities and pass/skip outcomes match exactly.
+
+The observed critical path changes from `select-tests → demos → Validation gate`
+to `select-tests → saleor → Validation gate`. Saleor's implementation is unchanged;
+its variation limits the overall observed improvement to 16.6% elapsed and 11.5%
+execution critical path. Demos improved 19.4%; Due improved 45.7%. This is why
+reducing one job's duration cannot be reported as the whole workflow's gain.
+
+Raw [before](2026-10-23-critical-execution/obligation-39866009916.json),
+[after](2026-10-23-critical-execution/obligation-39869242309.json), and
+[matched inventories](2026-10-23-critical-execution/obligation-test-inventory.json).
+Source runs: [before](https://github.com/gigaverse-app/pytest-obligation/actions/runs/39866009916),
+[after](https://github.com/gigaverse-app/pytest-obligation/actions/runs/39869242309).
