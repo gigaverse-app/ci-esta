@@ -1,0 +1,5 @@
+# The ci-observability actions run this package with the runner image's own python3 (3.12 on
+# ubuntu-24.04), not the project's Python, so format and lint it for that version.
+# tests/ci_observability/test_action_metadata.py checks the whole import closure the actions run.
+extend = "../../../pyproject.toml"
+target-version = "py312"

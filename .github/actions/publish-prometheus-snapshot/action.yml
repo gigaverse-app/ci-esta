@@ -1,0 +1,54 @@
+name: Publish Prometheus snapshot
+description: >
+  Replace one bounded Pushgateway group with metrics from a Prometheus text
+  exposition file. Repository identity is always part of the grouping key so
+  consumers cannot overwrite one another.
+
+inputs:
+  metrics-file:
+    description: Path to a Prometheus text exposition file in the caller workspace.
+    required: true
+  pushgateway-url:
+    description: Pushgateway base URL, without a /metrics/job/... suffix.
+    required: true
+  job:
+    description: Stable metric-domain name used as the Pushgateway job grouping label.
+    required: true
+  grouping-labels:
+    description: >
+      JSON object of additional bounded grouping labels, for example
+      {"env":"dev","service":"edge_service"}. Never use run IDs or commit SHAs.
+    required: false
+    default: "{}"
+  username:
+    description: Optional HTTP Basic Auth username.
+    required: false
+    default: ""
+  password:
+    description: Optional HTTP Basic Auth password.
+    required: false
+    default: ""
+  failure-mode:
+    description: Use "warn" for best-effort telemetry or "fail" for a required publication.
+    required: false
+    default: "warn"
+  timeout-seconds:
+    description: HTTP request timeout.
+    required: false
+    default: "15"
+
+runs:
+  using: composite
+  steps:
+    - name: Publish bounded Pushgateway snapshot
+      shell: bash
+      env:
+        INPUT_METRICS_FILE: ${{ inputs.metrics-file }}
+        INPUT_PUSHGATEWAY_URL: ${{ inputs.pushgateway-url }}
+        INPUT_JOB: ${{ inputs.job }}
+        INPUT_GROUPING_LABELS: ${{ inputs.grouping-labels }}
+        INPUT_USERNAME: ${{ inputs.username }}
+        INPUT_PASSWORD: ${{ inputs.password }}
+        INPUT_FAILURE_MODE: ${{ inputs.failure-mode }}
+        INPUT_TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+      run: python3 "${{ github.action_path }}/publish.py"

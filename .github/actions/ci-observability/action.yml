@@ -1,0 +1,150 @@
+name: Shared CI observability report
+description: >
+  Render versioned CI latency, direct dependency, all-attempt runner-cost,
+  job-admission, overlapping prior-run cost, sticky-comment, JSON artifact,
+  and bounded Prometheus outputs.
+
+inputs:
+  github-token:
+    description: Token with actions:read and, when posting a sticky, pull-requests:write.
+    required: true
+  run-id:
+    description: GitHub Actions run ID to observe.
+    required: false
+    default: ${{ github.run_id }}
+  run-attempt:
+    description: Current workflow run attempt.
+    required: false
+    default: ${{ github.run_attempt }}
+  commit-sha:
+    description: Commit whose required status contexts are observed.
+    required: false
+    default: ${{ github.sha }}
+  pull-request-number:
+    description: Pull request number for sticky publication; empty disables the sticky.
+    required: false
+    default: ""
+  required-gates-json:
+    description: >
+      JSON array of explicit actions_job or commit_status gate selectors and
+      sanitized direct prerequisites. Never pass arbitrary needs outputs.
+    required: false
+    default: "[]"
+  extensions-file:
+    description: Optional JSON object containing typed consumer enrichment.
+    required: false
+    default: ""
+  repository-signals-file:
+    description: >
+      Optional JSON array of typed key/label/value signals rendered visibly in
+      the sticky, such as pytest, coverage, cache, or image facts.
+    required: false
+    default: ""
+  report-output:
+    description: Versioned exact-run JSON output path.
+    required: false
+    default: ci-observability.json
+  markdown-output:
+    description: Rendered sticky/summary Markdown output path.
+    required: false
+    default: ci-observability.md
+  prometheus-output:
+    description: Bounded Prometheus exposition output path.
+    required: false
+    default: ci-observability.prom
+  post-sticky:
+    description: Whether to upsert the marker-identified pull-request comment.
+    required: false
+    default: "true"
+  append-summary:
+    description: Whether to append the rendered report to GITHUB_STEP_SUMMARY.
+    required: false
+    default: "true"
+  runner-sku-rates-json:
+    description: >
+      Optional JSON array mapping runner labels to versioned SKU names and
+      USD/minute rates. Exact dollar cost is withheld when any timed job is
+      unmatched.
+    required: false
+    default: "[]"
+  test-selection-artifact:
+    description: >
+      This run's artifact holding the test-impact selection explanation (the
+      test-impact action uploads it). Rendered as the sticky's test-selection
+      section, so only a report that posts the sticky reads it. Empty disables.
+    required: false
+    default: test-impact-explanation
+  full-suite-reference-artifact:
+    description: >
+      Artifact holding the latest full-suite pytest timings, the baseline for
+      the section's saving. Read from any same-repository run; this run
+      uploads its own when it ran every test file from a pull_request or push
+      without coverage. Empty disables.
+    required: false
+    default: ci-full-suite-reference-v1
+  full-suite-reference-output:
+    description: Where this run's own full-suite reference is written before upload.
+    required: false
+    default: ci-full-suite-reference.json
+
+outputs:
+  report-file:
+    description: JSON report path.
+    value: ${{ steps.report.outputs.report-file }}
+  markdown-file:
+    description: Markdown report path.
+    value: ${{ steps.report.outputs.markdown-file }}
+  prometheus-file:
+    description: Prometheus exposition path.
+    value: ${{ steps.report.outputs.prometheus-file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Ensure reporter runtime
+      id: runtime
+      continue-on-error: true
+      shell: bash
+      env:
+        REPORTER_SOURCE: ${{ github.action_path }}/../../..
+      run: |
+        runtime="$(mktemp -d "$RUNNER_TEMP/ci-esta.XXXXXX")"
+        python3 -m venv "$runtime"
+        "$runtime/bin/python" -m pip install --disable-pip-version-check "$REPORTER_SOURCE"
+        echo "python=$runtime/bin/python" >> "$GITHUB_OUTPUT"
+
+    - name: Render CI observability report
+      id: report
+      continue-on-error: true
+      shell: bash
+      env:
+        INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_RUN_ID: ${{ inputs.run-id }}
+        INPUT_RUN_ATTEMPT: ${{ inputs.run-attempt }}
+        INPUT_COMMIT_SHA: ${{ inputs.commit-sha }}
+        INPUT_PULL_REQUEST_NUMBER: ${{ inputs.pull-request-number }}
+        INPUT_REQUIRED_GATES_JSON: ${{ inputs.required-gates-json }}
+        INPUT_EXTENSIONS_FILE: ${{ inputs.extensions-file }}
+        INPUT_REPOSITORY_SIGNALS_FILE: ${{ inputs.repository-signals-file }}
+        INPUT_REPORT_OUTPUT: ${{ inputs.report-output }}
+        INPUT_MARKDOWN_OUTPUT: ${{ inputs.markdown-output }}
+        INPUT_PROMETHEUS_OUTPUT: ${{ inputs.prometheus-output }}
+        INPUT_POST_STICKY: ${{ inputs.post-sticky }}
+        INPUT_APPEND_SUMMARY: ${{ inputs.append-summary }}
+        INPUT_RUNNER_SKU_RATES_JSON: ${{ inputs.runner-sku-rates-json }}
+        INPUT_TEST_SELECTION_ARTIFACT: ${{ inputs.test-selection-artifact }}
+        INPUT_FULL_SUITE_REFERENCE_ARTIFACT: ${{ inputs.full-suite-reference-artifact }}
+        INPUT_FULL_SUITE_REFERENCE_OUTPUT: ${{ inputs.full-suite-reference-output }}
+        REPORTER_PYTHON: ${{ steps.runtime.outputs.python }}
+      run: '"$REPORTER_PYTHON" -m ci_esta.ci_observability.action'
+
+    # The report step sets the output only for a comparable full-suite run; other runs read it.
+    - name: Upload full-suite reference
+      if: ${{ steps.report.outputs.full-suite-reference-file != '' }}
+      continue-on-error: true
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      with:
+        name: ${{ inputs.full-suite-reference-artifact }}
+        path: ${{ steps.report.outputs.full-suite-reference-file }}
+        overwrite: true
+        retention-days: 30

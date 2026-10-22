@@ -1,0 +1,20 @@
+name: Validate complete merge prerequisites
+description: Fail closed on missing, failed, cancelled or unexpectedly skipped prerequisites.
+inputs:
+  needs:
+    description: JSON serialization of the aggregate job's direct needs.
+    required: true
+  required:
+    description: JSON boolean map with one admission decision per direct prerequisite.
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+      env:
+        VALIDATION_NEEDS: ${{ inputs.needs }}
+        VALIDATION_REQUIRED: ${{ inputs.required }}
+      with:
+        script: |
+          const { validateGate } = require(`${process.env.GITHUB_ACTION_PATH}/gate.cjs`);
+          validateGate(JSON.parse(process.env.VALIDATION_NEEDS), JSON.parse(process.env.VALIDATION_REQUIRED));

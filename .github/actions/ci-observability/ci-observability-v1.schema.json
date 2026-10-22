@@ -1,0 +1,1342 @@
+{
+  "$defs": {
+    "BlastRadiusChange": {
+      "additionalProperties": false,
+      "description": "A file whose change now selects many more test files than before this PR.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "before": {
+          "title": "Before",
+          "type": "integer"
+        },
+        "after": {
+          "title": "After",
+          "type": "integer"
+        },
+        "cause": {
+          "items": {
+            "$ref": "#/$defs/PathStep"
+          },
+          "title": "Cause",
+          "type": "array"
+        }
+      },
+      "required": [
+        "path",
+        "before",
+        "after"
+      ],
+      "title": "BlastRadiusChange",
+      "type": "object"
+    },
+    "ChangedFileReach": {
+      "additionalProperties": false,
+      "description": "One changed file's share of the selection: who loads it, and through what.\n\n`own` separates what the startup floor adds: the selected tests that would still load this\nfile if the floor's entries (root conftest, startup modules, package initializers every test\nloads) imported nothing. Outside the floor, the hub is the file most of the remaining indirect\nloaders depend on directly on their way to the change, such as a directory conftest or a URL\nconfiguration a policy attaches to every HTTP test. Tests that import the change directly are\nits real users.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "tests": {
+          "title": "Tests",
+          "type": "integer"
+        },
+        "direct": {
+          "title": "Direct",
+          "type": "integer"
+        },
+        "own": {
+          "title": "Own",
+          "type": "integer"
+        },
+        "hub": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hub"
+        },
+        "hub_tests": {
+          "default": 0,
+          "title": "Hub Tests",
+          "type": "integer"
+        },
+        "hub_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "conftest",
+                "hooks",
+                "startup",
+                "package",
+                "import",
+                "declared"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hub Kind"
+        }
+      },
+      "required": [
+        "path",
+        "tests",
+        "direct",
+        "own"
+      ],
+      "title": "ChangedFileReach",
+      "type": "object"
+    },
+    "CollectionStatus": {
+      "enum": [
+        "complete",
+        "partial",
+        "unavailable"
+      ],
+      "title": "CollectionStatus",
+      "type": "string"
+    },
+    "DirectPrerequisiteV1": {
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "result": {
+          "title": "Result",
+          "type": "string"
+        },
+        "display_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Display Name"
+        }
+      },
+      "required": [
+        "job_id",
+        "result"
+      ],
+      "title": "DirectPrerequisiteV1",
+      "type": "object"
+    },
+    "FloorChange": {
+      "additionalProperties": false,
+      "description": "The startup floor: non-test Python files that at least `share` of test files depend on.",
+      "properties": {
+        "share": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Share",
+          "type": "number"
+        },
+        "before": {
+          "title": "Before",
+          "type": "integer"
+        },
+        "after": {
+          "title": "After",
+          "type": "integer"
+        },
+        "added": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Added",
+          "type": "array"
+        },
+        "removed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Removed",
+          "type": "array"
+        },
+        "path": {
+          "items": {
+            "$ref": "#/$defs/PathStep"
+          },
+          "title": "Path",
+          "type": "array"
+        },
+        "files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Files",
+          "type": "array"
+        },
+        "entries": {
+          "items": {
+            "$ref": "#/$defs/FloorEntry"
+          },
+          "title": "Entries",
+          "type": "array"
+        },
+        "cycle": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FloorCycle"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "share",
+        "before",
+        "after"
+      ],
+      "title": "FloorChange",
+      "type": "object"
+    },
+    "FloorCycle": {
+      "additionalProperties": false,
+      "description": "The floor's largest import cycle: every member reaches every other.\n\nWhile the cycle holds, a startup file that loads one member loads all of them, so trimming\nwhat startup loads leaves the whole cycle in the floor as long as any route into it remains.",
+      "properties": {
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        },
+        "hub": {
+          "title": "Hub",
+          "type": "string"
+        },
+        "hub_readers": {
+          "title": "Hub Readers",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "size",
+        "hub",
+        "hub_readers"
+      ],
+      "title": "FloorCycle",
+      "type": "object"
+    },
+    "FloorEntry": {
+      "additionalProperties": false,
+      "description": "A file most test files depend on directly: the floor is whatever the entries load.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "conftest",
+            "hooks",
+            "startup",
+            "package",
+            "import",
+            "declared"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "floor_files": {
+          "title": "Floor Files",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "floor_files"
+      ],
+      "title": "FloorEntry",
+      "type": "object"
+    },
+    "FullSuiteReferenceV1": {
+      "additionalProperties": false,
+      "description": "A measured run of the complete default gate, the baseline a narrowed run's saving is against.\n\nRecorded by the reporter of a green same-repository run whose change reached every test file,\nso nothing forced the full suite (coverage, a schedule, a label). Read back as the median of\nthe newest few whose suite size matches.",
+      "properties": {
+        "timings": {
+          "$ref": "#/$defs/PytestTimingMetadata"
+        },
+        "total_files": {
+          "minimum": 1,
+          "title": "Total Files",
+          "type": "integer"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "head_branch": {
+          "title": "Head Branch",
+          "type": "string"
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "timings",
+        "total_files",
+        "run_id",
+        "head_branch",
+        "recorded_at"
+      ],
+      "title": "FullSuiteReferenceV1",
+      "type": "object"
+    },
+    "GateKind": {
+      "enum": [
+        "actions_job",
+        "commit_status"
+      ],
+      "title": "GateKind",
+      "type": "string"
+    },
+    "JsonValue": {},
+    "ObservedGateV1": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/GateKind"
+        },
+        "identity": {
+          "title": "Identity",
+          "type": "string"
+        },
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Conclusion"
+        },
+        "matched": {
+          "title": "Matched",
+          "type": "boolean"
+        },
+        "observed_job_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Observed Job Id"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Completed At"
+        },
+        "elapsed_from_creation_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Elapsed From Creation Seconds"
+        },
+        "elapsed_from_run_start_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Elapsed From Run Start Seconds"
+        },
+        "direct_prerequisites": {
+          "items": {
+            "$ref": "#/$defs/DirectPrerequisiteV1"
+          },
+          "title": "Direct Prerequisites",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "identity",
+        "display_name",
+        "status",
+        "conclusion",
+        "matched",
+        "observed_job_id",
+        "completed_at",
+        "elapsed_from_creation_seconds",
+        "elapsed_from_run_start_seconds",
+        "direct_prerequisites"
+      ],
+      "title": "ObservedGateV1",
+      "type": "object"
+    },
+    "ObservedJobV1": {
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "title": "Job Id",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "run_attempt": {
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Conclusion"
+        },
+        "timing_status": {
+          "$ref": "#/$defs/TimingStatus"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Started At"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Completed At"
+        },
+        "wall_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Wall Seconds"
+        },
+        "start_offset_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start Offset Seconds"
+        },
+        "end_offset_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End Offset Seconds"
+        },
+        "rounded_minutes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rounded Minutes"
+        },
+        "rounding_waste_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rounding Waste Seconds"
+        },
+        "seconds_to_save_minute": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Seconds To Save Minute"
+        },
+        "seconds_until_next_minute": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Seconds Until Next Minute"
+        },
+        "runner_labels": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Runner Labels",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "name",
+        "run_attempt",
+        "status",
+        "conclusion",
+        "timing_status",
+        "started_at",
+        "completed_at",
+        "wall_seconds",
+        "start_offset_seconds",
+        "end_offset_seconds",
+        "rounded_minutes",
+        "rounding_waste_seconds",
+        "seconds_to_save_minute",
+        "seconds_until_next_minute"
+      ],
+      "title": "ObservedJobV1",
+      "type": "object"
+    },
+    "OverlappingRunCostV1": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "head_sha": {
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Conclusion"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Updated At"
+        },
+        "runner_cost": {
+          "$ref": "#/$defs/RunnerCostV1"
+        }
+      },
+      "required": [
+        "run_id",
+        "head_sha",
+        "conclusion",
+        "created_at",
+        "updated_at",
+        "runner_cost"
+      ],
+      "title": "OverlappingRunCostV1",
+      "type": "object"
+    },
+    "OverlappingRunnerCostV1": {
+      "additionalProperties": false,
+      "properties": {
+        "runs": {
+          "items": {
+            "$ref": "#/$defs/OverlappingRunCostV1"
+          },
+          "title": "Runs",
+          "type": "array"
+        },
+        "raw_runner_seconds": {
+          "default": 0.0,
+          "title": "Raw Runner Seconds",
+          "type": "number"
+        },
+        "estimated_rounded_runner_minutes": {
+          "default": 0,
+          "title": "Estimated Rounded Runner Minutes",
+          "type": "integer"
+        },
+        "rounding_waste_seconds": {
+          "default": 0.0,
+          "title": "Rounding Waste Seconds",
+          "type": "number"
+        },
+        "estimated_cost_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Cost Usd"
+        }
+      },
+      "title": "OverlappingRunnerCostV1",
+      "type": "object"
+    },
+    "PathStep": {
+      "additionalProperties": false,
+      "description": "One file on an import path, and how it depends on the next step.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "import",
+                "string",
+                "package",
+                "conftest",
+                "startup",
+                "declared"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Line"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "PathStep",
+      "type": "object"
+    },
+    "PytestTimingMetadata": {
+      "additionalProperties": false,
+      "description": "Shard count plus wall/summed pytest seconds, as captured post-run.\n\ngigaverse-backend called this ``PytestTimingMetadata`` and gigaverse-ai\ncalled it ``PytestSnapshot``; the fields (and therefore the JSON) were\nidentical.",
+      "properties": {
+        "shard_count": {
+          "minimum": 1,
+          "title": "Shard Count",
+          "type": "integer"
+        },
+        "wall_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wall Seconds"
+        },
+        "total_test_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Total Test Seconds"
+        }
+      },
+      "required": [
+        "shard_count"
+      ],
+      "title": "PytestTimingMetadata",
+      "type": "object"
+    },
+    "RepositorySignalV1": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "value": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "value"
+      ],
+      "title": "RepositorySignalV1",
+      "type": "object"
+    },
+    "RunProvenanceV1": {
+      "additionalProperties": false,
+      "properties": {
+        "repository": {
+          "title": "Repository",
+          "type": "string"
+        },
+        "workflow_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Workflow Name"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "run_attempt": {
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "head_sha": {
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "pull_request_number": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pull Request Number"
+        },
+        "workflow_created_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Workflow Created At"
+        },
+        "workflow_run_started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Workflow Run Started At"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository",
+        "workflow_name",
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "pull_request_number",
+        "workflow_created_at",
+        "workflow_run_started_at",
+        "observed_at"
+      ],
+      "title": "RunProvenanceV1",
+      "type": "object"
+    },
+    "RunnerCostV1": {
+      "additionalProperties": false,
+      "properties": {
+        "raw_runner_seconds": {
+          "title": "Raw Runner Seconds",
+          "type": "number"
+        },
+        "estimated_rounded_runner_minutes": {
+          "title": "Estimated Rounded Runner Minutes",
+          "type": "integer"
+        },
+        "rounding_waste_seconds": {
+          "title": "Rounding Waste Seconds",
+          "type": "number"
+        },
+        "billed_attempts": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Billed Attempts",
+          "type": "array"
+        },
+        "by_sku": {
+          "items": {
+            "$ref": "#/$defs/RunnerSkuCostV1"
+          },
+          "title": "By Sku",
+          "type": "array"
+        },
+        "unpriced_rounded_runner_minutes": {
+          "default": 0,
+          "title": "Unpriced Rounded Runner Minutes",
+          "type": "integer"
+        },
+        "estimated_cost_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Cost Usd"
+        }
+      },
+      "required": [
+        "raw_runner_seconds",
+        "estimated_rounded_runner_minutes",
+        "rounding_waste_seconds",
+        "billed_attempts"
+      ],
+      "title": "RunnerCostV1",
+      "type": "object"
+    },
+    "RunnerSkuCostV1": {
+      "additionalProperties": false,
+      "description": "Rounded usage and price attributed to one configured runner SKU.",
+      "properties": {
+        "sku": {
+          "title": "Sku",
+          "type": "string"
+        },
+        "runner_label": {
+          "title": "Runner Label",
+          "type": "string"
+        },
+        "usd_per_minute": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Usd Per Minute"
+        },
+        "raw_runner_seconds": {
+          "title": "Raw Runner Seconds",
+          "type": "number"
+        },
+        "estimated_rounded_runner_minutes": {
+          "title": "Estimated Rounded Runner Minutes",
+          "type": "integer"
+        },
+        "rounding_waste_seconds": {
+          "title": "Rounding Waste Seconds",
+          "type": "number"
+        },
+        "estimated_cost_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Estimated Cost Usd"
+        }
+      },
+      "required": [
+        "sku",
+        "runner_label",
+        "usd_per_minute",
+        "raw_runner_seconds",
+        "estimated_rounded_runner_minutes",
+        "rounding_waste_seconds",
+        "estimated_cost_usd"
+      ],
+      "title": "RunnerSkuCostV1",
+      "type": "object"
+    },
+    "SelectionExplanation": {
+      "additionalProperties": false,
+      "description": "Why a selection is as large as it is, and whether the change widened the graph.",
+      "properties": {
+        "base": {
+          "title": "Base",
+          "type": "string"
+        },
+        "head": {
+          "title": "Head",
+          "type": "string"
+        },
+        "selected": {
+          "title": "Selected",
+          "type": "integer"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        },
+        "forced_full": {
+          "default": false,
+          "title": "Forced Full",
+          "type": "boolean"
+        },
+        "graph_base": {
+          "title": "Graph Base",
+          "type": "string"
+        },
+        "floor_seeds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Floor Seeds",
+          "type": "array"
+        },
+        "routes": {
+          "items": {
+            "$ref": "#/$defs/SelectionRoute"
+          },
+          "title": "Routes",
+          "type": "array"
+        },
+        "path": {
+          "items": {
+            "$ref": "#/$defs/PathStep"
+          },
+          "title": "Path",
+          "type": "array"
+        },
+        "floor": {
+          "$ref": "#/$defs/FloorChange"
+        },
+        "changes": {
+          "items": {
+            "$ref": "#/$defs/ChangedFileReach"
+          },
+          "title": "Changes",
+          "type": "array"
+        },
+        "widened": {
+          "items": {
+            "$ref": "#/$defs/BlastRadiusChange"
+          },
+          "title": "Widened",
+          "type": "array"
+        }
+      },
+      "required": [
+        "base",
+        "head",
+        "selected",
+        "total",
+        "graph_base",
+        "floor"
+      ],
+      "title": "SelectionExplanation",
+      "type": "object"
+    },
+    "SelectionRoute": {
+      "additionalProperties": false,
+      "description": "A group of selected tests that reach the change the same way.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "floor",
+            "changed",
+            "funnel",
+            "other",
+            "unreached"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "tests": {
+          "title": "Tests",
+          "type": "integer"
+        },
+        "via": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Via"
+        },
+        "parent": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent"
+        }
+      },
+      "required": [
+        "kind",
+        "tests"
+      ],
+      "title": "SelectionRoute",
+      "type": "object"
+    },
+    "SelectionSectionV1": {
+      "additionalProperties": false,
+      "description": "What the sticky's test-selection section is rendered from.",
+      "properties": {
+        "explanation": {
+          "$ref": "#/$defs/SelectionExplanation"
+        },
+        "pytest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PytestTimingMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "references": {
+          "items": {
+            "$ref": "#/$defs/FullSuiteReferenceV1"
+          },
+          "title": "References",
+          "type": "array"
+        }
+      },
+      "required": [
+        "explanation"
+      ],
+      "title": "SelectionSectionV1",
+      "type": "object"
+    },
+    "TimingStatus": {
+      "enum": [
+        "complete",
+        "accrued",
+        "not_timed"
+      ],
+      "title": "TimingStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "ci-observability/v1",
+      "default": "ci-observability/v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "collection_status": {
+      "$ref": "#/$defs/CollectionStatus"
+    },
+    "collection_errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Collection Errors",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/RunProvenanceV1"
+    },
+    "latest_attempt_jobs": {
+      "items": {
+        "$ref": "#/$defs/ObservedJobV1"
+      },
+      "title": "Latest Attempt Jobs",
+      "type": "array"
+    },
+    "billing_jobs": {
+      "items": {
+        "$ref": "#/$defs/ObservedJobV1"
+      },
+      "title": "Billing Jobs",
+      "type": "array"
+    },
+    "required_gates": {
+      "items": {
+        "$ref": "#/$defs/ObservedGateV1"
+      },
+      "title": "Required Gates",
+      "type": "array"
+    },
+    "merge_ready_from_creation_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Merge Ready From Creation Seconds"
+    },
+    "merge_ready_from_run_start_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Merge Ready From Run Start Seconds"
+    },
+    "workflow_initial_queue_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Workflow Initial Queue Seconds"
+    },
+    "workflow_job_admission_delay_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Workflow Job Admission Delay Seconds"
+    },
+    "merge_ready_after_job_admission_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Merge Ready After Job Admission Seconds"
+    },
+    "longest_latest_job_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Longest Latest Job Name"
+    },
+    "longest_latest_job_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Longest Latest Job Seconds"
+    },
+    "runner_cost": {
+      "$ref": "#/$defs/RunnerCostV1"
+    },
+    "overlapping_prior_runner_cost": {
+      "$ref": "#/$defs/OverlappingRunnerCostV1"
+    },
+    "repository_signals": {
+      "items": {
+        "$ref": "#/$defs/RepositorySignalV1"
+      },
+      "maxItems": 32,
+      "title": "Repository Signals",
+      "type": "array"
+    },
+    "extensions": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Extensions",
+      "type": "object"
+    },
+    "test_selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SelectionSectionV1"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "collection_status",
+    "provenance",
+    "latest_attempt_jobs",
+    "billing_jobs",
+    "required_gates",
+    "merge_ready_from_creation_seconds",
+    "merge_ready_from_run_start_seconds",
+    "workflow_initial_queue_seconds",
+    "longest_latest_job_name",
+    "longest_latest_job_seconds",
+    "runner_cost"
+  ],
+  "title": "CiObservabilityReportV1",
+  "type": "object"
+}

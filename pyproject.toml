@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ci-esta"
+version = "0.1.0a1"
+description = "GitHub Actions observability and evidence-based CI reuse"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{name = "Gigaverse"}]
+dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pytest-selective @ git+https://github.com/gigaverse-app/pytest-selective.git@68248df5e1bed06dbbf2f1e5ab3a7d5aed434091"]
+keywords = ["github-actions", "ci-observability", "ci-optimization", "continuous-integration", "prometheus"]
+classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Developers", "Topic :: Software Development :: Build Tools", "Programming Language :: Python :: 3", "Typing :: Typed"]
+
+[project.scripts]
+ci-esta = "ci_esta.cli:main"
+ci-esta-enrich = "ci_esta.ci_observability.enrichment.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/gigaverse-app/ci-esta"
+Documentation = "https://github.com/gigaverse-app/ci-esta/tree/main/docs"
+Repository = "https://github.com/gigaverse-app/ci-esta"
+Issues = "https://github.com/gigaverse-app/ci-esta/issues"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ci_esta"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
