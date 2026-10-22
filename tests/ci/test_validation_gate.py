@@ -34,3 +34,28 @@ def test_gate_rejects_missing_edges_or_untyped_admission(
     needs: dict[str, dict[str, str]], required: dict[str, bool | str]
 ) -> None:
     assert not gate_succeeds(needs, required)
+
+
+@pytest.mark.parametrize("decision", [False, True, None, "false", 0])
+@pytest.mark.parametrize("planner", ["success", "failure", "skipped", "cancelled"])
+def test_selected_lane_gate_requires_successful_planning_and_literal_false(decision, planner):
+    needs = {"select-tests": {"result": planner}, "tests": {"result": "skipped"},
+             "metadata": {"result": "success"}}
+    script = """
+    const {validateGate, selectedRequirements}=require(process.argv[1]);
+    const needs=JSON.parse(process.argv[2]);
+    validateGate(needs, selectedRequirements(needs, 'select-tests',
+      {unit:JSON.parse(process.argv[3])}, {tests:['unit']}));
+    """
+    result = subprocess.run(["node", "-e", script, str(GATE), json.dumps(needs), json.dumps(decision)],
+                            capture_output=True)
+    assert (result.returncode == 0) == (planner == "success" and decision is False)
+
+
+def test_selected_lane_gate_cannot_ignore_metadata_or_an_unmapped_job():
+    script = """
+    const {validateGate, selectedRequirements}=require(process.argv[1]);
+    const needs={'select-tests':{result:'success'},tests:{result:'skipped'},metadata:{result:'skipped'}};
+    validateGate(needs, selectedRequirements(needs,'select-tests',{unit:false},{tests:['unit']}));
+    """
+    assert subprocess.run(["node", "-e", script, str(GATE)], capture_output=True).returncode != 0

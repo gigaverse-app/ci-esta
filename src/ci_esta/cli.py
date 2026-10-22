@@ -15,6 +15,9 @@ from ci_esta.ci_observability.report import render_markdown, render_prometheus
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CI-esta: GitHub Actions timing, cost estimates and evidence")
     commands = parser.add_subparsers(dest="command", required=True)
+    audit = commands.add_parser("check-workflow", help="Validate selected-lane aggregate gate wiring")
+    audit.add_argument("--workflow", type=Path, required=True)
+    audit.add_argument("--lanes", type=Path, required=True)
     collect = commands.add_parser("report", help="Read a GitHub Actions run and save JSON, Markdown and Prometheus")
     collect.add_argument("--repository", required=True, help="owner/repository")
     collect.add_argument("--run-id", required=True, type=int)
@@ -29,6 +32,11 @@ def main(argv: list[str] | None = None) -> int:
     render.add_argument("--markdown", required=True, type=Path)
     render.add_argument("--prometheus", required=True, type=Path)
     args = parser.parse_args(argv)
+    if args.command == "check-workflow":
+        from ci_esta.testing.workflow_adoption import check
+        check(args.workflow, args.lanes)
+        print("Workflow lane and aggregate-gate contracts passed")
+        return 0
     if args.command == "render":
         report = CiObservabilityReportV1.model_validate_json(args.report.read_bytes())
         for path, content in ((args.markdown, render_markdown(report)), (args.prometheus, render_prometheus(report))):

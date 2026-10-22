@@ -14,4 +14,20 @@ function validateGate(needs, required) {
   }
 }
 
-module.exports = { validateGate };
+function selectedRequirements(needs, planner, lanes, laneJobs) {
+  if (!needs[planner] || !lanes || typeof lanes !== 'object' || Array.isArray(lanes) ||
+      !laneJobs || typeof laneJobs !== 'object' || Array.isArray(laneJobs)) {
+    throw new Error('A direct planner prerequisite and explicit lane/job maps are required.');
+  }
+  const required = Object.fromEntries(Object.keys(needs).map(name => [name, true]));
+  for (const [job, inputs] of Object.entries(laneJobs)) {
+    if (!(job in needs) || job === planner || !Array.isArray(inputs) || !inputs.length ||
+        inputs.some(lane => typeof lane !== 'string' || !lane)) {
+      throw new Error(`Invalid lane mapping for ${job}`);
+    }
+    required[job] = !(needs[planner].result === 'success' && inputs.every(lane => lanes[lane] === false));
+  }
+  return required;
+}
+
+module.exports = { validateGate, selectedRequirements };

@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   workflow_dispatch:
 
 permissions:
@@ -22,16 +23,26 @@ jobs:
     outputs:
       receipt: ${{ steps.evidence.outputs.receipt }}
       reused: ${{ steps.evidence.outputs.reused }}
+      lanes: ${{ steps.selection.outputs.lanes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/current-pr-head
         if: ${{ github.event_name == 'pull_request' }}
         with:
           pr-number: ${{ github.event.pull_request.number }}
           expected-head-sha: ${{ github.event.pull_request.head.sha }}
       - uses: ./.github/actions/collect-pr-changes
+      - uses: gigaverse-app/pytest-selective/.github/actions/plan-lanes@4bc213178e1bdf12dc15bf6baf8951ba8a394a4a
+        id: selection
+        with:
+          config: .github/test-lanes.json
+          base: ${{ github.event.pull_request.base.sha || github.event.before }}
+          full: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'test:full') }}
       - uses: ./.github/actions/resolve-lane-evidence
         id: evidence
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'test:full') }}
         with:
           lanes: '{"tests":"Test suite","compat":"Python compatibility"}'
           # Complete test/build inputs; docs and the disposable live probe do not affect these jobs.
@@ -44,7 +55,7 @@ jobs:
   tests:
     name: Test suite
     needs: plan
-    if: ${{ !cancelled() && (needs.plan.result != 'success' || !fromJSON(needs.plan.outputs.reused || '{}').tests) }}
+    if: ${{ !cancelled() && (needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').tests)) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -55,22 +66,14 @@ jobs:
         run: |
           uv python install 3.14
           echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
-      - run: uv run ruff check .
       - run: uv run pytest -q -n 4
-      - run: uv build
-      - name: Verify installed wheel
-        run: |
-          uv venv "$RUNNER_TEMP/wheel-test" --python 3.11
-          uv pip install --python "$RUNNER_TEMP/wheel-test/bin/python" dist/*.whl
-          cd "$RUNNER_TEMP"
-          "$RUNNER_TEMP/wheel-test/bin/ci-esta" --help
       - name: ${{ needs.plan.outputs.receipt || 'Uncached validation completed' }}
         run: 'true'
 
   compat:
     name: Python compatibility
     needs: plan
-    if: ${{ !cancelled() && (needs.plan.result != 'success' || !fromJSON(needs.plan.outputs.reused || '{}').compat) }}
+    if: ${{ !cancelled() && (needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').compat)) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -87,7 +90,7 @@ jobs:
 
   gate:
     name: Validation gate
-    needs: [plan, tests, compat]
+    needs: [plan, tests, compat, quality]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -96,4 +99,23 @@ jobs:
         with:
           needs: ${{ toJSON(needs) }}
           required: >-
-            {"plan":true,"tests":${{ !fromJSON(needs.plan.outputs.reused || '{}').tests }},"compat":${{ !fromJSON(needs.plan.outputs.reused || '{}').compat }}}
+            {"plan":true,"quality":true,"tests":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').tests) }},"compat":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').compat) }}}
+
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./.github/actions/setup-cached-uv
+        with:
+          python-version: '3.14'
+      - run: uv run ruff check .
+      - name: Always exercise routing and gate contracts
+        run: uv run pytest -q tests/ci/test_repository_routing.py tests/ci/test_validation_gate.py tests/testing/test_workflow_adoption.py
+      - run: uv build
+      - run: uvx --from twine==7.0.0 twine check --strict dist/*
+      - name: Verify installed wheel
+        run: |
+          uv venv "$RUNNER_TEMP/wheel-test" --python 3.11
+          uv pip install --python "$RUNNER_TEMP/wheel-test/bin/python" dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/wheel-test/bin/ci-esta" --help
