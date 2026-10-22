@@ -93,6 +93,8 @@ class GitHubJobV1(BaseModel):
     run_attempt: int = 1
     status: str
     conclusion: str | None = None
+    #: When GitHub queued the job: after the jobs it needs completed.
+    created_at: datetime | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
     runner_name: str | None = None
@@ -164,6 +166,8 @@ class ObservedJobV1(BaseModel):
     wall_seconds: float | None
     start_offset_seconds: float | None
     end_offset_seconds: float | None
+    #: When the job was queued, from the same origin; None when GitHub gave no creation time.
+    queued_offset_seconds: float | None = None
     rounded_minutes: int | None
     rounding_waste_seconds: float | None
     seconds_to_save_minute: float | None

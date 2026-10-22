@@ -42,6 +42,7 @@ from ci_esta.ci_observability.models import (
     StickySnapshotV1,
     TimingStatus,
 )
+from ci_esta.ci_observability.timeline import render_timeline
 
 STICKY_MARKER = "<!-- ci-observability-v1 -->"
 #: The keyed sticky marker's prefix. A bare marker is never a substring of a keyed one.
@@ -102,6 +103,7 @@ def _observe_job(job: GitHubJobV1, timeline_start: datetime, observed_at: dateti
         wall_seconds=wall_seconds,
         start_offset_seconds=_elapsed(timeline_start, job.started_at),
         end_offset_seconds=_elapsed(timeline_start, effective_end),
+        queued_offset_seconds=_elapsed(timeline_start, job.created_at),
         rounded_minutes=rounded_minutes,
         rounding_waste_seconds=(
             round(upper_boundary - wall_seconds, 1) if upper_boundary is not None and wall_seconds is not None else None
@@ -437,10 +439,6 @@ def build_unavailable_report(
     )
 
 
-def _mermaid_label(value: str) -> str:
-    return value.replace("\n", " ").replace("\r", " ").replace(":", " -").replace("#", "").strip()
-
-
 def _format_usd(value: Decimal) -> str:
     return format(value, "f")
 
@@ -480,15 +478,23 @@ def _cost(report: CiObservabilityReportV1) -> list[str]:
     return parts
 
 
-def _readiness(report: CiObservabilityReportV1) -> str | None:
-    """Merge readiness with its status mark; None when no required gate is configured."""
+def _readiness(report: CiObservabilityReportV1) -> brand.Badge | None:
+    """Merge readiness, colored by status; None when no required gate is configured."""
     if not report.required_gates:
         return None
     gates = report.merge_ready_from_creation_seconds
     if gates is not None:
-        return f"✅ **Merge-ready in {format_seconds(gates)}**"
+        return brand.Badge("merge-ready", format_seconds(gates), brand.GREEN)
     label = _readiness_label(report)
-    return f"❌ **{label.capitalize()}**" if label == "blocked" else f"⏳ **{label.capitalize()}**"
+    return brand.Badge("merge", label, brand.RED if label == "blocked" else brand.AMBER)
+
+
+def _cost_badges(report: CiObservabilityReportV1) -> list[brand.Badge]:
+    cost = report.runner_cost
+    badges = [brand.Badge("runner", f"{cost.estimated_rounded_runner_minutes} min", brand.GREY)]
+    if cost.estimated_cost_usd is not None:
+        badges.append(brand.Badge("cost", f"${cost.estimated_cost_usd:.2f}", brand.GREY))
+    return badges
 
 
 def _latency_summary(report: CiObservabilityReportV1) -> str:
@@ -499,20 +505,19 @@ def _latency_summary(report: CiObservabilityReportV1) -> str:
 
 
 def _header(report: CiObservabilityReportV1) -> list[str]:
-    """The brand mark, then one verdict line: readiness, what ran, and what it cost."""
+    """The banner, then one line of badges: readiness, what ran and saved, and what it cost."""
     provenance = report.provenance
-    workflow = f" · {markdown.inline(provenance.workflow_name)}" if provenance.workflow_name else ""
-    verdict = [part for part in [_readiness(report)] if part is not None]
+    verdict = [item for item in [_readiness(report)] if item is not None]
     if report.test_selection is not None:
-        verdict.append(selection.headline(report.test_selection))
+        verdict.extend(selection.badges(report.test_selection))
     if report.lane_selection is not None:
-        verdict.append(lanes.headline(report.lane_selection))
-    verdict.extend(_cost(report))
+        verdict.extend(lanes.badges(report.lane_selection))
+    verdict.extend(_cost_badges(report))
+    workflow = f"{markdown.inline(provenance.workflow_name)} · " if provenance.workflow_name else ""
     return [
-        f"[![{brand.CI_ESTA} report]({brand.CI_ESTA_BADGE})]({brand.CI_ESTA_URL})"
-        f"{workflow} · {markdown.code(provenance.head_sha[:7])}",
+        brand.banner(),
         "",
-        " · ".join(verdict),
+        " ".join(brand.badge(item) for item in verdict) + f" &nbsp; {workflow}{markdown.code(provenance.head_sha[:7])}",
         "",
     ]
 
@@ -548,7 +553,7 @@ def _footer(report: CiObservabilityReportV1, marker: str = STICKY_MARKER) -> lis
     return [
         f"{SNAPSHOT_MARKER_PREFIX}{sticky_snapshot(report).model_dump_json()} -->",
         marker,
-        f"<sub>🌴 Powered by [{brand.CI_ESTA}]({brand.CI_ESTA_URL}): {brand.TAGLINE} "
+        f"<sub>{brand.mark()} Powered by [{brand.CI_ESTA}]({brand.CI_ESTA_URL}): {brand.TAGLINE} "
         f"· [Reading this report]({brand.CI_ESTA_DOCS_URL}) "
         f"· [run {run}](https://github.com/{report.provenance.repository}/actions/runs/{run}) "
         f"· schema `{report.schema_version}`</sub>",
@@ -588,59 +593,6 @@ def _latency_table(report: CiObservabilityReportV1) -> list[str]:
         "| " + " | ".join(header for header, _, _ in shown) + " |",
         "|" + "|".join(align for _, align, _ in shown) + "|",
         "| " + " | ".join(value for _, _, value in shown) + " |",
-        "",
-    ]
-
-
-def _timeline(report: CiObservabilityReportV1) -> list[str]:
-    timed_jobs = [
-        job
-        for job in report.latest_attempt_jobs
-        if job.start_offset_seconds is not None
-        and job.end_offset_seconds is not None
-        and job.end_offset_seconds > job.start_offset_seconds
-    ]
-    merge_elapsed = report.merge_ready_from_creation_seconds
-    if not timed_jobs and merge_elapsed is None:
-        return []
-    lines = [
-        "```mermaid",
-        '%%{init: {"gantt": {"barHeight": 24, "barGap": 7, "topPadding": 50, '
-        '"leftPadding": 250, "fontSize": 13, "sectionFontSize": 14}}}%%',
-        "gantt",
-        "    title CI jobs from workflow creation",
-        "    dateFormat X",
-        "    axisFormat %M:%S",
-    ]
-    if merge_elapsed is not None:
-        lines += ["    section Merge", f"    required gate elapsed :crit, merge_gate, 0, {math.ceil(merge_elapsed)}"]
-    admission = report.workflow_job_admission_delay_seconds
-    if admission is not None and admission > 0:
-        lines += ["    section Admission", f"    no runner assigned to this run :admission, 0, {math.ceil(admission)}"]
-    if timed_jobs:
-        lines.append("    section Jobs")
-    gate_job_ids = {gate.observed_job_id for gate in report.required_gates if gate.observed_job_id is not None}
-    for index, job in enumerate(sorted(timed_jobs, key=lambda item: (item.start_offset_seconds or 0.0, item.name))):
-        label = _mermaid_label(job.name)
-        if job.timing_status == TimingStatus.ACCRUED:
-            label += " (active at snapshot)"
-        path = report.critical_path
-        on_path = job.name in path.observed_path if path and path.status == "complete" else job.job_id in gate_job_ids
-        critical = "crit, " if on_path else ""
-        lines.append(
-            f"    {label} :{critical}job_{index}, "
-            f"{int(job.start_offset_seconds or 0)}, {int(job.end_offset_seconds or 0)}"
-        )
-    merge_bar = (
-        "Red bar: workflow creation to required gates done."
-        if merge_elapsed is not None
-        else "A red bar appears once all required gates complete."
-    )
-    return [
-        *lines,
-        "```",
-        "",
-        f"<sub>{merge_bar} Bars are observed API timestamps; see the dependency analysis below when configured.</sub>",
         "",
     ]
 
@@ -832,7 +784,7 @@ def _latency_lines(report: CiObservabilityReportV1) -> list[str]:
     lines = [
         *_latency_table(report),
         *_overlap(report),
-        *_timeline(report),
+        *render_timeline(report),
         *_critical_path(report),
         *_cost_details(report),
         *_step_details(report),

@@ -60,19 +60,28 @@ reference leaves savings unmeasured. This configures observation, not test execu
 ### What the sticky shows
 
 ```text
-[CI-esta report] · CI · `17f3325`
-✅ Merge-ready in 2m 9s · ran 1 of 14 test lanes (≈28 runner-min skipped) · 4 runner-min · $0.03
+[CI-esta banner: dark or light, following the reader's GitHub theme]
+[merge-ready 2m 9s] [lanes 1 of 14 ran] [skipped ≈28 runner-min] [runner 4 min] [cost $0.03]  CI · `17f3325`
 
 🎯 Test selection · by pytest-selective   (when the run uploaded a file-selection explanation)
-🧪 Test lanes · by pytest-selective       (when the run uploaded a lane plan)
+🧪 Test lanes · by pytest-selective       (when the run uploaded a lane plan; one square per lane)
 ⏱️ CI time and cost                        (collapsed beside a selection section)
-🌴 Powered by CI-esta · run · schema
+   gantt: one row per job labeled with its run and ⏳ wait for a runner, orange
+   for the critical path, a green bar from merge-ready on
+[mark] Powered by CI-esta · run · schema
 ```
 
-The verdict line answers "can I merge, what ran, what did it cost" before any
-detail. Readiness appears only when required gates are configured. A pull
-request keeps one sticky per `sticky-key`; each new run updates it in place,
-and an older run never overwrites a newer one.
+The badge line answers "can I merge, what ran, what did it cost" before any
+detail, colored with GitHub's status palette; each badge's alt text carries its
+figure. Readiness appears only when required gates are configured. GitHub's API
+has no `needs` graph, so the gantt infers the chain: GitHub creates a job when
+the jobs it needs finish, so a job's predecessor is the one that finished just
+before it was created. A pull request keeps one sticky per `sticky-key`; each
+new run updates it in place, and an older run never overwrites a newer one.
+
+The banner and mark live in [`docs/assets`](assets/). Change both banners
+through [`scripts/render_sticky_banners.py`](../scripts/render_sticky_banners.py)
+rather than editing one theme by hand.
 
 For a report inside the original workflow instead:
 

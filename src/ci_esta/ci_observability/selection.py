@@ -24,7 +24,7 @@ from pytest_selective.impact_models import (
 )
 
 from ci_esta.ci_observability import markdown
-from ci_esta.ci_observability.brand import SELECTIVE_URL
+from ci_esta.ci_observability.brand import BLUE, GREEN, SELECTIVE_URL, Badge
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.models import SelectionSectionV1
 
@@ -125,14 +125,14 @@ def _saved(share: float | None) -> str | None:
     return None if share is None else f"{max(0, round((1 - share) * 100))}%"
 
 
-def headline(section: SelectionSectionV1) -> str:
-    """The sticky's verdict-line fragment: what ran, and the saving when there is a baseline."""
+def badges(section: SelectionSectionV1) -> list[Badge]:
+    """The sticky's badges for file selection: what ran, and the saving when there is a baseline."""
     explanation = section.explanation
-    text = f"ran **{_count(explanation.selected)} of {_count(explanation.total)}** test files"
+    items = [Badge("tests", f"{_count(explanation.selected)} of {_count(explanation.total)} files", BLUE)]
     saved = _saved(_test_share(section))
     if saved is not None and not explanation.full_suite:
-        text += f" (**{saved} saved**)"
-    return text
+        items.append(Badge("saved", saved, GREEN))
+    return items
 
 
 def _tldr_row(section: SelectionSectionV1) -> str:
