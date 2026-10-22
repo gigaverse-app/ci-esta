@@ -1,0 +1,34 @@
+name: Plan bounded runner pools
+description: Assign every global shard to exactly one runner without installing application dependencies.
+inputs:
+  shards:
+    description: Positive global shard count from the test selection plan.
+    required: true
+  shards-per-runner:
+    description: Maximum concurrent shard processes on one runner.
+    default: '2'
+outputs:
+  pools:
+    description: JSON matrix assignments with stable IDs and global shard ranges.
+    value: ${{ steps.plan.outputs.pools }}
+  count:
+    description: Number of runners required by the plan.
+    value: ${{ steps.plan.outputs.count }}
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
+    - id: plan
+      shell: bash
+      env:
+        PYTHONPATH: ${{ github.action_path }}/../../../src
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+        SHARDS: ${{ inputs.shards }}
+        SHARDS_PER_RUNNER: ${{ inputs.shards-per-runner }}
+      run: |
+        uv run --no-project --python 3.14 --with 'pydantic>=2.11,<3' --with 'defusedxml>=0.7,<1' \
+          --with "$(python3 "$SHARED_ACTION_PATH/../../../scripts/ci/pytest_selective_requirement.py")" \
+          python -m ci_esta.testing.cli pools --shards "$SHARDS" \
+          --shards-per-runner "$SHARDS_PER_RUNNER" --github-output "$GITHUB_OUTPUT"
