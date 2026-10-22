@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 5
     steps:
       # Never check out or execute source-run code, including fork pull requests.
-      - uses: gigaverse-app/ci-esta/.github/actions/ci-observability@28e935c1360e9b2936802d8d83fc2bb938e34d83
+      - uses: gigaverse-app/ci-esta/.github/actions/ci-observability@2623f364c0d2ff85ac3ce2763c618be4ef9ddc02
         with:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.run-id }}

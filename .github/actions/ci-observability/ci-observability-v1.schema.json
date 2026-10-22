@@ -557,6 +557,13 @@
           },
           "title": "Runner Labels",
           "type": "array"
+        },
+        "steps": {
+          "items": {
+            "$ref": "#/$defs/ObservedStepV1"
+          },
+          "title": "Steps",
+          "type": "array"
         }
       },
       "required": [
@@ -577,6 +584,85 @@
         "seconds_until_next_minute"
       ],
       "title": "ObservedJobV1",
+      "type": "object"
+    },
+    "ObservedStepV1": {
+      "additionalProperties": false,
+      "description": "Step timestamps explain job time; they are never separately billed.",
+      "properties": {
+        "number": {
+          "title": "Number",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conclusion"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Started At"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completed At"
+        },
+        "timing_status": {
+          "$ref": "#/$defs/TimingStatus"
+        },
+        "wall_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Wall Seconds"
+        }
+      },
+      "required": [
+        "number",
+        "name",
+        "status",
+        "timing_status",
+        "wall_seconds"
+      ],
+      "title": "ObservedStepV1",
       "type": "object"
     },
     "OverlappingRunCostV1": {

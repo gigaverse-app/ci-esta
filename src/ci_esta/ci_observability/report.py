@@ -24,8 +24,10 @@ from ci_esta.ci_observability.models import (
     GitHubJobV1,
     GitHubRunJobsV1,
     GitHubRunV1,
+    GitHubStepV1,
     ObservedGateV1,
     ObservedJobV1,
+    ObservedStepV1,
     OverlappingRunCostV1,
     OverlappingRunnerCostV1,
     RepositorySignalV1,
@@ -48,6 +50,22 @@ def _elapsed(start: datetime | None, end: datetime | None) -> float | None:
         return None
     seconds = (end - start).total_seconds()
     return round(seconds, 1) if seconds > 0 else None
+
+
+def _observe_step(step: GitHubStepV1, observed_at: datetime) -> ObservedStepV1:
+    timing_status = TimingStatus.NOT_TIMED
+    wall_seconds: float | None = None
+    end = step.completed_at
+    accrued = end is None and step.status == "in_progress"
+    if accrued:
+        end = observed_at
+    if step.conclusion != "skipped" and step.started_at is not None and end is not None:
+        seconds = (end - step.started_at).total_seconds()
+        # GitHub timestamps have second precision: a real short step may measure 0s.
+        if seconds >= 0:
+            wall_seconds = round(seconds, 1)
+            timing_status = TimingStatus.ACCRUED if accrued else TimingStatus.COMPLETE
+    return ObservedStepV1(**step.model_dump(), timing_status=timing_status, wall_seconds=wall_seconds)
 
 
 def _observe_job(job: GitHubJobV1, timeline_start: datetime, observed_at: datetime) -> ObservedJobV1:
@@ -91,6 +109,7 @@ def _observe_job(job: GitHubJobV1, timeline_start: datetime, observed_at: dateti
             round(upper_boundary - wall_seconds, 1) if upper_boundary is not None and wall_seconds is not None else None
         ),
         runner_labels=job.labels,
+        steps=[_observe_step(step, observed_at) for step in job.steps],
     )
 
 
@@ -655,6 +674,33 @@ def _cost_details(report: CiObservabilityReportV1) -> list[str]:
     return _details("Runner minutes and cost by runner and job", body)
 
 
+def _step_details(report: CiObservabilityReportV1) -> list[str]:
+    if not report.latest_attempt_jobs:
+        return []
+    rows = []
+    for job in sorted(report.latest_attempt_jobs, key=lambda item: item.wall_seconds or 0, reverse=True):
+        slowest = max(
+            (step for step in job.steps if step.wall_seconds is not None),
+            key=lambda step: step.wall_seconds or 0,
+            default=None,
+        )
+        url = f"https://github.com/{report.provenance.repository}/actions/runs/{report.provenance.run_id}/job/{job.job_id}"
+        job_name = markdown.cell(markdown.code(job.name))
+        step_name = markdown.cell(markdown.code(slowest.name)) if slowest else "unavailable"
+        wall = f"{job.wall_seconds:.0f}s ({job.timing_status.value})" if job.wall_seconds is not None else "unavailable"
+        step_wall = f"{slowest.wall_seconds:.0f}s ({slowest.timing_status.value})" if slowest else "unavailable"
+        rows.append(f"| [{job_name}]({url}) | {markdown.cell(job.conclusion or job.status)} | {wall} | {step_name} | {step_wall} |")
+    return _details("Slowest step in each job", [
+        "| job | result | job time | slowest timed step | step time |",
+        "|---|---|--:|---|--:|",
+        *rows,
+        "",
+        "_Latest attempt only. All observed steps are retained in the JSON report. "
+        "Unavailable timestamps are not zero; accrued time is measured at the snapshot. "
+        "Step times explain job time and are not added to runner usage._",
+    ])
+
+
 def _prerequisites(report: CiObservabilityReportV1) -> list[str]:
     rows = [
         f"| {markdown.cell(gate.display_name)} | "
@@ -697,6 +743,7 @@ def _latency_lines(report: CiObservabilityReportV1) -> list[str]:
         *_overlap(report),
         *_timeline(report),
         *_cost_details(report),
+        *_step_details(report),
         *_prerequisites(report),
         *(f"_{markdown.inline(signal.label)}: {markdown.inline(signal.value)}._" for signal in signals),
         *([""] if signals else []),
