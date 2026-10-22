@@ -1,0 +1,1251 @@
+{
+  "schema_version": "ci-observability/v1",
+  "collection_status": "complete",
+  "collection_errors": [],
+  "provenance": {
+    "repository": "gigaverse-app/ci-esta",
+    "workflow_name": "CI",
+    "run_id": 39863205566,
+    "run_attempt": 1,
+    "head_sha": "510775256ae3ecf943d994d1f21b0e6dc4ed5fab",
+    "pull_request_number": null,
+    "workflow_created_at": "2026-10-22T22:12:25Z",
+    "workflow_run_started_at": "2026-10-22T22:12:25Z",
+    "observed_at": "2026-10-22T22:14:21.063654Z"
+  },
+  "latest_attempt_jobs": [
+    {
+      "job_id": 120118834709,
+      "name": "quality",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:12:42Z",
+      "completed_at": "2026-10-22T22:13:03Z",
+      "wall_seconds": 21.0,
+      "start_offset_seconds": 17.0,
+      "end_offset_seconds": 38.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 39.0,
+      "seconds_to_save_minute": 21.0,
+      "seconds_until_next_minute": 39.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:43Z",
+          "completed_at": "2026-10-22T22:12:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:43Z",
+          "completed_at": "2026-10-22T22:12:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:44Z",
+          "completed_at": "2026-10-22T22:12:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv run ruff check .",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:49Z",
+          "completed_at": "2026-10-22T22:12:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run lint-imports --config importlinter.toml --no-cache",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:49Z",
+          "completed_at": "2026-10-22T22:12:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Always exercise routing and gate contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:50Z",
+          "completed_at": "2026-10-22T22:12:55Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 7,
+          "name": "Run uv build",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:55Z",
+          "completed_at": "2026-10-22T22:12:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 8,
+          "name": "Run uvx --from twine==7.0.0 twine check --strict dist/*",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:56Z",
+          "completed_at": "2026-10-22T22:12:58Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 9,
+          "name": "Verify installed wheel",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:58Z",
+          "completed_at": "2026-10-22T22:13:01Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:01Z",
+          "completed_at": "2026-10-22T22:13:01Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:01Z",
+          "completed_at": "2026-10-22T22:13:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:02Z",
+          "completed_at": "2026-10-22T22:13:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120118835295,
+      "name": "Evidence plan",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:12:47Z",
+      "completed_at": "2026-10-22T22:13:01Z",
+      "wall_seconds": 14.0,
+      "start_offset_seconds": 22.0,
+      "end_offset_seconds": 36.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 46.0,
+      "seconds_to_save_minute": 14.0,
+      "seconds_until_next_minute": 46.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:47Z",
+          "completed_at": "2026-10-22T22:12:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:49Z",
+          "completed_at": "2026-10-22T22:12:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/current-pr-head",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:50Z",
+          "completed_at": "2026-10-22T22:12:51Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 4,
+          "name": "Run ./.github/actions/collect-pr-changes",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:51Z",
+          "completed_at": "2026-10-22T22:12:53Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 5,
+          "name": "Run gigaverse-app/pytest-selective/.github/actions/plan-lanes@4bc213178e1bdf12dc15bf6baf8951ba8a394a4a",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:53Z",
+          "completed_at": "2026-10-22T22:12:58Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 6,
+          "name": "Run ./.github/actions/resolve-lane-evidence",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-22T22:12:58Z",
+          "completed_at": "2026-10-22T22:12:58Z",
+          "timing_status": "not_timed",
+          "wall_seconds": null
+        },
+        {
+          "number": 7,
+          "name": "Record admission",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:58Z",
+          "completed_at": "2026-10-22T22:12:58Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Post Run gigaverse-app/pytest-selective/.github/actions/plan-lanes@4bc213178e1bdf12dc15bf6baf8951ba8a394a4a",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:58Z",
+          "completed_at": "2026-10-22T22:12:58Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:58Z",
+          "completed_at": "2026-10-22T22:12:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:59Z",
+          "completed_at": "2026-10-22T22:12:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120119085369,
+      "name": "Test suite",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:13:05Z",
+      "completed_at": "2026-10-22T22:13:36Z",
+      "wall_seconds": 31.0,
+      "start_offset_seconds": 40.0,
+      "end_offset_seconds": 71.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 29.0,
+      "seconds_to_save_minute": 31.0,
+      "seconds_until_next_minute": 29.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:05Z",
+          "completed_at": "2026-10-22T22:13:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:06Z",
+          "completed_at": "2026-10-22T22:13:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:06Z",
+          "completed_at": "2026-10-22T22:13:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 4,
+          "name": "Install the Python 3.14 source-parser runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:14Z",
+          "completed_at": "2026-10-22T22:13:15Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run pytest -q -n 4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:15Z",
+          "completed_at": "2026-10-22T22:13:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 19.0
+        },
+        {
+          "number": 6,
+          "name": "Uncached validation completed",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:34Z",
+          "completed_at": "2026-10-22T22:13:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Post Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:34Z",
+          "completed_at": "2026-10-22T22:13:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:34Z",
+          "completed_at": "2026-10-22T22:13:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:34Z",
+          "completed_at": "2026-10-22T22:13:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120119085410,
+      "name": "Python compatibility",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:13:12Z",
+      "completed_at": "2026-10-22T22:13:45Z",
+      "wall_seconds": 33.0,
+      "start_offset_seconds": 47.0,
+      "end_offset_seconds": 80.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 27.0,
+      "seconds_to_save_minute": 33.0,
+      "seconds_until_next_minute": 27.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:13Z",
+          "completed_at": "2026-10-22T22:13:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:14Z",
+          "completed_at": "2026-10-22T22:13:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:14Z",
+          "completed_at": "2026-10-22T22:13:20Z",
+          "timing_status": "complete",
+          "wall_seconds": 6.0
+        },
+        {
+          "number": 4,
+          "name": "Install the Python 3.14 source-parser runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:20Z",
+          "completed_at": "2026-10-22T22:13:21Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run pytest -q -n 4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:21Z",
+          "completed_at": "2026-10-22T22:13:42Z",
+          "timing_status": "complete",
+          "wall_seconds": 21.0
+        },
+        {
+          "number": 6,
+          "name": "Uncached validation completed",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:42Z",
+          "completed_at": "2026-10-22T22:13:42Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Post Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:42Z",
+          "completed_at": "2026-10-22T22:13:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:43Z",
+          "completed_at": "2026-10-22T22:13:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:43Z",
+          "completed_at": "2026-10-22T22:13:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120119396073,
+      "name": "Validation gate",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:13:47Z",
+      "completed_at": "2026-10-22T22:13:53Z",
+      "wall_seconds": 6.0,
+      "start_offset_seconds": 82.0,
+      "end_offset_seconds": 88.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 54.0,
+      "seconds_to_save_minute": 6.0,
+      "seconds_until_next_minute": 54.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:48Z",
+          "completed_at": "2026-10-22T22:13:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:49Z",
+          "completed_at": "2026-10-22T22:13:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/validation-gate",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:50Z",
+          "completed_at": "2026-10-22T22:13:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 6,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:51Z",
+          "completed_at": "2026-10-22T22:13:51Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 7,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:51Z",
+          "completed_at": "2026-10-22T22:13:51Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    }
+  ],
+  "billing_jobs": [
+    {
+      "job_id": 120118834709,
+      "name": "quality",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:12:42Z",
+      "completed_at": "2026-10-22T22:13:03Z",
+      "wall_seconds": 21.0,
+      "start_offset_seconds": 17.0,
+      "end_offset_seconds": 38.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 39.0,
+      "seconds_to_save_minute": 21.0,
+      "seconds_until_next_minute": 39.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:43Z",
+          "completed_at": "2026-10-22T22:12:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:43Z",
+          "completed_at": "2026-10-22T22:12:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:44Z",
+          "completed_at": "2026-10-22T22:12:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv run ruff check .",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:49Z",
+          "completed_at": "2026-10-22T22:12:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run lint-imports --config importlinter.toml --no-cache",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:49Z",
+          "completed_at": "2026-10-22T22:12:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Always exercise routing and gate contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:50Z",
+          "completed_at": "2026-10-22T22:12:55Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 7,
+          "name": "Run uv build",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:55Z",
+          "completed_at": "2026-10-22T22:12:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 8,
+          "name": "Run uvx --from twine==7.0.0 twine check --strict dist/*",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:56Z",
+          "completed_at": "2026-10-22T22:12:58Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 9,
+          "name": "Verify installed wheel",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:58Z",
+          "completed_at": "2026-10-22T22:13:01Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:01Z",
+          "completed_at": "2026-10-22T22:13:01Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:01Z",
+          "completed_at": "2026-10-22T22:13:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:02Z",
+          "completed_at": "2026-10-22T22:13:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120118835295,
+      "name": "Evidence plan",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:12:47Z",
+      "completed_at": "2026-10-22T22:13:01Z",
+      "wall_seconds": 14.0,
+      "start_offset_seconds": 22.0,
+      "end_offset_seconds": 36.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 46.0,
+      "seconds_to_save_minute": 14.0,
+      "seconds_until_next_minute": 46.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:47Z",
+          "completed_at": "2026-10-22T22:12:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:49Z",
+          "completed_at": "2026-10-22T22:12:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/current-pr-head",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:50Z",
+          "completed_at": "2026-10-22T22:12:51Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 4,
+          "name": "Run ./.github/actions/collect-pr-changes",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:51Z",
+          "completed_at": "2026-10-22T22:12:53Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 5,
+          "name": "Run gigaverse-app/pytest-selective/.github/actions/plan-lanes@4bc213178e1bdf12dc15bf6baf8951ba8a394a4a",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:53Z",
+          "completed_at": "2026-10-22T22:12:58Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 6,
+          "name": "Run ./.github/actions/resolve-lane-evidence",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-22T22:12:58Z",
+          "completed_at": "2026-10-22T22:12:58Z",
+          "timing_status": "not_timed",
+          "wall_seconds": null
+        },
+        {
+          "number": 7,
+          "name": "Record admission",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:58Z",
+          "completed_at": "2026-10-22T22:12:58Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Post Run gigaverse-app/pytest-selective/.github/actions/plan-lanes@4bc213178e1bdf12dc15bf6baf8951ba8a394a4a",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:58Z",
+          "completed_at": "2026-10-22T22:12:58Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:58Z",
+          "completed_at": "2026-10-22T22:12:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:12:59Z",
+          "completed_at": "2026-10-22T22:12:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120119085369,
+      "name": "Test suite",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:13:05Z",
+      "completed_at": "2026-10-22T22:13:36Z",
+      "wall_seconds": 31.0,
+      "start_offset_seconds": 40.0,
+      "end_offset_seconds": 71.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 29.0,
+      "seconds_to_save_minute": 31.0,
+      "seconds_until_next_minute": 29.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:05Z",
+          "completed_at": "2026-10-22T22:13:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:06Z",
+          "completed_at": "2026-10-22T22:13:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:06Z",
+          "completed_at": "2026-10-22T22:13:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 4,
+          "name": "Install the Python 3.14 source-parser runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:14Z",
+          "completed_at": "2026-10-22T22:13:15Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run pytest -q -n 4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:15Z",
+          "completed_at": "2026-10-22T22:13:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 19.0
+        },
+        {
+          "number": 6,
+          "name": "Uncached validation completed",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:34Z",
+          "completed_at": "2026-10-22T22:13:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Post Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:34Z",
+          "completed_at": "2026-10-22T22:13:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:34Z",
+          "completed_at": "2026-10-22T22:13:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:34Z",
+          "completed_at": "2026-10-22T22:13:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120119085410,
+      "name": "Python compatibility",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:13:12Z",
+      "completed_at": "2026-10-22T22:13:45Z",
+      "wall_seconds": 33.0,
+      "start_offset_seconds": 47.0,
+      "end_offset_seconds": 80.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 27.0,
+      "seconds_to_save_minute": 33.0,
+      "seconds_until_next_minute": 27.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:13Z",
+          "completed_at": "2026-10-22T22:13:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:14Z",
+          "completed_at": "2026-10-22T22:13:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:14Z",
+          "completed_at": "2026-10-22T22:13:20Z",
+          "timing_status": "complete",
+          "wall_seconds": 6.0
+        },
+        {
+          "number": 4,
+          "name": "Install the Python 3.14 source-parser runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:20Z",
+          "completed_at": "2026-10-22T22:13:21Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run pytest -q -n 4",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:21Z",
+          "completed_at": "2026-10-22T22:13:42Z",
+          "timing_status": "complete",
+          "wall_seconds": 21.0
+        },
+        {
+          "number": 6,
+          "name": "Uncached validation completed",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:42Z",
+          "completed_at": "2026-10-22T22:13:42Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Post Run ./.github/actions/setup-cached-uv",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:42Z",
+          "completed_at": "2026-10-22T22:13:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:43Z",
+          "completed_at": "2026-10-22T22:13:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:43Z",
+          "completed_at": "2026-10-22T22:13:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120119396073,
+      "name": "Validation gate",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:13:47Z",
+      "completed_at": "2026-10-22T22:13:53Z",
+      "wall_seconds": 6.0,
+      "start_offset_seconds": 82.0,
+      "end_offset_seconds": 88.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 54.0,
+      "seconds_to_save_minute": 6.0,
+      "seconds_until_next_minute": 54.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:48Z",
+          "completed_at": "2026-10-22T22:13:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:49Z",
+          "completed_at": "2026-10-22T22:13:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/validation-gate",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:50Z",
+          "completed_at": "2026-10-22T22:13:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 6,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:51Z",
+          "completed_at": "2026-10-22T22:13:51Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 7,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:13:51Z",
+          "completed_at": "2026-10-22T22:13:51Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    }
+  ],
+  "required_gates": [
+    {
+      "kind": "actions_job",
+      "identity": "Validation gate",
+      "display_name": "Validation gate",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120119396073,
+      "completed_at": "2026-10-22T22:13:53Z",
+      "elapsed_from_creation_seconds": 88.0,
+      "elapsed_from_run_start_seconds": 88.0,
+      "direct_prerequisites": []
+    }
+  ],
+  "merge_ready_from_creation_seconds": 88.0,
+  "merge_ready_from_run_start_seconds": 88.0,
+  "workflow_initial_queue_seconds": null,
+  "workflow_job_admission_delay_seconds": 17.0,
+  "merge_ready_after_job_admission_seconds": 71.0,
+  "longest_latest_job_name": "Python compatibility",
+  "longest_latest_job_seconds": 33.0,
+  "runner_cost": {
+    "raw_runner_seconds": 105.0,
+    "estimated_rounded_runner_minutes": 5,
+    "rounding_waste_seconds": 195.0,
+    "billed_attempts": [
+      1
+    ],
+    "by_sku": [],
+    "unpriced_rounded_runner_minutes": 0,
+    "estimated_cost_usd": null
+  },
+  "overlapping_prior_runner_cost": {
+    "runs": [],
+    "raw_runner_seconds": 0.0,
+    "estimated_rounded_runner_minutes": 0,
+    "rounding_waste_seconds": 0.0,
+    "estimated_cost_usd": null
+  },
+  "repository_signals": [],
+  "extensions": {},
+  "test_selection": null,
+  "lane_selection": null,
+  "critical_path": {
+    "status": "complete",
+    "reason": "",
+    "elapsed_seconds": 88.0,
+    "execution_seconds": 53.0,
+    "observed_path": [
+      "Evidence plan",
+      "Python compatibility",
+      "Validation gate"
+    ],
+    "execution_path": [
+      "Evidence plan",
+      "Python compatibility",
+      "Validation gate"
+    ],
+    "nodes": [
+      {
+        "name": "Evidence plan",
+        "needs": [],
+        "conclusion": "success",
+        "execution_seconds": 14.0,
+        "delay_seconds": 22.0,
+        "slack_seconds": 0.0
+      },
+      {
+        "name": "quality",
+        "needs": [],
+        "conclusion": "success",
+        "execution_seconds": 21.0,
+        "delay_seconds": 17.0,
+        "slack_seconds": 26.0
+      },
+      {
+        "name": "Test suite",
+        "needs": [
+          "Evidence plan"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 31.0,
+        "delay_seconds": 4.0,
+        "slack_seconds": 2.0
+      },
+      {
+        "name": "Python compatibility",
+        "needs": [
+          "Evidence plan"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 33.0,
+        "delay_seconds": 11.0,
+        "slack_seconds": 0.0
+      },
+      {
+        "name": "Validation gate",
+        "needs": [
+          "Evidence plan",
+          "Python compatibility",
+          "Test suite",
+          "quality"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 6.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 0.0
+      }
+    ]
+  }
+}

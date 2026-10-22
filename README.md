@@ -64,12 +64,13 @@ permissions:
   pull-requests: read
 jobs:
   report:
-    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@f96bfac9203368be10cd4cf0f117471441636080
+    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@e9d279269e80a4e68435dbd65cdb9dbd23048f7b
     with:
       run-id: ${{ github.event.workflow_run.id }}
       run-attempt: ${{ github.event.workflow_run.run_attempt }}
       head-sha: ${{ github.event.workflow_run.head_sha }}
       required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
+      analyze-critical-path: true
 ```
 
 Replace the workflow and required job names with yours. Commit this observer to
@@ -144,6 +145,12 @@ Due and pytest-obligation conformance lanes, review every runtime/configuration
 input before enabling receipt reuse. A previous green workflow alone is
 insufficient evidence.
 
+CI-esta now uses the selector too. Its same-checkout README probe used
+**49 versus 105 runner-seconds (53.3% less)** and reached the gate in **45s
+versus 88s**, with quality and package checks preserved. The
+[new evidence report](docs/benchmarks/2026-10-23-toolkit.md) also computes real
+dependency critical paths and slack for all three consumer adoption runs.
+
 ## What a reused lane means
 
 ```text
@@ -168,6 +175,8 @@ Receipts are recorded only after required work passes. Explicit reruns execute a
 | Find slow jobs and estimate runner costs | [GitHub Actions observability](docs/github-actions-observability.md) |
 | Diagnose slow Python CI without cutting checks | [Python CI tuning](docs/python-ci-tuning.md) |
 | Combine caches, selection, timing and parallelism | [CI optimization guide](docs/ci-optimization.md) |
+| Learn file costs and balance complete inventories | [Timing feedback tutorial](docs/learned-test-timings.md) |
+| Track what was upstreamed and adopted | [Closure ledger](docs/upstream-closure.md) |
 | Find the actual dependency path and slack | [Critical-path analysis](docs/critical-path.md) |
 | Restore and repair complete Python environments | [Environment cache](docs/environment-cache.md) |
 | Check what is actually upstream and adopted | [Revision-bound adoption audit](docs/adoption-audit.md) |

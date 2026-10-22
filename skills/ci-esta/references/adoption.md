@@ -7,7 +7,7 @@ no token argument and posts no comment.
 
 ```bash
 ci-esta report --repository OWNER/REPO --run-id RUN_ID --run-attempt 1 \
-  --commit-sha SOURCE_HEAD_SHA --gate 'Validation gate' \
+  --commit-sha SOURCE_HEAD_SHA --gate 'Validation gate' --critical-path \
   --output-dir ci-esta-report
 ```
 
@@ -26,12 +26,13 @@ workflow's verified interface is:
 ```yaml
 jobs:
   report:
-    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@f96bfac9203368be10cd4cf0f117471441636080
+    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@e9d279269e80a4e68435dbd65cdb9dbd23048f7b
     with:
       run-id: ${{ github.event.workflow_run.id }}
       run-attempt: ${{ github.event.workflow_run.run_attempt }}
       head-sha: ${{ github.event.workflow_run.head_sha }}
       required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
+      analyze-critical-path: true
 ```
 
 This is a fragment for a `workflow_run` observer with `types: [completed]` and
@@ -69,7 +70,10 @@ evidence format, not an expected saving for a new project.
 
 For cache identity, learned timing feedback and parallelism, follow the
 [optimization guide](https://github.com/gigaverse-app/ci-esta/blob/main/docs/ci-optimization.md).
-The Gantt shows observed intervals, not a computed causal critical path. When
-auditing upstreaming, distinguish shipped, configured and live-verified states;
-the [adoption audit](https://github.com/gigaverse-app/ci-esta/blob/main/docs/adoption-audit.md)
-shows why an extraction inventory alone cannot establish completion.
+The Gantt shows observed intervals and highlights the computed dependency chain
+when complete topology is available. Inspect execution CPM, per-job slack and
+delay separately; delay is not pure queue time. Unknown topology remains
+unavailable. When auditing upstreaming, distinguish shipped, configured and
+live-verified states; the
+[closure ledger](https://github.com/gigaverse-app/ci-esta/blob/main/docs/upstream-closure.md)
+links implementations, caller PRs and live evidence.
