@@ -9,7 +9,7 @@ permissions:
   contents: read
   actions: read
   checks: read
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   report:
@@ -20,3 +20,4 @@ jobs:
       head-sha: ${{ github.event.workflow_run.head_sha }}
       required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
       pull-request-number: ${{ format('{0}', github.event.workflow_run.pull_requests[0].number || '') }}
+      post-sticky: true

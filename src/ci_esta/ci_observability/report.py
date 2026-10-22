@@ -5,12 +5,13 @@ Pure CI observability accounting and rendering.
 from __future__ import annotations
 
 import math
+import re
 from datetime import datetime
 from decimal import Decimal
 
 from pydantic import JsonValue
 
-from ci_esta.ci_observability import markdown
+from ci_esta.ci_observability import brand, lanes, markdown, selection
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.models import (
     PYTEST_TIMING_SIGNAL,
@@ -25,6 +26,7 @@ from ci_esta.ci_observability.models import (
     GitHubRunJobsV1,
     GitHubRunV1,
     GitHubStepV1,
+    LaneSelectionSectionV1,
     ObservedGateV1,
     ObservedJobV1,
     ObservedStepV1,
@@ -39,9 +41,10 @@ from ci_esta.ci_observability.models import (
     StickySnapshotV1,
     TimingStatus,
 )
-from ci_esta.ci_observability.selection import render_selection_section
 
 STICKY_MARKER = "<!-- ci-observability-v1 -->"
+#: The keyed sticky marker's prefix. A bare marker is never a substring of a keyed one.
+STICKY_KEY_MARKER_PREFIX = "<!-- ci-observability-v1 key="
 SNAPSHOT_MARKER_PREFIX = "<!-- ci-observability-snapshot "
 
 
@@ -301,6 +304,7 @@ def build_report(
     extensions: dict[str, JsonValue] | None = None,
     runner_sku_rates: list[RunnerSkuRateV1] | None = None,
     test_selection: SelectionSectionV1 | None = None,
+    lane_selection: LaneSelectionSectionV1 | None = None,
 ) -> CiObservabilityReportV1:
     errors = list(collection_errors or [])
     if not gate_selectors:
@@ -373,6 +377,7 @@ def build_report(
         repository_signals=repository_signals or [],
         extensions=extensions or {},
         test_selection=test_selection,
+        lane_selection=lane_selection,
     )
 
 
@@ -452,43 +457,95 @@ def sticky_snapshot(report: CiObservabilityReportV1) -> StickySnapshotV1:
     )
 
 
+def sticky_marker(key: str = "") -> str:
+    """
+    The hidden marker the sticky is found by: one sticky per pull request, or one per key.
+
+    A repository whose observer reports several workflows keys each by workflow, so their reports
+    do not overwrite one another. The key is reduced to a safe slug.
+    """
+    slug = re.sub(r"[^a-z0-9]+", "-", key.lower()).strip("-")
+    return f"{STICKY_KEY_MARKER_PREFIX}{slug} -->" if slug else STICKY_MARKER
+
+
+def _cost(report: CiObservabilityReportV1) -> list[str]:
+    parts = [f"{report.runner_cost.estimated_rounded_runner_minutes} runner-min"]
+    if report.runner_cost.estimated_cost_usd is not None:
+        parts.append(f"${report.runner_cost.estimated_cost_usd:.2f}")
+    return parts
+
+
+def _readiness(report: CiObservabilityReportV1) -> str | None:
+    """Merge readiness with its status mark; None when no required gate is configured."""
+    if not report.required_gates:
+        return None
+    gates = report.merge_ready_from_creation_seconds
+    if gates is not None:
+        return f"✅ **Merge-ready in {format_seconds(gates)}**"
+    label = _readiness_label(report)
+    return f"❌ **{label.capitalize()}**" if label == "blocked" else f"⏳ **{label.capitalize()}**"
+
+
 def _latency_summary(report: CiObservabilityReportV1) -> str:
     """One line standing in for the latency and cost report when it is collapsed."""
     gates = report.merge_ready_from_creation_seconds
     parts = [f"merge-ready in {format_seconds(gates)}" if gates is not None else _readiness_label(report)]
-    parts.append(f"{report.runner_cost.estimated_rounded_runner_minutes} runner-min")
-    if report.runner_cost.estimated_cost_usd is not None:
-        parts.append(f"${report.runner_cost.estimated_cost_usd:.2f}")
-    return "CI time and cost: " + " · ".join(parts)
+    return "⏱️ CI time and cost: " + " · ".join([*parts, *_cost(report)])
 
 
-def render_markdown(report: CiObservabilityReportV1) -> str:
+def _header(report: CiObservabilityReportV1) -> list[str]:
+    """The brand mark, then one verdict line: readiness, what ran, and what it cost."""
+    provenance = report.provenance
+    workflow = f" · {markdown.inline(provenance.workflow_name)}" if provenance.workflow_name else ""
+    verdict = [part for part in [_readiness(report)] if part is not None]
+    if report.test_selection is not None:
+        verdict.append(selection.headline(report.test_selection))
+    if report.lane_selection is not None:
+        verdict.append(lanes.headline(report.lane_selection))
+    verdict.extend(_cost(report))
+    return [
+        f"[![{brand.CI_ESTA} report]({brand.CI_ESTA_BADGE})]({brand.CI_ESTA_URL})"
+        f"{workflow} · {markdown.code(provenance.head_sha[:7])}",
+        "",
+        " · ".join(verdict),
+        "",
+    ]
+
+
+def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER) -> str:
     """
-    The sticky: the test-selection section when there is one, then latency and cost.
+    The sticky: a branded verdict, the selection sections there are, then latency and cost.
 
     With a selection section the latency report folds into one closed expander, so the sticky
     reads as the section an author acts on, with timings and cost one click away.
     """
-    if report.test_selection is None:
-        body = ["### CI latency and runner cost", "", *_latency_lines(report)]
+    sections = []
+    if report.test_selection is not None:
+        sections.append(selection.render_selection_section(report.test_selection, report.provenance.repository))
+    if report.lane_selection is not None:
+        sections.append(lanes.render_lane_section(report.lane_selection, report.provenance.repository))
+    if not sections:
+        body = ["#### ⏱️ CI time and cost", "", *_latency_lines(report)]
     else:
         body = [
-            render_selection_section(report.test_selection, report.provenance.repository),
+            *sections,
             f"<details><summary>{_latency_summary(report)}</summary>",
             "",
             *_latency_lines(report),
             "",
             "</details>",
         ]
-    return "\n".join([*body, "", *_footer(report)])
+    return "\n".join([*_header(report), *body, "", *_footer(report, marker)])
 
 
-def _footer(report: CiObservabilityReportV1) -> list[str]:
+def _footer(report: CiObservabilityReportV1, marker: str = STICKY_MARKER) -> list[str]:
     run = report.provenance.run_id
     return [
         f"{SNAPSHOT_MARKER_PREFIX}{sticky_snapshot(report).model_dump_json()} -->",
-        STICKY_MARKER,
-        f"<sub>[run {run}](https://github.com/{report.provenance.repository}/actions/runs/{run}) "
+        marker,
+        f"<sub>🌴 Powered by [{brand.CI_ESTA}]({brand.CI_ESTA_URL}): {brand.TAGLINE} "
+        f"· [Reading this report]({brand.CI_ESTA_DOCS_URL}) "
+        f"· [run {run}](https://github.com/{report.provenance.repository}/actions/runs/{run}) "
         f"· schema `{report.schema_version}`</sub>",
     ]
 

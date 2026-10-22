@@ -487,11 +487,12 @@ def test_sticky_leads_with_the_selection_measured_against_comparable_runs_of_oth
         assert run(config, LATER) == 0
 
     sticky = github["upsert"].call_args.args[2]
-    assert sticky.startswith("#### Test selection")
+    assert sticky.startswith("[![CI-esta report](")
+    assert sticky.index("ran **") < sticky.index("#### 🎯 Test selection")
     assert f"| {SELECTED} of 1,087 files | 1m 18s | ▰▰▱▱▱▱▱▱▱▱ 4m 53s | 81% | unchanged |" in sticky
     # The latency report folds into one closed expander after the section; the footer stays visible.
-    latency = sticky.index("<details><summary>CI time and cost: ")
-    assert sticky.index("#### Test selection") < latency < sticky.index("| Merge-ready |")
+    latency = sticky.index("<details><summary>⏱️ CI time and cost: ")
+    assert sticky.index("#### 🎯 Test selection") < latency < sticky.index("| Merge-ready |")
     assert sticky.rstrip().endswith("· schema `ci-observability/v1`</sub>")
     assert sticky.index("</details>", sticky.index("| Merge-ready |")) < sticky.index(STICKY_MARKER)
     section = _report(config).test_selection
@@ -600,7 +601,7 @@ def test_a_run_without_an_explanation_keeps_the_rest_of_the_sticky(
     with github_with_artifacts(FakeArtifacts(explanation), _selection_run()) as github:
         assert run(config, LATER) == 0
 
-    assert github["upsert"].call_args.args[2].startswith("### CI latency and runner cost")
+    assert "#### ⏱️ CI time and cost" in github["upsert"].call_args.args[2]
     assert _report(config).collection_status == "complete"
     # A fallback plan is an expected outcome, not a failure to read.
     assert "::warning::" not in capsys.readouterr().out
@@ -616,7 +617,7 @@ def test_an_unreadable_explanation_is_a_warning_not_a_lost_report(
     with github_with_artifacts(fake, _selection_run()) as github:
         assert run(config, LATER) == 0
 
-    assert "#### Test selection" not in github["upsert"].call_args.args[2]
+    assert "Test selection" not in github["upsert"].call_args.args[2]
     assert "::warning::Test selection section unavailable" in capsys.readouterr().out
     assert _report(config).collection_status == "complete"
 

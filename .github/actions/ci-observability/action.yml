@@ -82,6 +82,20 @@ inputs:
       without coverage. Empty disables.
     required: false
     default: ci-full-suite-reference-v1
+  lane-selection-artifact:
+    description: >
+      This run's artifact holding a pytest-selective lane plan (plan-lanes
+      uploads it as test-lane-selection). Rendered as the sticky's lane
+      section, with the runner time the skipped jobs took on the default
+      branch's last green push run. Empty disables.
+    required: false
+    default: test-lane-selection
+  sticky-key:
+    description: >
+      Keys the sticky comment, for a repository that reports several workflows
+      on one pull request; each key keeps its own comment. Empty keeps one.
+    required: false
+    default: ""
   full-suite-reference-output:
     description: Where this run's own full-suite reference is written before upload.
     required: false
@@ -135,6 +149,8 @@ runs:
         INPUT_TEST_SELECTION_ARTIFACT: ${{ inputs.test-selection-artifact }}
         INPUT_FULL_SUITE_REFERENCE_ARTIFACT: ${{ inputs.full-suite-reference-artifact }}
         INPUT_FULL_SUITE_REFERENCE_OUTPUT: ${{ inputs.full-suite-reference-output }}
+        INPUT_LANE_SELECTION_ARTIFACT: ${{ inputs.lane-selection-artifact }}
+        INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
         REPORTER_PYTHON: ${{ steps.runtime.outputs.python }}
       run: '"$REPORTER_PYTHON" -m ci_esta.ci_observability.action'
 

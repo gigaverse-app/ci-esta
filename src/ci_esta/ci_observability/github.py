@@ -32,6 +32,12 @@ class GitHubRunsPageV1(BaseModel):
     workflow_runs: list[GitHubRunV1]
 
 
+class GitHubRepositoryV1(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    default_branch: str
+
+
 class GitHubCommentV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
@@ -161,6 +167,21 @@ class GitHubActionsClient:
                 or any(pull_request.number == pull_request_number for pull_request in candidate.pull_requests)
             )
         ]
+
+    def default_branch(self) -> str:
+        response = self._client.get(f"/repos/{self._repository}")
+        response.raise_for_status()
+        return GitHubRepositoryV1.model_validate_json(response.content).default_branch
+
+    def latest_successful_push_run(self, workflow_id: int, branch: str) -> GitHubRunV1 | None:
+        """The newest green push run of a workflow on a branch: on the default branch, a full run."""
+        response = self._client.get(
+            f"/repos/{self._repository}/actions/workflows/{workflow_id}/runs",
+            params={"branch": branch, "event": "push", "status": "success", "per_page": 1},
+        )
+        response.raise_for_status()
+        runs = GitHubRunsPageV1.model_validate_json(response.content).workflow_runs
+        return runs[0] if runs else None
 
     def list_commit_statuses(self, commit_sha: str) -> list[GitHubCommitStatusV1]:
         statuses: list[GitHubCommitStatusV1] = []

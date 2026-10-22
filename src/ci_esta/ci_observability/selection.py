@@ -24,6 +24,7 @@ from pytest_selective.impact_models import (
 )
 
 from ci_esta.ci_observability import markdown
+from ci_esta.ci_observability.brand import SELECTIVE_URL
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.models import SelectionSectionV1
 
@@ -109,20 +110,43 @@ def _expander(summary_html: str, worth_opening: bool, body: list[str]) -> list[s
     return [f"<details><summary>{title}</summary>", "", *body, "", "</details>", ""]
 
 
+def _test_share(section: SelectionSectionV1) -> float | None:
+    """This run's test time as a share of the full-suite baseline; 1.0 for a full suite."""
+    test_seconds = section.pytest.total_test_seconds if section.pytest else None
+    baseline = section.baseline_test_seconds
+    if section.explanation.full_suite:
+        return 1.0
+    if baseline is None or test_seconds is None:
+        return None
+    return test_seconds / baseline
+
+
+def _saved(share: float | None) -> str | None:
+    return None if share is None else f"{max(0, round((1 - share) * 100))}%"
+
+
+def headline(section: SelectionSectionV1) -> str:
+    """The sticky's verdict-line fragment: what ran, and the saving when there is a baseline."""
+    explanation = section.explanation
+    text = f"ran **{_count(explanation.selected)} of {_count(explanation.total)}** test files"
+    saved = _saved(_test_share(section))
+    if saved is not None and not explanation.full_suite:
+        text += f" (**{saved} saved**)"
+    return text
+
+
 def _tldr_row(section: SelectionSectionV1) -> str:
-    explanation, pytest, baseline = section.explanation, section.pytest, section.baseline_test_seconds
+    explanation, pytest = section.explanation, section.pytest
     wall = format_seconds(pytest.wall_seconds) if pytest and pytest.wall_seconds is not None else "—"
     test_seconds = pytest.total_test_seconds if pytest else None
     test_time = format_seconds(test_seconds) if test_seconds is not None else "—"
+    share = _test_share(section)
     if explanation.full_suite:
         saved = "none"
-        test_time = f"{_gauge(1.0)} {test_time}" if test_seconds is not None else test_time
-    elif baseline is not None and test_seconds is not None:
-        used = test_seconds / baseline
-        saved = f"{max(0, round((1 - used) * 100))}%"
-        test_time = f"{_gauge(used)} {test_time}"
     else:
-        saved = "—"
+        saved = _saved(share) or "—"
+    if share is not None and test_seconds is not None:
+        test_time = f"{_gauge(share)} {test_time}"
     graph = "**wider**" if explanation.graph_widened else "narrower" if explanation.graph_narrowed else "unchanged"
     ran = f"{_count(explanation.selected)} of {_count(explanation.total)} files"
     return f"| {ran} | {wall} | {test_time} | {saved} | {graph} |"
@@ -462,7 +486,7 @@ def render_selection_section(section: SelectionSectionV1, repository: str | None
     """The sticky's test-selection section, as GitHub-flavored Markdown; `repository` links runs."""
     explanation = section.explanation
     lines = [
-        "#### Test selection",
+        f"#### 🎯 Test selection · by [pytest-selective]({SELECTIVE_URL})",
         "",
         "| Ran | Wall | Test time | Saved | Graph |",
         "|:--|--:|--:|--:|:--|",

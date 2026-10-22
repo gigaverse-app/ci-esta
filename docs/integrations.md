@@ -16,13 +16,33 @@ Due application behavior
   -> CI-esta execution evidence and timing report
 ```
 
-## pytest-selective: share the contract
+## pytest-selective: one contract, two granularities
 
-CI-esta imports pytest-selective's `SelectionExplanation` and related models directly; it does not fork the selector. Upload the explanation JSON as a single-file artifact and pass its name through the report action's `test-selection-artifact`. Supply measured timings through the generic `pytest` extension. The report can explain why tests ran and compare against eligible full-suite references. CI-esta never changes the selection decision while rendering it.
+CI-esta imports pytest-selective's models (`SelectionExplanation`, `LanePlan`) directly; it does not fork the selector. pytest-selective decides what runs; CI-esta measures what that decision cost and saved, keeps required checks honest when work is skipped, and explains both on the pull request. CI-esta never changes a selection decision while rendering it.
 
-The inherited alpha reporter reads selection artifacts only when `post-sticky: 'true'`. A PR comment is posted only when `pull-request-number` is also supplied; leaving that input empty allows a summary/artifact report without posting. The basic observability examples disable this optional section explicitly.
+pytest-selective selects at two granularities, and the sticky has a section for each:
 
-Selection and evidence reuse answer different questions: “what might this change affect?” and “was this exact declared work already completed successfully?” Keep conservative fallbacks at both layers.
+| | File selection (`test-impact` action) | Lane selection (`plan-lanes` action) |
+| --- | --- | --- |
+| Selects | Test files inside one pytest run | Whole CI jobs or matrices, run complete |
+| Best for | One large suite whose time is in the tests themselves | Lanes that start services (PostgreSQL, Redis, framework checkouts) or must keep complete conformance evidence |
+| Artifact the report reads | `test-impact-explanation` (`test-selection-artifact`) | `test-lane-selection` (`lane-selection-artifact`) |
+| Sticky section | 🎯 Test selection: files ran, why, test time saved | 🧪 Test lanes: lanes ran, why, runner time skipped |
+| "Saved" is measured against | The median of recent full-suite pytest timings, from `ci-full-suite-reference-v1` artifacts | The skipped jobs' runner time on the default branch's last green push run, which runs every lane |
+
+Use both in a large repository: lanes decide which services start, and file selection narrows the biggest lane. gigaverse-backend plans its unit lane by file inside lane-level routing.
+
+The report reads the lane plan on every run and the file explanation only when it posts the sticky. A PR comment is posted only when `pull-request-number` is also supplied; without it the same Markdown goes to the job summary and artifact.
+
+### Getting the most from both in a Python project
+
+1. **Measure first.** Add the completed-run observer with your exact gate names. Its slowest-job and slowest-step tables say whether time goes to tests, setup or services, which decides the granularity.
+2. **Pick the granularity.** Many service-backed jobs: lanes. One dominant pytest suite: files. Both: lanes outside, files inside the largest lane.
+3. **Declare what imports cannot show.** Data files, subprocess entry points, external checkouts and settings read at runtime belong in lane `inputs` or reader-owned declarations. Lock files and workflows stay global inputs that run everything.
+4. **Keep required checks honest.** A skipped job never reports. CI-esta's `validation-gate` accepts a skip only when planning succeeded and explicitly skipped it; a failed planner runs the complete suite.
+5. **Turn on the sticky.** Set `post-sticky: true`, grant `pull-requests: write`, and pass `sticky-key` when one observer reports several workflows. `plan-lanes` uploads the lane plan, so the lane section needs no extra step.
+6. **Keep full checkpoints.** Main pushes, `test:full` and planner fallbacks run every lane. They are the safety net, and they are the baseline the sticky prices skipped work against.
+7. **Reuse evidence last.** Selection asks "what might this change affect?"; [evidence reuse](evidence-reuse.md) asks "did this exact declared work already pass?" Keep conservative fallbacks at both layers.
 
 ## pytest-obligation: preserve what green means
 

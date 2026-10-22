@@ -315,6 +315,77 @@
       "type": "string"
     },
     "JsonValue": {},
+    "LanePlan": {
+      "additionalProperties": false,
+      "properties": {
+        "lanes": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "title": "Lanes",
+          "type": "object"
+        },
+        "selected": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Selected",
+          "type": "array"
+        },
+        "changed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Changed",
+          "type": "array"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "lane_reasons": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Lane Reasons",
+          "type": "object"
+        }
+      },
+      "required": [
+        "lanes",
+        "reason"
+      ],
+      "title": "LanePlan",
+      "type": "object"
+    },
+    "LaneSelectionSectionV1": {
+      "additionalProperties": false,
+      "description": "What the sticky's lane section is rendered from: a pytest-selective lane plan.",
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/LanePlan"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkippedLaneReferenceV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "plan"
+      ],
+      "title": "LaneSelectionSectionV1",
+      "type": "object"
+    },
     "ObservedGateV1": {
       "additionalProperties": false,
       "properties": {
@@ -1246,6 +1317,41 @@
       "title": "SelectionSectionV1",
       "type": "object"
     },
+    "SkippedLaneReferenceV1": {
+      "additionalProperties": false,
+      "description": "What the jobs a run skipped took on the default branch's last run that executed them all.",
+      "properties": {
+        "run_id": {
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "head_branch": {
+          "title": "Head Branch",
+          "type": "string"
+        },
+        "jobs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Jobs",
+          "type": "array"
+        },
+        "runner_seconds": {
+          "minimum": 0,
+          "title": "Runner Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "run_id",
+        "head_branch",
+        "jobs",
+        "runner_seconds"
+      ],
+      "title": "SkippedLaneReferenceV1",
+      "type": "object"
+    },
     "TimingStatus": {
       "enum": [
         "complete",
@@ -1402,6 +1508,17 @@
       "anyOf": [
         {
           "$ref": "#/$defs/SelectionSectionV1"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "lane_selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LaneSelectionSectionV1"
         },
         {
           "type": "null"
