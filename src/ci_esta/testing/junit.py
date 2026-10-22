@@ -4,8 +4,11 @@ Summarize pytest shard timings from JUnit XML artifacts.
 
 from __future__ import annotations
 
+import json
+import math
 from collections import Counter
 from pathlib import Path, PurePosixPath, PureWindowsPath
+from tempfile import NamedTemporaryFile
 
 # Element is imported for type annotations only; defusedxml does not re-export
 # it, and all parsing below goes through defusedxml. The stdlib class itself
@@ -153,6 +156,74 @@ def junit_file_duration(path: Path) -> float | None:
         except ValueError:
             continue
     return sum(durations) if durations else None
+
+
+class LearnedTimings(BaseModel):
+    """Per-file scheduling hints, never proof of test completeness."""
+
+    model_config = ConfigDict(frozen=True)
+    durations: dict[str, float]
+    unmapped_cases: int
+    skipped_cases: int
+
+
+def learn_junit_timings(paths: list[Path], working_directory: Path = Path(".")) -> LearnedTimings:
+    """Learn file costs from successful, disjoint JUnit reports.
+
+    Unknown files remain absent so the planner applies its unknown-file fallback.
+    A partial suite may teach costs for observed files, but cannot prove coverage
+    or authorize skipping a test. Keep separate manifests for different lanes.
+    """
+    if not paths or len({path.resolve() for path in paths}) != len(paths):
+        raise ValueError("provide at least one report, without duplicate paths")
+    durations: Counter[str] = Counter()
+    unmapped = skipped = 0
+    for path in paths:
+        root = _parse_junit(path)
+        if root is None or _local_name(root.tag) not in {"testsuite", "testsuites"}:
+            raise ValueError(f"missing or invalid JUnit report: {path}")
+        for element in root.iter():
+            if _local_name(element.tag) in {"testsuite", "testsuites"}:
+                for attribute in ("failures", "errors"):
+                    try:
+                        count = int(element.get(attribute, "0"))
+                    except ValueError as exc:
+                        raise ValueError(f"invalid {attribute} count in {path}") from exc
+                    if count != 0:
+                        raise ValueError(f"unsuccessful JUnit report: {path}")
+            if _local_name(element.tag) != "testcase":
+                continue
+            if any(_local_name(child.tag) in {"failure", "error"} for child in element):
+                raise ValueError(f"unsuccessful JUnit report: {path}")
+            if any(_local_name(child.tag) == "skipped" for child in element):
+                skipped += 1
+                continue
+            try:
+                duration = float(element.attrib["time"])
+            except (KeyError, ValueError) as exc:
+                raise ValueError(f"missing or invalid testcase duration in {path}") from exc
+            if not math.isfinite(duration) or duration < 0:
+                raise ValueError(f"non-finite or negative testcase duration in {path}")
+            file_path = _testcase_file_path(element, working_directory)
+            if file_path is None or not _is_current_test_file(file_path, working_directory):
+                unmapped += 1
+                continue
+            durations[file_path] += duration
+    if not durations:
+        raise ValueError("no current test files with usable durations")
+    return LearnedTimings(durations=dict(sorted(durations.items())), unmapped_cases=unmapped, skipped_cases=skipped)
+
+
+def write_learned_timings(timings: LearnedTimings, output: Path) -> None:
+    """Atomically replace a hint manifest only after every report validates."""
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with NamedTemporaryFile(mode="w", encoding="utf-8", dir=output.parent, delete=False) as temporary:
+        temporary.write(json.dumps(timings.durations, indent=2, allow_nan=False) + "\n")
+        temporary_path = Path(temporary.name)
+    try:
+        temporary_path.replace(output)
+    finally:
+        temporary_path.unlink(missing_ok=True)
 
 
 def plan_failure_canary(

@@ -34,7 +34,7 @@ jobs:
           pr-number: ${{ github.event.pull_request.number }}
           expected-head-sha: ${{ github.event.pull_request.head.sha }}
       - uses: ./.github/actions/collect-pr-changes
-      - uses: gigaverse-app/pytest-selective/.github/actions/plan-lanes@4bc213178e1bdf12dc15bf6baf8951ba8a394a4a
+      - uses: gigaverse-app/pytest-selective/.github/actions/plan-lanes@c2a1d0bed2e9a7819f754f730a7eca99044a860d
         id: selection
         with:
           config: .github/test-lanes.json
@@ -66,7 +66,11 @@ jobs:
         run: |
           uv python install 3.14
           echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
-      - run: uv run pytest -q -n 4
+      - run: uv run pytest -q -n 4 --junitxml=junit.xml
+      - uses: ./.github/actions/learn-test-timings
+        with:
+          junit-pattern: junit.xml
+          artifact-name: test-timings-py311
       - name: ${{ needs.plan.outputs.receipt || 'Uncached validation completed' }}
         run: 'true'
 
@@ -84,7 +88,11 @@ jobs:
         run: |
           uv python install 3.14
           echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
-      - run: uv run pytest -q -n 4
+      - run: uv run pytest -q -n 4 --junitxml=junit.xml
+      - uses: ./.github/actions/learn-test-timings
+        with:
+          junit-pattern: junit.xml
+          artifact-name: test-timings-py314
       - name: ${{ needs.plan.outputs.receipt || 'Uncached validation completed' }}
         run: 'true'
 
