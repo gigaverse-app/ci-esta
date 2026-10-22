@@ -23,7 +23,7 @@ outputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@v6
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
       with:
         python-version: ${{ inputs.python-version }}
     - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
@@ -41,7 +41,7 @@ runs:
         CACHE_MANIFESTS: ${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/uv.toml', '**/.python-version') }}
       run: python "$CACHE_SCRIPT" identity
     - id: restore
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
       continue-on-error: true
       with:
         path: ${{ inputs.working-directory }}/.venv
@@ -53,7 +53,7 @@ runs:
         CACHE_SYNC_ARGS: ${{ inputs.sync-args }}
       run: python "$CACHE_SCRIPT" sync
     - if: ${{ success() && steps.restore.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
-      uses: actions/cache/save@v5
+      uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
       continue-on-error: true
       with:
         path: ${{ inputs.working-directory }}/.venv
