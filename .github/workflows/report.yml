@@ -35,6 +35,14 @@ on:
         description: The observed run's pytest-selective lane plan artifact; empty disables the lane section.
         type: string
         default: test-lane-selection
+      test-selection-artifact:
+        description: Optional pytest-selective file explanation artifact; requires post-sticky true in the current reporter.
+        type: string
+        default: ''
+      full-suite-reference-artifact:
+        description: Optional full-suite timing reference artifact used with file selection.
+        type: string
+        default: ''
 
 # No permissions block: the caller's grant is the ceiling, and a callee that asked for
 # pull-requests write would fail every read-only caller at startup.
@@ -63,8 +71,8 @@ jobs:
           post-sticky: ${{ inputs.post-sticky }}
           sticky-key: ${{ inputs.sticky-key }}
           lane-selection-artifact: ${{ inputs.lane-selection-artifact }}
-          test-selection-artifact: ''
-          full-suite-reference-artifact: ''
+          test-selection-artifact: ${{ inputs.test-selection-artifact }}
+          full-suite-reference-artifact: ${{ inputs.full-suite-reference-artifact }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: ${{ always() }}
         with:

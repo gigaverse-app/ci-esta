@@ -50,6 +50,13 @@ runner time.
 The reusable workflow declares no permissions of its own: the caller's grant is
 the ceiling. Grant `pull-requests: write` only when `post-sticky` is true.
 
+Lane plans use `lane-selection-artifact: test-lane-selection` by default. For
+file selection, explicitly pass `test-selection-artifact: test-impact-explanation`
+and, if produced by your full runs, `full-suite-reference-artifact: ci-full-suite-reference-v1`.
+These two inputs default to empty to preserve existing callers. The current
+reporter loads file explanations only with `post-sticky: true`; a missing
+reference leaves savings unmeasured. This configures observation, not test execution.
+
 ### What the sticky shows
 
 ```text
