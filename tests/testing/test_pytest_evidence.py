@@ -259,3 +259,43 @@ def test_completion_action_verifies_without_the_checked_out_package(tmp_path: Pa
     complete = finished_shards == 2
     assert (result.returncode == 0) == complete, result.stderr
     assert (output.read_text() if output.exists() else "") == ("complete=true\n" if complete else "")
+
+
+@pytest.mark.parametrize("missing", [False, True])
+def test_completion_checks_every_global_shard_in_the_assigned_runner_range(tmp_path: Path, missing: bool) -> None:
+    for shard in (3, 4):
+        (tmp_path / f"junit-group-{shard}.xml").write_text("<testsuite/>")
+        if shard != 4 or not missing:
+            (tmp_path / f"pytest-status-group-{shard}").write_text("0")
+    result = subprocess.run(
+        ["bash", str(RECEIPT)],
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "PLAN_SHARD_COUNT": "4",
+            "PLAN_MODE": "full",
+            "PLAN_FIRST_SHARD": "3",
+            "PLAN_LAST_SHARD": "4",
+        },
+        capture_output=True,
+        text=True,
+    )
+    assert (result.returncode == 0) is (not missing)
+
+
+@pytest.mark.parametrize("first,last", [("0", "1"), ("2", "1"), ("1", "5"), ("bad", "4")])
+def test_completion_rejects_invalid_ranges(tmp_path: Path, first: str, last: str) -> None:
+    result = subprocess.run(
+        ["bash", str(RECEIPT)],
+        cwd=tmp_path,
+        env={
+            **os.environ,
+            "PLAN_SHARD_COUNT": "4",
+            "PLAN_MODE": "full",
+            "PLAN_FIRST_SHARD": first,
+            "PLAN_LAST_SHARD": last,
+        },
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0

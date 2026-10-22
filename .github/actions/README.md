@@ -318,3 +318,9 @@ build instead of silently resolving something new. It is local project
 setup rather than a consumer-facing contract. The repository's test workflow is
 also intentionally local. Push and pull-request runs are allowed to overlap:
 guaranteed pytest execution is more important than deduplicating CI events.
+
+### Distributed pytest ranges
+
+`ci-esta-pytest run-local --shards N --first-shard A --last-shard B -- ...` runs the inclusive range A–B from one global exact-file plan. Workers retain global `GV_PYTEST_SHARD_INDEX` and `GV_PYTEST_SHARD_COUNT`; logs and completion reports therefore remain disjoint across machines. Omitted bounds preserve the existing all-shards behavior. Invalid or empty ranges fail before starting a worker.
+
+Pass the same bounds as `PLAN_FIRST_SHARD` and `PLAN_LAST_SHARD` to `verify-pytest-completion`. Each pool proves its entire range. The consumer must require every pool, verify that its ranges partition 1–N, and issue the reusable aggregate receipt only after all pools prove completion. A successful pool alone never authorizes reuse of the global plan.
