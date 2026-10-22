@@ -26,25 +26,35 @@ All actions live in this repository. No hosted CI-esta service is required. Evid
 ## Start by measuring one workflow
 
 ```yaml
-# Add after your existing aggregate gate. Replace its display name below.
-report:
-  needs: gate
-  if: ${{ always() }}
-  permissions:
-    contents: read
-    actions: read
-  runs-on: ubuntu-latest
-  steps:
-    - uses: gigaverse-app/ci-esta/.github/actions/ci-observability@main
-      with:
-        github-token: ${{ github.token }}
-        required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
-        post-sticky: 'false'
-        test-selection-artifact: ''
-        full-suite-reference-artifact: ''
+# .github/workflows/observe-ci.yml
+name: CI observability
+on:
+  workflow_run:
+    workflows: [CI] # Your validation workflow's name
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+jobs:
+  report:
+    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@8d7672878844430e294f19e65aa116fc77d592ad
+    with:
+      run-id: ${{ github.event.workflow_run.id }}
+      run-attempt: ${{ github.event.workflow_run.run_attempt }}
+      head-sha: ${{ github.event.workflow_run.head_sha }}
+      required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
 ```
 
-The report appears in the job summary. Pin a reviewed commit SHA instead of `main` for production. See [the observability guide](docs/github-actions-observability.md) for artifacts, costs, local CLI usage and Prometheus. Then adopt [evidence reuse and strict gates](docs/evidence-reuse.md). Our [own workflow](.github/workflows/ci.yml) is a complete example.
+Replace the workflow and required job names with yours. Commit this observer to
+your default branch; it reports future completed runs without becoming a
+validation prerequisite. The pinned reusable workflow writes a summary and
+JSON/Markdown/Prometheus artifacts with read-only permissions. See
+[the observability guide](docs/github-actions-observability.md) for costs and
+local CLI usage, then adopt [evidence reuse and strict gates](docs/evidence-reuse.md).
+Our [validation workflow](.github/workflows/ci.yml) and
+[observer](.github/workflows/observe-ci.yml) are complete examples.
 
 ## What measured runs show
 
