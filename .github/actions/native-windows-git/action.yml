@@ -1,0 +1,10 @@
+name: Native Git for Windows
+description: Use the same Git installation without its process launcher, preserving version and configuration.
+runs:
+  using: composite
+  steps:
+    - if: runner.os == 'Windows'
+      shell: pwsh
+      env:
+        NATIVE_GIT_SCRIPT: ${{ github.action_path }}/use_native_windows_git.ps1
+      run: '& $env:NATIVE_GIT_SCRIPT'

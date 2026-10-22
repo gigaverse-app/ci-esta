@@ -17,8 +17,10 @@ classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Develope
 
 [project.optional-dependencies]
 pytest = ["pytest>=8"]
+postgres = ["psycopg[binary]>=3.2,<4"]
 
 [project.scripts]
+ci-esta-postgres-clone = "ci_esta.testing.postgres:main"
 ci-esta-resources = "ci_esta.diagnostics:main"
 ci-esta = "ci_esta.cli:main"
 ci-esta-pytest = "ci_esta.testing.cli:main"
@@ -33,7 +35,7 @@ Repository = "https://github.com/gigaverse-app/ci-esta"
 Issues = "https://github.com/gigaverse-app/ci-esta/issues"
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3"]
+dev = ["pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3", "psycopg[binary]>=3.2,<4"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ci_esta"]
