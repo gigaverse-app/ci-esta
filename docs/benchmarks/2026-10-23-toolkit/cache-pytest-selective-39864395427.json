@@ -1,0 +1,92 @@
+{
+  "repository": "gigaverse-app/pytest-selective",
+  "run_id": 39864395427,
+  "attempt": 1,
+  "head_sha": "c2a1d0bed2e9a7819f754f730a7eca99044a860d",
+  "event": "workflow_dispatch",
+  "status": "completed",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "job": "distributions",
+      "job_id": 120122819326,
+      "cache_hits": [
+        "ci-esta-venv--865c8c43cb918d305af323760948a73bb10089ce4a5a0a7b1962f41d96b952c6"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 5.0
+    },
+    {
+      "job": "quality",
+      "job_id": 120122819760,
+      "cache_hits": [
+        "ci-esta-venv--865c8c43cb918d305af323760948a73bb10089ce4a5a0a7b1962f41d96b952c6"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 10.0
+    },
+    {
+      "job": "pytest-minimum",
+      "job_id": 120123863278,
+      "cache_hits": [
+        "ci-esta-venv--8015953cdc097ef6b099db9c28fa6ec72bfb73b8e4584c7363bd8f7e2fbc8716"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 4.0
+    },
+    {
+      "job": "tests (3.14, windows-latest)",
+      "job_id": 120123863440,
+      "cache_hits": [
+        "ci-esta-venv--28a5a5f3f1d19bf48210f5461955b93b7a429e3683d3f341d3d9c5246f5199d2"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 9.0
+    },
+    {
+      "job": "tests (3.11, macos-latest)",
+      "job_id": 120123863459,
+      "cache_hits": [
+        "ci-esta-venv--991712d4d599756c5694840ca41d0929a11c7893a2a24fbb9dc48b83ec5e2213"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 6.0
+    },
+    {
+      "job": "tests (3.14, ubuntu-latest)",
+      "job_id": 120123863469,
+      "cache_hits": [
+        "ci-esta-venv--865c8c43cb918d305af323760948a73bb10089ce4a5a0a7b1962f41d96b952c6"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 5.0
+    },
+    {
+      "job": "tests (3.11, windows-latest)",
+      "job_id": 120123863486,
+      "cache_hits": [
+        "ci-esta-venv--62219c2f8854d88f8cb1fdd73c2759d45167c73ecb0b3de60f8fbf9d3f27d775"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 12.0
+    },
+    {
+      "job": "tests (3.11, ubuntu-latest)",
+      "job_id": 120123863517,
+      "cache_hits": [
+        "ci-esta-venv--8015953cdc097ef6b099db9c28fa6ec72bfb73b8e4584c7363bd8f7e2fbc8716"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 4.0
+    },
+    {
+      "job": "tests (3.14, macos-latest)",
+      "job_id": 120123863840,
+      "cache_hits": [
+        "ci-esta-venv--7bb5dfba97b85846d604b7cfe0bd103db20f0b7d60232d1f7a9d7a40f125c7f4"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 4.0
+    }
+  ]
+}

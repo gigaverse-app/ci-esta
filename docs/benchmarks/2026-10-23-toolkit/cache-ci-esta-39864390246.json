@@ -1,0 +1,38 @@
+{
+  "repository": "gigaverse-app/ci-esta",
+  "run_id": 39864390246,
+  "attempt": 1,
+  "head_sha": "11f634a9b29cc3376cbae6f6fde22eb9ecba9214",
+  "event": "workflow_dispatch",
+  "status": "completed",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "job": "quality",
+      "job_id": 120122802030,
+      "cache_hits": [
+        "ci-esta-venv--0117f5b93935ffab509bb5ce0eb308ca2787c80afcdf6139bf55a4175ee3a790"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 9.0
+    },
+    {
+      "job": "Python compatibility",
+      "job_id": 120123916650,
+      "cache_hits": [
+        "ci-esta-venv--0117f5b93935ffab509bb5ce0eb308ca2787c80afcdf6139bf55a4175ee3a790"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 6.0
+    },
+    {
+      "job": "Test suite",
+      "job_id": 120123916706,
+      "cache_hits": [
+        "ci-esta-venv--2b1e8af25451f610210f930e12b578dc783b0df9dd80cc59d84d706874087e28"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 7.0
+    }
+  ]
+}

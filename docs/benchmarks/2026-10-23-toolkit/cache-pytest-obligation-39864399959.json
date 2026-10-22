@@ -1,0 +1,128 @@
+{
+  "repository": "gigaverse-app/pytest-obligation",
+  "run_id": 39864399959,
+  "attempt": 1,
+  "head_sha": "26ce1e8c9f184736845c37e4ccd8455cd128512a",
+  "event": "workflow_dispatch",
+  "status": "completed",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "job": "lint",
+      "job_id": 120122837823,
+      "cache_hits": [
+        "ci-esta-venv--699dcfee180ca872a08f7b66d6654be60be1779c73cf82c53a387baac3042bde"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 6.0
+    },
+    {
+      "job": "django",
+      "job_id": 120123167144,
+      "cache_hits": [
+        "ci-esta-venv--b4b439743767f94234ff2d2c279877c2131f503b56aca8ae1e33652c30d03372"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 5.0
+    },
+    {
+      "job": "core (3.11)",
+      "job_id": 120123167145,
+      "cache_hits": [
+        "ci-esta-venv--cb1c1c84bdd88ad370cbfc79c0122fbb76142f18435fa1cd1a465d22b8db385d"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 4.0
+    },
+    {
+      "job": "minimum-models",
+      "job_id": 120123167152,
+      "cache_hits": [
+        "ci-esta-venv--ebb680d0ab4f4ac6a12d08d7638f01620b0ac745fd1857a557430fd706f14456"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 4.0
+    },
+    {
+      "job": "mongodb",
+      "job_id": 120123167237,
+      "cache_hits": [
+        "ci-esta-venv--a7844f0617465466d5b303c3727cf15fc7a70d36f5fa5bb9281b2a12ca6fc0f2"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 4.0
+    },
+    {
+      "job": "django-psycopg2",
+      "job_id": 120123167258,
+      "cache_hits": [
+        "ci-esta-venv--b4b439743767f94234ff2d2c279877c2131f503b56aca8ae1e33652c30d03372"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 7.0
+    },
+    {
+      "job": "core (3.14)",
+      "job_id": 120123167274,
+      "cache_hits": [
+        "ci-esta-venv--68ed478f82cb771a1e97dee640896b454c146b27687e3883bb239bd4a02f1040"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 5.0
+    },
+    {
+      "job": "redis",
+      "job_id": 120123167289,
+      "cache_hits": [
+        "ci-esta-venv--6507047d20c5ce8ba1e91e5160d68f1e6f9c5ca96ab928c437c80b6286fdbf9b"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 5.0
+    },
+    {
+      "job": "exploration",
+      "job_id": 120123167297,
+      "cache_hits": [
+        "ci-esta-venv--13075f5057c60033d668f90656c22f6e518ccd9f899d7f7f23679c704214e7c0"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 5.0
+    },
+    {
+      "job": "core (3.13)",
+      "job_id": 120123167312,
+      "cache_hits": [
+        "ci-esta-venv--4d357fa7be5b62b100f08e4107190ad2ec930738ac1ca59aecd9dd834f48ae68"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 5.0
+    },
+    {
+      "job": "aiokafka",
+      "job_id": 120123167365,
+      "cache_hits": [
+        "ci-esta-venv--fce552afeb5736ded051ee4a6bdb2a8d1b649a1fe696d4252d8d060157ac85ef"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 5.0
+    },
+    {
+      "job": "prefect",
+      "job_id": 120123167479,
+      "cache_hits": [
+        "ci-esta-venv--719e6468b4ffe7e6c6ede823d8351f3249559ff0d2121ad5489da017c864aaf0"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 7.0
+    },
+    {
+      "job": "core (3.12)",
+      "job_id": 120123167542,
+      "cache_hits": [
+        "ci-esta-venv--ebb680d0ab4f4ac6a12d08d7638f01620b0ac745fd1857a557430fd706f14456"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 6.0
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "repository": "gigaverse-app/pytest-selective",
+  "source_run": 39863865180,
+  "observer_run": 39864384702,
+  "observer_runner_seconds": 24.0,
+  "source_head": "c2a1d0bed2e9a7819f754f730a7eca99044a860d",
+  "critical_path_status": "complete",
+  "collection_status": "complete",
+  "collection_errors": []
+}

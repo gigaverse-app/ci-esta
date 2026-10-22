@@ -1,0 +1,10 @@
+{
+  "repository": "gigaverse-app/due",
+  "source_run": 39864032259,
+  "observer_run": 39865248024,
+  "observer_runner_seconds": 17.0,
+  "source_head": "4acd19f4970dbc5ecd0e3fd247015a387928fdaf",
+  "critical_path_status": "complete",
+  "collection_status": "complete",
+  "collection_errors": []
+}

@@ -1,0 +1,10 @@
+{
+  "repository": "gigaverse-app/ci-esta",
+  "source_run": 39863488268,
+  "observer_run": 39863647185,
+  "observer_runner_seconds": 20.0,
+  "source_head": "11f634a9b29cc3376cbae6f6fde22eb9ecba9214",
+  "critical_path_status": "complete",
+  "collection_status": "complete",
+  "collection_errors": []
+}
