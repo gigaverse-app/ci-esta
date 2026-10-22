@@ -26,25 +26,74 @@ All actions live in this repository. No hosted CI-esta service is required. Evid
 ## Start by measuring one workflow
 
 ```yaml
-# Add after your existing aggregate gate. Replace its display name below.
-report:
-  needs: gate
-  if: ${{ always() }}
-  permissions:
-    contents: read
-    actions: read
-  runs-on: ubuntu-latest
-  steps:
-    - uses: gigaverse-app/ci-esta/.github/actions/ci-observability@main
-      with:
-        github-token: ${{ github.token }}
-        required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
-        post-sticky: 'false'
-        test-selection-artifact: ''
-        full-suite-reference-artifact: ''
+# .github/workflows/observe-ci.yml
+name: CI observability
+on:
+  workflow_run:
+    workflows: [CI] # Your validation workflow's name
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+jobs:
+  report:
+    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@f96bfac9203368be10cd4cf0f117471441636080
+    with:
+      run-id: ${{ github.event.workflow_run.id }}
+      run-attempt: ${{ github.event.workflow_run.run_attempt }}
+      head-sha: ${{ github.event.workflow_run.head_sha }}
+      required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
 ```
 
-The report appears in the job summary. Pin a reviewed commit SHA instead of `main` for production. See [the observability guide](docs/github-actions-observability.md) for artifacts, costs, local CLI usage and Prometheus. Then adopt [evidence reuse and strict gates](docs/evidence-reuse.md). Our [own workflow](.github/workflows/ci.yml) is a complete example.
+Replace the workflow and required job names with yours. Commit this observer to
+your default branch; it reports future completed runs without becoming a
+validation prerequisite. The pinned reusable workflow writes a summary and
+JSON/Markdown/Prometheus artifacts with read-only permissions. See
+[the observability guide](docs/github-actions-observability.md) for costs and
+local CLI usage, then adopt [evidence reuse and strict gates](docs/evidence-reuse.md).
+Our [validation workflow](.github/workflows/ci.yml) and
+[observer](.github/workflows/observe-ci.yml) are complete examples.
+
+## What measured runs show
+
+Explicit input routing with [pytest-selective](https://github.com/gigaverse-app/pytest-selective)
+reduced work in these successful GitHub Actions pairs:
+
+| Change | Full runner-seconds | Selected runner-seconds | Reduction |
+| --- | ---: | ---: | ---: |
+| pytest-selective README | 627 | 48 | 92.3% |
+| Due library test, main CI | 747 | 388 | 48.1% |
+| pytest-obligation MongoDB test | 1,602 | 93 | 94.2% |
+| pytest-obligation package README | 1,691 | 57 | 96.6% |
+
+These are one sequential pair per scenario on the same PR head and merge
+checkout, including planner overhead.
+[Raw timestamps, run links and limitations](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/benchmarks/2026-10-22.md)
+are published with the selector. Runner-seconds sum executed-job durations;
+they are not billed minutes. Due's separate widget benchmark is excluded here.
+**These savings come from selection and consumer input declarations, not
+CI-esta receipt reuse.**
+
+The [README-only paired experiment](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/benchmarks/2026-10-22-routing.md)
+also reduced pytest-selective's elapsed time from **211s to 26s**, retaining
+routing regressions, docs and package validation. The same report records a
+Due docs-only preservation check at **26s elapsed / 91 runner-seconds**; it has
+no paired control and is not presented as a measured speedup.
+
+CI-esta makes the next optimization visible. In a
+[real pytest-selective report](docs/benchmarks/2026-10-22-selective-report.md),
+required jobs completed in **295s**. The slowest Windows job took **279s**;
+all jobs totaled **731 runner-seconds**. Its separate completed-run reporter
+used **19s** of runner time and was not a validation prerequisite.
+[How this was measured](docs/benchmarks/2026-10-22.md) includes the source JSON,
+run identities and limits.
+
+Start with reporting, then narrow inputs and preserve full checkpoints. For
+Due and pytest-obligation conformance lanes, review every runtime/configuration
+input before enabling receipt reuse. A previous green workflow alone is
+insufficient evidence.
 
 ## What a reused lane means
 
