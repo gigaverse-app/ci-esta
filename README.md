@@ -3,12 +3,32 @@
 [![CI](https://github.com/gigaverse-app/ci-esta/actions/workflows/ci.yml/badge.svg)](https://github.com/gigaverse-app/ci-esta/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](pyproject.toml)
 [![Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Agent skill](https://img.shields.io/badge/Agent_Skill-ready-2563EB)](docs/agents.md)
 
 Let proven work rest. Measure the rest.
+
+**Find the 279-second job hiding in a 295-second CI run.**
+That is what [this real report](docs/benchmarks/2026-10-22.md) exposed.
+Pair measurement with pytest-selective: its matched README experiment used
+**92.3% less runner time, 627s → 48s**, through input routing. The measured
+results and attribution are below; no universal or receipt-reuse saving is claimed.
 
 CI-esta is an open-source toolkit for **GitHub Actions optimization and CI observability**. It measures where a workflow spends time and reuses successful validation only when matching execution evidence exists. Your application can use any language.
 
 Repeated CI work is easy to skip incorrectly: the previous workflow was green but the relevant lane never ran, the PR base moved, a newer rerun failed, or the change list was incomplete. CI-esta makes those decisions explicit and falls back to doing the work when proof is uncertain.
+
+## Have your agent improve CI
+
+Paste this into your coding agent in the repository you want to improve:
+
+```text
+Read https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/skills/ci-esta/SKILL.md
+and use it to measure and improve this project's GitHub Actions CI. Preserve
+required checks and show measured savings. Use pytest-selective for Python tests.
+```
+
+[Install the skills or add AGENTS.md instructions](docs/agents.md).
+Any application language on GitHub Actions; no new MCP server or hosted service.
 
 ## What is included
 

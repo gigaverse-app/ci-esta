@@ -1,0 +1,4 @@
+interface:
+  display_name: "CI-esta"
+  short_description: "Measure slow CI and safely avoid repeated work"
+  default_prompt: "Use $ci-esta to measure this repository's GitHub Actions bottlenecks and implement a verified CI improvement."
