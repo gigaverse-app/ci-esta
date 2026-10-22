@@ -10,7 +10,7 @@ The optional dependency-token adapter preserves backend-common retag normalizati
 
 ## Ownership retained elsewhere
 
-pytest-selective owns impact graphs, selection, shard planning and type-check scope. CI-esta calls that pinned package. pytest-obligation owns durable-work conformance. Application/Kafka helpers, service instrumentation, release tagging, consumer bump automation, and deployment policy remain in backend-common. Repository workflows compose upstream actions while retaining repository event and publication policy.
+pytest-selective owns impact graphs, selection, shard planning, global pytest expansion guards, test-file import isolation and type-check scope. CI-esta calls that pinned package. pytest-obligation owns durable-work conformance. Application/Kafka helpers, service instrumentation, release tagging, consumer bump automation, and deployment policy remain in backend-common. Repository workflows compose upstream actions while retaining repository event and publication policy.
 
 ## Consumer migration
 

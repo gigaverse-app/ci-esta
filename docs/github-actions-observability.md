@@ -78,12 +78,18 @@ To post a sticky PR report, supply `pull-request-number`, set `post-sticky: 'tru
 | Required-gate elapsed time | Time from workflow creation to explicitly configured gates; no inferred full DAG |
 | Job admission delay | Time before a job starts, which can include dependencies, approvals and runner queueing |
 | Runner seconds | Observed timed jobs across attempts, including retries |
+| Slowest step per job | Latest-attempt API step durations, with links to job logs; all steps remain in the JSON report |
 | Rounded runner minutes | Sum of per-job ceiling-rounded durations; an estimate, not a GitHub invoice |
 | Dollar estimate | Configured runner-label/SKU rates multiplied by rounded minutes; withheld when any timed job is unpriced |
 | Overlapping prior runs | Observed cost of prior PR runs that overlap the current run |
 | Test-selection savings | Optional comparison with comparable full-suite timing references; not a guaranteed counterfactual |
 
 Use `runner-sku-rates-json` only with rates you maintain. GitHub plans, included usage, discounts and billing policies are outside this report. Missing gate configuration or API data produces a partial/unavailable report rather than invented precision. Exact run IDs and SHAs belong in the JSON report, not Prometheus grouping labels.
+
+Step timing distinguishes completed, accrued and unavailable measurements. Missing,
+skipped or reversed timestamps stay unavailable; a completed step with identical
+timestamps is a measured zero at GitHub's timestamp precision. Steps explain job
+time and are never added to runner usage. Older v1 reports without steps still load.
 
 ## Local reports and offline rendering
 

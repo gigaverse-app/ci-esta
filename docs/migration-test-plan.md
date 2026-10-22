@@ -26,3 +26,9 @@ The reusable CI implementation moves to CI-esta. backend-common retains its appl
 - Workflow change classification and current-head admission are a subsequent extraction batch. Their local public-boundary tests pass; hosted verification and downstream adoption remain pending.
 
 Completion requires the final source revision and generated consumer checks. Earlier green runs do not substitute for those gates.
+
+## Canonical pytest guard ownership
+
+The global pytest expansion and file-isolation implementations and their 70 preservation tests move to pytest-selective PR11. CI-esta retains module-identity aliases and an immutable action delegate. Its remaining suite passes 915 tests locally on Python 3.11; the selector preservation suite passed 68 tests on Windows (two POSIX action cases skipped), and its initial hosted matrix passed every platform. New lock metadata restores the compiled coverage tracer for Python 3.11 without changing the coverage version. The final selector and CI-esta revisions still require their own hosted checks.
+
+backend-common source revision5018aae passed its hosted tests, types, CI-code and canary checks. Generated consumer PRs gigaverse-backend5495 and gigaverse-ai3109 both reported passing required gates. Running the installed migrated CLI against source test run39847640693 produced a complete report: 110 runner-seconds and 113 seconds to its explicit Run pytest gate. Later pin/schema changes must be checked again before source merge.
