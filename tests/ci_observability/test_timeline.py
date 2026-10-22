@@ -1,0 +1,105 @@
+"""The sticky's gantt: one row per job, its wait, its run, and the chain the merge waited on."""
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+
+from ci_esta.ci_observability.models import GitHubJobV1, GitHubRunV1
+from ci_esta.ci_observability.report import _observe_job, build_report
+from ci_esta.ci_observability.timeline import critical_chain, render_timeline
+
+CREATED = datetime(2026, 10, 22, 21, 0, tzinfo=timezone.utc)
+OBSERVED = CREATED + timedelta(minutes=10)
+
+
+def _job(job_id: int, name: str, queued: int, start: int, end: int) -> GitHubJobV1:
+    return GitHubJobV1(
+        id=job_id,
+        name=name,
+        status="completed",
+        conclusion="success",
+        created_at=CREATED + timedelta(seconds=queued),
+        started_at=CREATED + timedelta(seconds=start),
+        completed_at=CREATED + timedelta(seconds=end),
+    )
+
+
+#: The shape of pytest-selective run 39856136423: planning, then a matrix that needs it; the
+#: Windows 3.14 leg finished last and the merge waited on it.
+JOBS = [
+    _job(1, "quality", 1, 21, 37),
+    _job(2, "select-tests", 1, 25, 39),
+    _job(3, "tests (3.11, ubuntu-latest)", 39, 87, 110),
+    _job(4, "tests (3.14, windows-latest)", 39, 52, 221),
+    _job(5, "tests (3.11, windows-latest)", 39, 42, 201),
+    _job(6, "Contracts / Contract suite · due-application · 1", 1, 12, 102),
+]
+
+
+def _observed() -> list:
+    return [_observe_job(job, CREATED, OBSERVED) for job in JOBS]
+
+
+def test_the_chain_walks_back_through_the_job_that_finished_as_each_was_created() -> None:
+    chain = critical_chain(_observed(), merge_ready_seconds=221)
+
+    assert [job.name for job in chain] == ["select-tests", "tests (3.14, windows-latest)"]
+
+
+def test_without_merge_ready_the_chain_ends_at_the_last_job_to_finish() -> None:
+    chain = critical_chain(_observed(), merge_ready_seconds=None)
+
+    assert chain[-1].name == "tests (3.14, windows-latest)"
+
+
+def test_a_job_created_with_the_run_has_no_predecessor() -> None:
+    quality = [job for job in _observed() if job.name == "quality"]
+
+    assert [job.name for job in critical_chain(quality, merge_ready_seconds=None)] == ["quality"]
+
+
+def _gantt() -> str:
+    run = GitHubRunV1(
+        id=1,
+        name="CI",
+        run_attempt=1,
+        status="completed",
+        conclusion="success",
+        created_at=CREATED,
+        run_started_at=CREATED,
+        head_sha="c" * 40,
+    )
+    report = build_report(
+        repository="gigaverse-app/example",
+        pull_request_number=None,
+        run=run,
+        latest_jobs=JOBS,
+        billing_jobs=JOBS,
+        commit_statuses=[],
+        gate_selectors=[],
+        observed_at=OBSERVED,
+    )
+    return "\n".join(render_timeline(report))
+
+
+def test_each_job_is_a_row_with_its_wait_and_its_run() -> None:
+    gantt = _gantt()
+
+    # Waiting for a runner is amber; a wait under five seconds is noise and is not drawn.
+    assert "    section tests · 3.11, ubuntu-latest\n    ⏳ :active, " in gantt
+    assert ", 39, 87\n    23s :done, " in gantt
+    assert "    section tests · 3.11, windows-latest\n    2m 39s :done, " in gantt
+    assert "    section quality\n    ⏳ :active, " in gantt
+    # A reusable workflow's caller prefix is dropped, and a long name keeps its distinguishing end.
+    assert "    section Contract suite ·…application · 1\n" in gantt
+    assert "Contracts /" not in gantt
+    # Rows run in the order jobs became runnable.
+    assert gantt.index("section quality") < gantt.index("section tests · 3.11, ubuntu-latest")
+
+
+def test_the_theme_reads_on_both_github_themes_and_never_draws_a_today_line() -> None:
+    gantt = _gantt()
+
+    assert '"theme": "base"' in gantt
+    assert '"critBkgColor": "#EA580C"' in gantt
+    assert "    todayMarker off\n" in gantt

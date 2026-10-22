@@ -578,6 +578,18 @@
           ],
           "title": "End Offset Seconds"
         },
+        "queued_offset_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Queued Offset Seconds"
+        },
         "rounded_minutes": {
           "anyOf": [
             {

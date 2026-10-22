@@ -1,0 +1,181 @@
+"""
+Render the sticky's CI timeline as a Mermaid gantt chart.
+
+Each job is one row, named in the left column: an amber bar while it waited for a runner, then its
+run. Orange marks the chain the merge waited on, and a milestone marks merge-ready.
+
+GitHub's API has no `needs` graph, so the chain is inferred from timestamps: GitHub creates a job
+when the jobs it needs complete, so a job's predecessor is the one that finished just before it
+was created. Bars are observed API timestamps; the footnote says the chain is inferred.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+
+from ci_esta.ci_observability.enrichment.primitives import format_seconds
+from ci_esta.ci_observability.lanes import job_family
+from ci_esta.ci_observability.models import CiObservabilityReportV1, ObservedJobV1, TimingStatus
+
+#: A predecessor finished at most this long before its successor was created...
+CHAIN_GAP_SECONDS = 15.0
+#: ...or this long after: GitHub's timestamps have second precision and are not ordered exactly.
+CHAIN_SLACK_SECONDS = 3.0
+#: Waits shorter than this are not drawn: they are noise at the chart's scale.
+SHOWN_QUEUE_SECONDS = 5.0
+#: Row labels are cut to this many characters; the left column is fixed width.
+LABEL_CHARACTERS = 32
+
+#: GitHub renders the chart on its own light or dark background, so every color has to read on
+#: both: saturated bars with white text, and mid-grey text outside them.
+THEME = {
+    "theme": "base",
+    "themeVariables": {
+        "fontFamily": "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif",
+        "fontSize": "13px",
+        "doneTaskBkgColor": "#3B82F6",
+        "doneTaskBorderColor": "#2563EB",
+        "critBkgColor": "#EA580C",
+        "critBorderColor": "#C2410C",
+        "activeTaskBkgColor": "#F59E0B",
+        "activeTaskBorderColor": "#D97706",
+        "taskBkgColor": "#3B82F6",
+        "taskBorderColor": "#2563EB",
+        "taskTextColor": "#FFFFFF",
+        "taskTextDarkColor": "#FFFFFF",
+        "taskTextLightColor": "#FFFFFF",
+        "taskTextOutsideColor": "#8B949E",
+        "titleColor": "#8B949E",
+        "sectionBkgColor": "rgba(234, 88, 12, 0.07)",
+        "altSectionBkgColor": "rgba(139, 148, 158, 0.05)",
+        "sectionBkgColor2": "rgba(234, 88, 12, 0.07)",
+        "gridColor": "rgba(139, 148, 158, 0.3)",
+        "todayLineColor": "rgba(0, 0, 0, 0)",
+    },
+    "gantt": {
+        "barHeight": 20,
+        "barGap": 6,
+        "topPadding": 44,
+        "leftPadding": 230,
+        "sectionFontSize": 13,
+        "fontSize": 12,
+        "displayMode": "compact",
+    },
+}
+
+
+def _label(value: str) -> str:
+    """
+    Mermaid ends a task's label at a colon and treats `#` and `;` as syntax.
+
+    A long name is cut in the middle: its start says what it is, and its end tells shards and
+    matrix legs apart.
+    """
+    for character in (":", "#", ";"):
+        value = value.replace(character, " ")
+    value = " ".join(value.split())
+    if len(value) <= LABEL_CHARACTERS:
+        return value
+    head = LABEL_CHARACTERS // 2
+    return value[:head] + "…" + value[-(LABEL_CHARACTERS - head - 1) :]
+
+
+def _timed(report: CiObservabilityReportV1) -> list[ObservedJobV1]:
+    return [
+        job
+        for job in report.latest_attempt_jobs
+        if job.start_offset_seconds is not None
+        and job.end_offset_seconds is not None
+        and job.end_offset_seconds > job.start_offset_seconds
+    ]
+
+
+def _ready_at(job: ObservedJobV1) -> float:
+    """When the job became runnable: created, or started when GitHub gave no creation time."""
+    if job.queued_offset_seconds is not None:
+        return job.queued_offset_seconds
+    assert job.start_offset_seconds is not None, "timed jobs have a start"
+    return job.start_offset_seconds
+
+
+def critical_chain(jobs: list[ObservedJobV1], merge_ready_seconds: float | None) -> list[ObservedJobV1]:
+    """
+    The jobs the merge waited on, first to last, inferred from timestamps.
+
+    The chain ends at the last job to finish by merge-ready (or at all), and walks back through
+    the job that finished just before each one was created.
+    """
+    ends = [job for job in jobs if job.end_offset_seconds is not None]
+    if merge_ready_seconds is not None:
+        ends = [job for job in ends if (job.end_offset_seconds or 0) <= merge_ready_seconds + CHAIN_SLACK_SECONDS]
+    if not ends:
+        return []
+    current = max(ends, key=lambda job: (job.end_offset_seconds or 0, job.name))
+    chain = [current]
+    while True:
+        ready = _ready_at(current)
+        predecessors = [
+            job
+            for job in jobs
+            if job not in chain
+            and job.end_offset_seconds is not None
+            and ready - CHAIN_GAP_SECONDS <= job.end_offset_seconds <= ready + CHAIN_SLACK_SECONDS
+        ]
+        if not predecessors:
+            return list(reversed(chain))
+        current = max(predecessors, key=lambda job: (job.end_offset_seconds or 0, job.name))
+        chain.append(current)
+
+
+def _row_label(job: ObservedJobV1) -> str:
+    """The job's name for the left column; a matrix leg reads `tests · 3.14, ubuntu-latest`."""
+    # A reusable workflow's jobs share its caller's prefix (`Contracts / Suite · 1`); keep the job's own name.
+    name = job.name.rsplit(" / ", 1)[-1]
+    family = job_family(name)
+    if name != family and name.endswith(")"):
+        name = f"{family} · {name[len(family) + 2 : -1]}"
+    return _label(name + (" (running)" if job.timing_status == TimingStatus.ACCRUED else ""))
+
+
+def render_timeline(report: CiObservabilityReportV1) -> list[str]:
+    jobs = _timed(report)
+    merge_ready = report.merge_ready_from_creation_seconds
+    if not jobs and merge_ready is None:
+        return []
+    chain = {job.job_id for job in critical_chain(jobs, merge_ready)}
+    title = (
+        f"{format_seconds(merge_ready)} to merge-ready · orange is what the merge waited on"
+        if merge_ready is not None
+        else "CI jobs from workflow creation · orange is the longest chain"
+    )
+    lines = [
+        "```mermaid",
+        f"%%{{init: {json.dumps(THEME)}}}%%",
+        "gantt",
+        f"    title {title}",
+        "    dateFormat X",
+        "    axisFormat %M:%S",
+        "    todayMarker off",
+    ]
+    # Each job is its own section, so its wait and its run share one row beside its name.
+    for index, job in enumerate(sorted(jobs, key=lambda item: (_ready_at(item), item.start_offset_seconds, item.name))):
+        start, end = int(job.start_offset_seconds or 0), int(job.end_offset_seconds or 0)
+        lines.append(f"    section {_row_label(job)}")
+        queued = job.queued_offset_seconds
+        if queued is not None and start - queued >= SHOWN_QUEUE_SECONDS:
+            lines.append(f"    ⏳ :active, q{index}, {int(queued)}, {start}")
+        tag = "crit" if job.job_id in chain else "done"
+        wall = format_seconds(job.wall_seconds) if job.wall_seconds is not None else "running"
+        lines.append(f"    {wall} :{tag}, j{index}, {start}, {max(end, start + 1)}")
+    if merge_ready is not None:
+        ready = math.ceil(merge_ready)
+        lines += [
+            "    section ✅ merge-ready",
+            f"    {format_seconds(merge_ready)} :milestone, crit, m, {ready}, {ready}",
+        ]
+    footnote = (
+        "Amber: waiting for a runner. Orange: the chain of jobs that set the finish time, inferred from "
+        "when each job was created and its predecessor finished. Bars are observed API timestamps."
+    )
+    return [*lines, "```", "", f"<sub>{footnote}</sub>", ""]

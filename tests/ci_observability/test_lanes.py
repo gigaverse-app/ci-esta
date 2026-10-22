@@ -115,7 +115,7 @@ def test_the_section_says_what_ran_why_and_what_skipping_saved() -> None:
     section = render_lane_section(LaneSelectionSectionV1(plan=MONGODB_ONLY, reference=reference), REPOSITORY)
 
     assert section.startswith("#### 🧪 Test lanes · by [pytest-selective](")
-    assert "| 1 of 3 lanes | 2 | 1 | 25 runner-min |" in section
+    assert "| 🟧⬜⬜ 1 of 3 | 2 | 1 | 25 runner-min |" in section
     assert "The 1 changed file reaches `mongodb`; the other lanes were skipped." in section
     # Lanes that ran come first, with the path that selected them.
     assert section.index("| `mongodb` | ran | affected test `tests/mongodb/test_store.py` |") < section.index(
@@ -248,7 +248,8 @@ def test_the_action_prices_skipped_lanes_against_the_last_full_run(tmp_path: Pat
     assert report.lane_selection.reference == SkippedLaneReferenceV1(
         run_id=REFERENCE_RUN_ID, head_branch="main", jobs=["saleor (3.14)"], runner_seconds=600
     )
-    assert "ran **1 of 3** test lanes (≈10 runner-min skipped)" in sticky
+    assert "![lanes: 1 of 3 ran](https://img.shields.io/badge/lanes-1_of_3_ran-2563EB?" in sticky
+    assert "![skipped: ≈10 runner-min](" in sticky
     assert marker == sticky_marker("CI") and marker in sticky
 
 

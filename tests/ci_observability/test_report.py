@@ -310,18 +310,17 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
     assert report.longest_latest_job_seconds == 121.0
 
     markdown = render_markdown(report)
-    assert markdown.startswith("[![CI-esta report](")
+    assert markdown.startswith('<a href="https://github.com/gigaverse-app/ci-esta"><picture>')
     assert (
         "#### ⏱️ CI time and cost\n\n"
         "| Workflow | Merge-ready | First runner | Longest job | Runner time | Cost |\n"
         "|:--|--:|--:|:--|--:|--:|\n"
         f"| {WORKFLOW_NAME} | 2m 20s | after 10s | Build: image · 2m 1s | 6 min | — |\n"
     ) in markdown
-    assert '"leftPadding": 250' in markdown
-    assert "section Merge" in markdown
-    assert "required gate elapsed :crit, merge_gate, 0, 140" in markdown
-    assert "no runner assigned to this run :admission, 0, 10" in markdown
-    assert "Build - image :job_0, 10, 131" in markdown
+    # One row per job, named in the left column; orange is the job that finished last before merge-ready.
+    assert "    section Build image\n    2m 1s :crit, j0, 10, 131\n" in markdown
+    assert "    section Required gate\n    59s :done, j1, 10, 69\n" in markdown
+    assert "    section ✅ merge-ready\n    2m 20s :milestone, crit, m, 140, 140\n" in markdown
     assert "| Backend validation |" not in markdown
     assert "| Required gate | Plan | success |" in markdown
     assert "| Build: image | 1 | 61s | 2 | 1s | 59s |" in markdown
@@ -500,7 +499,10 @@ def test_active_skipped_reversed_and_missing_gate_data_are_explicit() -> None:
     assert report.merge_ready_from_creation_seconds is None
     markdown = render_markdown(report)
     assert "| gates running |" in markdown
-    assert "A red bar appears once all required gates complete." in markdown
+    # Before merge-ready there is no milestone, and the chain is the longest one so far.
+    assert "orange is the longest chain" in markdown
+    assert "    section Active (running)\n    2m 50s :crit, j0, 10, 180\n" in markdown
+    assert "merge-ready :milestone" not in markdown
     assert 'gate_conclusion="pending"' in render_prometheus(report)
 
 
@@ -769,7 +771,7 @@ def _sticky_with_selection(**report_changes: object) -> str:
 def test_the_selection_sticky_folds_latency_and_cost_behind_one_line(changes: dict[str, object], summary: str) -> None:
     sticky = _sticky_with_selection(**changes)
 
-    assert sticky.startswith("[![CI-esta report](")
+    assert sticky.startswith('<a href="https://github.com/gigaverse-app/ci-esta"><picture>')
     assert "#### 🎯 Test selection" in sticky
     assert f"<details><summary>{summary}</summary>" in sticky
     # The summary line stands in for the heading; the footer that identifies the sticky stays outside.
