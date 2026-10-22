@@ -5,9 +5,20 @@ import signal
 import subprocess
 import sys
 import time
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
+
+
+def test_resource_recipe_retains_the_consumers_diagnostic_surface() -> None:
+    """Preserved from backend workflow policy when its wrapper became a delegate."""
+    script = files("ci_esta.diagnostics").joinpath("resources.sh").read_text()
+    assert "/sys/fs/cgroup/cpu.stat" in script
+    assert "memory.max memory.current memory.events" in script
+    assert "ps -eo pid,ppid,comm,%cpu,%mem,rss,etime" in script
+    assert "docker stats --no-stream" in script
+    assert '/usr/bin/time -v "$@"' in script
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="Linux resource observation uses procfs and cgroups")
