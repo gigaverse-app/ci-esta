@@ -8,8 +8,8 @@
 - [x] Receipt identity follows source/tool changes, ignores generated caches, and rejects ambiguous declared paths. `tests/ci/test_portable_receipts.py` exercises actual JavaScript with filesystem/API boundaries.
 - [x] The reporter uses pytest-selective's shared explanation contract and accepts repository-neutral timing data. `tests/ci_observability/` covers renderers, collection, artifacts and profiles.
 - [x] The installed CLI can render an unavailable report offline without credentials. `tests/test_cli.py` invokes a separate Python process.
-- [ ] Locked tests and wheel smoke on Python 3.11 and 3.14.
-- [ ] Hosted CI validates the report action against GitHub's actual run/job APIs.
+- [x] Locked tests on Python 3.11 and 3.14, plus installed-wheel smoke on Python 3.11.
+- [x] Hosted CI validates the report action against GitHub's actual run/job APIs.
 - [ ] A disposable PR proves successful execution, reuse after an unrelated change, and forced execution on manual rerun.
 
 ## Red-team findings
@@ -21,4 +21,12 @@
 
 The initial source test extraction also caught a missing XML runtime dependency; the package declares it. Source-consumer workflow metadata tests remain in backend-common because those workflows are outside the extracted public product. The inherited reporter schema was regenerated against the locked dependencies.
 
-Live evidence links and immutable revisions are added after hosted verification. Local API fakes are not counted as live proof. This document records a scoped extraction check, not exhaustive correctness or a benchmark.
+## Live evidence ledger
+
+| Scenario | Revision | Evidence | Result |
+| --- | --- | --- | --- |
+| First corrected PR validation | `a1cdb72939ad7dab66949ee44c99f81784ae6678` | [run 39840045077](https://github.com/gigaverse-app/ci-esta/actions/runs/39840045077) | Both Python suites executed, gate passed, report collected complete real API evidence |
+
+Local Windows validation on that revision passed 418 tests and Ruff. The actual CLI read the completed first workflow from GitHub and produced a complete report with a 35-second gate elapsed time and 55 observed runner seconds; this is a single workflow observation, not a speedup claim. The publisher sent an actual HTTP PUT to a disposable local HTTP receiver, which returned 202; repository grouping and payload were checked and the receiver shut down. This verifies transport, not a deployed Pushgateway service.
+
+Local API fakes are not counted as live proof. This document records a scoped extraction check, not exhaustive correctness or a benchmark.
