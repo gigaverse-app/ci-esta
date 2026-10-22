@@ -46,7 +46,7 @@ jobs:
         with:
           lanes: '{"tests":"Test suite","compat":"Python compatibility"}'
           # Complete test/build inputs; docs and the disposable live probe do not affect these jobs.
-          input-paths: '[".github","src","tests","scripts","pyproject.toml","uv.lock","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
+          input-paths: '[".github","src","tests","scripts","pyproject.toml","uv.lock","importlinter.toml","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
       - name: Record admission
         env:
           REUSED: ${{ steps.evidence.outputs.reused }}
@@ -109,6 +109,7 @@ jobs:
         with:
           python-version: '3.14'
       - run: uv run ruff check .
+      - run: uv run lint-imports --config importlinter.toml --no-cache
       - name: Always exercise routing and gate contracts
         run: uv run pytest -q tests/ci/test_repository_routing.py tests/ci/test_validation_gate.py tests/testing/test_workflow_adoption.py
       - run: uv build
@@ -119,3 +120,5 @@ jobs:
           uv pip install --python "$RUNNER_TEMP/wheel-test/bin/python" dist/*.whl
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/wheel-test/bin/ci-esta" --help
+          CI_TEST_RESOURCE_OBSERVABILITY=true "$RUNNER_TEMP/wheel-test/bin/ci-esta-resources" \
+            "$RUNNER_TEMP/wheel-test/bin/ci-esta-pytest" pools --shards 13 --shards-per-runner 12

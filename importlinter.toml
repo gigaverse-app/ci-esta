@@ -1,0 +1,15 @@
+[tool.importlinter]
+root_package = "ci_esta"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Generic runner diagnostics remain independent of pytest and report generation"
+type = "forbidden"
+source_modules = ["ci_esta.diagnostics"]
+forbidden_modules = ["pytest", "ci_esta.testing", "ci_esta.ci_observability"]
+
+[[tool.importlinter.contracts]]
+name = "Shard assignments remain independent of process execution"
+type = "forbidden"
+source_modules = ["ci_esta.testing.runner_pools"]
+forbidden_modules = ["ci_esta.testing.local_shards", "ci_esta.testing.cli", "pytest"]

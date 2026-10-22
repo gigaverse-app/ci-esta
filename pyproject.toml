@@ -19,6 +19,7 @@ classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Develope
 pytest = ["pytest>=8"]
 
 [project.scripts]
+ci-esta-resources = "ci_esta.diagnostics:main"
 ci-esta = "ci_esta.cli:main"
 ci-esta-pytest = "ci_esta.testing.cli:main"
 ci-esta-image = "ci_esta.image_evidence.cli:main"
@@ -32,13 +33,13 @@ Repository = "https://github.com/gigaverse-app/ci-esta"
 Issues = "https://github.com/gigaverse-app/ci-esta/issues"
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2"]
+dev = ["pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ci_esta"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "tests", "scripts", ".github", "docs", "examples", "README.md", "CONTRIBUTING.md", "PROVENANCE.md", "LICENSE", "pyproject.toml", "uv.lock", ".gitattributes"]
+include = ["src", "tests", "scripts", ".github", "docs", "examples", "README.md", "CONTRIBUTING.md", "PROVENANCE.md", "LICENSE", "pyproject.toml", "uv.lock", "importlinter.toml", ".gitattributes"]
 
 [tool.hatch.build.targets.wheel.force-include]
 ".github/actions" = "ci_esta/_resources/.github/actions"

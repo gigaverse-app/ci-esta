@@ -5,6 +5,7 @@ Command line interface for shared pytest timing utilities.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -27,11 +28,17 @@ from ci_esta.testing.junit import (
     write_failure_canary_file,
 )
 from ci_esta.testing.local_shards import LocalShardRunConfig, run_local_shards
+from ci_esta.testing.runner_pools import plan_runner_pools
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+
+    pools = commands.add_parser("pools", help="Assign global shard ranges to bounded runner pools")
+    pools.add_argument("--shards", type=int, required=True)
+    pools.add_argument("--shards-per-runner", type=int, required=True)
+    pools.add_argument("--github-output", type=Path)
 
     plan = commands.add_parser("plan", help="Write duration-balanced pytest path shards")
     plan.add_argument("--durations", type=Path, default=Path(".test_durations"))
@@ -96,6 +103,17 @@ def main(argv: list[str] | None = None) -> int:
         raw_args, pytest_args = raw_args[:separator], raw_args[separator + 1 :]
     parser = _parser()
     args = parser.parse_args(raw_args)
+    if args.command == "pools":
+        try:
+            pools = plan_runner_pools(args.shards, args.shards_per_runner)
+        except ValueError as exc:
+            parser.error(str(exc))
+        payload = json.dumps([pool.model_dump() for pool in pools], separators=(",", ":"))
+        if args.github_output:
+            with args.github_output.open("a", encoding="utf-8") as output:
+                output.write(f"count={len(pools)}\npools={payload}\n")
+        print(payload)
+        return 0
     if args.command == "canary-run":
         if args.output is not None and not args.prune_only:
             parser.error("--output requires --prune-only")
