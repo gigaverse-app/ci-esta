@@ -12,6 +12,7 @@ import os
 import sys
 import threading
 import time
+from collections.abc import Generator
 
 import pytest
 
@@ -51,6 +52,17 @@ class ProgressWatchdog:
             self._session = session
             self._phase = f"pytest_sessionfinish exitstatus={int(session.exitstatus)}"
             self._deadline = time.monotonic() + self.post_session_grace_seconds
+
+    @pytest.hookimpl(specname="pytest_sessionfinish", wrapper=True, tryfirst=True)
+    def pytest_sessionfinish_status_guard(self, session: pytest.Session) -> Generator[None, None, None]:
+        # pytest's outer exception handler has already finished by this hook.
+        # A later teardown hook can raise without updating session.exitstatus.
+        # Preserve that failure before interpreter shutdown blocks on a thread.
+        try:
+            yield
+        except Exception:
+            session.exitstatus = pytest.ExitCode.INTERNAL_ERROR
+            raise
 
     def pytest_unconfigure(self) -> None:
         # Configuration failures have no finished session to protect. A finished

@@ -105,15 +105,16 @@ def test_resource_monitor_does_not_keep_output_pipes_open_after_command(tmp_path
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_watchdog_preserves_late_session_failure(tmp_path: Path) -> None:
+@pytest.mark.parametrize("failure", ["session.exitstatus = 3", "raise RuntimeError('late hook failure')"])
+def test_watchdog_preserves_late_session_failure(tmp_path: Path, failure: str) -> None:
     (tmp_path / "test_late.py").write_text("def test_ok(): pass\n", encoding="utf-8")
     (tmp_path / "conftest.py").write_text(
         "import pytest, threading, time\n"
         "@pytest.hookimpl(wrapper=True)\n"
         "def pytest_sessionfinish(session):\n"
         "    yield\n"
-        "    session.exitstatus = 3\n"
-        "    threading.Thread(target=lambda: time.sleep(60)).start()\n", encoding="utf-8",
+        "    threading.Thread(target=lambda: time.sleep(60)).start()\n"
+        f"    {failure}\n", encoding="utf-8",
     )
     result = subprocess.run(
         [sys.executable, "-m", "pytest", "-p", "ci_esta.testing.pytest_watchdog", "-q", str(tmp_path)],
