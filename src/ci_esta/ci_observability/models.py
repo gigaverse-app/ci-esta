@@ -71,6 +71,17 @@ GateSelectorV1 = Annotated[
 ]
 
 
+class GitHubStepV1(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    number: int
+    name: str
+    status: str
+    conclusion: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+
+
 class GitHubJobV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
@@ -83,6 +94,7 @@ class GitHubJobV1(BaseModel):
     completed_at: datetime | None = None
     runner_name: str | None = None
     labels: list[str] = Field(default_factory=list)
+    steps: list[GitHubStepV1] = Field(default_factory=list)
 
 
 class GitHubRunV1(BaseModel):
@@ -125,6 +137,15 @@ class GitHubCommitStatusV1(BaseModel):
     updated_at: datetime
 
 
+class ObservedStepV1(GitHubStepV1):
+    """Step timestamps explain job time; they are never separately billed."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    timing_status: TimingStatus
+    wall_seconds: float | None
+
+
 class ObservedJobV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -144,6 +165,7 @@ class ObservedJobV1(BaseModel):
     seconds_to_save_minute: float | None
     seconds_until_next_minute: float | None
     runner_labels: list[str] = Field(default_factory=list)
+    steps: list[ObservedStepV1] = Field(default_factory=list)
 
 
 class ObservedGateV1(BaseModel):
