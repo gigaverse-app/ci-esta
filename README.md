@@ -1,6 +1,9 @@
 # CI-esta: faster GitHub Actions with evidence
 
-<img src="https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/ci-esta-mark.svg" alt="CI-esta logo" width="96">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/sticky-banner-dark.svg">
+  <img alt="CI-esta" src="https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/sticky-banner-light.svg" width="640">
+</picture>
 
 [![CI](https://github.com/gigaverse-app/ci-esta/actions/workflows/ci.yml/badge.svg)](https://github.com/gigaverse-app/ci-esta/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](pyproject.toml)
