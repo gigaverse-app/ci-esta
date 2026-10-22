@@ -76,6 +76,7 @@ See [how the projects fit together](docs/integrations.md). Each can be adopted i
 | Goal | Read |
 | --- | --- |
 | Find slow jobs and estimate runner costs | [GitHub Actions observability](docs/github-actions-observability.md) |
+| Diagnose slow Python CI without cutting checks | [Python CI tuning](docs/python-ci-tuning.md) |
 | Avoid repeating proven work | [Evidence reuse](docs/evidence-reuse.md) |
 | Integrate selection and conformance tests | [Project integrations](docs/integrations.md) |
 | Compare CI optimization approaches | [Alternatives](docs/alternatives.md) |
@@ -93,7 +94,7 @@ Apache-2.0. See [source provenance](PROVENANCE.md).
 
 ## CI toolkit catalog
 
-CI-esta consolidates reusable CI execution, measurement and evidence tooling. The selectors themselves live in [pytest-selective](https://github.com/gigaverse-app/pytest-selective); source obligations live in [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation); dependency maintenance lives in [due](https://github.com/gigaverse-app/due).
+CI-esta consolidates reusable CI execution, measurement and evidence tooling. Selection and test-isolation guards live in [pytest-selective](https://github.com/gigaverse-app/pytest-selective); durable-work conformance tests live in [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation); the Django/PostgreSQL/Celery application runtime lives in [Due](https://github.com/gigaverse-app/due).
 
 | Area | Tools | Python / pytest dependency |
 | --- | --- | --- |
@@ -101,7 +102,7 @@ CI-esta consolidates reusable CI execution, measurement and evidence tooling. Th
 | Reporting | Run latency, critical dependencies, all-attempt runner cost, sticky summaries, Prometheus snapshots | Python CLI; accepts non-Python workflows |
 | Test execution | JUnit aggregation, duration merge, coverage floors, prior-failure canaries, local shard supervisor, completion receipts | pytest adapters; JUnit and coverage readers are reusable |
 | Selection integration | Cached impact planning, shard sizing, type-check scope | Calls pytest-selective; no copied selector |
-| Test hygiene | Import isolation, import boundaries, fixture expansion guard | Python source analysis |
+| Test hygiene | Import boundaries; compatibility delegates for pytest-selective's isolation and expansion guards | Python source analysis |
 | Security and CI lint | Semgrep, Trivy, actionlint, shellcheck, changed diagnostic filtering | Any GitHub repository; scanner prerequisites apply |
 | Container evidence | OCI layer comparison, pull experiments, frozen runtime observers, Kubernetes node probes, ECR manifest reuse | Python orchestration; Docker/AWS/Kubernetes providers |
 | Live CI drills | Repeated-head, retag, main-moved and readiness scenarios with leased disposable PR slots | Existing Gigaverse consumer profiles; requires explicit live credentials |

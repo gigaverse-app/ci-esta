@@ -246,7 +246,9 @@
     },
     {
       "source": "tests/testing/test_hygiene.py",
-      "target": "tests/testing/test_hygiene.py"
+      "target": "tests/test_hygiene.py",
+      "repository": "gigaverse-app/pytest-selective",
+      "revision": "efa054971aeeb051f410a1696f89337ac3c184bb"
     },
     {
       "source": "tests/testing/test_import_boundaries.py",
@@ -282,7 +284,9 @@
     },
     {
       "source": "tests/testing/test_pytest_expansion.py",
-      "target": "tests/testing/test_pytest_expansion.py"
+      "target": "tests/test_pytest_expansion.py",
+      "repository": "gigaverse-app/pytest-selective",
+      "revision": "efa054971aeeb051f410a1696f89337ac3c184bb"
     },
     {
       "source": "tests/testing/test_pytest_timings_action.py",
@@ -505,6 +509,25 @@
       "source": ".github/workflows/reusable-current-pr-head.yaml",
       "step": "current",
       "target": ".github/actions/current-pr-head/action.yml"
+    }
+  ],
+  "external_owners": [
+    {
+      "repository": "gigaverse-app/pytest-selective",
+      "revision": "efa054971aeeb051f410a1696f89337ac3c184bb",
+      "modules": [
+        "pytest_selective.hygiene",
+        "pytest_selective.pytest_expansion"
+      ],
+      "tests": [
+        "tests/test_hygiene.py",
+        "tests/test_pytest_expansion.py"
+      ],
+      "compatibility": [
+        "src/ci_esta/testing/hygiene.py",
+        "src/ci_esta/testing/pytest_expansion.py",
+        ".github/actions/pytest-expansion/action.yml"
+      ]
     }
   ]
 }
