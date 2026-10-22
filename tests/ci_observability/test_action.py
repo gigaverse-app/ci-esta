@@ -240,6 +240,19 @@ def test_historical_attempt_recovers_exact_metadata_and_jobs(tmp_path):
     assert report["provenance"]["run_attempt"] == RUN_ATTEMPT
 
 
+def test_cli_without_explicit_head_uses_source_metadata(tmp_path):
+    config = _config(tmp_path, post_sticky=False).model_copy(update={"commit_sha": ""})
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=_run_metadata()),
+        patch.object(GitHubActionsClient, "list_jobs", return_value=[_job()]),
+        patch.object(GitHubActionsClient, "list_commit_statuses", return_value=[_status()]),
+    ):
+        assert run(config, LATER) == 0
+    report = json.loads(config.report_output.read_text())
+    assert report["collection_status"] == "complete"
+    assert report["provenance"]["head_sha"] == HEAD_SHA
+
+
 def test_run_collects_jobs_for_overlapping_prior_same_pr_run(
     tmp_path: Path,
 ) -> None:

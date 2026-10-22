@@ -295,7 +295,9 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         older_attempt = run_metadata.run_attempt != config.run_attempt
         if older_attempt:
             run_metadata = client.get_run(config.run_id, run_attempt=config.run_attempt)
-        if run_metadata.run_attempt != config.run_attempt or run_metadata.head_sha != config.commit_sha:
+        if run_metadata.run_attempt != config.run_attempt or (
+            config.commit_sha and run_metadata.head_sha != config.commit_sha
+        ):
             raise ValueError("source run attempt/head does not match the requested report identity")
         job_dependencies = config.job_dependencies
         if config.analyze_critical_path and not job_dependencies:
