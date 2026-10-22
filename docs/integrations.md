@@ -44,6 +44,12 @@ The report reads the lane plan on every run and the file explanation only when i
 6. **Keep full checkpoints.** Main pushes, `test:full` and planner fallbacks run every lane. They are the safety net, and they are the baseline the sticky prices skipped work against.
 7. **Reuse evidence last.** Selection asks "what might this change affect?"; [evidence reuse](evidence-reuse.md) asks "did this exact declared work already pass?" Keep conservative fallbacks at both layers.
 
+Use the [selected-lane aggregate gate](selected-gates.md) to keep optional jobs
+and required statuses consistent. CI-esta's own workflow now combines
+pytest-selective lane planning with receipt reuse, while its quality job always
+checks routing, builds distributions and validates metadata. Main, manual and
+`test:full` runs retain complete execution.
+
 ## pytest-obligation: preserve what green means
 
 Run generated obligation tests as ordinary CI lanes and emit the completion receipt only after the test process and any required profile-report checks pass. A selected, skipped, xfailed or merely collected obligation is not an executed guarantee. Use pytest-obligation's own reporting to distinguish those outcomes. CI-esta's lane receipt is an execution-admission signal; it is not an obligation conformance certificate.
