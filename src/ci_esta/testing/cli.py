@@ -23,9 +23,11 @@ from ci_esta.testing.junit import (
     DEFAULT_CANARY_MAX_FILES,
     format_duration,
     format_failure_canary_summary,
+    learn_junit_timings,
     plan_failure_canary,
     summarize_junit_timings,
     write_failure_canary_file,
+    write_learned_timings,
 )
 from ci_esta.testing.local_shards import LocalShardRunConfig, run_local_shards
 from ci_esta.testing.runner_pools import plan_runner_pools
@@ -69,6 +71,11 @@ def _parser() -> argparse.ArgumentParser:
     junit = commands.add_parser("junit", help="Summarize total and parallel JUnit time")
     junit.add_argument("junit_files", nargs="+", type=Path)
 
+    learn = commands.add_parser("learn", help="Learn per-file scheduling costs from successful JUnit reports")
+    learn.add_argument("junit_files", nargs="+", type=Path)
+    learn.add_argument("--output", "-o", type=Path, default=Path(".test_durations"))
+    learn.add_argument("--working-directory", type=Path, default=Path("."))
+
     canary = commands.add_parser("canary", help="Select whole files with terminal failures from prior JUnit reports")
     canary.add_argument("junit_files", nargs="+", type=Path)
     canary.add_argument("--output", "-o", type=Path, required=True)
@@ -104,6 +111,17 @@ def main(argv: list[str] | None = None) -> int:
         raw_args, pytest_args = raw_args[:separator], raw_args[separator + 1 :]
     parser = _parser()
     args = parser.parse_args(raw_args)
+    if args.command == "learn":
+        try:
+            learned = learn_junit_timings(args.junit_files, args.working_directory)
+            write_learned_timings(learned, args.output)
+        except (ValueError, OSError) as exc:
+            parser.error(str(exc))
+        print(
+            f"learned_files={len(learned.durations)} unmapped_cases={learned.unmapped_cases} "
+            f"skipped_cases={learned.skipped_cases}"
+        )
+        return 0
     if args.command == "pools":
         try:
             pools = plan_runner_pools(args.shards, args.shards_per_runner)

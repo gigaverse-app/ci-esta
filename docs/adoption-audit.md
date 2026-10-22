@@ -1,5 +1,9 @@
 # Upstreaming and adoption audit, 2026-10-23
 
+This is the original snapshot. Follow-up implementation is tracked in
+[the closure ledger](upstream-closure.md); the tables below preserve what was
+missing at the audited revisions.
+
 **The backend-common extraction is substantial, but upstreaming and adoption
 are not complete across all seven repositories.** A copied implementation, a
 shipped action, a configured caller and a successful live run are different

@@ -223,6 +223,36 @@ def test_run_writes_all_outputs_summary_and_sticky(
     assert upsert.call_args.args[0] == PR_NUMBER
 
 
+def test_historical_attempt_recovers_exact_metadata_and_jobs(tmp_path):
+    config = _config(tmp_path, post_sticky=False)
+    current = _run_metadata().model_copy(update={"run_attempt": RUN_ATTEMPT + 1})
+    newer_job = _job().model_copy(update={"run_attempt": RUN_ATTEMPT + 1})
+    with (
+        patch.object(GitHubActionsClient, "get_run", side_effect=[current, _run_metadata()]) as metadata,
+        patch.object(GitHubActionsClient, "list_jobs", side_effect=[[newer_job], [_job()], [_job(), newer_job]]) as jobs,
+        patch.object(GitHubActionsClient, "list_commit_statuses", return_value=[_status()]),
+    ):
+        assert run(config, LATER) == 0
+    metadata.assert_called_with(RUN_ID, run_attempt=RUN_ATTEMPT)
+    assert jobs.call_args_list[1].kwargs == {"include_all_attempts": False, "run_attempt": RUN_ATTEMPT}
+    report = json.loads(config.report_output.read_text())
+    assert report["collection_status"] == "complete"
+    assert report["provenance"]["run_attempt"] == RUN_ATTEMPT
+
+
+def test_cli_without_explicit_head_uses_source_metadata(tmp_path):
+    config = _config(tmp_path, post_sticky=False).model_copy(update={"commit_sha": ""})
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=_run_metadata()),
+        patch.object(GitHubActionsClient, "list_jobs", return_value=[_job()]),
+        patch.object(GitHubActionsClient, "list_commit_statuses", return_value=[_status()]),
+    ):
+        assert run(config, LATER) == 0
+    report = json.loads(config.report_output.read_text())
+    assert report["collection_status"] == "complete"
+    assert report["provenance"]["head_sha"] == HEAD_SHA
+
+
 def test_run_collects_jobs_for_overlapping_prior_same_pr_run(
     tmp_path: Path,
 ) -> None:

@@ -85,7 +85,7 @@ runs:
   using: composite
   steps:
   - id: upstream
-    uses: gigaverse-app/pytest-selective/.github/actions/test-impact@efa054971aeeb051f410a1696f89337ac3c184bb
+    uses: gigaverse-app/pytest-selective/.github/actions/test-impact@c2a1d0bed2e9a7819f754f730a7eca99044a860d
     with:
       warm-only: ${{ inputs.warm-only }}
       config: ${{ inputs.config }}

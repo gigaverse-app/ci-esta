@@ -110,8 +110,9 @@ class GitHubActionsClient:
     def close(self) -> None:
         self._client.close()
 
-    def get_run(self, run_id: int) -> GitHubRunV1:
-        response = self._client.get(f"/repos/{self._repository}/actions/runs/{run_id}")
+    def get_run(self, run_id: int, *, run_attempt: int | None = None) -> GitHubRunV1:
+        suffix = f"/attempts/{run_attempt}" if run_attempt is not None else ""
+        response = self._client.get(f"/repos/{self._repository}/actions/runs/{run_id}{suffix}")
         response.raise_for_status()
         return GitHubRunV1.model_validate_json(response.content)
 
@@ -129,13 +130,18 @@ class GitHubActionsClient:
             raise ValueError("Workflow content is too large")
         return dependencies(yaml.safe_load(content))
 
-    def list_jobs(self, run_id: int, *, include_all_attempts: bool) -> list[GitHubJobV1]:
+    def list_jobs(
+        self, run_id: int, *, include_all_attempts: bool, run_attempt: int | None = None
+    ) -> list[GitHubJobV1]:
+        if include_all_attempts and run_attempt is not None:
+            raise ValueError("an exact attempt cannot include all attempts")
+        suffix = f"/attempts/{run_attempt}" if run_attempt is not None else ""
         attempt_filter = "all" if include_all_attempts else "latest"
         jobs: list[GitHubJobV1] = []
         page = 1
         while True:
             response = self._client.get(
-                f"/repos/{self._repository}/actions/runs/{run_id}/jobs",
+                f"/repos/{self._repository}/actions/runs/{run_id}{suffix}/jobs",
                 params={"filter": attempt_filter, "per_page": 100, "page": page},
             )
             response.raise_for_status()
