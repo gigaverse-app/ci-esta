@@ -24,6 +24,7 @@
     }
   },
   "global_inputs": [
+    "importlinter.toml",
     "pyproject.toml",
     "uv.lock",
     ".python-version",

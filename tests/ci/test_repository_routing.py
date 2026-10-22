@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
     ("README.md", False), ("docs/critical-path.md", False),
     (".github/workflows/observe-ci.yml", False), (".github/pull_request_template.md", False),
     ("src/example.py", True), ("tests/test_example.py", True), ("scripts/ci/setup.py", True),
-    ("uv.lock", True), (".github/workflows/ci.yml", True),
+    ("uv.lock", True), ("importlinter.toml", True), (".github/workflows/ci.yml", True),
     (".github/actions/setup-cached-uv/action.yml", True),
 ])
 def test_repository_lane_inputs(tmp_path, path, expected):
