@@ -56,6 +56,22 @@ local CLI usage, then adopt [evidence reuse and strict gates](docs/evidence-reus
 Our [validation workflow](.github/workflows/ci.yml) and
 [observer](.github/workflows/observe-ci.yml) are complete examples.
 
+## Who runs CI-esta
+
+| Project | Runs | What it bought |
+| --- | --- | --- |
+| [Due](https://github.com/gigaverse-app/due) | [Reports](https://github.com/gigaverse-app/due/blob/main/.github/workflows/observe-ci.yml) and the [required-check gate](https://github.com/gigaverse-app/due/blob/main/.github/workflows/ci.yml) | The gate lets a docs-only PR skip the test matrix while required checks `tests (locked)` and `tests (minimum)` still report. With pytest-selective, a library-test change finishes main CI in **3m24s instead of 6m03s**. Reports surfaced 404–431s CPU-profiling steps, now being cut in [Due #72](https://github.com/gigaverse-app/due/pull/72). |
+| [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation) | [Reports](https://github.com/gigaverse-app/pytest-obligation/blob/main/.github/workflows/observe-ci.yml) | A package README change uses **57 runner-seconds instead of 1,691**. The observer replaced an inline timing job, so validation no longer waits for telemetry ([#98](https://github.com/gigaverse-app/pytest-obligation/pull/98)). |
+| [pytest-selective](https://github.com/gigaverse-app/pytest-selective) | [Reports](https://github.com/gigaverse-app/pytest-selective/blob/main/.github/workflows/observe-ci.yml) | Found a 279s Windows job on a 295s validation path, for **19 runner-seconds** of reporting. |
+
+The skipped-lane savings come from [pytest-selective](https://github.com/gigaverse-app/pytest-selective)
+routing; CI-esta's part is the gate that keeps a skip honest and the reports that
+show what to cut next. CI-esta also renders pytest-selective's selection
+explanations, importing its models instead of keeping a copy. A reused lane is
+not a conformance certificate: Due and pytest-obligation keep their executed
+[pytest-obligation](https://github.com/gigaverse-app/pytest-obligation) evidence
+checks. See [how the projects fit together](docs/integrations.md).
+
 ## What measured runs show
 
 Explicit input routing with [pytest-selective](https://github.com/gigaverse-app/pytest-selective)
@@ -111,14 +127,6 @@ reuse evidence       execute lane
 ```
 
 Receipts are recorded only after required work passes. Explicit reruns execute again. Missing or contradictory evidence must not silently green the merge gate. Input declarations remain your responsibility: a changed external service cannot be inferred from an unchanged Git tree.
-
-## Related projects
-
-- [pytest-selective](https://github.com/gigaverse-app/pytest-selective) chooses affected Python tests and explains the selection. CI-esta imports its explanation models instead of maintaining a second copy.
-- [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation) tests crash, retry, lost-message and competing-operation guarantees. A reused CI lane is not itself a conformance certificate.
-- [Due](https://github.com/gigaverse-app/due) records and recovers durable application work for Django/PostgreSQL/Celery. CI-esta addresses the validation workflow around that application.
-
-See [how the projects fit together](docs/integrations.md). Each can be adopted independently.
 
 ## Documentation
 
