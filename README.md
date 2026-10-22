@@ -46,6 +46,38 @@ report:
 
 The report appears in the job summary. Pin a reviewed commit SHA instead of `main` for production. See [the observability guide](docs/github-actions-observability.md) for artifacts, costs, local CLI usage and Prometheus. Then adopt [evidence reuse and strict gates](docs/evidence-reuse.md). Our [own workflow](.github/workflows/ci.yml) is a complete example.
 
+## What measured runs show
+
+Explicit input routing with [pytest-selective](https://github.com/gigaverse-app/pytest-selective)
+reduced work in these successful GitHub Actions pairs:
+
+| Change | Full runner-seconds | Selected runner-seconds | Reduction |
+| --- | ---: | ---: | ---: |
+| Due library test, main CI | 747 | 388 | 48.1% |
+| pytest-obligation MongoDB test | 1,602 | 93 | 94.2% |
+| pytest-obligation package README | 1,691 | 57 | 96.6% |
+
+These are one sequential pair per scenario on the same PR head and merge
+checkout, including planner overhead.
+[Raw timestamps, run links and limitations](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/benchmarks/2026-10-22.md)
+are published with the selector. Runner-seconds sum executed-job durations;
+they are not billed minutes. Due's separate widget benchmark is excluded here.
+**These savings come from selection and consumer input declarations, not
+CI-esta receipt reuse.**
+
+CI-esta makes the next optimization visible. In a
+[real pytest-selective report](docs/benchmarks/2026-10-22-selective-report.md),
+required jobs completed in **295s**. The slowest Windows job took **279s**;
+all jobs totaled **731 runner-seconds**. Its separate completed-run reporter
+used **19s** of runner time and was not a validation prerequisite.
+[How this was measured](docs/benchmarks/2026-10-22.md) includes the source JSON,
+run identities and limits.
+
+Start with reporting, then narrow inputs and preserve full checkpoints. For
+Due and pytest-obligation conformance lanes, review every runtime/configuration
+input before enabling receipt reuse. A previous green workflow alone is
+insufficient evidence.
+
 ## What a reused lane means
 
 ```text
@@ -93,7 +125,7 @@ Apache-2.0. See [source provenance](PROVENANCE.md).
 
 ## CI toolkit catalog
 
-CI-esta consolidates reusable CI execution, measurement and evidence tooling. The selectors themselves live in [pytest-selective](https://github.com/gigaverse-app/pytest-selective); source obligations live in [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation); dependency maintenance lives in [due](https://github.com/gigaverse-app/due).
+CI-esta consolidates reusable CI execution, measurement and evidence tooling. Test selection lives in [pytest-selective](https://github.com/gigaverse-app/pytest-selective); recovery and conformance tests live in [pytest-obligation](https://github.com/gigaverse-app/pytest-obligation); durable application work lives in [Due](https://github.com/gigaverse-app/due).
 
 | Area | Tools | Python / pytest dependency |
 | --- | --- | --- |

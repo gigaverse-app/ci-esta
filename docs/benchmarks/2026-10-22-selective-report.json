@@ -1,0 +1,567 @@
+{
+  "schema_version": "ci-observability/v1",
+  "collection_status": "complete",
+  "collection_errors": [],
+  "provenance": {
+    "repository": "gigaverse-app/pytest-selective",
+    "workflow_name": "CI",
+    "run_id": 39848431314,
+    "run_attempt": 1,
+    "head_sha": "eb4c707f9405ccd17348d828817bffa36a4032b6",
+    "pull_request_number": 11,
+    "workflow_created_at": "2026-10-22T20:23:29Z",
+    "workflow_run_started_at": "2026-10-22T20:23:29Z",
+    "observed_at": "2026-10-22T20:28:45.552388Z"
+  },
+  "latest_attempt_jobs": [
+    {
+      "job_id": 120067835181,
+      "name": "distributions",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:32Z",
+      "completed_at": "2026-10-22T20:24:01Z",
+      "wall_seconds": 29.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 32.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 31.0,
+      "seconds_to_save_minute": 29.0,
+      "seconds_until_next_minute": 31.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067835712,
+      "name": "select-tests",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:32Z",
+      "completed_at": "2026-10-22T20:23:43Z",
+      "wall_seconds": 11.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 14.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 49.0,
+      "seconds_to_save_minute": 11.0,
+      "seconds_until_next_minute": 49.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067835815,
+      "name": "quality",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:32Z",
+      "completed_at": "2026-10-22T20:23:43Z",
+      "wall_seconds": 11.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 14.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 49.0,
+      "seconds_to_save_minute": 11.0,
+      "seconds_until_next_minute": 49.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067951064,
+      "name": "pytest-minimum",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:24:16Z",
+      "wall_seconds": 31.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 47.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 29.0,
+      "seconds_to_save_minute": 31.0,
+      "seconds_until_next_minute": 29.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067951215,
+      "name": "tests (3.11, windows-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:28:24Z",
+      "wall_seconds": 279.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 295.0,
+      "rounded_minutes": 5,
+      "rounding_waste_seconds": 21.0,
+      "seconds_to_save_minute": 39.0,
+      "seconds_until_next_minute": 21.0,
+      "runner_labels": [
+        "windows-latest"
+      ]
+    },
+    {
+      "job_id": 120067951313,
+      "name": "tests (3.11, ubuntu-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:24:24Z",
+      "wall_seconds": 39.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 55.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 21.0,
+      "seconds_to_save_minute": 39.0,
+      "seconds_until_next_minute": 21.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067951331,
+      "name": "tests (3.14, ubuntu-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:24:14Z",
+      "wall_seconds": 29.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 45.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 31.0,
+      "seconds_to_save_minute": 29.0,
+      "seconds_until_next_minute": 31.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067951361,
+      "name": "tests (3.14, windows-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:26:25Z",
+      "wall_seconds": 160.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 176.0,
+      "rounded_minutes": 3,
+      "rounding_waste_seconds": 20.0,
+      "seconds_to_save_minute": 40.0,
+      "seconds_until_next_minute": 20.0,
+      "runner_labels": [
+        "windows-latest"
+      ]
+    },
+    {
+      "job_id": 120067951400,
+      "name": "tests (3.11, macos-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:24:55Z",
+      "wall_seconds": 70.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 86.0,
+      "rounded_minutes": 2,
+      "rounding_waste_seconds": 50.0,
+      "seconds_to_save_minute": 10.0,
+      "seconds_until_next_minute": 50.0,
+      "runner_labels": [
+        "macos-latest"
+      ]
+    },
+    {
+      "job_id": 120067951657,
+      "name": "tests (3.14, macos-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:46Z",
+      "completed_at": "2026-10-22T20:24:58Z",
+      "wall_seconds": 72.0,
+      "start_offset_seconds": 17.0,
+      "end_offset_seconds": 89.0,
+      "rounded_minutes": 2,
+      "rounding_waste_seconds": 48.0,
+      "seconds_to_save_minute": 12.0,
+      "seconds_until_next_minute": 48.0,
+      "runner_labels": [
+        "macos-latest"
+      ]
+    }
+  ],
+  "billing_jobs": [
+    {
+      "job_id": 120067835181,
+      "name": "distributions",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:32Z",
+      "completed_at": "2026-10-22T20:24:01Z",
+      "wall_seconds": 29.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 32.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 31.0,
+      "seconds_to_save_minute": 29.0,
+      "seconds_until_next_minute": 31.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067835712,
+      "name": "select-tests",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:32Z",
+      "completed_at": "2026-10-22T20:23:43Z",
+      "wall_seconds": 11.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 14.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 49.0,
+      "seconds_to_save_minute": 11.0,
+      "seconds_until_next_minute": 49.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067835815,
+      "name": "quality",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:32Z",
+      "completed_at": "2026-10-22T20:23:43Z",
+      "wall_seconds": 11.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 14.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 49.0,
+      "seconds_to_save_minute": 11.0,
+      "seconds_until_next_minute": 49.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067951064,
+      "name": "pytest-minimum",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:24:16Z",
+      "wall_seconds": 31.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 47.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 29.0,
+      "seconds_to_save_minute": 31.0,
+      "seconds_until_next_minute": 29.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067951215,
+      "name": "tests (3.11, windows-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:28:24Z",
+      "wall_seconds": 279.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 295.0,
+      "rounded_minutes": 5,
+      "rounding_waste_seconds": 21.0,
+      "seconds_to_save_minute": 39.0,
+      "seconds_until_next_minute": 21.0,
+      "runner_labels": [
+        "windows-latest"
+      ]
+    },
+    {
+      "job_id": 120067951313,
+      "name": "tests (3.11, ubuntu-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:24:24Z",
+      "wall_seconds": 39.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 55.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 21.0,
+      "seconds_to_save_minute": 39.0,
+      "seconds_until_next_minute": 21.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067951331,
+      "name": "tests (3.14, ubuntu-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:24:14Z",
+      "wall_seconds": 29.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 45.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 31.0,
+      "seconds_to_save_minute": 29.0,
+      "seconds_until_next_minute": 31.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ]
+    },
+    {
+      "job_id": 120067951361,
+      "name": "tests (3.14, windows-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:26:25Z",
+      "wall_seconds": 160.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 176.0,
+      "rounded_minutes": 3,
+      "rounding_waste_seconds": 20.0,
+      "seconds_to_save_minute": 40.0,
+      "seconds_until_next_minute": 20.0,
+      "runner_labels": [
+        "windows-latest"
+      ]
+    },
+    {
+      "job_id": 120067951400,
+      "name": "tests (3.11, macos-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:45Z",
+      "completed_at": "2026-10-22T20:24:55Z",
+      "wall_seconds": 70.0,
+      "start_offset_seconds": 16.0,
+      "end_offset_seconds": 86.0,
+      "rounded_minutes": 2,
+      "rounding_waste_seconds": 50.0,
+      "seconds_to_save_minute": 10.0,
+      "seconds_until_next_minute": 50.0,
+      "runner_labels": [
+        "macos-latest"
+      ]
+    },
+    {
+      "job_id": 120067951657,
+      "name": "tests (3.14, macos-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T20:23:46Z",
+      "completed_at": "2026-10-22T20:24:58Z",
+      "wall_seconds": 72.0,
+      "start_offset_seconds": 17.0,
+      "end_offset_seconds": 89.0,
+      "rounded_minutes": 2,
+      "rounding_waste_seconds": 48.0,
+      "seconds_to_save_minute": 12.0,
+      "seconds_until_next_minute": 48.0,
+      "runner_labels": [
+        "macos-latest"
+      ]
+    }
+  ],
+  "required_gates": [
+    {
+      "kind": "actions_job",
+      "identity": "quality",
+      "display_name": "quality",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120067835815,
+      "completed_at": "2026-10-22T20:23:43Z",
+      "elapsed_from_creation_seconds": 14.0,
+      "elapsed_from_run_start_seconds": 14.0,
+      "direct_prerequisites": []
+    },
+    {
+      "kind": "actions_job",
+      "identity": "pytest-minimum",
+      "display_name": "pytest-minimum",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120067951064,
+      "completed_at": "2026-10-22T20:24:16Z",
+      "elapsed_from_creation_seconds": 47.0,
+      "elapsed_from_run_start_seconds": 47.0,
+      "direct_prerequisites": []
+    },
+    {
+      "kind": "actions_job",
+      "identity": "distributions",
+      "display_name": "distributions",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120067835181,
+      "completed_at": "2026-10-22T20:24:01Z",
+      "elapsed_from_creation_seconds": 32.0,
+      "elapsed_from_run_start_seconds": 32.0,
+      "direct_prerequisites": []
+    },
+    {
+      "kind": "actions_job",
+      "identity": "tests (3.11, ubuntu-latest)",
+      "display_name": "tests (3.11, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120067951313,
+      "completed_at": "2026-10-22T20:24:24Z",
+      "elapsed_from_creation_seconds": 55.0,
+      "elapsed_from_run_start_seconds": 55.0,
+      "direct_prerequisites": []
+    },
+    {
+      "kind": "actions_job",
+      "identity": "tests (3.11, windows-latest)",
+      "display_name": "tests (3.11, windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120067951215,
+      "completed_at": "2026-10-22T20:28:24Z",
+      "elapsed_from_creation_seconds": 295.0,
+      "elapsed_from_run_start_seconds": 295.0,
+      "direct_prerequisites": []
+    },
+    {
+      "kind": "actions_job",
+      "identity": "tests (3.11, macos-latest)",
+      "display_name": "tests (3.11, macos-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120067951400,
+      "completed_at": "2026-10-22T20:24:55Z",
+      "elapsed_from_creation_seconds": 86.0,
+      "elapsed_from_run_start_seconds": 86.0,
+      "direct_prerequisites": []
+    },
+    {
+      "kind": "actions_job",
+      "identity": "tests (3.14, ubuntu-latest)",
+      "display_name": "tests (3.14, ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120067951331,
+      "completed_at": "2026-10-22T20:24:14Z",
+      "elapsed_from_creation_seconds": 45.0,
+      "elapsed_from_run_start_seconds": 45.0,
+      "direct_prerequisites": []
+    },
+    {
+      "kind": "actions_job",
+      "identity": "tests (3.14, windows-latest)",
+      "display_name": "tests (3.14, windows-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120067951361,
+      "completed_at": "2026-10-22T20:26:25Z",
+      "elapsed_from_creation_seconds": 176.0,
+      "elapsed_from_run_start_seconds": 176.0,
+      "direct_prerequisites": []
+    },
+    {
+      "kind": "actions_job",
+      "identity": "tests (3.14, macos-latest)",
+      "display_name": "tests (3.14, macos-latest)",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120067951657,
+      "completed_at": "2026-10-22T20:24:58Z",
+      "elapsed_from_creation_seconds": 89.0,
+      "elapsed_from_run_start_seconds": 89.0,
+      "direct_prerequisites": []
+    }
+  ],
+  "merge_ready_from_creation_seconds": 295.0,
+  "merge_ready_from_run_start_seconds": 295.0,
+  "workflow_initial_queue_seconds": null,
+  "workflow_job_admission_delay_seconds": 3.0,
+  "merge_ready_after_job_admission_seconds": 292.0,
+  "longest_latest_job_name": "tests (3.11, windows-latest)",
+  "longest_latest_job_seconds": 279.0,
+  "runner_cost": {
+    "raw_runner_seconds": 731.0,
+    "estimated_rounded_runner_minutes": 18,
+    "rounding_waste_seconds": 349.0,
+    "billed_attempts": [
+      1
+    ],
+    "by_sku": [],
+    "unpriced_rounded_runner_minutes": 0,
+    "estimated_cost_usd": null
+  },
+  "overlapping_prior_runner_cost": {
+    "runs": [],
+    "raw_runner_seconds": 0.0,
+    "estimated_rounded_runner_minutes": 0,
+    "rounding_waste_seconds": 0.0,
+    "estimated_cost_usd": null
+  },
+  "repository_signals": [],
+  "extensions": {},
+  "test_selection": null
+}
