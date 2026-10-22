@@ -15,7 +15,7 @@ inputs:
     description: Same-repository pull-request head branch.
     required: true
   github-token:
-    description: Token with actions:write permission in the calling job.
+    description: Token with actions:write, checks:read and contents:read permissions in the calling job.
     required: false
     default: ${{ github.token }}
 
@@ -37,7 +37,23 @@ runs:
           const headRef = process.env.HEAD_REF;
           const repoFullName = `${context.repo.owner}/${context.repo.repo}`;
 
+          // Inputs describe the triggering event, which can be stale by the
+          // time a queued matrix job starts. Branch reads use contents:read,
+          // already required for parent discovery; no new PR permission is needed.
+          const callerIsCurrent = async () => {
+            const { data: branch } = await github.rest.repos.getBranch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: headRef,
+            });
+            return branch.commit.sha === currentHeadSha;
+          };
+
           try {
+            if (!(await callerIsCurrent())) {
+              core.info("Skipping obsolete-run cleanup from a stale event head");
+              return;
+            }
             const { data: currentRun } = await github.rest.actions.getWorkflowRun({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -51,6 +67,11 @@ runs:
               if (
                 run.id !== context.runId &&
                 run.workflow_id === currentRun.workflow_id &&
+                // A push can arrive during discovery. Run numbers are immutable
+                // within one workflow, including reruns, so newer runs are never victims.
+                Number.isSafeInteger(run.run_number) &&
+                Number.isSafeInteger(currentRun.run_number) &&
+                run.run_number < currentRun.run_number &&
                 activeStatuses.has(run.status) &&
                 run.head_sha !== currentHeadSha &&
                 (samePullRequest || sameRepositoryBranch)
@@ -127,6 +148,10 @@ runs:
             core.info(`Found ${obsoleteRuns.size} obsolete active run(s)`);
 
             for (const run of obsoleteRuns.values()) {
+              if (!(await callerIsCurrent())) {
+                core.info("Stopping obsolete-run cleanup because the branch advanced");
+                return;
+              }
               try {
                 await github.rest.actions.cancelWorkflowRun({
                   owner: context.repo.owner,
