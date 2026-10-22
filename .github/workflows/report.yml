@@ -1,0 +1,57 @@
+name: Reusable CI report
+
+on:
+  workflow_call:
+    inputs:
+      run-id:
+        description: Completed workflow run in the caller repository.
+        type: number
+        required: true
+      run-attempt:
+        type: number
+        default: 1
+      head-sha:
+        description: Source run commit, not the reporting workflow commit.
+        type: string
+        required: true
+      required-gates-json:
+        description: Explicit gate selectors; empty leaves gate latency unassessed.
+        type: string
+        default: '[]'
+      pull-request-number:
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Never check out or execute source-run code, including fork pull requests.
+      - uses: gigaverse-app/ci-esta/.github/actions/ci-observability@28e935c1360e9b2936802d8d83fc2bb938e34d83
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.run-id }}
+          run-attempt: ${{ inputs.run-attempt }}
+          commit-sha: ${{ inputs.head-sha }}
+          pull-request-number: ${{ inputs.pull-request-number }}
+          required-gates-json: ${{ inputs.required-gates-json }}
+          post-sticky: 'false'
+          test-selection-artifact: ''
+          full-suite-reference-artifact: ''
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: ${{ always() }}
+        with:
+          name: ci-esta-${{ inputs.run-id }}-${{ inputs.run-attempt }}
+          path: |
+            ci-observability.json
+            ci-observability.md
+            ci-observability.prom
+          if-no-files-found: error
+          retention-days: 30

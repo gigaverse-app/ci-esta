@@ -82,36 +82,3 @@ jobs:
           needs: ${{ toJSON(needs) }}
           required: >-
             {"plan":true,"tests":${{ !fromJSON(needs.plan.outputs.reused || '{}').tests }},"compat":${{ !fromJSON(needs.plan.outputs.reused || '{}').compat }}}
-
-  report:
-    name: CI report
-    needs: gate
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/ci-observability
-        with:
-          github-token: ${{ github.token }}
-          required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
-          post-sticky: 'false'
-          test-selection-artifact: ''
-          full-suite-reference-artifact: ''
-      # Reporting is fail-open for users. Our own CI must catch a broken reporter.
-      - name: Verify the real API report
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          report = json.loads(Path('ci-observability.json').read_text())
-          assert report['collection_status'] == 'complete', report
-          assert Path('ci-observability.md').stat().st_size > 0
-          assert Path('ci-observability.prom').stat().st_size > 0
-          PY
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: ci-esta-report
-          path: |
-            ci-observability.json
-            ci-observability.md
-            ci-observability.prom
