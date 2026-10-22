@@ -21,6 +21,7 @@ def main(argv: list[str] | None = None) -> int:
     collect.add_argument("--run-attempt", type=int, default=1)
     collect.add_argument("--commit-sha", default="")
     collect.add_argument("--gate", action="append", default=[], help="Exact required job name; repeat for multiple gates")
+    collect.add_argument("--critical-path", action="store_true", help="Analyze source workflow dependencies as data")
     collect.add_argument("--output-dir", type=Path, default=Path("ci-esta-report"))
     collect.add_argument("--api-url", default="https://api.github.com")
     render = commands.add_parser("render", help="Render a saved JSON report without network access")
@@ -48,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
         markdown_output=args.output_dir / "ci-observability.md",
         prometheus_output=args.output_dir / "ci-observability.prom",
         post_sticky=False, append_summary=False,
+        analyze_critical_path=args.critical_path,
     ), datetime.now(timezone.utc))
 
 

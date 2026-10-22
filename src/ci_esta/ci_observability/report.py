@@ -12,6 +12,7 @@ from decimal import Decimal
 from pydantic import JsonValue
 
 from ci_esta.ci_observability import brand, lanes, markdown, selection
+from ci_esta.ci_observability.critical_path import analyze
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.models import (
     PYTEST_TIMING_SIGNAL,
@@ -305,6 +306,7 @@ def build_report(
     runner_sku_rates: list[RunnerSkuRateV1] | None = None,
     test_selection: SelectionSectionV1 | None = None,
     lane_selection: LaneSelectionSectionV1 | None = None,
+    job_dependencies: dict[str, list[str]] | None = None,
 ) -> CiObservabilityReportV1:
     errors = list(collection_errors or [])
     if not gate_selectors:
@@ -378,6 +380,9 @@ def build_report(
         extensions=extensions or {},
         test_selection=test_selection,
         lane_selection=lane_selection,
+        critical_path=analyze(run.created_at, latest_jobs, job_dependencies,
+                              [next((job.name for job in latest_jobs if job.id == gate.observed_job_id),
+                                    gate.identity) for gate in gates]) if job_dependencies else None,
     )
 
 
@@ -619,7 +624,9 @@ def _timeline(report: CiObservabilityReportV1) -> list[str]:
         label = _mermaid_label(job.name)
         if job.timing_status == TimingStatus.ACCRUED:
             label += " (active at snapshot)"
-        critical = "crit, " if job.job_id in gate_job_ids else ""
+        path = report.critical_path
+        on_path = job.name in path.observed_path if path and path.status == "complete" else job.job_id in gate_job_ids
+        critical = "crit, " if on_path else ""
         lines.append(
             f"    {label} :{critical}job_{index}, "
             f"{int(job.start_offset_seconds or 0)}, {int(job.end_offset_seconds or 0)}"
@@ -633,7 +640,34 @@ def _timeline(report: CiObservabilityReportV1) -> list[str]:
         *lines,
         "```",
         "",
-        f"<sub>{merge_bar} Bars are observed API timestamps; they don't show dependencies.</sub>",
+        f"<sub>{merge_bar} Bars are observed API timestamps; see the dependency analysis below when configured.</sub>",
+        "",
+    ]
+
+
+def _critical_path(report: CiObservabilityReportV1) -> list[str]:
+    path = report.critical_path
+    if path is None:
+        return []
+    if path.status != "complete":
+        return [f"Critical path unavailable: {markdown.cell(path.reason)}", ""]
+    return [
+        "### Critical path",
+        "",
+        f"Observed dependency chain ({format_seconds(path.elapsed_seconds)}): "
+        + " → ".join(markdown.cell(name) for name in path.observed_path),
+        "",
+        f"Execution-only CPM ({format_seconds(path.execution_seconds)}): "
+        + " → ".join(markdown.cell(name) for name in path.execution_path),
+        "",
+        "| Job | Execution (s) | Delay after prerequisites (s) | Execution slack (s) |",
+        "| --- | ---: | ---: | ---: |",
+        *[f"| {markdown.cell(n.name)} | {n.execution_seconds:g} | {n.delay_seconds:g} | {n.slack_seconds:g} |"
+          for n in path.nodes],
+        "",
+        "Delay includes scheduling, runner admission and other waits; it is not isolated queue time. "
+        "Execution CPM holds measured durations constant and excludes those delays. "
+        "The declared DAG must cover every prerequisite; this analysis does not assert validation success.",
         "",
     ]
 
@@ -799,6 +833,7 @@ def _latency_lines(report: CiObservabilityReportV1) -> list[str]:
         *_latency_table(report),
         *_overlap(report),
         *_timeline(report),
+        *_critical_path(report),
         *_cost_details(report),
         *_step_details(report),
         *_prerequisites(report),

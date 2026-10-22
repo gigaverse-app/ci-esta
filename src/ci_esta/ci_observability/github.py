@@ -4,12 +4,14 @@ Typed GitHub API adapter for CI observability.
 
 from __future__ import annotations
 
+import base64
 import io
 import re
 import zipfile
 from datetime import datetime
 
 import httpx
+import yaml
 from pydantic import BaseModel, ConfigDict, TypeAdapter
 
 from ci_esta.ci_observability.models import (
@@ -18,6 +20,7 @@ from ci_esta.ci_observability.models import (
     GitHubRunV1,
     StickySnapshotV1,
 )
+from ci_esta.ci_observability.workflow_graph import dependencies
 
 
 class GitHubJobsPageV1(BaseModel):
@@ -111,6 +114,20 @@ class GitHubActionsClient:
         response = self._client.get(f"/repos/{self._repository}/actions/runs/{run_id}")
         response.raise_for_status()
         return GitHubRunV1.model_validate_json(response.content)
+
+    def workflow_dependencies(self, run: GitHubRunV1) -> dict[str, list[str]]:
+        if not run.path or not re.fullmatch(r"\.github/workflows/[\w.-]+\.ya?ml", run.path):
+            raise ValueError("Missing or unsupported source workflow path")
+        response = self._client.get(f"/repos/{self._repository}/contents/{run.path}",
+                                    params={"ref": run.head_sha})
+        response.raise_for_status()
+        data = response.json()
+        if data.get("encoding") != "base64" or data.get("size", 0) > 1_000_000:
+            raise ValueError("Unsupported workflow content")
+        content = base64.b64decode(data["content"])
+        if len(content) > 1_000_000:
+            raise ValueError("Workflow content is too large")
+        return dependencies(yaml.safe_load(content))
 
     def list_jobs(self, run_id: int, *, include_all_attempts: bool) -> list[GitHubJobV1]:
         attempt_filter = "all" if include_all_attempts else "latest"

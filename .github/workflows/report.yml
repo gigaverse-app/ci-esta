@@ -14,6 +14,14 @@ on:
         description: Source run commit, not the reporting workflow commit.
         type: string
         required: true
+      analyze-critical-path:
+        description: Analyze the source workflow dependency graph without executing its code.
+        type: boolean
+        default: false
+      job-dependencies-json:
+        description: Complete job-name pattern to prerequisite-pattern map for critical-path analysis.
+        type: string
+        default: '{}'
       required-gates-json:
         description: Explicit gate selectors; empty leaves gate latency unassessed.
         type: string
@@ -68,6 +76,8 @@ jobs:
           commit-sha: ${{ inputs.head-sha }}
           pull-request-number: ${{ inputs.pull-request-number }}
           required-gates-json: ${{ inputs.required-gates-json }}
+          job-dependencies-json: ${{ inputs.job-dependencies-json }}
+          analyze-critical-path: ${{ inputs.analyze-critical-path }}
           post-sticky: ${{ inputs.post-sticky }}
           sticky-key: ${{ inputs.sticky-key }}
           lane-selection-artifact: ${{ inputs.lane-selection-artifact }}
