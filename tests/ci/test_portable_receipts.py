@@ -10,7 +10,7 @@ MODULE = Path(__file__).resolve().parents[2] / ".github/actions/resolve-lane-evi
 
 
 def node(script: str, *args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["node", "-e", script, str(MODULE), *args], capture_output=True, text=True)
+    return subprocess.run(["node", "-e", script, MODULE.as_posix(), *args], capture_output=True, text=True)
 
 
 def test_receipt_covers_packaged_tools_and_ignores_generated_caches(tmp_path: Path) -> None:

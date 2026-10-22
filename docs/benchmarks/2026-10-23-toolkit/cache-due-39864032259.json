@@ -1,0 +1,47 @@
+{
+  "repository": "gigaverse-app/due",
+  "run_id": 39864032259,
+  "attempt": 1,
+  "head_sha": "4acd19f4970dbc5ecd0e3fd247015a387928fdaf",
+  "event": "push",
+  "status": "completed",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "job": "lint",
+      "job_id": 120121598973,
+      "cache_hits": [],
+      "cache_misses": [
+        "ci-esta-venv--f0a651af41dc18771d041eccbb117518535449aee75493bc62614a9ec51afc26"
+      ],
+      "setup_seconds": 6.0
+    },
+    {
+      "job": "typecheck",
+      "job_id": 120121755325,
+      "cache_hits": [],
+      "cache_misses": [
+        "ci-esta-venv--100fa677cd68318c38ce061e9bd50fe8cbc752d873a704c6a9c9dccb61b7e4dc"
+      ],
+      "setup_seconds": 12.0
+    },
+    {
+      "job": "Execute tests (minimum)",
+      "job_id": 120121755346,
+      "cache_hits": [
+        "ci-esta-venv--100fa677cd68318c38ce061e9bd50fe8cbc752d873a704c6a9c9dccb61b7e4dc"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 6.0
+    },
+    {
+      "job": "Execute tests (locked)",
+      "job_id": 120121755419,
+      "cache_hits": [
+        "ci-esta-venv--100fa677cd68318c38ce061e9bd50fe8cbc752d873a704c6a9c9dccb61b7e4dc"
+      ],
+      "cache_misses": [],
+      "setup_seconds": 6.0
+    }
+  ]
+}

@@ -216,5 +216,8 @@ def render_timeline(report: CiObservabilityReportV1) -> list[str]:
         else "the chain of jobs that set the finish time, inferred from when each job was created and its "
         "predecessor finished"
     )
-    footnote = f"⏳: how long a job waited for a runner. Orange: {source}. Bars are observed API timestamps."
+    footnote = (
+        f"⏳: job creation-to-start delay, including scheduling/admission. Orange: {source}. "
+        "Bars are observed API timestamps."
+    )
     return [*lines, "```", "", f"<sub>{footnote}</sub>", ""]

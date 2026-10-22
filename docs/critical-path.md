@@ -36,7 +36,7 @@ be optimized without shortening this execution-only lower bound. Equal-length
 paths use a deterministic tie break; the slack table still identifies all
 zero-slack jobs.
 
-The Gantt highlights the observed chain in red when analysis is complete. It
+The Gantt highlights the observed chain in orange when analysis is complete. It
 continues showing the measured job intervals. The report table separates
 execution, post-prerequisite delay and execution slack. Delay can include runner
 admission, environment approval, scheduling and resource contention; API timing

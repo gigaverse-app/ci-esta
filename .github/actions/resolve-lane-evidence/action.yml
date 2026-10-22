@@ -4,6 +4,12 @@ inputs:
   lanes:
     description: JSON object mapping output keys to exact job names.
     required: true
+  execution-context:
+    description: >-
+      Optional deterministic description of runtime-selected work, such as the selected
+      test lanes. Different values require different receipts. Keep job names stable:
+      any later failed execution of that job conservatively revokes earlier proof.
+    default: ''
   input-paths:
     description: >-
       Optional JSON array of complete repository-relative execution inputs. When set,
@@ -31,6 +37,7 @@ runs:
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
       env:
         EVIDENCE_LANES: ${{ inputs.lanes }}
+        EVIDENCE_EXECUTION_CONTEXT: ${{ inputs.execution-context }}
         EVIDENCE_INPUT_PATHS: ${{ inputs.input-paths }}
         TESTED_MERGE_SHA: ${{ github.sha }}
         DEPENDENCY_TOKEN: ${{ inputs.dependency-token }}
@@ -55,7 +62,8 @@ runs:
             core.warning(`Could not read tested merge ${process.env.TESTED_MERGE_SHA} (${error.message}); only runs of this exact merge commit can be reused.`);
             tested = `commit ${process.env.TESTED_MERGE_SHA}`;
           }
-          const receipt = validationReceipt(process.env.GITHUB_ACTION_PATH, tested);
+          const executionContext = process.env.EVIDENCE_EXECUTION_CONTEXT || '';
+          const receipt = validationReceipt(process.env.GITHUB_ACTION_PATH, tested, executionContext);
           core.setOutput('receipt', receipt);
           const pr = context.payload.pull_request;
           // Manual reruns reproduce work; only automatic same-repo PR events reuse.
@@ -69,7 +77,7 @@ runs:
                 headRef: pr.head.ref, pullRequestNumber: pr.number,
                 evidenceJobName: jobName, evidenceStepName: receipt,
                 sameHeadOnly: true, maxAgeHours: 24,
-                conservativeFailures: paths.length > 0,
+                conservativeFailures: paths.length > 0 || executionContext !== '',
               });
               if (result.reused) reused[key] = true;
             }

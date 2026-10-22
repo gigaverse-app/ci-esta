@@ -1,0 +1,10 @@
+{
+  "repository": "gigaverse-app/pytest-obligation",
+  "source_run": 39863872668,
+  "observer_run": 39864984832,
+  "observer_runner_seconds": 18.0,
+  "source_head": "26ce1e8c9f184736845c37e4ccd8455cd128512a",
+  "critical_path_status": "complete",
+  "collection_status": "complete",
+  "collection_errors": []
+}
