@@ -487,8 +487,8 @@ def test_sticky_leads_with_the_selection_measured_against_comparable_runs_of_oth
         assert run(config, LATER) == 0
 
     sticky = github["upsert"].call_args.args[2]
-    assert sticky.startswith("[![CI-esta report](")
-    assert sticky.index("ran **") < sticky.index("#### 🎯 Test selection")
+    assert sticky.startswith('<a href="https://github.com/gigaverse-app/ci-esta"><picture>')
+    assert sticky.index("![tests: ") < sticky.index("#### 🎯 Test selection")
     assert f"| {SELECTED} of 1,087 files | 1m 18s | ▰▰▱▱▱▱▱▱▱▱ 4m 53s | 81% | unchanged |" in sticky
     # The latency report folds into one closed expander after the section; the footer stays visible.
     latency = sticky.index("<details><summary>⏱️ CI time and cost: ")

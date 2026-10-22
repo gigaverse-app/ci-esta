@@ -15,7 +15,7 @@ from __future__ import annotations
 from pytest_selective.ci import LanePlan
 
 from ci_esta.ci_observability import markdown
-from ci_esta.ci_observability.brand import SELECTIVE_URL
+from ci_esta.ci_observability.brand import BLUE, GREEN, SELECTIVE_URL, Badge
 from ci_esta.ci_observability.models import GitHubJobV1, GitHubRunV1, LaneSelectionSectionV1, SkippedLaneReferenceV1
 
 #: Reasons listed per lane before the rest are counted: GitHub caps a comment at 65,536 characters.
@@ -25,6 +25,10 @@ REASON_CHARACTERS = 300
 NO_REASON = "no affected tests or changed inputs"
 FULL_SUITE_FALLBACK = "full-suite fallback"
 GLOBAL_INPUT = "global input: "
+#: The lane strip's squares: a lane that ran, and one that was skipped.
+RAN_SQUARE, SKIPPED_SQUARE = "🟧", "⬜"
+#: Lanes drawn in the strip before the rest are counted.
+STRIP_LANES = 30
 
 
 def job_family(name: str) -> str:
@@ -76,13 +80,20 @@ def ran_lanes(plan: LanePlan) -> list[str]:
     return [name for name, selected in plan.lanes.items() if selected]
 
 
-def headline(section: LaneSelectionSectionV1) -> str:
-    """The sticky's verdict-line fragment: what ran, and what skipping saved."""
+def badges(section: LaneSelectionSectionV1) -> list[Badge]:
+    """The sticky's badges for the lane plan: what ran, and what skipping saved."""
     plan = section.plan
-    text = f"ran **{len(ran_lanes(plan))} of {len(plan.lanes)}** test lanes"
+    items = [Badge("lanes", f"{len(ran_lanes(plan))} of {len(plan.lanes)} ran", BLUE)]
     if section.reference is not None:
-        text += f" (≈{_minutes(section.reference.runner_seconds)} skipped)"
-    return text
+        items.append(Badge("skipped", f"≈{_minutes(section.reference.runner_seconds)}", GREEN))
+    return items
+
+
+def strip(plan: LanePlan) -> str:
+    """One square per lane, ran first: the plan at a glance, in any theme."""
+    shown = sorted(plan.lanes.values(), reverse=True)[:STRIP_LANES]
+    more = f" +{len(plan.lanes) - STRIP_LANES}" if len(plan.lanes) > STRIP_LANES else ""
+    return "".join(RAN_SQUARE if selected else SKIPPED_SQUARE for selected in shown) + more
 
 
 def _reason(reason: str) -> str:
@@ -161,7 +172,7 @@ def render_lane_section(section: LaneSelectionSectionV1, repository: str | None 
         "",
         "| Ran | Skipped | Changed files | Skipped work |",
         "|:--|--:|--:|--:|",
-        f"| {ran} of {len(plan.lanes)} lanes | {len(plan.lanes) - ran} | {len(plan.changed)} | {skipped} |",
+        f"| {strip(plan)} {ran} of {len(plan.lanes)} | {len(plan.lanes) - ran} | {len(plan.changed)} | {skipped} |",
         "",
         _takeaway(plan),
         "",
