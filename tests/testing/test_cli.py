@@ -45,6 +45,8 @@ def test_run_local_cli_passes_stable_shard_identity(tmp_path: Path) -> None:
             "2",
             "--log-dir",
             str(tmp_path / "logs"),
+            "--progress-interval-seconds",
+            "0.1",
             "--",
             sys.executable,
             str(worker),

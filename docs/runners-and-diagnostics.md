@@ -27,6 +27,11 @@ Use pytest-selective's duration-balanced assignments inside each process. Always
 run the completion gate against the planned global shard count; resource logs
 and successful subprocess startup are not evidence that tests completed.
 
+`run-local` prints each shard's result as it finishes. Every 60 seconds it also
+prints the log tail of shards still running, so a blocked first shard cannot hide
+other results or watchdog traces before a job timeout. Tune this interval with
+`--progress-interval-seconds`; full logs remain in `--log-dir`.
+
 ## Several smaller runners
 
 Plan bounded, consecutive ranges once, then execute the returned assignment:

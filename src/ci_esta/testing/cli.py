@@ -59,6 +59,7 @@ def _parser() -> argparse.ArgumentParser:
     local.add_argument("--log-dir", type=Path, required=True)
     local.add_argument("--success-tail-lines", type=int, default=20)
     local.add_argument("--failure-tail-lines", type=int, default=200)
+    local.add_argument("--progress-interval-seconds", type=float, default=60)
     local.add_argument("shard_command", nargs=argparse.REMAINDER)
 
     merge = commands.add_parser("merge", help="Merge per-shard pytest duration manifests")
@@ -165,6 +166,7 @@ def main(argv: list[str] | None = None) -> int:
                 log_dir=args.log_dir,
                 success_tail_lines=args.success_tail_lines,
                 failure_tail_lines=args.failure_tail_lines,
+                progress_interval_seconds=args.progress_interval_seconds,
             )
         )
     if args.command == "merge":
