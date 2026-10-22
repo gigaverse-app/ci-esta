@@ -97,7 +97,9 @@ were populated or establish a new comparative performance result.
    A long or red bar alone does not prove optimizing it will shorten merge time.
 4. **Gate timing is incomplete.** Obligation and Due's widget observer supply
    no gate selectors. Selective and Due CI list some conditionally skipped jobs;
-   check the resulting readiness state on docs-only runs. Completion means an
+   the current renderer requires every listed gate to conclude `success` and
+   labels a listed `skipped` gate as blocked, even after intentional routing.
+   This is a reporting mismatch, not proof that validation failed. Completion means an
    always-reporting aggregate gate with explicit selected/skipped prerequisites,
    and live full, docs-only, failure and cancelled-run controls.
 5. **Timing feedback is not adopted by the four public suites.** AI/Backend
