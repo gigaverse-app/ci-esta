@@ -103,3 +103,28 @@ def test_every_module_the_actions_run_parses_on_the_runner_python() -> None:
         except SyntaxError as error:
             unparseable.append(f"{path}:{error.lineno}: {error.msg}")
     assert unparseable == []
+
+
+REPORT_WORKFLOW_PATH = Path(".github/workflows/report.yml")
+
+
+def test_the_reusable_report_runs_its_own_commit_and_inherits_the_callers_permissions() -> None:
+    workflow = yaml.safe_load(REPORT_WORKFLOW_PATH.read_text())
+    steps = workflow["jobs"]["report"]["steps"]
+    checkout, report = steps[0], steps[1]
+
+    # A callee that declared pull-requests write would fail every read-only caller at startup.
+    assert "permissions" not in workflow
+    assert checkout["with"]["repository"] == "gigaverse-app/ci-esta"
+    assert checkout["with"]["ref"] == "${{ job.workflow_sha }}"
+    assert report["uses"] == "./.ci-esta/.github/actions/ci-observability"
+    inputs = workflow[True]["workflow_call"]["inputs"]
+    assert inputs["post-sticky"]["default"] is False
+    assert inputs["lane-selection-artifact"]["default"] == "test-lane-selection"
+
+
+def test_the_lane_section_and_sticky_key_are_on_by_default_and_unkeyed() -> None:
+    action = yaml.safe_load(ACTION_PATH.read_text())
+
+    assert action["inputs"]["lane-selection-artifact"]["default"] == "test-lane-selection"
+    assert action["inputs"]["sticky-key"]["default"] == ""

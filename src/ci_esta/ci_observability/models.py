@@ -11,6 +11,7 @@ from statistics import median
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
+from pytest_selective.ci import LanePlan
 from pytest_selective.impact_models import SelectionExplanation
 
 
@@ -324,6 +325,28 @@ class SelectionSectionV1(BaseModel):
         return median(reference.wall_seconds for reference in self.references) if self.references else None
 
 
+class SkippedLaneReferenceV1(BaseModel):
+    """What the jobs a run skipped took on the default branch's last run that executed them all."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    run_id: int
+    head_branch: str
+    #: Reference job names whose family this run skipped, as GitHub names them.
+    jobs: list[str] = Field(min_length=1)
+    runner_seconds: float = Field(ge=0)
+
+
+class LaneSelectionSectionV1(BaseModel):
+    """What the sticky's lane section is rendered from: a pytest-selective lane plan."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    plan: LanePlan
+    #: An estimate of the work skipping avoided; None when no comparable run is available.
+    reference: SkippedLaneReferenceV1 | None = None
+
+
 class RunProvenanceV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -383,6 +406,8 @@ class CiObservabilityReportV1(BaseModel):
     extensions: dict[str, JsonValue] = Field(default_factory=dict)
     #: Only on reports that post the sticky, and only when the run uploaded a selection explanation.
     test_selection: SelectionSectionV1 | None = None
+    #: Only when the run uploaded a pytest-selective lane plan.
+    lane_selection: LaneSelectionSectionV1 | None = None
 
     @model_validator(mode="after")
     def validate_status_errors(self) -> "CiObservabilityReportV1":

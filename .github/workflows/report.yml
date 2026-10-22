@@ -21,20 +21,38 @@ on:
       pull-request-number:
         type: string
         default: ''
+      post-sticky:
+        description: >
+          Upsert the branded report as a pull-request comment. The caller must
+          grant pull-requests write; read-only callers keep the job summary.
+        type: boolean
+        default: false
+      sticky-key:
+        description: One sticky per key; pass the workflow name when observing several workflows.
+        type: string
+        default: ''
+      lane-selection-artifact:
+        description: The observed run's pytest-selective lane plan artifact; empty disables the lane section.
+        type: string
+        default: test-lane-selection
 
-permissions:
-  contents: read
-  actions: read
-  checks: read
-  pull-requests: read
+# No permissions block: the caller's grant is the ceiling, and a callee that asked for
+# pull-requests write would fail every read-only caller at startup.
 
 jobs:
   report:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # Never check out or execute source-run code, including fork pull requests.
-      - uses: gigaverse-app/ci-esta/.github/actions/ci-observability@2623f364c0d2ff85ac3ce2763c618be4ef9ddc02
+      # The reporter at this reusable workflow's own commit, so one pin covers both. Never check
+      # out or execute source-run code, including fork pull requests.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: gigaverse-app/ci-esta
+          ref: ${{ job.workflow_sha }}
+          path: .ci-esta
+          persist-credentials: false
+      - uses: ./.ci-esta/.github/actions/ci-observability
         with:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.run-id }}
@@ -42,7 +60,9 @@ jobs:
           commit-sha: ${{ inputs.head-sha }}
           pull-request-number: ${{ inputs.pull-request-number }}
           required-gates-json: ${{ inputs.required-gates-json }}
-          post-sticky: 'false'
+          post-sticky: ${{ inputs.post-sticky }}
+          sticky-key: ${{ inputs.sticky-key }}
+          lane-selection-artifact: ${{ inputs.lane-selection-artifact }}
           test-selection-artifact: ''
           full-suite-reference-artifact: ''
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

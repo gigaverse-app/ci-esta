@@ -20,7 +20,7 @@ permissions:
   contents: read
   actions: read
   checks: read
-  pull-requests: read
+  pull-requests: write # Only to post the sticky; use read to keep the report in the job summary.
 jobs:
   report:
     uses: gigaverse-app/ci-esta/.github/workflows/report.yml@<reviewed-commit>
@@ -29,17 +29,43 @@ jobs:
       run-attempt: ${{ github.event.workflow_run.run_attempt }}
       head-sha: ${{ github.event.workflow_run.head_sha }}
       required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
+      pull-request-number: ${{ format('{0}', github.event.workflow_run.pull_requests[0].number || '') }}
+      post-sticky: true
+      # When `workflows:` lists several workflows, give each its own sticky:
+      # sticky-key: ${{ github.event.workflow_run.name }}
 ```
 
 The observer must land on the default branch before `workflow_run` triggers it.
-It observes success, failure and cancellation. It has read-only permissions,
-never checks out the observed commit, disables source artifact downloads and PR
-comments, and uses the existing reporter pinned to an immutable revision. This
-also allows observation of fork PRs without executing their code. The resulting
-workflow summary and `ci-esta-<run-id>-<attempt>` artifact contain Markdown,
-versioned JSON and Prometheus metrics. Inspect `collection_status` before using
-partial or unavailable measurements. An empty gate list leaves gate latency
-unassessed while still reporting jobs, steps and runner time.
+It observes success, failure and cancellation. The reusable workflow checks out
+CI-esta at its own commit (`job.workflow_sha`), so one pin covers the workflow
+and the reporter; it never checks out the observed commit or executes its code,
+which also makes fork PRs safe to observe. Artifacts uploaded by a fork's run
+are ignored, and every path or name taken from a run is escaped before it is
+rendered. The resulting workflow summary and `ci-esta-<run-id>-<attempt>`
+artifact contain Markdown, versioned JSON and Prometheus metrics. Inspect
+`collection_status` before using partial or unavailable measurements. An empty
+gate list leaves gate latency unassessed while still reporting jobs, steps and
+runner time.
+
+The reusable workflow declares no permissions of its own: the caller's grant is
+the ceiling. Grant `pull-requests: write` only when `post-sticky` is true.
+
+### What the sticky shows
+
+```text
+[CI-esta report] · CI · `17f3325`
+✅ Merge-ready in 2m 9s · ran 1 of 14 test lanes (≈28 runner-min skipped) · 4 runner-min · $0.03
+
+🎯 Test selection · by pytest-selective   (when the run uploaded a file-selection explanation)
+🧪 Test lanes · by pytest-selective       (when the run uploaded a lane plan)
+⏱️ CI time and cost                        (collapsed beside a selection section)
+🌴 Powered by CI-esta · run · schema
+```
+
+The verdict line answers "can I merge, what ran, what did it cost" before any
+detail. Readiness appears only when required gates are configured. A pull
+request keeps one sticky per `sticky-key`; each new run updates it in place,
+and an older run never overwrites a newer one.
 
 For a report inside the original workflow instead:
 

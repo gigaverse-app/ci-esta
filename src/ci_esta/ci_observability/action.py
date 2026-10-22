@@ -10,27 +10,31 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
+from pytest_selective.ci import LanePlan
 from pytest_selective.impact_models import ExplanationUnavailable, SelectionExplanation
 
 from ci_esta.ci_observability.enrichment.profiles import pytest_timings
 from ci_esta.ci_observability.github import GitHubActionsClient
+from ci_esta.ci_observability.lanes import skipped_reference
 from ci_esta.ci_observability.models import (
     CiObservabilityReportV1,
     CommitStatusGateSelectorV1,
     FullSuiteReferenceV1,
     GateSelectorV1,
+    GitHubJobV1,
     GitHubRunJobsV1,
     GitHubRunV1,
+    LaneSelectionSectionV1,
     RepositorySignalV1,
     RunnerSkuRateV1,
     SelectionSectionV1,
 )
 from ci_esta.ci_observability.report import (
-    STICKY_MARKER,
     build_report,
     build_unavailable_report,
     render_markdown,
     render_prometheus,
+    sticky_marker,
     sticky_snapshot,
 )
 
@@ -68,6 +72,10 @@ class ActionConfig(BaseModel):
     test_selection_artifact: str = ""
     full_suite_reference_artifact: str = ""
     full_suite_reference_output: Path = Path("ci-full-suite-reference.json")
+    #: The run's pytest-selective lane plan; empty disables the lane section.
+    lane_selection_artifact: str = ""
+    #: Keys the sticky, so several observed workflows each keep their own comment.
+    sticky_key: str = ""
 
     @classmethod
     def from_environment(cls) -> "ActionConfig":
@@ -104,6 +112,8 @@ class ActionConfig(BaseModel):
             full_suite_reference_output=Path(
                 os.environ.get("INPUT_FULL_SUITE_REFERENCE_OUTPUT", "ci-full-suite-reference.json")
             ),
+            lane_selection_artifact=os.environ.get("INPUT_LANE_SELECTION_ARTIFACT", "").strip(),
+            sticky_key=os.environ.get("INPUT_STICKY_KEY", "").strip(),
         )
 
 
@@ -199,6 +209,48 @@ def _test_selection(client: GitHubActionsClient, config: ActionConfig, run: GitH
     return SelectionSectionV1(explanation=explanation, pytest=pytest_timings(config.extensions), references=references)
 
 
+def _lane_selection(
+    client: GitHubActionsClient, config: ActionConfig, run: GitHubRunV1, latest_jobs: list[GitHubJobV1]
+) -> LaneSelectionSectionV1 | None:
+    """
+    The sticky's lane section, when this run uploaded a pytest-selective lane plan.
+
+    A fork's upload is ignored, like its selection explanation. What skipping saved is read from
+    the default branch's last green push run; without one the section still renders, unpriced.
+    Anything missing is a warning; it never costs the rest of the report.
+    """
+    if not config.lane_selection_artifact:
+        return None
+    try:
+        artifact = next(
+            (
+                artifact
+                for artifact in client.list_artifacts(config.lane_selection_artifact, run_id=run.id)
+                if artifact.from_same_repository
+            ),
+            None,
+        )
+        if artifact is None:
+            return None
+        plan = LanePlan.model_validate_json(client.read_single_file_artifact(artifact.id))
+    except Exception as error:
+        print(f"::warning::Lane selection section unavailable: {error}")
+        return None
+    if all(plan.lanes.values()) or run.workflow_id is None:
+        return LaneSelectionSectionV1(plan=plan)
+    try:
+        reference_run = client.latest_successful_push_run(run.workflow_id, client.default_branch())
+        reference = (
+            skipped_reference(latest_jobs, reference_run, client.list_jobs(reference_run.id, include_all_attempts=False))
+            if reference_run is not None and reference_run.id != run.id
+            else None
+        )
+    except Exception as error:
+        print(f"::warning::Skipped-lane cost unavailable: {error}")
+        reference = None
+    return LaneSelectionSectionV1(plan=plan, reference=reference)
+
+
 def _own_reference(
     report: CiObservabilityReportV1, config: ActionConfig, run: GitHubRunV1, observed_at: datetime
 ) -> FullSuiteReferenceV1 | None:
@@ -269,6 +321,7 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
             except Exception as error:
                 errors.append(f"overlapping prior runs unavailable: {error}")
         test_selection = _test_selection(client, config, run_metadata)
+        lane_selection = _lane_selection(client, config, run_metadata, latest_jobs)
         statuses = []
         if any(isinstance(selector, CommitStatusGateSelectorV1) for selector in config.gate_selectors):
             try:
@@ -290,6 +343,7 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
             extensions=config.extensions,
             runner_sku_rates=config.runner_sku_rates,
             test_selection=test_selection,
+            lane_selection=lane_selection,
         )
         reference_to_record = _own_reference(report, config, run_metadata, observed_at)
     except Exception as error:
@@ -305,7 +359,8 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         )
 
     report_json = report.model_dump_json(indent=2) + "\n"
-    markdown = render_markdown(report)
+    marker = sticky_marker(config.sticky_key)
+    markdown = render_markdown(report, marker)
     prometheus = render_prometheus(report)
     _write_outputs(config, report_json, markdown, prometheus)
     if reference_to_record is not None:
@@ -315,7 +370,7 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         try:
             client.upsert_sticky(
                 config.pull_request_number,
-                STICKY_MARKER,
+                marker,
                 markdown,
                 sticky_snapshot(report),
             )

@@ -174,7 +174,7 @@ def test_runner_cost_is_grouped_and_priced_by_configured_sku() -> None:
     assert report.runner_cost.unpriced_rounded_runner_minutes == 0
     markdown = render_markdown(report)
     assert "Estimated runner cost at configured rates: **$0.078**." in markdown
-    assert markdown.splitlines()[4].endswith("| 5 min | $0.078 |")
+    assert markdown.splitlines()[8].endswith("| 5 min | $0.078 |")
     assert "| linux_8_core | 3 | $0.022 | $0.066 |" in markdown
     assert "ci_estimated_runner_cost_usd" in render_prometheus(report)
 
@@ -310,12 +310,13 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
     assert report.longest_latest_job_seconds == 121.0
 
     markdown = render_markdown(report)
-    assert markdown.startswith(
-        "### CI latency and runner cost\n\n"
+    assert markdown.startswith("[![CI-esta report](")
+    assert (
+        "#### ⏱️ CI time and cost\n\n"
         "| Workflow | Merge-ready | First runner | Longest job | Runner time | Cost |\n"
         "|:--|--:|--:|:--|--:|--:|\n"
         f"| {WORKFLOW_NAME} | 2m 20s | after 10s | Build: image · 2m 1s | 6 min | — |\n"
-    )
+    ) in markdown
     assert '"leftPadding": 250' in markdown
     assert "section Merge" in markdown
     assert "required gate elapsed :crit, merge_gate, 0, 140" in markdown
@@ -759,19 +760,20 @@ def _sticky_with_selection(**report_changes: object) -> str:
                     estimated_cost_usd=COST,
                 ),
             },
-            "CI time and cost: merge-ready in 5m 56s · 16 runner-min · $0.18",
+            "⏱️ CI time and cost: merge-ready in 5m 56s · 16 runner-min · $0.18",
         ),
-        ({}, "CI time and cost: gates running · 0 runner-min"),
+        ({}, "⏱️ CI time and cost: gates running · 0 runner-min"),
     ],
     ids=["complete-and-priced", "running-and-unpriced"],
 )
 def test_the_selection_sticky_folds_latency_and_cost_behind_one_line(changes: dict[str, object], summary: str) -> None:
     sticky = _sticky_with_selection(**changes)
 
-    assert sticky.startswith("#### Test selection")
+    assert sticky.startswith("[![CI-esta report](")
+    assert "#### 🎯 Test selection" in sticky
     assert f"<details><summary>{summary}</summary>" in sticky
     # The summary line stands in for the heading; the footer that identifies the sticky stays outside.
-    assert "### CI latency and runner cost" not in sticky
+    assert "#### ⏱️ CI time and cost" not in sticky
     latency = sticky.index(summary)
     assert latency < sticky.index("| Merge-ready |") < sticky.index("</details>", latency) < sticky.index(STICKY_MARKER)
 
@@ -787,7 +789,7 @@ def test_a_report_without_a_selection_keeps_latency_and_cost_open() -> None:
         error="GitHub API unavailable",
     )
 
-    assert render_markdown(report).startswith("### CI latency and runner cost")
+    assert "#### ⏱️ CI time and cost\n" in render_markdown(report)
 
 
 def test_the_pytest_timing_signal_is_left_out_only_beside_the_selection_that_shows_it() -> None:
@@ -815,5 +817,7 @@ def test_the_sticky_marker_stays_out_of_the_visible_footer() -> None:
 
     assert footer == [
         STICKY_MARKER,
-        f"<sub>[run {RUN_ID}](https://github.com/{REPOSITORY}/actions/runs/{RUN_ID}) · schema `ci-observability/v1`</sub>",
+        "<sub>🌴 Powered by [CI-esta](https://github.com/gigaverse-app/ci-esta): Let proven work rest. Measure the rest. "
+        "· [Reading this report](https://github.com/gigaverse-app/ci-esta/blob/main/docs/github-actions-observability.md) "
+        f"· [run {RUN_ID}](https://github.com/{REPOSITORY}/actions/runs/{RUN_ID}) · schema `ci-observability/v1`</sub>",
     ]
