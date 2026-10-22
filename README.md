@@ -63,6 +63,7 @@ reduced work in these successful GitHub Actions pairs:
 
 | Change | Full runner-seconds | Selected runner-seconds | Reduction |
 | --- | ---: | ---: | ---: |
+| pytest-selective README | 627 | 48 | 92.3% |
 | Due library test, main CI | 747 | 388 | 48.1% |
 | pytest-obligation MongoDB test | 1,602 | 93 | 94.2% |
 | pytest-obligation package README | 1,691 | 57 | 96.6% |
@@ -74,6 +75,12 @@ are published with the selector. Runner-seconds sum executed-job durations;
 they are not billed minutes. Due's separate widget benchmark is excluded here.
 **These savings come from selection and consumer input declarations, not
 CI-esta receipt reuse.**
+
+The [README-only paired experiment](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/benchmarks/2026-10-22-routing.md)
+also reduced pytest-selective's elapsed time from **211s to 26s**, retaining
+routing regressions, docs and package validation. The same report records a
+Due docs-only preservation check at **26s elapsed / 91 runner-seconds**; it has
+no paired control and is not presented as a measured speedup.
 
 CI-esta makes the next optimization visible. In a
 [real pytest-selective report](docs/benchmarks/2026-10-22-selective-report.md),
