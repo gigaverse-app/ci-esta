@@ -1,0 +1,2786 @@
+{
+  "schema_version": "ci-observability/v1",
+  "collection_status": "complete",
+  "collection_errors": [],
+  "provenance": {
+    "repository": "gigaverse-app/due",
+    "workflow_name": "CI",
+    "run_id": 39868243678,
+    "run_attempt": 1,
+    "head_sha": "e57f2eda31ceee449e2fe31bcf3c76b04715e846",
+    "pull_request_number": null,
+    "workflow_created_at": "2026-10-22T22:54:23Z",
+    "workflow_run_started_at": "2026-10-22T22:54:23Z",
+    "observed_at": "2026-10-22T23:01:54.755248Z"
+  },
+  "latest_attempt_jobs": [
+    {
+      "job_id": 120135796089,
+      "name": "lint",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:25Z",
+      "completed_at": "2026-10-22T22:54:46Z",
+      "wall_seconds": 21.0,
+      "start_offset_seconds": 2.0,
+      "end_offset_seconds": 23.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 39.0,
+      "seconds_to_save_minute": 21.0,
+      "seconds_until_next_minute": 39.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:26Z",
+          "completed_at": "2026-10-22T22:54:29Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:29Z",
+          "completed_at": "2026-10-22T22:54:30Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:30Z",
+          "completed_at": "2026-10-22T22:54:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv run --no-sync ruff check .",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:35Z",
+          "completed_at": "2026-10-22T22:54:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run --no-sync ruff format --check .",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:35Z",
+          "completed_at": "2026-10-22T22:54:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --no-sync pre-commit validate-config",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:35Z",
+          "completed_at": "2026-10-22T22:54:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 7,
+          "name": "Validate GitHub Actions",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:35Z",
+          "completed_at": "2026-10-22T22:54:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 9.0
+        },
+        {
+          "number": 13,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:44Z",
+          "completed_at": "2026-10-22T22:54:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:44Z",
+          "completed_at": "2026-10-22T22:54:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:44Z",
+          "completed_at": "2026-10-22T22:54:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135796127,
+      "name": "build",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:26Z",
+      "completed_at": "2026-10-22T22:54:43Z",
+      "wall_seconds": 17.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 20.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 43.0,
+      "seconds_to_save_minute": 17.0,
+      "seconds_until_next_minute": 43.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:26Z",
+          "completed_at": "2026-10-22T22:54:29Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:29Z",
+          "completed_at": "2026-10-22T22:54:30Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run astral-sh/setup-uv@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:30Z",
+          "completed_at": "2026-10-22T22:54:33Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv build --project package --out-dir dist",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:33Z",
+          "completed_at": "2026-10-22T22:54:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 5,
+          "name": "Run uvx --from twine==7.0.0 twine check --strict dist/*",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:35Z",
+          "completed_at": "2026-10-22T22:54:36Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run python scripts/ci/check_metadata.py",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:36Z",
+          "completed_at": "2026-10-22T22:54:36Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 7,
+          "name": "Install the wheel without development dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:36Z",
+          "completed_at": "2026-10-22T22:54:38Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 8,
+          "name": "Run actions/upload-artifact@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:38Z",
+          "completed_at": "2026-10-22T22:54:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 15,
+          "name": "Post Run astral-sh/setup-uv@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:40Z",
+          "completed_at": "2026-10-22T22:54:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:40Z",
+          "completed_at": "2026-10-22T22:54:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 17,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:40Z",
+          "completed_at": "2026-10-22T22:54:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135796200,
+      "name": "ci-contracts",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:25Z",
+      "completed_at": "2026-10-22T22:54:55Z",
+      "wall_seconds": 30.0,
+      "start_offset_seconds": 2.0,
+      "end_offset_seconds": 32.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 30.0,
+      "seconds_to_save_minute": 30.0,
+      "seconds_until_next_minute": 30.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:26Z",
+          "completed_at": "2026-10-22T22:54:28Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:28Z",
+          "completed_at": "2026-10-22T22:54:29Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run astral-sh/setup-uv@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:29Z",
+          "completed_at": "2026-10-22T22:54:30Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 4,
+          "name": "Check real Git routing against the workflow's selector revision",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:30Z",
+          "completed_at": "2026-10-22T22:54:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 19.0
+        },
+        {
+          "number": 5,
+          "name": "Check aggregate gate against the execution lanes",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:49Z",
+          "completed_at": "2026-10-22T22:54:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 6,
+          "name": "Check local documentation links",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:52Z",
+          "completed_at": "2026-10-22T22:54:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Post Run astral-sh/setup-uv@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:52Z",
+          "completed_at": "2026-10-22T22:54:53Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:53Z",
+          "completed_at": "2026-10-22T22:54:53Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:53Z",
+          "completed_at": "2026-10-22T22:54:53Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135796283,
+      "name": "select-tests",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:26Z",
+      "completed_at": "2026-10-22T22:54:44Z",
+      "wall_seconds": 18.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 21.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 42.0,
+      "seconds_to_save_minute": 18.0,
+      "seconds_until_next_minute": 42.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:27Z",
+          "completed_at": "2026-10-22T22:54:30Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:30Z",
+          "completed_at": "2026-10-22T22:54:31Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/pytest-selective/.github/actions/plan-lanes@c2a1d0bed2e9a7819f754f730a7eca99044a860d",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:31Z",
+          "completed_at": "2026-10-22T22:54:39Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 4,
+          "name": "Identify the complete set of tests this execution proves",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:39Z",
+          "completed_at": "2026-10-22T22:54:39Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Find completed Django suites for these exact inputs",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:39Z",
+          "completed_at": "2026-10-22T22:54:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 6,
+          "name": "Start only Django variants without successful evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:41Z",
+          "completed_at": "2026-10-22T22:54:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Post Run gigaverse-app/pytest-selective/.github/actions/plan-lanes@c2a1d0bed2e9a7819f754f730a7eca99044a860d",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:41Z",
+          "completed_at": "2026-10-22T22:54:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:41Z",
+          "completed_at": "2026-10-22T22:54:42Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:42Z",
+          "completed_at": "2026-10-22T22:54:42Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135925412,
+      "name": "Execute tests (minimum)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:46Z",
+      "completed_at": "2026-10-22T22:58:15Z",
+      "wall_seconds": 209.0,
+      "start_offset_seconds": 23.0,
+      "end_offset_seconds": 232.0,
+      "queued_offset_seconds": 21.0,
+      "rounded_minutes": 4,
+      "rounding_waste_seconds": 31.0,
+      "seconds_to_save_minute": 29.0,
+      "seconds_until_next_minute": 31.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:47Z",
+          "completed_at": "2026-10-22T22:54:48Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Initialize containers",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:49Z",
+          "completed_at": "2026-10-22T22:55:05Z",
+          "timing_status": "complete",
+          "wall_seconds": 16.0
+        },
+        {
+          "number": 3,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:05Z",
+          "completed_at": "2026-10-22T22:55:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 4,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:06Z",
+          "completed_at": "2026-10-22T22:55:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 5,
+          "name": "Exercise the declared Django lower bound",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:11Z",
+          "completed_at": "2026-10-22T22:55:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Prove the package export has no dependency on this repository",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-22T22:55:12Z",
+          "completed_at": "2026-10-22T22:55:12Z",
+          "timing_status": "not_timed",
+          "wall_seconds": null
+        },
+        {
+          "number": 7,
+          "name": "Run library controls without demo applications",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:12Z",
+          "completed_at": "2026-10-22T22:56:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 50.0
+        },
+        {
+          "number": 8,
+          "name": "Run full suite including live web, worker and Beat recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:56:02Z",
+          "completed_at": "2026-10-22T22:58:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 121.0
+        },
+        {
+          "number": 9,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:03Z",
+          "completed_at": "2026-10-22T22:58:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 10,
+          "name": "Require executed obligation guarantees",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:06Z",
+          "completed_at": "2026-10-22T22:58:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Require complete application conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:06Z",
+          "completed_at": "2026-10-22T22:58:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 12,
+          "name": "Require complete book indexing conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:07Z",
+          "completed_at": "2026-10-22T22:58:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Require complete book publication conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:07Z",
+          "completed_at": "2026-10-22T22:58:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 14,
+          "name": "Require catalog projection conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:07Z",
+          "completed_at": "2026-10-22T22:58:08Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 15,
+          "name": "Require observed print-order conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:08Z",
+          "completed_at": "2026-10-22T22:58:08Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 16,
+          "name": "Require scheduled publication conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:08Z",
+          "completed_at": "2026-10-22T22:58:09Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 17,
+          "name": "Require widget checkout guarantees and crash histories",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:09Z",
+          "completed_at": "2026-10-22T22:58:09Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Validate application setup",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:09Z",
+          "completed_at": "2026-10-22T22:58:10Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 19,
+          "name": "Run uv run --no-sync python -m django makemigrations --check --dry-run",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:10Z",
+          "completed_at": "2026-10-22T22:58:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 20,
+          "name": "Run actions/upload-artifact@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:11Z",
+          "completed_at": "2026-10-22T22:58:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 21,
+          "name": "PR evidence #86 head e57f2eda31ceee449e2fe31bcf3c76b04715e846",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:12Z",
+          "completed_at": "2026-10-22T22:58:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 22,
+          "name": "Validated inputs c12390c7ba95b6f943f28db8b5c281b5db83fa9f4dad576bbb748666e0b8f1f8",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:12Z",
+          "completed_at": "2026-10-22T22:58:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 42,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:12Z",
+          "completed_at": "2026-10-22T22:58:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 43,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:12Z",
+          "completed_at": "2026-10-22T22:58:13Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 44,
+          "name": "Stop containers",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:13Z",
+          "completed_at": "2026-10-22T22:58:13Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 45,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:13Z",
+          "completed_at": "2026-10-22T22:58:13Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135925424,
+      "name": "Execute tests (locked)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:46Z",
+      "completed_at": "2026-10-22T22:58:52Z",
+      "wall_seconds": 246.0,
+      "start_offset_seconds": 23.0,
+      "end_offset_seconds": 269.0,
+      "queued_offset_seconds": 21.0,
+      "rounded_minutes": 5,
+      "rounding_waste_seconds": 54.0,
+      "seconds_to_save_minute": 6.0,
+      "seconds_until_next_minute": 54.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:47Z",
+          "completed_at": "2026-10-22T22:54:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Initialize containers",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:49Z",
+          "completed_at": "2026-10-22T22:55:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 17.0
+        },
+        {
+          "number": 3,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:06Z",
+          "completed_at": "2026-10-22T22:55:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 4,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:06Z",
+          "completed_at": "2026-10-22T22:55:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 5,
+          "name": "Exercise the declared Django lower bound",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-22T22:55:11Z",
+          "completed_at": "2026-10-22T22:55:11Z",
+          "timing_status": "not_timed",
+          "wall_seconds": null
+        },
+        {
+          "number": 6,
+          "name": "Prove the package export has no dependency on this repository",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:11Z",
+          "completed_at": "2026-10-22T22:56:01Z",
+          "timing_status": "complete",
+          "wall_seconds": 50.0
+        },
+        {
+          "number": 7,
+          "name": "Run library controls without demo applications",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:56:01Z",
+          "completed_at": "2026-10-22T22:56:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 44.0
+        },
+        {
+          "number": 8,
+          "name": "Run full suite including live web, worker and Beat recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:56:45Z",
+          "completed_at": "2026-10-22T22:58:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 116.0
+        },
+        {
+          "number": 9,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:41Z",
+          "completed_at": "2026-10-22T22:58:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 10,
+          "name": "Require executed obligation guarantees",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:43Z",
+          "completed_at": "2026-10-22T22:58:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Require complete application conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:43Z",
+          "completed_at": "2026-10-22T22:58:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 12,
+          "name": "Require complete book indexing conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:44Z",
+          "completed_at": "2026-10-22T22:58:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Require complete book publication conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:44Z",
+          "completed_at": "2026-10-22T22:58:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 14,
+          "name": "Require catalog projection conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:45Z",
+          "completed_at": "2026-10-22T22:58:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 15,
+          "name": "Require observed print-order conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:45Z",
+          "completed_at": "2026-10-22T22:58:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 16,
+          "name": "Require scheduled publication conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:46Z",
+          "completed_at": "2026-10-22T22:58:46Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 17,
+          "name": "Require widget checkout guarantees and crash histories",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:46Z",
+          "completed_at": "2026-10-22T22:58:46Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Validate application setup",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:46Z",
+          "completed_at": "2026-10-22T22:58:47Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 19,
+          "name": "Run uv run --no-sync python -m django makemigrations --check --dry-run",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:47Z",
+          "completed_at": "2026-10-22T22:58:48Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 20,
+          "name": "Run actions/upload-artifact@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:48Z",
+          "completed_at": "2026-10-22T22:58:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 21,
+          "name": "PR evidence #86 head e57f2eda31ceee449e2fe31bcf3c76b04715e846",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:49Z",
+          "completed_at": "2026-10-22T22:58:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 22,
+          "name": "Validated inputs c12390c7ba95b6f943f28db8b5c281b5db83fa9f4dad576bbb748666e0b8f1f8",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:49Z",
+          "completed_at": "2026-10-22T22:58:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 42,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:49Z",
+          "completed_at": "2026-10-22T22:58:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 43,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:49Z",
+          "completed_at": "2026-10-22T22:58:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 44,
+          "name": "Stop containers",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:50Z",
+          "completed_at": "2026-10-22T22:58:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 45,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:50Z",
+          "completed_at": "2026-10-22T22:58:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135925539,
+      "name": "typecheck",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:46Z",
+      "completed_at": "2026-10-22T22:55:02Z",
+      "wall_seconds": 16.0,
+      "start_offset_seconds": 23.0,
+      "end_offset_seconds": 39.0,
+      "queued_offset_seconds": 21.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 44.0,
+      "seconds_to_save_minute": 16.0,
+      "seconds_until_next_minute": 44.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:47Z",
+          "completed_at": "2026-10-22T22:54:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:49Z",
+          "completed_at": "2026-10-22T22:54:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:50Z",
+          "completed_at": "2026-10-22T22:54:58Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv run --no-sync pyrefly check",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:58Z",
+          "completed_at": "2026-10-22T22:54:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 7,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:59Z",
+          "completed_at": "2026-10-22T22:54:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 8,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:59Z",
+          "completed_at": "2026-10-22T22:54:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 9,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:59Z",
+          "completed_at": "2026-10-22T22:54:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120137446267,
+      "name": "tests (minimum)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:58:54Z",
+      "completed_at": "2026-10-22T22:58:57Z",
+      "wall_seconds": 3.0,
+      "start_offset_seconds": 271.0,
+      "end_offset_seconds": 274.0,
+      "queued_offset_seconds": 269.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 57.0,
+      "seconds_to_save_minute": 3.0,
+      "seconds_until_next_minute": 57.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:54Z",
+          "completed_at": "2026-10-22T22:58:55Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Require successful planning and executed or proven tests",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:55Z",
+          "completed_at": "2026-10-22T22:58:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:56Z",
+          "completed_at": "2026-10-22T22:58:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120137446292,
+      "name": "tests (locked)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:58:54Z",
+      "completed_at": "2026-10-22T22:58:59Z",
+      "wall_seconds": 5.0,
+      "start_offset_seconds": 271.0,
+      "end_offset_seconds": 276.0,
+      "queued_offset_seconds": 269.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 55.0,
+      "seconds_to_save_minute": 5.0,
+      "seconds_until_next_minute": 55.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:55Z",
+          "completed_at": "2026-10-22T22:58:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Require successful planning and executed or proven tests",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:56Z",
+          "completed_at": "2026-10-22T22:58:57Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:57Z",
+          "completed_at": "2026-10-22T22:58:57Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120137488326,
+      "name": "Validation gate",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:59:01Z",
+      "completed_at": "2026-10-22T22:59:05Z",
+      "wall_seconds": 4.0,
+      "start_offset_seconds": 278.0,
+      "end_offset_seconds": 282.0,
+      "queued_offset_seconds": 276.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 56.0,
+      "seconds_to_save_minute": 4.0,
+      "seconds_until_next_minute": 56.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:59:02Z",
+          "completed_at": "2026-10-22T22:59:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/validation-gate@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:59:03Z",
+          "completed_at": "2026-10-22T22:59:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 3,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:59:03Z",
+          "completed_at": "2026-10-22T22:59:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    }
+  ],
+  "billing_jobs": [
+    {
+      "job_id": 120135796089,
+      "name": "lint",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:25Z",
+      "completed_at": "2026-10-22T22:54:46Z",
+      "wall_seconds": 21.0,
+      "start_offset_seconds": 2.0,
+      "end_offset_seconds": 23.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 39.0,
+      "seconds_to_save_minute": 21.0,
+      "seconds_until_next_minute": 39.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:26Z",
+          "completed_at": "2026-10-22T22:54:29Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:29Z",
+          "completed_at": "2026-10-22T22:54:30Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:30Z",
+          "completed_at": "2026-10-22T22:54:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv run --no-sync ruff check .",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:35Z",
+          "completed_at": "2026-10-22T22:54:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run --no-sync ruff format --check .",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:35Z",
+          "completed_at": "2026-10-22T22:54:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --no-sync pre-commit validate-config",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:35Z",
+          "completed_at": "2026-10-22T22:54:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 7,
+          "name": "Validate GitHub Actions",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:35Z",
+          "completed_at": "2026-10-22T22:54:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 9.0
+        },
+        {
+          "number": 13,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:44Z",
+          "completed_at": "2026-10-22T22:54:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:44Z",
+          "completed_at": "2026-10-22T22:54:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:44Z",
+          "completed_at": "2026-10-22T22:54:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135796127,
+      "name": "build",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:26Z",
+      "completed_at": "2026-10-22T22:54:43Z",
+      "wall_seconds": 17.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 20.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 43.0,
+      "seconds_to_save_minute": 17.0,
+      "seconds_until_next_minute": 43.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:26Z",
+          "completed_at": "2026-10-22T22:54:29Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:29Z",
+          "completed_at": "2026-10-22T22:54:30Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run astral-sh/setup-uv@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:30Z",
+          "completed_at": "2026-10-22T22:54:33Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv build --project package --out-dir dist",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:33Z",
+          "completed_at": "2026-10-22T22:54:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 5,
+          "name": "Run uvx --from twine==7.0.0 twine check --strict dist/*",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:35Z",
+          "completed_at": "2026-10-22T22:54:36Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run python scripts/ci/check_metadata.py",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:36Z",
+          "completed_at": "2026-10-22T22:54:36Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 7,
+          "name": "Install the wheel without development dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:36Z",
+          "completed_at": "2026-10-22T22:54:38Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 8,
+          "name": "Run actions/upload-artifact@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:38Z",
+          "completed_at": "2026-10-22T22:54:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 15,
+          "name": "Post Run astral-sh/setup-uv@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:40Z",
+          "completed_at": "2026-10-22T22:54:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:40Z",
+          "completed_at": "2026-10-22T22:54:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 17,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:40Z",
+          "completed_at": "2026-10-22T22:54:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135796200,
+      "name": "ci-contracts",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:25Z",
+      "completed_at": "2026-10-22T22:54:55Z",
+      "wall_seconds": 30.0,
+      "start_offset_seconds": 2.0,
+      "end_offset_seconds": 32.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 30.0,
+      "seconds_to_save_minute": 30.0,
+      "seconds_until_next_minute": 30.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:26Z",
+          "completed_at": "2026-10-22T22:54:28Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:28Z",
+          "completed_at": "2026-10-22T22:54:29Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run astral-sh/setup-uv@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:29Z",
+          "completed_at": "2026-10-22T22:54:30Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 4,
+          "name": "Check real Git routing against the workflow's selector revision",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:30Z",
+          "completed_at": "2026-10-22T22:54:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 19.0
+        },
+        {
+          "number": 5,
+          "name": "Check aggregate gate against the execution lanes",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:49Z",
+          "completed_at": "2026-10-22T22:54:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 6,
+          "name": "Check local documentation links",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:52Z",
+          "completed_at": "2026-10-22T22:54:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Post Run astral-sh/setup-uv@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:52Z",
+          "completed_at": "2026-10-22T22:54:53Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:53Z",
+          "completed_at": "2026-10-22T22:54:53Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:53Z",
+          "completed_at": "2026-10-22T22:54:53Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135796283,
+      "name": "select-tests",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:26Z",
+      "completed_at": "2026-10-22T22:54:44Z",
+      "wall_seconds": 18.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 21.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 42.0,
+      "seconds_to_save_minute": 18.0,
+      "seconds_until_next_minute": 42.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:27Z",
+          "completed_at": "2026-10-22T22:54:30Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:30Z",
+          "completed_at": "2026-10-22T22:54:31Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/pytest-selective/.github/actions/plan-lanes@c2a1d0bed2e9a7819f754f730a7eca99044a860d",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:31Z",
+          "completed_at": "2026-10-22T22:54:39Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 4,
+          "name": "Identify the complete set of tests this execution proves",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:39Z",
+          "completed_at": "2026-10-22T22:54:39Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Find completed Django suites for these exact inputs",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:39Z",
+          "completed_at": "2026-10-22T22:54:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 6,
+          "name": "Start only Django variants without successful evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:41Z",
+          "completed_at": "2026-10-22T22:54:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Post Run gigaverse-app/pytest-selective/.github/actions/plan-lanes@c2a1d0bed2e9a7819f754f730a7eca99044a860d",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:41Z",
+          "completed_at": "2026-10-22T22:54:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 12,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:41Z",
+          "completed_at": "2026-10-22T22:54:42Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 13,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:42Z",
+          "completed_at": "2026-10-22T22:54:42Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135925412,
+      "name": "Execute tests (minimum)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:46Z",
+      "completed_at": "2026-10-22T22:58:15Z",
+      "wall_seconds": 209.0,
+      "start_offset_seconds": 23.0,
+      "end_offset_seconds": 232.0,
+      "queued_offset_seconds": 21.0,
+      "rounded_minutes": 4,
+      "rounding_waste_seconds": 31.0,
+      "seconds_to_save_minute": 29.0,
+      "seconds_until_next_minute": 31.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:47Z",
+          "completed_at": "2026-10-22T22:54:48Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Initialize containers",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:49Z",
+          "completed_at": "2026-10-22T22:55:05Z",
+          "timing_status": "complete",
+          "wall_seconds": 16.0
+        },
+        {
+          "number": 3,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:05Z",
+          "completed_at": "2026-10-22T22:55:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 4,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:06Z",
+          "completed_at": "2026-10-22T22:55:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 5,
+          "name": "Exercise the declared Django lower bound",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:11Z",
+          "completed_at": "2026-10-22T22:55:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Prove the package export has no dependency on this repository",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-22T22:55:12Z",
+          "completed_at": "2026-10-22T22:55:12Z",
+          "timing_status": "not_timed",
+          "wall_seconds": null
+        },
+        {
+          "number": 7,
+          "name": "Run library controls without demo applications",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:12Z",
+          "completed_at": "2026-10-22T22:56:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 50.0
+        },
+        {
+          "number": 8,
+          "name": "Run full suite including live web, worker and Beat recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:56:02Z",
+          "completed_at": "2026-10-22T22:58:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 121.0
+        },
+        {
+          "number": 9,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:03Z",
+          "completed_at": "2026-10-22T22:58:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 10,
+          "name": "Require executed obligation guarantees",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:06Z",
+          "completed_at": "2026-10-22T22:58:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Require complete application conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:06Z",
+          "completed_at": "2026-10-22T22:58:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 12,
+          "name": "Require complete book indexing conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:07Z",
+          "completed_at": "2026-10-22T22:58:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Require complete book publication conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:07Z",
+          "completed_at": "2026-10-22T22:58:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 14,
+          "name": "Require catalog projection conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:07Z",
+          "completed_at": "2026-10-22T22:58:08Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 15,
+          "name": "Require observed print-order conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:08Z",
+          "completed_at": "2026-10-22T22:58:08Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 16,
+          "name": "Require scheduled publication conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:08Z",
+          "completed_at": "2026-10-22T22:58:09Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 17,
+          "name": "Require widget checkout guarantees and crash histories",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:09Z",
+          "completed_at": "2026-10-22T22:58:09Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Validate application setup",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:09Z",
+          "completed_at": "2026-10-22T22:58:10Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 19,
+          "name": "Run uv run --no-sync python -m django makemigrations --check --dry-run",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:10Z",
+          "completed_at": "2026-10-22T22:58:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 20,
+          "name": "Run actions/upload-artifact@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:11Z",
+          "completed_at": "2026-10-22T22:58:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 21,
+          "name": "PR evidence #86 head e57f2eda31ceee449e2fe31bcf3c76b04715e846",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:12Z",
+          "completed_at": "2026-10-22T22:58:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 22,
+          "name": "Validated inputs c12390c7ba95b6f943f28db8b5c281b5db83fa9f4dad576bbb748666e0b8f1f8",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:12Z",
+          "completed_at": "2026-10-22T22:58:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 42,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:12Z",
+          "completed_at": "2026-10-22T22:58:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 43,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:12Z",
+          "completed_at": "2026-10-22T22:58:13Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 44,
+          "name": "Stop containers",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:13Z",
+          "completed_at": "2026-10-22T22:58:13Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 45,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:13Z",
+          "completed_at": "2026-10-22T22:58:13Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135925424,
+      "name": "Execute tests (locked)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:46Z",
+      "completed_at": "2026-10-22T22:58:52Z",
+      "wall_seconds": 246.0,
+      "start_offset_seconds": 23.0,
+      "end_offset_seconds": 269.0,
+      "queued_offset_seconds": 21.0,
+      "rounded_minutes": 5,
+      "rounding_waste_seconds": 54.0,
+      "seconds_to_save_minute": 6.0,
+      "seconds_until_next_minute": 54.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:47Z",
+          "completed_at": "2026-10-22T22:54:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Initialize containers",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:49Z",
+          "completed_at": "2026-10-22T22:55:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 17.0
+        },
+        {
+          "number": 3,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:06Z",
+          "completed_at": "2026-10-22T22:55:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 4,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:06Z",
+          "completed_at": "2026-10-22T22:55:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 5,
+          "name": "Exercise the declared Django lower bound",
+          "status": "completed",
+          "conclusion": "skipped",
+          "started_at": "2026-10-22T22:55:11Z",
+          "completed_at": "2026-10-22T22:55:11Z",
+          "timing_status": "not_timed",
+          "wall_seconds": null
+        },
+        {
+          "number": 6,
+          "name": "Prove the package export has no dependency on this repository",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:55:11Z",
+          "completed_at": "2026-10-22T22:56:01Z",
+          "timing_status": "complete",
+          "wall_seconds": 50.0
+        },
+        {
+          "number": 7,
+          "name": "Run library controls without demo applications",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:56:01Z",
+          "completed_at": "2026-10-22T22:56:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 44.0
+        },
+        {
+          "number": 8,
+          "name": "Run full suite including live web, worker and Beat recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:56:45Z",
+          "completed_at": "2026-10-22T22:58:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 116.0
+        },
+        {
+          "number": 9,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:41Z",
+          "completed_at": "2026-10-22T22:58:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 10,
+          "name": "Require executed obligation guarantees",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:43Z",
+          "completed_at": "2026-10-22T22:58:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Require complete application conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:43Z",
+          "completed_at": "2026-10-22T22:58:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 12,
+          "name": "Require complete book indexing conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:44Z",
+          "completed_at": "2026-10-22T22:58:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 13,
+          "name": "Require complete book publication conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:44Z",
+          "completed_at": "2026-10-22T22:58:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 14,
+          "name": "Require catalog projection conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:45Z",
+          "completed_at": "2026-10-22T22:58:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 15,
+          "name": "Require observed print-order conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:45Z",
+          "completed_at": "2026-10-22T22:58:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 16,
+          "name": "Require scheduled publication conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:46Z",
+          "completed_at": "2026-10-22T22:58:46Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 17,
+          "name": "Require widget checkout guarantees and crash histories",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:46Z",
+          "completed_at": "2026-10-22T22:58:46Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Validate application setup",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:46Z",
+          "completed_at": "2026-10-22T22:58:47Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 19,
+          "name": "Run uv run --no-sync python -m django makemigrations --check --dry-run",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:47Z",
+          "completed_at": "2026-10-22T22:58:48Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 20,
+          "name": "Run actions/upload-artifact@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:48Z",
+          "completed_at": "2026-10-22T22:58:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 21,
+          "name": "PR evidence #86 head e57f2eda31ceee449e2fe31bcf3c76b04715e846",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:49Z",
+          "completed_at": "2026-10-22T22:58:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 22,
+          "name": "Validated inputs c12390c7ba95b6f943f28db8b5c281b5db83fa9f4dad576bbb748666e0b8f1f8",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:49Z",
+          "completed_at": "2026-10-22T22:58:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 42,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:49Z",
+          "completed_at": "2026-10-22T22:58:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 43,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:49Z",
+          "completed_at": "2026-10-22T22:58:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 44,
+          "name": "Stop containers",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:50Z",
+          "completed_at": "2026-10-22T22:58:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 45,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:50Z",
+          "completed_at": "2026-10-22T22:58:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120135925539,
+      "name": "typecheck",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:54:46Z",
+      "completed_at": "2026-10-22T22:55:02Z",
+      "wall_seconds": 16.0,
+      "start_offset_seconds": 23.0,
+      "end_offset_seconds": 39.0,
+      "queued_offset_seconds": 21.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 44.0,
+      "seconds_to_save_minute": 16.0,
+      "seconds_until_next_minute": 44.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:47Z",
+          "completed_at": "2026-10-22T22:54:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:49Z",
+          "completed_at": "2026-10-22T22:54:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:50Z",
+          "completed_at": "2026-10-22T22:54:58Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv run --no-sync pyrefly check",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:58Z",
+          "completed_at": "2026-10-22T22:54:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 7,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:59Z",
+          "completed_at": "2026-10-22T22:54:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 8,
+          "name": "Post Run actions/checkout@v7",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:59Z",
+          "completed_at": "2026-10-22T22:54:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 9,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:54:59Z",
+          "completed_at": "2026-10-22T22:54:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120137446267,
+      "name": "tests (minimum)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:58:54Z",
+      "completed_at": "2026-10-22T22:58:57Z",
+      "wall_seconds": 3.0,
+      "start_offset_seconds": 271.0,
+      "end_offset_seconds": 274.0,
+      "queued_offset_seconds": 269.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 57.0,
+      "seconds_to_save_minute": 3.0,
+      "seconds_until_next_minute": 57.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:54Z",
+          "completed_at": "2026-10-22T22:58:55Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Require successful planning and executed or proven tests",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:55Z",
+          "completed_at": "2026-10-22T22:58:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:56Z",
+          "completed_at": "2026-10-22T22:58:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120137446292,
+      "name": "tests (locked)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:58:54Z",
+      "completed_at": "2026-10-22T22:58:59Z",
+      "wall_seconds": 5.0,
+      "start_offset_seconds": 271.0,
+      "end_offset_seconds": 276.0,
+      "queued_offset_seconds": 269.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 55.0,
+      "seconds_to_save_minute": 5.0,
+      "seconds_until_next_minute": 55.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:55Z",
+          "completed_at": "2026-10-22T22:58:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Require successful planning and executed or proven tests",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:56Z",
+          "completed_at": "2026-10-22T22:58:57Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:58:57Z",
+          "completed_at": "2026-10-22T22:58:57Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120137488326,
+      "name": "Validation gate",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-22T22:59:01Z",
+      "completed_at": "2026-10-22T22:59:05Z",
+      "wall_seconds": 4.0,
+      "start_offset_seconds": 278.0,
+      "end_offset_seconds": 282.0,
+      "queued_offset_seconds": 276.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 56.0,
+      "seconds_to_save_minute": 4.0,
+      "seconds_until_next_minute": 56.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:59:02Z",
+          "completed_at": "2026-10-22T22:59:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/validation-gate@e9d279269e80a4e68435dbd65cdb9dbd23048f7b",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:59:03Z",
+          "completed_at": "2026-10-22T22:59:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 3,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-22T22:59:03Z",
+          "completed_at": "2026-10-22T22:59:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    }
+  ],
+  "required_gates": [
+    {
+      "kind": "actions_job",
+      "identity": "Validation gate",
+      "display_name": "Validation gate",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120137488326,
+      "completed_at": "2026-10-22T22:59:05Z",
+      "elapsed_from_creation_seconds": 282.0,
+      "elapsed_from_run_start_seconds": 282.0,
+      "direct_prerequisites": []
+    }
+  ],
+  "merge_ready_from_creation_seconds": 282.0,
+  "merge_ready_from_run_start_seconds": 282.0,
+  "workflow_initial_queue_seconds": null,
+  "workflow_job_admission_delay_seconds": 2.0,
+  "merge_ready_after_job_admission_seconds": 280.0,
+  "longest_latest_job_name": "Execute tests (locked)",
+  "longest_latest_job_seconds": 246.0,
+  "runner_cost": {
+    "raw_runner_seconds": 569.0,
+    "estimated_rounded_runner_minutes": 17,
+    "rounding_waste_seconds": 451.0,
+    "billed_attempts": [
+      1
+    ],
+    "by_sku": [],
+    "unpriced_rounded_runner_minutes": 0,
+    "estimated_cost_usd": null
+  },
+  "overlapping_prior_runner_cost": {
+    "runs": [],
+    "raw_runner_seconds": 0.0,
+    "estimated_rounded_runner_minutes": 0,
+    "rounding_waste_seconds": 0.0,
+    "estimated_cost_usd": null
+  },
+  "repository_signals": [],
+  "extensions": {},
+  "test_selection": null,
+  "lane_selection": null,
+  "critical_path": {
+    "status": "complete",
+    "reason": "",
+    "elapsed_seconds": 282.0,
+    "execution_seconds": 273.0,
+    "observed_path": [
+      "select-tests",
+      "Execute tests (locked)",
+      "tests (locked)",
+      "Validation gate"
+    ],
+    "execution_path": [
+      "select-tests",
+      "Execute tests (locked)",
+      "tests (locked)",
+      "Validation gate"
+    ],
+    "nodes": [
+      {
+        "name": "ci-contracts",
+        "needs": [],
+        "conclusion": "success",
+        "execution_seconds": 30.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 239.0
+      },
+      {
+        "name": "select-tests",
+        "needs": [],
+        "conclusion": "success",
+        "execution_seconds": 18.0,
+        "delay_seconds": 3.0,
+        "slack_seconds": 0.0
+      },
+      {
+        "name": "lint",
+        "needs": [],
+        "conclusion": "success",
+        "execution_seconds": 21.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 248.0
+      },
+      {
+        "name": "build",
+        "needs": [],
+        "conclusion": "success",
+        "execution_seconds": 17.0,
+        "delay_seconds": 3.0,
+        "slack_seconds": 252.0
+      },
+      {
+        "name": "typecheck",
+        "needs": [
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 16.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 235.0
+      },
+      {
+        "name": "Execute tests (locked)",
+        "needs": [
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 246.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 0.0
+      },
+      {
+        "name": "Execute tests (minimum)",
+        "needs": [
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 209.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 37.0
+      },
+      {
+        "name": "tests (locked)",
+        "needs": [
+          "Execute tests (locked)",
+          "Execute tests (minimum)",
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 5.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 0.0
+      },
+      {
+        "name": "tests (minimum)",
+        "needs": [
+          "Execute tests (locked)",
+          "Execute tests (minimum)",
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 3.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 2.0
+      },
+      {
+        "name": "Validation gate",
+        "needs": [
+          "build",
+          "ci-contracts",
+          "lint",
+          "select-tests",
+          "tests (locked)",
+          "tests (minimum)",
+          "typecheck"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 4.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 0.0
+      }
+    ]
+  }
+}
