@@ -14,6 +14,8 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 from pytest_selective.ci import LanePlan
 from pytest_selective.impact_models import SelectionExplanation
 
+from ci_esta.ci_observability.critical_path import CriticalPathResult
+
 
 class CollectionStatus(StrEnum):
     COMPLETE = "complete"
@@ -115,6 +117,7 @@ class GitHubRunV1(BaseModel):
     run_started_at: datetime | None = None
     head_branch: str | None = None
     head_sha: str
+    path: str | None = None
     pull_requests: list["GitHubPullRequestV1"] = Field(default_factory=list)
 
 
@@ -412,6 +415,7 @@ class CiObservabilityReportV1(BaseModel):
     test_selection: SelectionSectionV1 | None = None
     #: Only when the run uploaded a pytest-selective lane plan.
     lane_selection: LaneSelectionSectionV1 | None = None
+    critical_path: CriticalPathResult | None = None
 
     @model_validator(mode="after")
     def validate_status_errors(self) -> "CiObservabilityReportV1":

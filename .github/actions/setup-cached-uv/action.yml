@@ -1,0 +1,60 @@
+name: Restore a validated Python environment
+description: Cache a complete uv environment with exact installation identity, repair broken restores, and always verify the lock.
+inputs:
+  python-version:
+    description: Python version to install; the cache uses the resolved patch and architecture.
+    default: '3.14'
+  working-directory:
+    description: Project or workspace directory, relative to the checkout.
+    default: '.'
+  sync-args:
+    description: Dependency group/extra/workspace flags for uv sync; locked verification is mandatory.
+    default: ''
+  cache-variant:
+    description: Additional caller-owned identity for ABI, system dependencies or runner image changes.
+    default: ''
+  cache-salt:
+    description: Optional isolated cache namespace for cold/warm experiments.
+    default: ''
+outputs:
+  cache-hit:
+    description: Exact cache entry found; locked synchronization still verifies it.
+    value: ${{ steps.restore.outputs.cache-hit }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        version: '0.11.19'
+        enable-cache: true
+        prune-cache: true
+    - id: identity
+      shell: bash
+      env:
+        CACHE_SCRIPT: ${{ github.action_path }}/../../../scripts/ci/environment_cache.py
+        CACHE_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        CACHE_SYNC_ARGS: ${{ inputs.sync-args }}
+        CACHE_VARIANT: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-variant }}
+        CACHE_MANIFESTS: ${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/uv.toml', '**/.python-version') }}
+      run: python "$CACHE_SCRIPT" identity
+    - id: restore
+      uses: actions/cache/restore@v5
+      continue-on-error: true
+      with:
+        path: ${{ inputs.working-directory }}/.venv
+        key: ci-esta-venv-${{ inputs.cache-salt }}-${{ steps.identity.outputs.key }}
+    - shell: bash
+      env:
+        CACHE_SCRIPT: ${{ github.action_path }}/../../../scripts/ci/environment_cache.py
+        CACHE_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        CACHE_SYNC_ARGS: ${{ inputs.sync-args }}
+      run: python "$CACHE_SCRIPT" sync
+    - if: ${{ success() && steps.restore.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+      uses: actions/cache/save@v5
+      continue-on-error: true
+      with:
+        path: ${{ inputs.working-directory }}/.venv
+        key: ci-esta-venv-${{ inputs.cache-salt }}-${{ steps.identity.outputs.key }}

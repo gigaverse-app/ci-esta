@@ -24,6 +24,12 @@ inputs:
     description: Pull request number for sticky publication; empty disables the sticky.
     required: false
     default: ""
+  analyze-critical-path:
+    description: Read source workflow topology as data at the run head and compute critical paths to explicit gates.
+    default: 'false'
+  job-dependencies-json:
+    description: Complete prerequisite map keyed by observed job-name patterns, for critical-path analysis.
+    default: '{}'
   required-gates-json:
     description: >
       JSON array of explicit actions_job or commit_status gate selectors and
@@ -138,6 +144,8 @@ runs:
         INPUT_COMMIT_SHA: ${{ inputs.commit-sha }}
         INPUT_PULL_REQUEST_NUMBER: ${{ inputs.pull-request-number }}
         INPUT_REQUIRED_GATES_JSON: ${{ inputs.required-gates-json }}
+        INPUT_JOB_DEPENDENCIES_JSON: ${{ inputs.job-dependencies-json }}
+        INPUT_ANALYZE_CRITICAL_PATH: ${{ inputs.analyze-critical-path }}
         INPUT_EXTENSIONS_FILE: ${{ inputs.extensions-file }}
         INPUT_REPOSITORY_SIGNALS_FILE: ${{ inputs.repository-signals-file }}
         INPUT_REPORT_OUTPUT: ${{ inputs.report-output }}

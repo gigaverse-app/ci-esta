@@ -108,6 +108,74 @@
       "title": "CollectionStatus",
       "type": "string"
     },
+    "CriticalPathResult": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "complete",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "elapsed_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Elapsed Seconds"
+        },
+        "execution_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Execution Seconds"
+        },
+        "observed_path": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observed Path",
+          "type": "array"
+        },
+        "execution_path": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Execution Path",
+          "type": "array"
+        },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/PathNode"
+          },
+          "title": "Nodes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "CriticalPathResult",
+      "type": "object"
+    },
     "DirectPrerequisiteV1": {
       "additionalProperties": false,
       "properties": {
@@ -846,6 +914,55 @@
       "title": "OverlappingRunnerCostV1",
       "type": "object"
     },
+    "PathNode": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "needs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Needs",
+          "type": "array"
+        },
+        "conclusion": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Conclusion"
+        },
+        "execution_seconds": {
+          "title": "Execution Seconds",
+          "type": "number"
+        },
+        "delay_seconds": {
+          "title": "Delay Seconds",
+          "type": "number"
+        },
+        "slack_seconds": {
+          "title": "Slack Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "needs",
+        "conclusion",
+        "execution_seconds",
+        "delay_seconds",
+        "slack_seconds"
+      ],
+      "title": "PathNode",
+      "type": "object"
+    },
     "PathStep": {
       "additionalProperties": false,
       "description": "One file on an import path, and how it depends on the next step.",
@@ -1531,6 +1648,17 @@
       "anyOf": [
         {
           "$ref": "#/$defs/LaneSelectionSectionV1"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "critical_path": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CriticalPathResult"
         },
         {
           "type": "null"

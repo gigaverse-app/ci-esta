@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from ci_esta.ci_observability.models import GitHubJobV1, GitHubRunV1
+from ci_esta.ci_observability.critical_path import CriticalPathResult
+from ci_esta.ci_observability.models import CiObservabilityReportV1, GitHubJobV1, GitHubRunV1
 from ci_esta.ci_observability.report import _observe_job, build_report
 from ci_esta.ci_observability.timeline import critical_chain, render_timeline
 
@@ -58,7 +59,7 @@ def test_a_job_created_with_the_run_has_no_predecessor() -> None:
     assert [job.name for job in critical_chain(quality, merge_ready_seconds=None)] == ["quality"]
 
 
-def _gantt() -> str:
+def _report() -> CiObservabilityReportV1:
     run = GitHubRunV1(
         id=1,
         name="CI",
@@ -79,7 +80,11 @@ def _gantt() -> str:
         gate_selectors=[],
         observed_at=OBSERVED,
     )
-    return "\n".join(render_timeline(report))
+    return report
+
+
+def _gantt() -> str:
+    return "\n".join(render_timeline(_report()))
 
 
 def test_each_job_is_one_row_labeled_with_its_run_and_its_wait() -> None:
@@ -112,3 +117,21 @@ def test_the_theme_reads_on_both_github_themes_and_never_draws_a_today_line() ->
     assert '"theme": "base"' in gantt
     assert '"critBkgColor": "#EA580C"' in gantt
     assert "    todayMarker off\n" in gantt
+
+
+def test_the_needs_graph_path_overrides_the_timestamp_inference() -> None:
+    graph = CriticalPathResult(status="complete", observed_path=["quality", "tests (3.11, windows-latest)"])
+    gantt = "\n".join(render_timeline(_report().model_copy(update={"critical_path": graph})))
+
+    assert "    section quality\n    16s · ⏳ 20s :crit, " in gantt
+    assert "    section tests · 3.11, windows-latest\n    2m 39s :crit, " in gantt
+    assert "    section select-tests\n    14s · ⏳ 24s :done, " in gantt
+    assert "the critical path through the workflow's `needs` graph" in gantt
+
+
+def test_an_unavailable_graph_falls_back_to_the_inferred_chain() -> None:
+    graph = CriticalPathResult(status="unavailable", reason="no gates")
+    gantt = "\n".join(render_timeline(_report().model_copy(update={"critical_path": graph})))
+
+    assert "    section select-tests\n    14s · ⏳ 24s :crit, " in gantt
+    assert "inferred from when each job was created" in gantt

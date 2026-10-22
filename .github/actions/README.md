@@ -4,6 +4,12 @@ Reusable pieces so `gigaverse-ai` and `gigaverse-backend` share identical CI
 mechanics without forcing repository-specific build and test layouts into one
 workflow.
 
+Use `gigaverse-app/ci-esta/.github/actions/<name>@<reviewed-commit>` for the
+extracted actions. The backend-common reusable workflows listed below retain
+Gigaverse event/security/release policy; they are external compositions, not
+workflows shipped by CI-esta. Start with the [portable adoption guide](../../docs/ci-optimization.md)
+and check the [revision-bound adoption audit](../../docs/adoption-audit.md).
+
 Each piece is matched to the shape of the shared work:
 
 | Piece | Kind | Reused by |
@@ -21,6 +27,7 @@ Each piece is matched to the shape of the shared work:
 | `backend-common/reusable-current-pr-head.yaml` | reusable workflow | stale manual-rerun admission in PR validation |
 | `cancel-obsolete-pr-runs` | composite action | post-admission stale-run cancellation from existing jobs |
 | `setup-python-uv` | composite action | backend-common test and type-check workflows |
+| `setup-cached-uv` | composite action | portable exact environment restore, repair and locked synchronization |
 | `publish-prometheus-snapshot` | composite action | bounded CI/build metric producers |
 | `ci-observability` | composite action | CI latency/cost sticky and evidence in all three repos |
 | `reuse-ecr-image` | composite action | deployments that can reuse an exact verified image |
@@ -47,7 +54,7 @@ artifact, sticky/summary Markdown, and bounded Prometheus exposition. Workflow
 job names, matrix size, and step ordering are never accounting keys.
 
 ```yaml
-- uses: gigaverse-app/backend-common/.github/actions/ci-observability@<pinned-sha>
+- uses: gigaverse-app/ci-esta/.github/actions/ci-observability@<pinned-sha>
   with:
     github-token: ${{ github.token }}
     commit-sha: ${{ github.event.pull_request.head.sha }}
@@ -57,7 +64,7 @@ job names, matrix size, and step ordering are never accounting keys.
 ```
 
 Run it on an existing off-path host. See
-[`docs/ci-observability.md`](../../docs/ci-observability.md) for the versioned
+[`docs/github-actions-observability.md`](../../docs/github-actions-observability.md) for the versioned
 data, timing, cost, graph, metric, and failure contracts. When the run's
 `test-impact` action uploaded a selection explanation, the sticky opens with a
 test-selection section; consumers pass nothing extra for it.
@@ -75,7 +82,7 @@ proves that the source and target ECR references resolve to the same digest.
 
 ```yaml
 - id: image-reuse
-  uses: gigaverse-app/backend-common/.github/actions/reuse-ecr-image@<pinned-sha>
+  uses: gigaverse-app/ci-esta/.github/actions/reuse-ecr-image@<pinned-sha>
   with:
     source-image: ${{ env.REPOSITORY }}:verified-${{ steps.identity.outputs.key }}
     target-image: ${{ env.REPOSITORY }}:${{ github.sha }}
@@ -92,7 +99,7 @@ handles `/` in grouping values with Pushgateway's required URL-safe base64
 encoding.
 
 ```yaml
-- uses: gigaverse-app/backend-common/.github/actions/publish-prometheus-snapshot@<pinned-sha>
+- uses: gigaverse-app/ci-esta/.github/actions/publish-prometheus-snapshot@<pinned-sha>
   with:
     metrics-file: build-metrics.prom
     pushgateway-url: ${{ secrets.PUSHGW_URL }}
@@ -154,7 +161,7 @@ fail-open.
 
 ```yaml
 - id: gate
-  uses: gigaverse-app/backend-common/.github/actions/resolve-security-trigger@<pinned-sha>
+  uses: gigaverse-app/ci-esta/.github/actions/resolve-security-trigger@<pinned-sha>
   with:
     require-same-repo: "true"   # set for image-building scans (Trivy); needs same-repo secrets
     automatic-same-repo-pull-requests: "true"  # optional; default false
@@ -184,14 +191,14 @@ scanner. Callers should similarly narrow `vuln-type` when they deliberately
 split package inventories.
 
 ```yaml
-- uses: gigaverse-app/backend-common/.github/actions/trivy-scan-image@<pinned-sha>
+- uses: gigaverse-app/ci-esta/.github/actions/trivy-scan-image@<pinned-sha>
   with:
     image-ref: "trivy-scan:my_service"
 ```
 
 ```yaml
 - run: uv sync --frozen --all-groups --no-install-project
-- uses: gigaverse-app/backend-common/.github/actions/trivy-scan-image@<pinned-sha>
+- uses: gigaverse-app/ci-esta/.github/actions/trivy-scan-image@<pinned-sha>
   with:
     # rootfs inventories installed .dist-info packages; fs is for manifests.
     scan-type: rootfs
@@ -219,7 +226,7 @@ and does not depend on Poetry's global cache layout.
 - run: poetry install --all-groups --no-root
   env:
     POETRY_VIRTUALENVS_IN_PROJECT: "true"
-- uses: gigaverse-app/backend-common/.github/actions/trivy-scan-image@<pinned-sha>
+- uses: gigaverse-app/ci-esta/.github/actions/trivy-scan-image@<pinned-sha>
   with:
     scan-type: rootfs
     scan-ref: .venv
@@ -271,6 +278,7 @@ into one workflow means conditional build inputs that leak each repo's layout.
 Instead each repo keeps its own build/matrix and shares the two things that are
 actually common: the trigger gate and the scan policy.
 
+> This is backend-common's consumer policy, not CI-esta's versioning scheme.
 > Consumers pin `PR<N>` while testing an open backend-common PR and immutable
 > `v<N>` after it merges. The downstream bump workflow generates every
 > backend-common reference from that one `pyproject.toml` revision (see
@@ -318,6 +326,11 @@ build instead of silently resolving something new. It is local project
 setup rather than a consumer-facing contract. The repository's test workflow is
 also intentionally local. Push and pull-request runs are allowed to overlap:
 guaranteed pytest execution is more important than deduplicating CI events.
+
+This extracted action caches uv downloads and runs `uv sync --locked --all-groups`.
+It does **not** implement Backend's separate `.venv` restore/validation/save
+composite. Review the [cache boundaries](../../docs/ci-optimization.md#cache-the-right-thing)
+before treating these similarly named actions as interchangeable.
 
 ### Distributed pytest ranges
 

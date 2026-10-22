@@ -121,6 +121,18 @@ def test_the_reusable_report_runs_its_own_commit_and_inherits_the_callers_permis
     inputs = workflow[True]["workflow_call"]["inputs"]
     assert inputs["post-sticky"]["default"] is False
     assert inputs["lane-selection-artifact"]["default"] == "test-lane-selection"
+    assert inputs["analyze-critical-path"]["default"] is False
+    assert report["with"]["analyze-critical-path"] == "${{ inputs.analyze-critical-path }}"
+    assert report["with"]["job-dependencies-json"] == "${{ inputs.job-dependencies-json }}"
+
+
+def test_reusable_report_allows_file_selection_artifacts_without_enabling_them_by_default() -> None:
+    workflow = yaml.safe_load(REPORT_WORKFLOW_PATH.read_text())
+    inputs = workflow[True]["workflow_call"]["inputs"]
+    report = workflow["jobs"]["report"]["steps"][1]
+    for artifact in ("test-selection-artifact", "full-suite-reference-artifact"):
+        assert inputs[artifact]["default"] == ""
+        assert report["with"][artifact] == "${{ inputs." + artifact + " }}"
 
 
 def test_the_lane_section_and_sticky_key_are_on_by_default_and_unkeyed() -> None:

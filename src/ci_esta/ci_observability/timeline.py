@@ -6,9 +6,10 @@ and how long it first waited for a runner. Orange marks the chain the merge wait
 milestone marks merge-ready. GitHub's Mermaid ignores `displayMode: compact`, so a wait cannot
 share its job's row as a bar of its own.
 
-GitHub's API has no `needs` graph, so the chain is inferred from timestamps: GitHub creates a job
-when the jobs it needs complete, so a job's predecessor is the one that finished just before it
-was created. Bars are observed API timestamps; the footnote says the chain is inferred.
+The chain comes from the critical-path analysis of the workflow's `needs` graph when it is
+complete. Without it, the chain is inferred from timestamps: GitHub creates a job when the jobs
+it needs complete, so a job's predecessor is the one that finished just before it was created.
+The footnote says which source drew the chain. Bars are observed API timestamps.
 """
 
 from __future__ import annotations
@@ -158,12 +159,26 @@ def _bar_label(job: ObservedJobV1) -> str:
     return label
 
 
+def _chain(report: CiObservabilityReportV1, jobs: list[ObservedJobV1]) -> tuple[set[int], bool]:
+    """
+    The jobs to mark orange, and whether they come from the workflow's dependency graph.
+
+    The critical-path analysis reads the workflow's `needs` and is authoritative when it is
+    complete; timestamps stand in only when the graph is unavailable.
+    """
+    path = report.critical_path
+    if path is not None and path.status == "complete":
+        names = set(path.observed_path)
+        return {job.job_id for job in jobs if job.name in names}, True
+    return {job.job_id for job in critical_chain(jobs, report.merge_ready_from_creation_seconds)}, False
+
+
 def render_timeline(report: CiObservabilityReportV1) -> list[str]:
     jobs = _timed(report)
     merge_ready = report.merge_ready_from_creation_seconds
     if not jobs and merge_ready is None:
         return []
-    chain = {job.job_id for job in critical_chain(jobs, merge_ready)}
+    chain, from_graph = _chain(report, jobs)
     title = (
         f"{format_seconds(merge_ready)} to merge-ready · orange is what the merge waited on"
         if merge_ready is not None
@@ -191,8 +206,11 @@ def render_timeline(report: CiObservabilityReportV1) -> list[str]:
             "    section ✅ merge-ready",
             f"    {format_seconds(merge_ready)} :milestone, crit, m, {ready}, {ready}",
         ]
-    footnote = (
-        "⏳: how long a job waited for a runner. Orange: the chain of jobs that set the finish time, "
-        "inferred from when each job was created and its predecessor finished. Bars are observed API timestamps."
+    source = (
+        "the critical path through the workflow's `needs` graph"
+        if from_graph
+        else "the chain of jobs that set the finish time, inferred from when each job was created and its "
+        "predecessor finished"
     )
+    footnote = f"⏳: how long a job waited for a runner. Orange: {source}. Bars are observed API timestamps."
     return [*lines, "```", "", f"<sub>{footnote}</sub>", ""]

@@ -12,6 +12,7 @@ from decimal import Decimal
 from pydantic import JsonValue
 
 from ci_esta.ci_observability import brand, lanes, markdown, selection
+from ci_esta.ci_observability.critical_path import analyze
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.models import (
     PYTEST_TIMING_SIGNAL,
@@ -307,6 +308,7 @@ def build_report(
     runner_sku_rates: list[RunnerSkuRateV1] | None = None,
     test_selection: SelectionSectionV1 | None = None,
     lane_selection: LaneSelectionSectionV1 | None = None,
+    job_dependencies: dict[str, list[str]] | None = None,
 ) -> CiObservabilityReportV1:
     errors = list(collection_errors or [])
     if not gate_selectors:
@@ -380,6 +382,9 @@ def build_report(
         extensions=extensions or {},
         test_selection=test_selection,
         lane_selection=lane_selection,
+        critical_path=analyze(run.created_at, latest_jobs, job_dependencies,
+                              [next((job.name for job in latest_jobs if job.id == gate.observed_job_id),
+                                    gate.identity) for gate in gates]) if job_dependencies else None,
     )
 
 
@@ -432,10 +437,6 @@ def build_unavailable_report(
         ),
         repository_signals=repository_signals or [],
     )
-
-
-def _mermaid_label(value: str) -> str:
-    return value.replace("\n", " ").replace("\r", " ").replace(":", " -").replace("#", "").strip()
 
 
 def _format_usd(value: Decimal) -> str:
@@ -592,6 +593,33 @@ def _latency_table(report: CiObservabilityReportV1) -> list[str]:
         "| " + " | ".join(header for header, _, _ in shown) + " |",
         "|" + "|".join(align for _, align, _ in shown) + "|",
         "| " + " | ".join(value for _, _, value in shown) + " |",
+        "",
+    ]
+
+
+def _critical_path(report: CiObservabilityReportV1) -> list[str]:
+    path = report.critical_path
+    if path is None:
+        return []
+    if path.status != "complete":
+        return [f"Critical path unavailable: {markdown.cell(path.reason)}", ""]
+    return [
+        "### Critical path",
+        "",
+        f"Observed dependency chain ({format_seconds(path.elapsed_seconds)}): "
+        + " → ".join(markdown.cell(name) for name in path.observed_path),
+        "",
+        f"Execution-only CPM ({format_seconds(path.execution_seconds)}): "
+        + " → ".join(markdown.cell(name) for name in path.execution_path),
+        "",
+        "| Job | Execution (s) | Delay after prerequisites (s) | Execution slack (s) |",
+        "| --- | ---: | ---: | ---: |",
+        *[f"| {markdown.cell(n.name)} | {n.execution_seconds:g} | {n.delay_seconds:g} | {n.slack_seconds:g} |"
+          for n in path.nodes],
+        "",
+        "Delay includes scheduling, runner admission and other waits; it is not isolated queue time. "
+        "Execution CPM holds measured durations constant and excludes those delays. "
+        "The declared DAG must cover every prerequisite; this analysis does not assert validation success.",
         "",
     ]
 
@@ -757,6 +785,7 @@ def _latency_lines(report: CiObservabilityReportV1) -> list[str]:
         *_latency_table(report),
         *_overlap(report),
         *render_timeline(report),
+        *_critical_path(report),
         *_cost_details(report),
         *_step_details(report),
         *_prerequisites(report),
