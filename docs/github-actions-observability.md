@@ -59,8 +59,8 @@ the ceiling. Grant `pull-requests: write` only when `post-sticky` is true.
 🎯 Test selection · by pytest-selective   (when the run uploaded a file-selection explanation)
 🧪 Test lanes · by pytest-selective       (when the run uploaded a lane plan; one square per lane)
 ⏱️ CI time and cost                        (collapsed beside a selection section)
-   gantt: one row per job, amber while waiting for a runner, orange for the chain
-   the merge waited on, a milestone at merge-ready
+   gantt: one row per job labeled with its run and ⏳ wait for a runner, orange
+   for the chain the merge waited on, a milestone at merge-ready
 🌴 Powered by CI-esta · run · schema
 ```
 

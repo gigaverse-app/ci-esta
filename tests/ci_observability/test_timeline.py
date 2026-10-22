@@ -82,14 +82,14 @@ def _gantt() -> str:
     return "\n".join(render_timeline(report))
 
 
-def test_each_job_is_a_row_with_its_wait_and_its_run() -> None:
+def test_each_job_is_one_row_labeled_with_its_run_and_its_wait() -> None:
     gantt = _gantt()
 
-    # Waiting for a runner is amber; a wait under five seconds is noise and is not drawn.
-    assert "    section tests · 3.11, ubuntu-latest\n    ⏳ :active, " in gantt
-    assert ", 39, 87\n    23s :done, " in gantt
-    assert "    section tests · 3.11, windows-latest\n    2m 39s :done, " in gantt
-    assert "    section quality\n    ⏳ :active, " in gantt
+    # The bar is the run, labeled with its wait for a runner; a wait under five seconds is noise.
+    assert "    section tests · 3.11, ubuntu-latest\n    23s · ⏳ 48s :done, j" in gantt
+    assert "    section tests · 3.11, windows-latest\n    2m 39s :done, j" in gantt
+    assert "    section quality\n    16s · ⏳ 20s :done, j" in gantt
+    assert ":active" not in gantt
     # A reusable workflow's caller prefix is dropped, and a long name keeps its distinguishing end.
     assert "    section Contract suite ·…application · 1\n" in gantt
     assert "Contracts /" not in gantt

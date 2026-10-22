@@ -1,8 +1,10 @@
 """
 Render the sticky's CI timeline as a Mermaid gantt chart.
 
-Each job is one row, named in the left column: an amber bar while it waited for a runner, then its
-run. Orange marks the chain the merge waited on, and a milestone marks merge-ready.
+Each job is one row, named in the left column; its bar is its run, labeled with how long it took
+and how long it first waited for a runner. Orange marks the chain the merge waited on, and a
+milestone marks merge-ready. GitHub's Mermaid ignores `displayMode: compact`, so a wait cannot
+share its job's row as a bar of its own.
 
 GitHub's API has no `needs` graph, so the chain is inferred from timestamps: GitHub creates a job
 when the jobs it needs complete, so a job's predecessor is the one that finished just before it
@@ -22,7 +24,7 @@ from ci_esta.ci_observability.models import CiObservabilityReportV1, ObservedJob
 CHAIN_GAP_SECONDS = 15.0
 #: ...or this long after: GitHub's timestamps have second precision and are not ordered exactly.
 CHAIN_SLACK_SECONDS = 3.0
-#: Waits shorter than this are not drawn: they are noise at the chart's scale.
+#: Waits shorter than this are not shown: they are noise at the chart's scale.
 SHOWN_QUEUE_SECONDS = 5.0
 #: Row labels are cut to this many characters; the left column is fixed width.
 LABEL_CHARACTERS = 32
@@ -38,8 +40,6 @@ THEME = {
         "doneTaskBorderColor": "#2563EB",
         "critBkgColor": "#EA580C",
         "critBorderColor": "#C2410C",
-        "activeTaskBkgColor": "#F59E0B",
-        "activeTaskBorderColor": "#D97706",
         "taskBkgColor": "#3B82F6",
         "taskBorderColor": "#2563EB",
         "taskTextColor": "#FFFFFF",
@@ -60,7 +60,6 @@ THEME = {
         "leftPadding": 230,
         "sectionFontSize": 13,
         "fontSize": 12,
-        "displayMode": "compact",
     },
 }
 
@@ -138,6 +137,15 @@ def _row_label(job: ObservedJobV1) -> str:
     return _label(name + (" (running)" if job.timing_status == TimingStatus.ACCRUED else ""))
 
 
+def _bar_label(job: ObservedJobV1) -> str:
+    """How long the job ran, and how long it first waited for a runner when that was noticeable."""
+    label = format_seconds(job.wall_seconds) if job.wall_seconds is not None else "running"
+    queued, start = job.queued_offset_seconds, job.start_offset_seconds
+    if queued is not None and start is not None and start - queued >= SHOWN_QUEUE_SECONDS:
+        label += f" · ⏳ {format_seconds(start - queued)}"
+    return label
+
+
 def render_timeline(report: CiObservabilityReportV1) -> list[str]:
     jobs = _timed(report)
     merge_ready = report.merge_ready_from_creation_seconds
@@ -162,12 +170,8 @@ def render_timeline(report: CiObservabilityReportV1) -> list[str]:
     for index, job in enumerate(sorted(jobs, key=lambda item: (_ready_at(item), item.start_offset_seconds, item.name))):
         start, end = int(job.start_offset_seconds or 0), int(job.end_offset_seconds or 0)
         lines.append(f"    section {_row_label(job)}")
-        queued = job.queued_offset_seconds
-        if queued is not None and start - queued >= SHOWN_QUEUE_SECONDS:
-            lines.append(f"    ⏳ :active, q{index}, {int(queued)}, {start}")
         tag = "crit" if job.job_id in chain else "done"
-        wall = format_seconds(job.wall_seconds) if job.wall_seconds is not None else "running"
-        lines.append(f"    {wall} :{tag}, j{index}, {start}, {max(end, start + 1)}")
+        lines.append(f"    {_bar_label(job)} :{tag}, j{index}, {start}, {max(end, start + 1)}")
     if merge_ready is not None:
         ready = math.ceil(merge_ready)
         lines += [
@@ -175,7 +179,7 @@ def render_timeline(report: CiObservabilityReportV1) -> list[str]:
             f"    {format_seconds(merge_ready)} :milestone, crit, m, {ready}, {ready}",
         ]
     footnote = (
-        "Amber: waiting for a runner. Orange: the chain of jobs that set the finish time, inferred from "
-        "when each job was created and its predecessor finished. Bars are observed API timestamps."
+        "⏳: how long a job waited for a runner. Orange: the chain of jobs that set the finish time, "
+        "inferred from when each job was created and its predecessor finished. Bars are observed API timestamps."
     )
     return [*lines, "```", "", f"<sub>{footnote}</sub>", ""]
