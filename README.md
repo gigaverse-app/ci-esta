@@ -1,4 +1,10 @@
 # CI-esta: faster GitHub Actions with evidence
+
+For slow test execution after routing is correct, see
+[critical-path optimizations](docs/critical-path-optimizations.md): isolated
+PostgreSQL worker databases and native Git on Windows, with full conformance
+and coverage retained.
+
 [![CI](https://github.com/gigaverse-app/ci-esta/actions/workflows/ci.yml/badge.svg)](https://github.com/gigaverse-app/ci-esta/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](pyproject.toml)
 [![Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
