@@ -47,6 +47,8 @@ def _parser() -> argparse.ArgumentParser:
 
     local = commands.add_parser("run-local", help="Run independent shard commands concurrently on one runner")
     local.add_argument("--shards", type=int, required=True)
+    local.add_argument("--first-shard", type=int, default=1)
+    local.add_argument("--last-shard", type=int)
     local.add_argument("--log-dir", type=Path, required=True)
     local.add_argument("--success-tail-lines", type=int, default=20)
     local.add_argument("--failure-tail-lines", type=int, default=200)
@@ -139,6 +141,8 @@ def main(argv: list[str] | None = None) -> int:
         return run_local_shards(
             LocalShardRunConfig(
                 shard_count=args.shards,
+                first_shard=args.first_shard,
+                last_shard=args.last_shard,
                 command=command,
                 log_dir=args.log_dir,
                 success_tail_lines=args.success_tail_lines,

@@ -2,6 +2,8 @@ name: Verify exhaustive pytest completion
 description: >-
   Fail unless every planned shard left a completion receipt and a nonempty report.
   Uses PLAN_SHARD_COUNT, PLAN_MODE, EVIDENCE_DIRECTORY and JUNIT_NAME_TEMPLATE from env.
+  Optional PLAN_FIRST_SHARD/PLAN_LAST_SHARD bound this runner within a global plan;
+  the consumer must require every disjoint range before issuing an aggregate receipt.
   Runs from this action's checkout, so a pull request whose lock predates the
   verifier is still verified by the version its workflow pins.
 outputs:
