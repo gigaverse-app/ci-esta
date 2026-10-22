@@ -60,3 +60,5 @@ Initial source paths:
 The complete-toolkit extraction uses backend-common revision `b6a2de0f58f18b78e544568d9ebd7371c8c30370`; `docs/migration-inventory.json` maps the additional source files. Original Apache-2.0 ownership and notices are retained.
 
 Distributed shard range execution and completion verification are additionally preserved from backend-common PR268, source revision `0f050d9`. The migration inventory records the full source revision; Apache-2.0 ownership and notices are retained.
+
+Resource observation and pytest watchdog behavior were extracted from gigaverse-backend at 33648b198dc880339f0bf3c8c9f5e60042146b14 (deployment/scripts/ci/run_with_ci_test_observability.sh and conftest.py). Application executor cleanup remains in the consumer. Extraction adds signal-group cleanup and late-session exit-status regressions. The distributed pool recipe preserves gigaverse-ai's two-shards-per-runner policy while consolidating its range arithmetic.

@@ -187,3 +187,5 @@ CI-esta consolidates reusable CI execution, measurement and evidence tooling. Se
 See the [action catalog](.github/actions/README.md), [migration inventory](docs/migration-inventory.json) and [preservation test plan](docs/migration-test-plan.md). Some actions retain the originating project's defaults (Python 3.14, coverage schedule, security labels); review their documented inputs. The optional dependency-token receipt adapter recognizes backend-common pins. Without that adapter, evidence uses exact dependency pins.
 
 The wheel includes action support resources. `ci_esta.resources.source_root()` locates them for compatibility imports; normal Actions users should use immutable GitHub `uses:` references. Install `ci-esta[pytest]` when loading `ci_esta.testing.pytest_completion` as a pytest plugin.
+
+Runner sizing, distributed shard pools and opt-in resource/pytest hang diagnostics: [runner recipes](docs/runners-and-diagnostics.md). Standard import rules use import-linter; filesystem-specific rules remain in the shared boundary checker.
