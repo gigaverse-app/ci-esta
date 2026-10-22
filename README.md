@@ -21,7 +21,7 @@ Repeated CI work is easy to skip incorrectly: the previous workflow was green bu
 | `collect-pr-changes` | Collect a complete PR file list bound to the observed head and base; detect truncation and races |
 | `publish-prometheus-snapshot` | Replace a stable, repository-isolated Pushgateway group without run/SHA label growth |
 
-All six actions live in this repository. No hosted CI-esta service is required. Evidence and gate actions use JavaScript; reporting uses an isolated Python runtime. A pytest application is not required.
+All actions live in this repository. No hosted CI-esta service is required. Evidence and gate actions use JavaScript; reporting uses an isolated Python runtime. A pytest application is not required.
 
 ## Start by measuring one workflow
 
@@ -86,7 +86,7 @@ See [how the projects fit together](docs/integrations.md). Each can be adopted i
 
 **Alpha, extracted from Gigaverse's backend-common CI tools.** APIs and schemas may evolve. Git installs work; no PyPI or npm release is claimed. The reporting package currently installs pytest-selective from a pinned public Git revision. Python 3.11+ is required for the CLI; Actions do not require your application to use Python.
 
-Cost figures are estimates using configured rates, not billing records. Admission delay includes more than runner queue time. Evidence reuse is bounded by declared inputs, proof freshness and GitHub API visibility. No universal speedup is claimed. Existing backend-common consumers have not been automatically migrated.
+Cost figures are estimates using configured rates, not billing records. Admission delay includes more than runner queue time. Evidence reuse is bounded by declared inputs, proof freshness and GitHub API visibility. No universal speedup is claimed. The backend-common compatibility migration is tracked separately from publication; see [adoption](docs/upstreaming.md).
 
 Apache-2.0. See [source provenance](PROVENANCE.md).
 

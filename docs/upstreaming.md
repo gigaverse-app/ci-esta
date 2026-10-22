@@ -4,24 +4,17 @@ CI-esta consolidates the language-independent CI toolkit in one repository. The 
 
 ## Shipped here
 
-`ci-observability`, `collect-pr-changes`, `resolve-incremental-pr-base`, `resolve-lane-evidence`, `validation-gate`, and `publish-prometheus-snapshot` are under `.github/actions/`. The Python package is `ci_esta`; the distribution and CLI are `ci-esta`. JavaScript helpers are used directly by GitHub Actions and are not published as an npm package.
+The complete action catalog, pytest execution/evidence and hygiene helpers, image measurement and live CI drill are now in this project. [The inventory](migration-inventory.json) maps each source path to its canonical owner. The distribution is `ci-esta`, the import namespace is `ci_esta`, and JavaScript helpers remain GitHub Actions assets rather than an npm package.
 
-The lane resolver compares dependency pins exactly. It intentionally omits the private backend-common retag normalization and dependency-token requirement. A changed pin reruns a lane even when the two revisions happen to contain the same tree.
+The optional dependency-token adapter preserves backend-common retag normalization. A retag can reuse positive evidence only when the dependency tree is identical; unreadable or ambiguous dependencies retain exact-pin or full-validation fallbacks. Manual reruns never reuse lane evidence.
 
-## Remaining source tools
+## Ownership retained elsewhere
 
-These are candidates for later additions to this same project, not promised APIs in the alpha:
-
-- Stale-rerun admission/cancellation and coverage scheduling policies.
-- CI definition linting and security-scan composition.
-- Docker/image evidence and ECR image reuse, with provider-specific adapters.
-- Workflow policy checks and the configurable parts of the live CI drill harness.
-
-pytest selection, sharding and typecheck scope belong to pytest-selective. Python fixture-expansion, canary and exhaustive-completion proof need their own pytest-specific ownership review; pytest-obligation's durable-work conformance purpose should not be diluted into a generic pytest utilities package. Runtime application instrumentation remains in backend-common.
+pytest-selective owns impact graphs, selection, shard planning and type-check scope. CI-esta calls that pinned package. pytest-obligation owns durable-work conformance. Application/Kafka helpers, service instrumentation, release tagging, consumer bump automation, and deployment policy remain in backend-common. Repository workflows compose upstream actions while retaining repository event and publication policy.
 
 ## Consumer migration
 
-Existing backend-common consumers are not automatically repointed by this extraction. Review action permissions, use immutable CI-esta revisions, adopt measurement first, and only then enable narrower evidence inputs. Run a representative full validation and failure/retry sequence before replacing required checks. Keep source consumer adapters until each migration is verified; avoid maintaining independent fixes in both implementations.
+[backend-common PR269](https://github.com/gigaverse-app/backend-common/pull/269) replaces implementation copies with module aliases and immutable action delegation. Existing imports and action paths are preserved. Direct support-file compatibility imports need the pinned Python package installed; Actions callers use the delegated upstream runtime. Consumer adoption is verified through the generated backend/AI bump PRs, not a blanket claim that every downstream repository has migrated.
 
 ## Discoverability
 

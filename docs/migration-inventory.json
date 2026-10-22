@@ -184,6 +184,10 @@
     {
       "source": "scripts/ci/ci_drill.py",
       "target": "src/ci_esta/drill.py"
+    },
+    {
+      "source": "scripts/ci/github_script_surface.py",
+      "target": "src/ci_esta/github_script_surface.py"
     }
   ],
   "actions": [
