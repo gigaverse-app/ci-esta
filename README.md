@@ -38,7 +38,7 @@ report:
     - uses: gigaverse-app/ci-esta/.github/actions/ci-observability@main
       with:
         github-token: ${{ github.token }}
-        required-gates-json: '[{"kind":"actions_job","runner_name":"Validation gate"}]'
+        required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
         post-sticky: 'false'
         test-selection-artifact: ''
         full-suite-reference-artifact: ''

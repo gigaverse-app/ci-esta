@@ -97,12 +97,18 @@ def _observe_actions_gate(
     latest_jobs: list[GitHubJobV1],
     run: GitHubRunV1,
 ) -> ObservedGateV1:
-    job = next((item for item in latest_jobs if item.runner_name == selector.runner_name), None)
+    matches = [item for item in latest_jobs if (
+        item.name == selector.job_name if selector.job_name is not None else item.runner_name == selector.runner_name
+    )]
+    # Ambiguous names cannot prove a gate: never choose a passing duplicate over a failure.
+    job = matches[0] if len(matches) == 1 else None
+    identity = selector.job_name if selector.job_name is not None else selector.runner_name
+    assert identity is not None  # Validated by ActionsJobGateSelectorV1.one_identity.
     completed_at = job.completed_at if job is not None else None
     return ObservedGateV1(
         kind=GateKind.ACTIONS_JOB,
-        identity=selector.runner_name,
-        display_name=selector.display_name or (job.name if job is not None else selector.runner_name),
+        identity=identity,
+        display_name=selector.display_name or (job.name if job is not None else identity),
         status=job.status if job is not None else "missing",
         conclusion=job.conclusion if job is not None else None,
         matched=job is not None,

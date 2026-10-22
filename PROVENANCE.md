@@ -2,6 +2,10 @@
 
 Extracted from Gigaverse backend-common at `d4da0ef72199a73eabc8ca1d90e5bcd956955832` with repository-owner authorization to publish. No source repository history is included. CI-esta is licensed under Apache-2.0.
 
+`tests/ci/test_incremental_evidence.py` additionally preserves the resolver tests and shared harness from `tests/ci/test_security_workflow.py` at that same revision. Consumer-specific tests remain with their source workflows. New portable-input, CLI and gate-selection regressions were added during extraction. Selection explanation models are imported from pytest-selective at the immutable revision in `pyproject.toml` rather than copied here.
+
+Name check on 2026-10-22: the `ci-esta` PyPI and npm JSON endpoints returned HTTP 404, the target GitHub repository did not exist, and searches found no CI product under that spelling. The unhyphenated name has unrelated GitHub users/projects. These checks establish observed availability, not trademark clearance or a guarantee that a registry will accept a future publication. No package was published merely to reserve a name.
+
 Initial source paths:
 
 - `.github/actions/ci-observability/action.yml`

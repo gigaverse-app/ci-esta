@@ -1,7 +1,7 @@
 """
 Typed backend enrichment contracts.
 
-These models are the backend-owned boundary around backend-common's shared
+These compatibility models are the backend-owned boundary around CI-esta's shared
 `ci-observability/v1` report. They deliberately contain no generic Actions
 accounting or sticky rendering.
 """

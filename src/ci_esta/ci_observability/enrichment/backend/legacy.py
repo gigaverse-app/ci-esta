@@ -1,6 +1,6 @@
 """Temporary BE-751 bridge for gigaverse-backend's existing Grafana metric names.
 
-The sticky and authoritative artifact use backend-common's shared contract.
+The sticky and authoritative artifact use CI-esta's shared contract.
 This module exists only so dashboard migration can happen without a telemetry
 gap; BE-751 removes it after the queries move to shared metric names.
 """

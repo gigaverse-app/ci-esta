@@ -18,13 +18,15 @@ report:
     - uses: gigaverse-app/ci-esta/.github/actions/ci-observability@main
       with:
         github-token: ${{ github.token }}
-        required-gates-json: '[{"kind":"actions_job","runner_name":"Validation gate"}]'
+        required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
         post-sticky: 'false'
         test-selection-artifact: ''
         full-suite-reference-artifact: ''
 ```
 
 The action installs its Python reporter in an isolated temporary environment. It does not need your application's Python environment or a repository checkout. Composite actions require Bash; the reporting action is validated on Linux runners. The CLI is tested on Python 3.11 and 3.14; local Windows tests are part of the extraction checks.
+
+An Actions gate selector must provide exactly one of `job_name` (the job's display name, recommended) or legacy `runner_name` (the machine identity from GitHub's API). They are different fields. Duplicate matches leave the gate unobserved rather than choosing an arbitrary job.
 
 Outputs `report-file`, `markdown-file` and `prometheus-file` identify the generated files. Archive them using `actions/upload-artifact`. Reporting steps are best effort; a telemetry outage must not decide whether application validation passes.
 

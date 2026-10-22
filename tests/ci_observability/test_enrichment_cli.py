@@ -181,5 +181,3 @@ class TestLazyProfileImports:
         }
         lazy_prefix = "ci_esta.ci_observability.enrichment.backend"
         assert not [module for module in module_level_imports if module.startswith(lazy_prefix)]
-
-

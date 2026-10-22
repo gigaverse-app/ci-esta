@@ -1,6 +1,6 @@
 """Consumer enrichment profiles around the shared CI observability report.
 
-backend-common owns GitHub timing/cost accounting, rendering, the sticky, and
+CI-esta owns GitHub timing/cost accounting, rendering, the sticky, and
 bounded shared metrics (``ci_esta.ci_observability``). Each consumer
 repo additionally measures what the shared reporter cannot infer — pytest
 artifacts, Docker builds, infrastructure failures — and feeds it back through
@@ -17,9 +17,10 @@ is their single home:
 - ``ai`` — gigaverse-ai's profile (``CI-OBS-AI-ENRICH-v1``): workflow-class
   snapshots and Docker/uv build metrics.
 - ``cli`` — the union command line (``python -m
-  ci_esta.ci_observability.enrichment`` / ``gv-ci-enrichment``).
+  ci_esta.ci_observability.enrichment`` / ``ci-esta-enrich``).
 
 Each profile's wire contract (extension key, contract version, signal
 strings, JSON formatting) is preserved exactly as the consumer wrote it;
-consumers keep only the workflow invocations.
+source consumers can migrate their workflow invocations independently. This
+extraction does not claim those consumer migrations have already happened.
 """

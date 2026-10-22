@@ -93,6 +93,26 @@ def _job(
     )
 
 
+@pytest.mark.parametrize("duplicate", [False, True])
+def test_job_name_gate_is_independent_of_runner_machine_and_rejects_ambiguity(duplicate: bool) -> None:
+    jobs = [_job(job_id=FIRST_JOB_ID, name="Validation gate", attempt=RUN_ATTEMPT,
+                 started_at=FIRST_START, completed_at=FIRST_END, runner_name="Hosted Agent")]
+    if duplicate:
+        jobs.append(jobs[0].model_copy(update={"id": SECOND_JOB_ID, "conclusion": "failure"}))
+    selector = ActionsJobGateSelectorV1.model_validate({"kind": "actions_job", "job_name": "Validation gate"})
+    report = build_report(repository=REPOSITORY, pull_request_number=None, run=_run(), latest_jobs=jobs,
+                          billing_jobs=jobs, commit_statuses=[], gate_selectors=[selector], observed_at=OBSERVED_AT)
+    assert report.required_gates[0].matched is (not duplicate)
+    assert (report.merge_ready_from_creation_seconds is not None) is (not duplicate)
+    assert report.collection_status == (CollectionStatus.PARTIAL if duplicate else CollectionStatus.COMPLETE)
+
+
+@pytest.mark.parametrize("fields", [{}, {"job_name": "a", "runner_name": "b"}, {"job_name": ""}])
+def test_gate_selector_requires_one_unambiguous_identity(fields: dict[str, str]) -> None:
+    with pytest.raises(ValidationError):
+        ActionsJobGateSelectorV1.model_validate({"kind": "actions_job", **fields})
+
+
 def test_runner_cost_is_grouped_and_priced_by_configured_sku() -> None:
     """INVARIANT: heterogeneous runner minutes are priced by their own SKU."""
     standard_label = "ubuntu-24.04"
