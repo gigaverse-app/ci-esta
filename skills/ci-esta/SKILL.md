@@ -22,6 +22,12 @@ admission waits and overlapping superseded runs. Use the
 completed-run observer. Pin a reviewed revision and report the source run's ID,
 attempt and head, not the observer's own identity.
 
+Use `ci-esta report --critical-path` and the named aggregate gate to compute the
+observed chain and execution-only CPM/slack from the source workflow at its
+commit. Read [critical-path analysis](https://github.com/gigaverse-app/ci-esta/blob/main/docs/critical-path.md).
+A Gantt or longest job alone is not a dependency critical path. Report unknown
+topology explicitly; delay includes scheduling and startup, not only runner queue.
+
 Keep reporting outside the validation dependency chain. The observer still uses
 runner time; moving it does not make that cost disappear. Do not configure sticky
 comments, publication or external telemetry unless the task authorizes them.
@@ -39,6 +45,14 @@ or committed reports.
   Scope supersession to the same PR/workflow; preserve deliberate full runs.
 - For installation/setup bottlenecks, verify cache keys cover locks, interpreter
   and platform. Measure a warm and cold path before claiming general savings.
+- Use the shared `setup-cached-uv` action for exact environment identity, broken
+  restore repair and mandatory locked synchronization. Keep cache variants for
+  application ABI/system dependencies; never use a cache hit as test evidence.
+- Learn file costs from successful JUnit with `ci-esta-pytest learn`; retain
+  separate lane/matrix artifacts. Follow the
+  [timing feedback tutorial](https://github.com/gigaverse-app/ci-esta/blob/main/docs/learned-test-timings.md).
+  Benchmark whole-file pools against existing xdist before adding runners.
+  Preserve service isolation, coverage and domain conformance checks.
 - Reuse completed lanes only when repeating the same declared work is the actual
   bottleneck. A prior green workflow is not sufficient proof.
 
