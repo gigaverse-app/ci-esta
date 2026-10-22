@@ -70,3 +70,31 @@ Raw [before](2026-10-23-critical-execution/obligation-39866009916.json),
 [matched inventories](2026-10-23-critical-execution/obligation-test-inventory.json).
 Source runs: [before](https://github.com/gigaverse-app/pytest-obligation/actions/runs/39866009916),
 [after](https://github.com/gigaverse-app/pytest-obligation/actions/runs/39869242309).
+
+
+## pytest-selective: measure consolidation without inventing a speedup
+
+| Metric | Before, run 39867390350 | After, run 39871515005 |
+| --- | ---: | ---: |
+| Validation gate elapsed | 214 s | 261 s |
+| Execution critical path | 208 s | 254 s |
+| Total job execution | 637 runner-s | 681 runner-s |
+
+PR #32 moves the existing native Windows Git setup from a local PowerShell
+script into CI-esta's reusable action. The implementation is unchanged: use the
+same installation's native executable only when its version matches exactly.
+Earlier Windows process-launch optimizations landed in selective #26 and #28;
+this consolidation does not claim those gains again.
+
+Both runs passed the complete six-lane OS/Python coverage matrix, the
+minimum-pytest lane and the required validation gate. The after run is slower;
+one hosted pair does not establish a regression or improvement from relocating
+identical code. Preserve the observation and investigate repeated step-level
+measurements before making a performance claim. The useful result here is one
+reusable implementation with the same conformance coverage.
+
+Raw [before](2026-10-23-critical-execution/selective-39867390350.json) and
+[after](2026-10-23-critical-execution/selective-39871515005.json) include source
+head, attempt, job timings and the workflow dependency calculation.
+Source runs: [before](https://github.com/gigaverse-app/pytest-selective/actions/runs/39867390350),
+[after](https://github.com/gigaverse-app/pytest-selective/actions/runs/39871515005).
