@@ -9,9 +9,9 @@ import re
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import JsonValue
+from pydantic import BaseModel, JsonValue
 
-from ci_esta.ci_observability import brand, lanes, markdown, selection
+from ci_esta.ci_observability import brand, markdown, optional_selection
 from ci_esta.ci_observability.critical_path import analyze
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.models import (
@@ -27,7 +27,6 @@ from ci_esta.ci_observability.models import (
     GitHubRunJobsV1,
     GitHubRunV1,
     GitHubStepV1,
-    LaneSelectionSectionV1,
     ObservedGateV1,
     ObservedJobV1,
     ObservedStepV1,
@@ -38,11 +37,11 @@ from ci_esta.ci_observability.models import (
     RunnerSkuCostV1,
     RunnerSkuRateV1,
     RunProvenanceV1,
-    SelectionSectionV1,
     StickySnapshotV1,
     TimingStatus,
 )
 from ci_esta.ci_observability.timeline import render_timeline
+from ci_esta.ci_observability.work_selection import render_work_selection
 
 STICKY_MARKER = "<!-- ci-observability-v1 -->"
 #: The keyed sticky marker's prefix. A bare marker is never a substring of a keyed one.
@@ -306,8 +305,8 @@ def build_report(
     repository_signals: list[RepositorySignalV1] | None = None,
     extensions: dict[str, JsonValue] | None = None,
     runner_sku_rates: list[RunnerSkuRateV1] | None = None,
-    test_selection: SelectionSectionV1 | None = None,
-    lane_selection: LaneSelectionSectionV1 | None = None,
+    test_selection: BaseModel | None = None,
+    lane_selection: BaseModel | None = None,
     job_dependencies: dict[str, list[str]] | None = None,
 ) -> CiObservabilityReportV1:
     errors = list(collection_errors or [])
@@ -512,9 +511,9 @@ def _header(report: CiObservabilityReportV1) -> list[str]:
     provenance = report.provenance
     verdict = [item for item in [_readiness(report)] if item is not None]
     if report.test_selection is not None:
-        verdict.extend(selection.badges(report.test_selection))
+        verdict.extend(optional_selection.badges(report.test_selection))
     if report.lane_selection is not None:
-        verdict.extend(lanes.badges(report.lane_selection))
+        verdict.extend(optional_selection.badges(report.lane_selection, lanes=True))
     verdict.extend(_cost_badges(report))
     workflow = f"{markdown.inline(provenance.workflow_name)} · " if provenance.workflow_name else ""
     return [
@@ -533,10 +532,12 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
     reads as the section an author acts on, with timings and cost one click away.
     """
     sections = []
+    if report.work_selection is not None:
+        sections.append(render_work_selection(report.work_selection))
     if report.test_selection is not None:
-        sections.append(selection.render_selection_section(report.test_selection, report.provenance.repository))
+        sections.append(optional_selection.render(report.test_selection, report.provenance.repository))
     if report.lane_selection is not None:
-        sections.append(lanes.render_lane_section(report.lane_selection, report.provenance.repository))
+        sections.append(optional_selection.render(report.lane_selection, report.provenance.repository, lanes=True))
     if not sections:
         body = ["#### ⏱️ CI time and cost", "", *_latency_lines(report)]
     else:

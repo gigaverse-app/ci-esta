@@ -196,6 +196,7 @@ Receipts are recorded only after required work passes. Explicit reruns execute a
 | Restore and repair complete Python environments | [Environment cache](docs/environment-cache.md) |
 | Check what is actually upstream and adopted | [Revision-bound adoption audit](docs/adoption-audit.md) |
 | Avoid repeating proven work | [Evidence reuse](docs/evidence-reuse.md) |
+| Report TypeScript or other non-Python work | [Language-neutral reporting](docs/non-python.md) |
 | Integrate selection and conformance tests | [Project integrations](docs/integrations.md) |
 | Compare CI optimization approaches | [Alternatives](docs/alternatives.md) |
 | Understand extraction scope and migration | [Upstreaming](docs/upstreaming.md) |
@@ -213,7 +214,7 @@ lockfiles retain exact resolved versions and artifact hashes.
 
 ## Status and limits
 
-Extracted from Gigaverse's backend-common CI tools. APIs and schemas may evolve before 1.0. The Python package depends on compatible pytest-selective releases. Python 3.11+ is required for the CLI; Actions do not require your application to use Python.
+Extracted from Gigaverse's backend-common CI tools. APIs and schemas may evolve before 1.0. On the current Git revision, base reporting installs neither pytest nor pytest-selective (the published 0.1.0 release predates this split). Install `ci-esta[selection]` for Python selection reports or `ci-esta[pytest]` for pytest execution tools. Python 3.11+ is required for the CLI; Actions do not require your application to use Python.
 
 Cost figures are estimates using configured rates, not billing records. Admission delay includes more than runner queue time. Evidence reuse is bounded by declared inputs, proof freshness and GitHub API visibility. No universal speedup is claimed. The backend-common compatibility migration is tracked separately from publication; see [adoption](docs/upstreaming.md).
 

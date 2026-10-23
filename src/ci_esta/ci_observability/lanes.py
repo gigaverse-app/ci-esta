@@ -16,6 +16,7 @@ from pytest_selective.ci import LanePlan
 
 from ci_esta.ci_observability import markdown
 from ci_esta.ci_observability.brand import BLUE, GREEN, SELECTIVE_URL, Badge
+from ci_esta.ci_observability.job_names import job_family
 from ci_esta.ci_observability.models import GitHubJobV1, GitHubRunV1, LaneSelectionSectionV1, SkippedLaneReferenceV1
 
 #: Reasons listed per lane before the rest are counted: GitHub caps a comment at 65,536 characters.
@@ -29,16 +30,6 @@ GLOBAL_INPUT = "global input: "
 RAN_SQUARE, SKIPPED_SQUARE = "🟧", "⬜"
 #: Lanes drawn in the strip before the rest are counted.
 STRIP_LANES = 30
-
-
-def job_family(name: str) -> str:
-    """
-    A job's name without its matrix suffix.
-
-    GitHub names an expanded matrix job `tests (3.11)` but a skipped matrix, which never expands,
-    `tests (${{ matrix.python }})`: both belong to the family `tests`.
-    """
-    return name.split(" (", 1)[0]
 
 
 def skipped_reference(

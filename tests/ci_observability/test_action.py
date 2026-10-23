@@ -721,3 +721,23 @@ def test_the_saving_uses_only_the_newest_few_comparable_runs(tmp_path: Path) -> 
 def test_a_reference_must_carry_measured_times() -> None:
     with pytest.raises(ValidationError, match="measured wall and summed test time"):
         full_suite_reference(NEWEST_RUN, timings=AI_TIMINGS.model_copy(update={"wall_seconds": None}))
+
+
+@pytest.mark.parametrize("identity", ["valid", "run", "attempt", "head"])
+def test_generic_work_artifact_matches_observed_source(tmp_path, identity):
+    from ci_esta.ci_observability.work_selection import WorkDecisionV1, WorkSelectionV1
+    plan = WorkSelectionV1(provider="bun", run_id=RUN_ID, run_attempt=RUN_ATTEMPT, head_sha=HEAD_SHA,
+                           input_identity="tree abc", decisions=[WorkDecisionV1(name="Tests", decision="run", reason="Full")])
+    data = plan.model_dump(mode="json")
+    if identity == "run":
+        data["run_id"] += 1
+    elif identity == "attempt":
+        data["run_attempt"] += 1
+    elif identity == "head":
+        data["head_sha"] = "b" * 40
+    config = _config(tmp_path).model_copy(update={"work_selection_artifact": "ci-work-selection"})
+    client = MagicMock(spec=GitHubActionsClient)
+    client.list_artifacts.return_value = [artifact(42, run_id=RUN_ID)]
+    client.read_single_file_artifact.return_value = json.dumps(data).encode()
+    result = action_module._work_selection(client, config, _run_metadata())
+    assert (result is not None) == (identity == "valid")
