@@ -14,6 +14,7 @@ Each piece is matched to the shape of the shared work:
 
 | Piece | Kind | Reused by |
 |-------|------|-----------|
+| [`run-bun-tests`](../../docs/bun-test-selection.md) | composite action + standalone JS API | Bun source selection with repository-owned inventory and always-run contracts |
 | `collect-ci-changes` | composite action | workflow/action/shell change classification |
 | `current-pr-head` | composite action | live stale-rerun admission |
 | `resolve-security-trigger` | composite action | every security workflow, both repos |

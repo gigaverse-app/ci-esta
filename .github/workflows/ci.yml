@@ -119,6 +119,11 @@ jobs:
           python-version: '3.14'
       - run: uv run ruff check .
       - run: uv run lint-imports --config importlinter.toml --no-cache
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: '1.4.2'
+      - name: Exercise native Bun selection and fallback controls
+        run: node --test tests/github_actions/bun-selection.test.mjs
       - name: Always exercise routing and gate contracts
         run: uv run pytest -q tests/ci/test_repository_routing.py tests/ci/test_validation_gate.py tests/testing/test_workflow_adoption.py
       - run: uv build

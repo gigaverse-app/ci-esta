@@ -27,6 +27,10 @@ and coverage retained.
 
 Let proven work rest. Measure the rest.
 
+For Bun TypeScript/React suites, use the [Bun affected-test adapter](docs/bun-test-selection.md).
+It keeps the repository's test inventory and contracts, uses Bun's native graph,
+and reports through the same CI-esta work-selection API as other runners.
+
 **Find the 279-second job hiding in a 295-second CI run.**
 That is what [this real report](docs/benchmarks/2026-10-22.md) exposed.
 Pair measurement with pytest-selective: its matched README experiment used
