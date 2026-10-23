@@ -19,7 +19,7 @@ using the report as evidence. The output is JSON, Markdown and Prometheus.
 ## Add ongoing reporting
 
 Copy the [complete public-action observer](https://github.com/gigaverse-app/ci-esta/blob/main/docs/quickstart.md#report-a-completed-workflow).
-Adapt the source workflow name and exact required job names. The root action uses
+Adapt the source workflow name and exact required job names. The `actions/ci-observability` action uses
 `run-id`, `run-attempt` and `commit-sha` from the completed source run. Check
 [entry-point availability](https://github.com/gigaverse-app/ci-esta/blob/main/docs/actions.md)
 before selecting a release pin. The optional reusable workflow remains documented

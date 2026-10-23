@@ -1,9 +1,9 @@
 # Shared public action directory
 
-Keep the root default action; recommend `actions/NAME` for individual actions.
-Preserve both existing named and `.github/actions/NAME` callers.
+Use only `actions/NAME` entry points. Migrate root, named and `.github/actions/NAME`
+callers to the canonical path; older immutable releases retain their original layout.
 
-- [x] Verify every input/default/output and pinned delegation for new and existing paths.
+- [x] Verify action input/default/output contracts and reject duplicate entry points.
 - [x] Route changes to action metadata and helper files to the full test lane.
 - [x] Include the shared directory in execution evidence and distribution inputs.
 - [x] Validate updated workflows and examples with actionlint.
