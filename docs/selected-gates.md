@@ -34,7 +34,10 @@ Keep the aggregate contract synchronized with actual job routing:
 ci-esta check-workflow --workflow .github/workflows/ci.yml --lanes .github/test-lanes.json
 ```
 
-Run this in the always-running quality job with real Git routing regressions.
+This static workflow validator can run even on documentation changes. Select
+the real Git routing regression tests through their declared dependencies on
+configuration, execution workflows, helpers and inspected inputs. A quality
+job is not an exemption from test selection: unreferenced docs run zero tests.
 It checks that the gate covers all workflow jobs and that its lane mapping
 matches the execution conditions and configured lane names. This validator
 supports the documented `fromJSON(needs.<planner>.outputs.lanes).<lane>` consumer
