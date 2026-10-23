@@ -9,10 +9,11 @@ import io
 import re
 import zipfile
 from datetime import datetime
+from functools import cached_property
 
 import httpx
 import yaml
-from pydantic import BaseModel, ConfigDict, TypeAdapter
+from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
 
 from ci_esta.ci_observability.models import (
     GitHubCommitStatusV1,
@@ -41,11 +42,19 @@ class GitHubRepositoryV1(BaseModel):
     default_branch: str
 
 
+class GitHubCommentAuthorV1(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    id: int
+    type: str
+
+
 class GitHubCommentV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     id: int
     body: str | None = None
+    user: GitHubCommentAuthorV1 | None = None
 
 
 class GitHubArtifactRunV1(BaseModel):
@@ -319,25 +328,60 @@ class GitHubActionsClient:
         body: str,
         snapshot: StickySnapshotV1,
     ) -> int:
-        existing = next(
-            (comment for comment in self._list_comments(pull_request_number) if marker in (comment.body or "")),
-            None,
-        )
-        if existing is not None and existing.body:
-            match = SNAPSHOT_PATTERN.search(existing.body)
-            if match:
-                previous = StickySnapshotV1.model_validate_json(match.group("snapshot"))
-                if not snapshot.supersedes(previous):
-                    return existing.id
-        if existing is None:
+        def matching(comments):
+            return [comment for comment in comments
+                    if marker in (comment.body or "").splitlines()
+                    and (comment.user is None or comment.user.type == "Bot"
+                         or comment.user.id == self._authenticated_user_id)]
+
+        comments = matching(self._list_comments(pull_request_number))
+        if not comments:
             response = self._client.post(
                 f"/repos/{self._repository}/issues/{pull_request_number}/comments",
                 json={"body": body},
             )
-        else:
+            response.raise_for_status()
+            created = GitHubCommentV1.model_validate_json(response.content)
+            # Another first-time publisher may have created a comment after our lookup.
+            comments = list({comment.id: comment for comment in
+                             [created, *matching(self._list_comments(pull_request_number))]}.values())
+
+        keeper = min(comments, key=lambda comment: comment.id)
+        for comment in comments:
+            previous = self._comment_snapshot(comment)
+            if previous is not None and not snapshot.supersedes(previous):
+                snapshot, body = previous, comment.body
+
+        if keeper.body != body:
             response = self._client.patch(
-                f"/repos/{self._repository}/issues/comments/{existing.id}",
+                f"/repos/{self._repository}/issues/comments/{keeper.id}",
                 json={"body": body},
             )
+            response.raise_for_status()
+
+        for duplicate in comments:
+            if (duplicate.id != keeper.id and duplicate.user is not None
+                    and duplicate.user == keeper.user and self._comment_snapshot(duplicate) is not None):
+                response = self._client.delete(f"/repos/{self._repository}/issues/comments/{duplicate.id}")
+                if response.status_code != 404:
+                    response.raise_for_status()
+        return keeper.id
+
+    @cached_property
+    def _authenticated_user_id(self) -> int | None:
+        response = self._client.get("/user")
+        # Installation tokens publish as a bot and cannot access the user endpoint.
+        if response.status_code == 403:
+            return None
         response.raise_for_status()
-        return GitHubCommentV1.model_validate_json(response.content).id
+        return GitHubCommentAuthorV1.model_validate_json(response.content).id
+
+    @staticmethod
+    def _comment_snapshot(comment: GitHubCommentV1) -> StickySnapshotV1 | None:
+        match = SNAPSHOT_PATTERN.search(comment.body or "")
+        if match:
+            try:
+                return StickySnapshotV1.model_validate_json(match.group("snapshot"))
+            except ValidationError:
+                pass
+        return None

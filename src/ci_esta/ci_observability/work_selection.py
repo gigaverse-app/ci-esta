@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ci_esta.ci_observability import markdown
+from ci_esta.ci_observability import brand, markdown
 
 
 class WorkExecutionV1(BaseModel):
@@ -74,6 +74,23 @@ class WorkSelectionV1(BaseModel):
         if self.fallback and any(item.decision != "run" for item in self.decisions):
             raise ValueError("fallback must request every declared unit of work")
         return self
+
+
+def badges(plan: WorkSelectionV1) -> list[brand.Badge]:
+    selected, executed = brand.unavailable("selected"), brand.unavailable("executed")
+    # Inventories from different work units may overlap. Do not sum their files.
+    if len(plan.decisions) == 1:
+        execution = plan.decisions[0].execution
+        if execution is not None:
+            # Full/none modes establish admission independently of success. Native
+            # scoped selection has no separate selected-file inventory to report.
+            if execution.mode in ("full", "none"):
+                selected = brand.quantity("selected", execution.total_files if execution.mode == "full"
+                                          else len(execution.always_run_files),
+                                          execution.total_files, "files")
+            if execution.executed_files is not None:
+                executed = brand.quantity("executed", len(execution.executed_files), execution.total_files, "files")
+    return [selected, executed]
 
 
 def render_work_selection(plan: WorkSelectionV1) -> str:

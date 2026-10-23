@@ -164,6 +164,7 @@ def test_action_config_reads_typed_environment_and_extension(
     monkeypatch.setenv("INPUT_MARKDOWN_OUTPUT", str(markdown_path))
     monkeypatch.setenv("INPUT_PROMETHEUS_OUTPUT", str(prometheus_path))
     monkeypatch.setenv("INPUT_POST_STICKY", "false")
+    monkeypatch.setenv("INPUT_STICKY_WORKFLOW", "Primary CI")
     monkeypatch.setenv("INPUT_APPEND_SUMMARY", "false")
     monkeypatch.setenv(
         "INPUT_RUNNER_SKU_RATES_JSON",
@@ -184,6 +185,7 @@ def test_action_config_reads_typed_environment_and_extension(
     ]
     assert config.report_output == report_path
     assert config.post_sticky is False
+    assert config.sticky_workflow == "Primary CI"
     assert config.append_summary is False
     assert config.runner_sku_rates == [
         RunnerSkuRateV1(
@@ -194,11 +196,14 @@ def test_action_config_reads_typed_environment_and_extension(
     ]
 
 
+@pytest.mark.parametrize("owner,publishes", [("", True), ("Primary CI", True), ("Other workflow", False)])
 def test_run_writes_all_outputs_summary_and_sticky(
     monkeypatch,
     tmp_path: Path,
+    owner,
+    publishes,
 ) -> None:
-    config = _config(tmp_path)
+    config = _config(tmp_path).model_copy(update={"sticky_workflow": owner})
     summary_path = tmp_path / "summary.md"
     action_output_path = tmp_path / "action-output.txt"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary_path))
@@ -221,7 +226,9 @@ def test_run_writes_all_outputs_summary_and_sticky(
     assert "ci_raw_runner_seconds" in config.prometheus_output.read_text()
     assert summary_path.read_text() == config.markdown_output.read_text() + "\n"
     assert "report-file=" in action_output_path.read_text()
-    assert upsert.call_args.args[0] == PR_NUMBER
+    assert upsert.called is publishes
+    if publishes:
+        assert upsert.call_args.args[0] == PR_NUMBER
 
 
 def test_historical_attempt_recovers_exact_metadata_and_jobs(tmp_path):
@@ -252,6 +259,38 @@ def test_cli_without_explicit_head_uses_source_metadata(tmp_path):
     report = json.loads(config.report_output.read_text())
     assert report["collection_status"] == "complete"
     assert report["provenance"]["head_sha"] == HEAD_SHA
+
+
+@pytest.mark.parametrize("label,expected", [("ubuntu-latest", "0.012"), ("custom-runner", None)])
+def test_reusable_pricing_reaches_the_report_without_pricing_unknown_runners(monkeypatch, tmp_path, label, expected):
+    workflow = yaml.safe_load(Path(".github/workflows/report.yml").read_text())
+    inputs = workflow[True]["workflow_call"]["inputs"]
+    forwarded = workflow["jobs"]["report"]["steps"][1]["with"]
+    action = yaml.safe_load(Path("actions/ci-observability/action.yml").read_text())
+    assert inputs["runner-sku-rates-json"]["default"] == "[]"
+    assert forwarded["runner-sku-rates-json"] == "${{ inputs.runner-sku-rates-json }}"
+    assert action["runs"]["steps"][1]["env"]["INPUT_RUNNER_SKU_RATES_JSON"] == "${{ inputs.runner-sku-rates-json }}"
+    for name, metadata in action["inputs"].items():
+        if "default" in metadata:
+            monkeypatch.setenv("INPUT_" + name.upper().replace("-", "_"), str(metadata["default"]))
+    monkeypatch.setenv("GITHUB_REPOSITORY", REPOSITORY)
+    monkeypatch.setenv("INPUT_GITHUB_TOKEN", TOKEN)
+    monkeypatch.setenv("INPUT_RUN_ID", str(RUN_ID))
+    monkeypatch.setenv("INPUT_RUNNER_SKU_RATES_JSON",
+                       '[{"sku":"actions_linux","runner_label":"ubuntu-latest","usd_per_minute":"0.006"}]')
+    monkeypatch.setenv("INPUT_RUN_ATTEMPT", str(RUN_ATTEMPT))
+    monkeypatch.setenv("INPUT_COMMIT_SHA", HEAD_SHA)
+    rates = ActionConfig.from_environment().runner_sku_rates
+    config = _config(tmp_path, post_sticky=False).model_copy(update={"runner_sku_rates": rates})
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=_run_metadata()),
+        patch.object(GitHubActionsClient, "list_jobs", return_value=[_job().model_copy(update={"labels": [label]})]),
+        patch.object(GitHubActionsClient, "list_commit_statuses", return_value=[_status()]),
+    ):
+        assert run(config, LATER) == 0
+    report = json.loads(config.report_output.read_text())
+    assert report["runner_cost"]["estimated_cost_usd"] == expected
+    assert ("![est. cost: $0.01]" if expected else "![est. cost: unavailable]") in config.markdown_output.read_text()
 
 
 def test_run_collects_jobs_for_overlapping_prior_same_pr_run(

@@ -79,6 +79,7 @@ class ActionConfig(BaseModel):
     lane_selection_artifact: str = ""
     #: Keys the sticky, so several observed workflows each keep their own comment.
     sticky_key: str = ""
+    sticky_workflow: str = ""
     work_selection_artifact: str = ""
     impact_comparisons: list[ImpactComparison] = Field(default_factory=list, max_length=12)
     job_dependencies: dict[str, list[str]] = Field(default_factory=dict)
@@ -125,6 +126,7 @@ class ActionConfig(BaseModel):
             impact_comparisons=TypeAdapter(list[ImpactComparison]).validate_json(
                 os.environ.get("INPUT_IMPACT_COMPARISONS_JSON", "[]")),
             sticky_key=os.environ.get("INPUT_STICKY_KEY", "").strip(),
+            sticky_workflow=os.environ.get("INPUT_STICKY_WORKFLOW", "").strip(),
             job_dependencies=TypeAdapter(dict[str, list[str]]).validate_json(
                 os.environ.get("INPUT_JOB_DEPENDENCIES_JSON", "{}")),
             analyze_critical_path=os.environ.get("INPUT_ANALYZE_CRITICAL_PATH", "false").lower() == "true",
@@ -429,7 +431,8 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
     if reference_to_record is not None:
         _write_reference(config, reference_to_record)
 
-    if config.post_sticky and config.pull_request_number is not None:
+    if (config.post_sticky and config.pull_request_number is not None
+            and (not config.sticky_workflow or report.provenance.workflow_name == config.sticky_workflow)):
         try:
             client.upsert_sticky(
                 config.pull_request_number,

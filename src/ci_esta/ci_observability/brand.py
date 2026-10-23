@@ -39,6 +39,19 @@ class Badge:
     value: str
     color: str
 
+    @property
+    def summary(self) -> str:
+        """The same figure in an expander headline, without presentation markup."""
+        return f"{self.label}: unavailable" if self.value == "unavailable" else f"{self.value} {self.label}"
+
+
+def quantity(label: str, count: int, total: int, unit: str) -> Badge:
+    return Badge(label, f"{count:,} / {total:,} {unit}", BLUE)
+
+
+def unavailable(label: str) -> Badge:
+    return Badge(label, "unavailable", GREY)
+
 
 def _shields(text: str) -> str:
     """shields.io path escaping: `-` and `_` double, a space becomes `_`, the rest is URL-quoted."""

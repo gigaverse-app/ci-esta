@@ -364,8 +364,8 @@ def test_client_creates_marker_comment_when_absent() -> None:
     finally:
         client.close()
 
-    assert [request.method for request in requests] == ["GET", "POST"]
-    assert requests[-1].url.path.endswith(f"/issues/{PR_NUMBER}/comments")
+    assert [request.method for request in requests] == ["GET", "POST", "GET"]
+    assert requests[1].url.path.endswith(f"/issues/{PR_NUMBER}/comments")
 
 
 def test_client_does_not_replace_a_more_complete_same_run_snapshot() -> None:
