@@ -10,17 +10,58 @@ inputs:
   output:
     description: Destination scheduling hint manifest.
     default: .ci-test-durations.json
+  history-key:
+    description: Opt in with a stable environment identity, e.g. unit-linux-py314. Empty preserves replacement behavior.
+    default: ''
+  complete-files:
+    description: Declare that reports cover every case in each observed file within this lane. Required with history-key.
+    default: 'false'
+  history-publish:
+    description: Publish history on successful trusted-branch runs. False computes locally without publication.
+    default: 'true'
+  history-branch:
+    description: Trusted history branch. Defaults to the repository default branch. PRs can never publish.
+    default: ''
+  history-max-downloads:
+    description: Maximum uncovered checkpoints to download; fails rather than publish incomplete history.
+    default: '20'
+  history-retention-days:
+    description: GitHub artifact lifetime, subject to repository limits. Removed-file grace remains 14 days.
+    default: '90'
+  github-token:
+    description: Token with actions read permission for opted-in history.
+    default: ${{ github.token }}
 runs:
   using: composite
   steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
     - name: Learn file costs
+      id: learn
       shell: bash
       env:
         SHARED_ACTION_PATH: ${{ github.action_path }}
         PYTHONPATH: ${{ github.action_path }}/../../src
         INPUT_JUNIT_PATTERN: ${{ inputs.junit-pattern }}
         INPUT_TIMING_OUTPUT: ${{ inputs.output }}
-      run: uv run --no-project --python 3.14 --with 'pydantic>=2.11,<3' --with 'defusedxml>=0.7,<1' --with "$(python "$SHARED_ACTION_PATH/../../scripts/ci/pytest_selective_requirement.py")" python -m ci_esta.testing.timing_feedback
+        INPUT_HISTORY_KEY: ${{ inputs.history-key }}
+        INPUT_COMPLETE_FILES: ${{ inputs.complete-files }}
+        INPUT_HISTORY_PUBLISH: ${{ inputs.history-publish }}
+        INPUT_HISTORY_BRANCH: ${{ inputs.history-branch }}
+        INPUT_HISTORY_MAX_DOWNLOADS: ${{ inputs.history-max-downloads }}
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: uv run --no-project --python 3.14 --with "$SHARED_ACTION_PATH/../.." python -m ci_esta.testing.timing_feedback
+    - name: Publish independent timing checkpoint
+      if: steps.learn.outputs.publish == 'true'
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ steps.learn.outputs.history-name }}
+        path: ${{ steps.learn.outputs.history-path }}
+        # A rerun replaces this run's checkpoint; different runs never overwrite each other.
+        overwrite: true
+        retention-days: ${{ inputs.history-retention-days }}
+        if-no-files-found: error
     - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: ${{ inputs.artifact-name }}

@@ -1,0 +1,38 @@
+name: Restore retained pytest timings
+description: Merge successful trusted-branch checkpoints into advisory file costs. Concurrent writers retain both updates.
+inputs:
+  history-key:
+    description: Same explicit environment identity used by learn-test-timings.
+    required: true
+  output:
+    description: Planner duration manifest. On a miss keep the existing seed or initialize an empty manifest.
+    default: .test_durations
+  history-branch:
+    description: Trusted history branch; defaults to the repository default branch.
+    default: ''
+  history-max-downloads:
+    description: Maximum uncovered checkpoints to download. Covered ancestors need no download.
+    default: '20'
+  strict:
+    description: Fail on inaccessible or invalid history instead of retaining a seed or unknown-cost fallback.
+    default: 'false'
+  github-token:
+    description: Token with actions read permission.
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
+    - shell: bash
+      env:
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+        PYTHONPATH: ${{ github.action_path }}/../../src
+        INPUT_HISTORY_KEY: ${{ inputs.history-key }}
+        INPUT_TIMING_OUTPUT: ${{ inputs.output }}
+        INPUT_HISTORY_BRANCH: ${{ inputs.history-branch }}
+        INPUT_HISTORY_MAX_DOWNLOADS: ${{ inputs.history-max-downloads }}
+        INPUT_HISTORY_STRICT: ${{ inputs.strict }}
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: uv run --no-project --python 3.14 --with "$SHARED_ACTION_PATH/../.." python -m ci_esta.testing.timing_artifacts
