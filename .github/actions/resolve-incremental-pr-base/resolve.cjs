@@ -51,6 +51,7 @@ async function resolveIncrementalPrBase({
   maxAgeHours = 168,
   nowMs = Date.now(),
   evidenceCache = new Map(),
+  onReuse,
 }) {
   // One planning invocation may evaluate several lanes. Share only raw API evidence,
   // never verdicts: each lane still enforces its own receipt and newer-failure revocation.
@@ -159,7 +160,7 @@ async function resolveIncrementalPrBase({
         }
         const succeeded = await hasSuccessfulEvidence(run);
         if (contradictedSameHeadEvidence) return null;
-        if (succeeded) return { baseSha: headSha, reused: true };
+        if (succeeded) return admittedReuse(run);
       }
       return null;
     };
@@ -181,6 +182,21 @@ async function resolveIncrementalPrBase({
       }
       const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
       return new RegExp(`^${escaped}$`).test(jobName);
+    };
+    const admittedReuse = async (run) => {
+      // Observability is downstream of the verdict. A broken sink cannot revoke
+      // proof or admit work which the resolver would otherwise execute.
+      if (sameHeadOnly && onReuse) {
+        try {
+          const jobs = await evidenceCache.get(`jobs:${run.id}`);
+          await onReuse({run, jobs: (jobs || []).filter(job =>
+            matchesJobPattern(job.name, evidenceJobName) && job.conclusion === 'success' &&
+            (job.steps || []).some(step => receiptMatches(step.name, evidenceStepName) && step.conclusion === 'success'))});
+        } catch (error) {
+          core.warning(`Reuse measurements unavailable: ${error.message}`);
+        }
+      }
+      return {baseSha: headSha, reused: true};
     };
     const hasSuccessfulEvidence = async (run) => {
       if (evidenceByRunId.has(run.id)) return evidenceByRunId.get(run.id);
@@ -341,7 +357,7 @@ async function resolveIncrementalPrBase({
         if (!succeeded) continue;
         // Exact-head lanes require their own successful receipt naming the
         // tested merge SHA. No ancestor or overall workflow result substitutes.
-        if (sameHeadOnly) return { baseSha: headSha, reused: true };
+        if (sameHeadOnly) return admittedReuse(candidate);
         // GitHub dynamically associates historical same-branch runs with a
         // newly opened PR. A run whose head has since landed in the base is
         // evidence for the previous PR, not for this recycled branch.

@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 import time
@@ -72,6 +73,27 @@ def test_local_shards_wait_for_all_processes_and_report_any_failure(
     output = capsys.readouterr().out
     assert f"Shard {FAILING_SHARD}/{SHARD_COUNT} failed" in output
     assert f"worker={FAILING_SHARD}/{SHARD_COUNT}" in output
+
+
+@pytest.mark.parametrize("fail_one", [False, True])
+def test_shard_measurements_cover_real_processes_and_keep_source_identity(tmp_path, monkeypatch, fail_one):
+    worker = tmp_path / "worker.py"
+    _write_worker(worker, fail_one=fail_one)
+    monkeypatch.setenv("GITHUB_RUN_ID", "431")
+    monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "2")
+    monkeypatch.setenv("GITHUB_SHA", "b" * 40)  # Checkout merge differs from the run's PR head.
+    event = tmp_path / "event.json"
+    event.write_text(json.dumps({"pull_request": {"head": {"sha": "a" * 40}}}))
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event))
+    monkeypatch.setenv("GITHUB_JOB", "tests")
+    config = _config(tmp_path, worker)
+    assert run_local_shards(config) == int(fail_one)
+    data = json.loads((config.log_dir / "ci-esta-shards.json").read_text())
+    assert (data["run_id"], data["run_attempt"], data["head_sha"]) == (431, 2, "a" * 40)
+    assert data["configured_shards"] == SHARD_COUNT
+    assert {item["index"] for item in data["shards"]} == {1, 2, 3}
+    assert all(0 <= item["start_seconds"] < item["end_seconds"] for item in data["shards"])
+    assert {item["index"] for item in data["shards"] if item["exit_code"]} == ({2} if fail_one else set())
 
 
 @pytest.mark.parametrize("sibling_status", [0, 9])

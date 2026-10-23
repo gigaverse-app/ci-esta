@@ -125,6 +125,7 @@ const context = {
   payload: { before: input.previousHeadSha },
 };
 const infos = [];
+const proofs = [];
 const core = { warning: (message) => warnings.push(message), info: (message) => infos.push(message) };
 (async () => {
   const evidenceCache = new Map();
@@ -132,6 +133,10 @@ const core = { warning: (message) => warnings.push(message), info: (message) => 
   for (const evidenceJobName of input.lanes ?? [input.evidenceJobName ?? "Security evidence"]) {
   results.push(await resolveIncrementalPrBase({
     evidenceCache,
+    onReuse: ({run, jobs}) => {
+      if (input.failTelemetry) throw Error('telemetry unavailable');
+      proofs.push({run: run.id, jobs: jobs.map(job => job.name)});
+    },
     github,
     context,
     core,
@@ -150,7 +155,7 @@ const core = { warning: (message) => warnings.push(message), info: (message) => 
   }));
   }
   const result = input.lanes ? results : results[0];
-  process.stdout.write(JSON.stringify({ result, warnings, calls, infos, reads }));
+  process.stdout.write(JSON.stringify({ result, warnings, calls, infos, reads, proofs }));
 })().catch((error) => {
   console.error(error);
   process.exit(1);
@@ -181,6 +186,21 @@ def test_same_head_lane_requires_its_own_fresh_success(workflow_conclusion: str,
     result = _resolve_incremental_base(_same_head_lane_scenario(workflow_conclusion, variant))["result"]
     proven = variant in {"valid", "ancestor"}
     assert result == {"baseSha": CURRENT_HEAD_SHA if proven else FALLBACK_BASE_SHA, "reused": proven}
+
+
+@pytest.mark.parametrize("variant", ["valid", "ancestor", "failed", "missing-receipt", "rerun"])
+def test_reuse_measurement_names_only_the_admitted_proof(variant):
+    observed = _resolve_incremental_base(_same_head_lane_scenario("success", variant))
+    assert observed["proofs"] == ([{"run": 1, "jobs": ["Search validation"]}]
+                                  if variant in {"valid", "ancestor"} else [])
+
+
+def test_measurement_sink_failure_cannot_change_admission():
+    scenario = _same_head_lane_scenario("success", "valid")
+    scenario["failTelemetry"] = True
+    observed = _resolve_incremental_base(scenario)
+    assert observed["result"]["reused"] is True
+    assert any("telemetry unavailable" in message for message in observed["warnings"])
 
 
 SAME_HEAD_REJECTION = {

@@ -84,19 +84,15 @@ def render(
 
 
 def summaries(markdown: str) -> list[str]:
-    return re.findall(r"<summary>(.*?)</summary>", markdown)
-
-
-def tldr_row(markdown: str) -> str:
-    return markdown.splitlines()[4]
+    """Nested diagnostics within the new selection container."""
+    return re.findall(r"<summary>(.*?)</summary>", markdown)[1:]
 
 
 def test_a_narrowed_selection_leads_with_time_saved_and_its_funnel() -> None:
     markdown = render(explanation(), AI_TIMINGS, REFERENCES)
 
-    assert tldr_row(markdown) == (
-        f"| {SELECTED} of 1,087 files | 1m 18s | ▰▰▱▱▱▱▱▱▱▱ 4m 53s | {SAVED_PERCENT} | unchanged |"
-    )
+    assert f"Test selection · {SELECTED} / 1,087 files · {SAVED_PERCENT} less summed test time" in markdown
+    assert "| Ran | Wall |" not in markdown
     assert f"{APP_FACTORY_TESTS} of these come through `{APP_FACTORY}`." in markdown
     # The floor doesn't touch, change or inflate this PR's selection, so it isn't shown.
     assert summaries(markdown) == [f"{WORTH_OPENING}Why these {SELECTED} tests?"]
@@ -109,7 +105,7 @@ def test_expanders_stay_closed_even_when_worth_opening() -> None:
     markdown = render(explanation(floor=floor(after=FLOOR_FILES + 1, added=[BILLING])), AI_TIMINGS, REFERENCES)
 
     assert "<details open" not in markdown
-    assert markdown.count("<details>") == len(summaries(markdown))
+    assert markdown.count("<details>") == len(summaries(markdown)) + 1
 
 
 def test_a_full_suite_saves_nothing_and_blames_the_startup_floor() -> None:
@@ -121,8 +117,8 @@ def test_a_full_suite_saves_nothing_and_blames_the_startup_floor() -> None:
         REFERENCES,
     )
 
-    assert "| none | unchanged |" in tldr_row(markdown)
-    assert "▰▰▰▰▰▰▰▰▰▰ " in tldr_row(markdown)
+    assert "1,087 / 1,087 files" in markdown
+    assert "less summed test time" not in markdown
     assert "they're in the startup floor" in markdown
     assert summaries(markdown) == [
         f"{WORTH_OPENING}Why all 1,087 tests?",
@@ -137,7 +133,7 @@ def test_floor_growth_is_a_warning_and_marks_the_graph_worth_opening() -> None:
         explanation(floor=floor(after=FLOOR_FILES + 1, added=[BILLING], path=path)), AI_TIMINGS, REFERENCES
     )
 
-    assert tldr_row(markdown).endswith("| **wider** |")
+    assert "Graph: **wider**" in markdown
     assert "**Warning:** this PR grows the startup floor by 1 file." in markdown
     assert summaries(markdown)[1] == f"{WORTH_OPENING}Startup floor grew {FLOOR_FILES} → {FLOOR_FILES + 1} files"
     assert f"**This PR adds 1 to the floor:** `{BILLING}`. To undo it, remove the import" in markdown
@@ -152,7 +148,7 @@ def test_a_split_that_swaps_a_small_file_in_for_larger_ones_reads_as_a_shrink() 
     swap = floor(after=FLOOR_FILES - 1, added=[leaf], removed=left)
     markdown = render(explanation(floor=swap, floor_seeds=[leaf]), AI_TIMINGS, REFERENCES)
 
-    assert tldr_row(markdown).endswith("| narrower |")
+    assert "Graph: **narrower**" in markdown
     assert "This PR shrinks the startup floor by 1 file." in markdown
     assert "Warning" not in markdown
     assert summaries(markdown)[1] == (f"{WORTH_OPENING}Startup floor {FLOOR_FILES} → {FLOOR_FILES - 1} files: +1, −2")
@@ -217,17 +213,19 @@ def test_repository_paths_cannot_break_out_of_code_cells_or_the_summary() -> Non
 
 
 @pytest.mark.parametrize(
-    ("pytest_timing", "references", "expected"),
+    ("pytest_timing", "references"),
     [
-        (None, REFERENCES, f"| {SELECTED} of 1,087 files | — | — | — | unchanged |"),
-        (AI_TIMINGS, [], f"| {SELECTED} of 1,087 files | 1m 18s | 4m 53s | — | unchanged |"),
+        (None, REFERENCES),
+        (AI_TIMINGS, []),
     ],
     ids=["no-timing", "no-reference"],
 )
 def test_missing_measurements_show_as_unknown_not_as_zero(
-    pytest_timing: PytestTimingMetadata | None, references: list[FullSuiteReferenceV1], expected: str
+    pytest_timing: PytestTimingMetadata | None, references: list[FullSuiteReferenceV1]
 ) -> None:
-    assert tldr_row(render(explanation(), pytest_timing, references)) == expected
+    rendered = render(explanation(), pytest_timing, references)
+    assert "less summed test time" not in rendered
+    assert "0%" not in rendered
 
 
 def test_a_run_slower_than_the_full_suite_saved_nothing() -> None:
@@ -235,7 +233,7 @@ def test_a_run_slower_than_the_full_suite_saved_nothing() -> None:
     assert full_suite_seconds is not None
     slower = FULL_SUITE_TIMINGS.model_copy(update={"total_test_seconds": full_suite_seconds * 2})
 
-    assert "| 0% |" in tldr_row(render(explanation(), slower, REFERENCES))
+    assert "0% less summed test time" in render(explanation(), slower, REFERENCES)
 
 
 def test_the_saving_is_against_the_median_of_recent_full_suite_runs() -> None:
@@ -261,7 +259,7 @@ def test_the_saving_is_against_the_median_of_recent_full_suite_runs() -> None:
         f"(newest: [run {newest.run_id}](https://github.com/gigaverse-app/gigaverse-ai/actions/runs/{newest.run_id}),"
         in linked
     )
-    assert f"| {SAVED_PERCENT} |" in tldr_row(markdown)
+    assert f"{SAVED_PERCENT} less summed test time" in markdown
 
 
 @pytest.mark.parametrize(

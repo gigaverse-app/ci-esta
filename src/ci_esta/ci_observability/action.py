@@ -403,7 +403,10 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
             lane_selection=lane_selection,
             job_dependencies=job_dependencies,
         )
-        report = report.model_copy(update={"work_selection": _work_selection(client, config, run_metadata),
+        from ci_esta.ci_observability.efficiency import collect_measurements
+        measurements, measurement_errors = collect_measurements(client, run_metadata, latest_jobs)
+        report = report.model_copy(update={"measurements": measurements, "measurement_errors": measurement_errors,
+                                           "work_selection": _work_selection(client, config, run_metadata),
                                            "measured_impact": collect_impact(client, config.impact_comparisons)})
         reference_to_record = _own_reference(report, config, run_metadata, observed_at)
     except Exception as error:

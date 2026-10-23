@@ -114,12 +114,12 @@ def test_the_section_says_what_ran_why_and_what_skipping_saved() -> None:
 
     section = render_lane_section(LaneSelectionSectionV1(plan=MONGODB_ONLY, reference=reference), REPOSITORY)
 
-    assert section.startswith("#### 🧪 Test lanes · by [pytest-selective](")
-    assert "| 🟧⬜⬜ 1 of 3 | 2 | 1 | 25 runner-min |" in section
-    assert "The 1 changed file reaches `mongodb`; the other lanes were skipped." in section
+    assert section.startswith("<details><summary>🧪 Test lanes · 1 / 3 selected</summary>")
+    assert "Historical cost of skipped jobs: ≈25 runner-min" in section
+    assert "The 1 changed file reaches `mongodb`; the other lanes were not selected." in section
     # Lanes that ran come first, with the path that selected them.
-    assert section.index("| `mongodb` | ran | affected test `tests/mongodb/test_store.py` |") < section.index(
-        "| `saleor` | skipped | no affected tests or changed inputs |"
+    assert section.index("| `mongodb` | selected | affected test `tests/mongodb/test_store.py` |") < section.index(
+        "| `saleor` | not selected | no affected tests or changed inputs |"
     )
     assert f"[run {REFERENCE_RUN_ID}](https://github.com/{REPOSITORY}/actions/runs/{REFERENCE_RUN_ID})" in section
 
@@ -135,7 +135,7 @@ def test_the_section_says_what_ran_why_and_what_skipping_saved() -> None:
                     "lane_reasons": dict.fromkeys(MONGODB_ONLY.lanes, ["global input: uv.lock"]),
                 }
             ),
-            "Every lane ran: `uv.lock` is a CI or dependency input every lane reads.",
+            "Every lane was selected: `uv.lock` is a CI or dependency input every lane reads.",
         ),
         (
             MONGODB_ONLY.model_copy(
@@ -145,7 +145,7 @@ def test_the_section_says_what_ran_why_and_what_skipping_saved() -> None:
                     "lane_reasons": dict.fromkeys(MONGODB_ONLY.lanes, ["full-suite fallback: missing history"]),
                 }
             ),
-            "⚠️ Every lane ran because planning fell back: full-suite fallback: missing history.",
+            "⚠️ Every lane was selected because planning fell back: full-suite fallback: missing history.",
         ),
         (
             MONGODB_ONLY.model_copy(
@@ -155,7 +155,7 @@ def test_the_section_says_what_ran_why_and_what_skipping_saved() -> None:
                     "lane_reasons": {},
                 }
             ),
-            "No lane reads the 2 changed files: every test lane was skipped.",
+            "No lane reads the 2 changed files: no test lane was selected.",
         ),
     ],
     ids=["global-input", "fallback", "docs-only"],
@@ -169,7 +169,7 @@ def test_a_hostile_path_cannot_break_the_lane_table() -> None:
 
     section = render_lane_section(LaneSelectionSectionV1(plan=plan))
 
-    assert "| `mongodb` | ran | affected test ``a\\|b`c<script>`` |" in section
+    assert "| `mongodb` | selected | affected test ``a\\|b`c<script>`` |" in section
 
 
 def test_a_keyed_sticky_never_matches_the_bare_one() -> None:
@@ -187,6 +187,8 @@ class FakeLaneGitHub:
         self.reference_run = reference_run
 
     def list_artifacts(self, name: str, run_id: int | None = None) -> list[GitHubArtifactV1]:
+        if name is None:
+            return []
         assert (name, run_id) == (LANE_ARTIFACT, RUN_ID)
         return [artifact(LANE_ARTIFACT_ID + 1, RUN_ID, fork=True), artifact(LANE_ARTIFACT_ID, RUN_ID)]
 
@@ -248,8 +250,8 @@ def test_the_action_prices_skipped_lanes_against_the_last_full_run(tmp_path: Pat
     assert report.lane_selection.reference == SkippedLaneReferenceV1(
         run_id=REFERENCE_RUN_ID, head_branch="main", jobs=["saleor (3.14)"], runner_seconds=600
     )
-    assert "![lanes: 1 of 3 ran](https://img.shields.io/badge/lanes-1_of_3_ran-2563EB?" in sticky
-    assert "![skipped: ≈10 runner-min](" in sticky
+    assert "![selected: 1 / 3 lanes](" in sticky
+    assert "Historical cost of skipped jobs: ≈10 runner-min" in sticky
     assert marker == sticky_marker("CI") and marker in sticky
 
 

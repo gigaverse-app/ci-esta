@@ -222,7 +222,7 @@ def test_runner_cost_is_grouped_and_priced_by_configured_sku() -> None:
     assert report.runner_cost.unpriced_rounded_runner_minutes == 0
     markdown = render_markdown(report)
     assert "Estimated runner cost at configured rates: **$0.078**." in markdown
-    assert markdown.splitlines()[8].endswith("| 5 min | $0.078 |")
+    assert any(line.endswith("| 5 min | $0.078 |") for line in markdown.splitlines())
     assert "| linux_8_core | 3 | $0.022 | $0.066 |" in markdown
     assert "ci_estimated_runner_cost_usd" in render_prometheus(report)
 
@@ -360,7 +360,6 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
     markdown = render_markdown(report)
     assert markdown.startswith('<a href="https://github.com/gigaverse-app/ci-esta"><picture>')
     assert (
-        "#### ⏱️ CI time and cost\n\n"
         "| Workflow | Merge-ready | First runner | Longest job | Runner time | Cost |\n"
         "|:--|--:|--:|:--|--:|--:|\n"
         f"| {WORKFLOW_NAME} | 2m 15s | after 5s | Build: image · 2m 1s | 6 min | — |\n"
@@ -829,7 +828,7 @@ def test_the_selection_sticky_folds_latency_and_cost_behind_one_line(changes: di
     assert latency < sticky.index("| Merge-ready |") < sticky.index("</details>", latency) < sticky.index(STICKY_MARKER)
 
 
-def test_a_report_without_a_selection_keeps_latency_and_cost_open() -> None:
+def test_a_report_without_a_selection_still_collapses_latency_and_cost() -> None:
     report = build_unavailable_report(
         repository=REPOSITORY,
         run_id=RUN_ID,
@@ -840,10 +839,10 @@ def test_a_report_without_a_selection_keeps_latency_and_cost_open() -> None:
         error="GitHub API unavailable",
     )
 
-    assert "#### ⏱️ CI time and cost\n" in render_markdown(report)
+    assert "<details><summary>⏱️ CI time and cost" in render_markdown(report)
 
 
-def test_the_pytest_timing_signal_is_left_out_only_beside_the_selection_that_shows_it() -> None:
+def test_the_pytest_timing_signal_is_preserved_once_in_sharding_even_with_selection() -> None:
     timing = RepositorySignalV1(key=PYTEST_TIMING_SIGNAL, label="pytest", value="4 shards · 1m 18s wall")
     coverage = RepositorySignalV1(key="coverage", label="Coverage", value="81%")
     sticky = _sticky_with_selection(repository_signals=[timing, coverage])
@@ -859,8 +858,9 @@ def test_the_pytest_timing_signal_is_left_out_only_beside_the_selection_that_sho
     )
 
     assert "_Coverage: 81%._" in sticky
-    assert "1m 18s wall" not in sticky
-    assert "_pytest: 4 shards · 1m 18s wall._" in render_markdown(report)
+    assert sticky.count("pytest: 4 shards · 1m 18s wall.") == 1
+    assert sticky.index("Sharding &amp; runner efficiency") < sticky.index("pytest: 4 shards") < sticky.index("⏱️ CI time")
+    assert "pytest: 4 shards · 1m 18s wall." in render_markdown(report)
 
 
 def test_the_sticky_marker_stays_out_of_the_visible_footer() -> None:

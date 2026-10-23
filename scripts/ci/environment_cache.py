@@ -87,6 +87,9 @@ def main() -> None:
         # Always synchronize: restored environments are acceleration, never validation receipts.
         subprocess.run(["uv", "sync", "--locked", "--python", sys.executable, *sync_arguments(args)],
                        cwd=root, check=True, env=sync_environment())
+        if output_path := os.environ.get("GITHUB_OUTPUT"):
+            with open(output_path, "a") as output:
+                output.write(f"restored-usable={str(usable).lower()}\n")
 
 
 if __name__ == "__main__":

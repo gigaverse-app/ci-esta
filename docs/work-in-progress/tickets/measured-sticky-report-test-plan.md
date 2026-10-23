@@ -1,0 +1,36 @@
+# Measured sticky report
+
+## Invariants and verification
+
+- [x] Baseline on `91d2975`: 247 report, timing-action and local-shard tests pass.
+- [x] Preserve banner, selection explanations, startup floor, Gantt, gates, costs,
+  slow steps, overlap, benchmark and Bun details behind their owning sections.
+- [ ] A selection plan never claims execution or receipt reuse. Unknown savings
+  remain unknown; historical comparisons remain estimates with their sources.
+- [ ] Successful cache markers follow locked validation; cache hits do not imply
+  a measured time saving. Failed validation cannot publish a successful marker.
+- [x] Reuse telemetry describes the resolver's admitted source jobs and current
+  run/attempt/head. Reporting failure cannot change validation admission.
+- [x] Local shards record observed process intervals, including failed children.
+  Occupancy uses allocated slots and observed intervals, never summed JUnit time.
+  Incomplete pools, duplicates and stale identities cannot inflate totals.
+- [x] Existing action harnesses exercise the real resolver with API-boundary fakes;
+  local process tests exercise the actual shard runner. Missing telemetry preserves
+  the rest of the report.
+- [ ] Full local checks and hosted CI pass on the published revision.
+- [ ] Real GitHub report includes measured cache/reuse and shard artifacts; inspect
+  the actual sticky and JSON. Exercise positive execution and reuse controls.
+- [ ] Release through Release Please, verify exact PyPI installation, update all
+  consumers, and inspect their resulting reports and validation gates.
+
+## Evidence ledger
+
+Baseline: `91d2975`, 247 passed. Implementation, CI, live report, release and
+consumer adoption evidence will be recorded here as each gate is completed.
+
+First implementation pass: 529 targeted tests passed (reporting, real shard
+processes, real JavaScript resolver/action code, environment validation), plus
+Ruff and both import contracts. Fail-first controls reproduced missing process
+records and missing proof callbacks. Report regressions exposed a pre-existing
+zero-offset Gantt omission; jobs beginning at the workflow timestamp now retain
+their bars. Telemetry tests also bind PR head separately from the tested merge.

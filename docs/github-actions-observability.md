@@ -60,23 +60,26 @@ reference leaves savings unmeasured. This configures observation, not test execu
 ### What the sticky shows
 
 Add [measured-impact pairs](measured-impact.md) to preserve verified optimization
-results at the top of the sticky. Bun execution artifacts show structured counts,
+results inside CI time and cost. Bun execution artifacts show structured counts,
 wall time and fallback reasons without installing pytest-selective. Timeline and
 critical-path diagnostics are always collapsed, including reports with no tests.
 
 ```text
 [CI-esta banner: dark or light, following the reader's GitHub theme]
-[merge-ready 2m 9s] [lanes 1 of 14 ran] [skipped ≈28 runner-min] [runner 4 min] [cost $0.03]  CI · `17f3325`
+[merge-ready 2m 9s] [selected 93 / 1,293 files] [reused 2 lanes] [runner 17 min]
+CI · `17f3325` · attempt 1 · complete snapshot
 
-🎯 Test selection · by pytest-selective   (when the run uploaded a file-selection explanation)
-🧪 Test lanes · by pytest-selective       (when the run uploaded a lane plan; one square per lane)
-⏱️ CI time and cost                        (collapsed beside a selection section)
+🎯 Test selection                         (closed: reasons, paths, startup floor and reference runs)
+♻️ What else avoided work?                (closed: receipt sources, cache outcomes, image digests)
+⚡ Sharding & runner efficiency            (closed: pool geometry, intervals, occupancy and tail)
+⏱️ CI time and cost                        (closed: historical benchmarks, timing and costs)
    closed Timeline and critical path: one row per job labeled with its run and ⏳ wait, orange
    for the critical path, a green bar from merge-ready on
 [mark] Powered by CI-esta · run · schema
 ```
 
-The badge line answers "can I merge, what ran, what did it cost" before any
+The example above is illustrative. The badge line answers "can I merge, what was selected,
+what evidence was reused, what did it cost" before any
 detail, colored with GitHub's status palette; each badge's alt text carries its
 figure. Readiness appears only when required gates are configured. GitHub's API
 has no `needs` graph, so the gantt infers the chain: GitHub creates a job when
@@ -87,6 +90,48 @@ new run updates it in place, and an older run never overwrites a newer one.
 The banner and mark live in [`docs/assets`](assets/). Change both banners
 through [`scripts/render_sticky_banners.py`](../scripts/render_sticky_banners.py)
 rather than editing one theme by hand.
+
+### Execution measurements
+
+CI-esta discovers `ci-esta-reuse-*` and `ci-esta-shards-*` artifacts in the observed
+run. Each contains one versioned JSON record bound to its run ID, attempt and head
+SHA. Old-attempt and fork artifacts cannot explain the current attempt. Measurement
+errors stay visible in `measurement_errors` without removing the timing report.
+
+`resolve-lane-evidence` publishes the successful source job IDs and input receipt
+it actually admitted. The reporter counts only lanes whose current jobs were
+skipped and re-reads the source jobs' GitHub timestamps. Their durations estimate
+runner work avoided; they do not measure wall-clock savings or billed minutes.
+The same proof job is never added twice. Selection and evidence reuse can overlap,
+so their historical estimates must not be added together.
+
+`setup-cached-uv` records hit, miss, repaired or disabled only after locked
+synchronization succeeds. These counts describe complete environments, separately
+from uv's download cache. `reuse-ecr-image` records successful digest-preserving
+promotions. Neither a cache hit nor an image promotion establishes seconds saved
+without a comparable cold run or build. Existing Docker cache signals are retained
+in the same avoided-work section.
+
+`ci-esta-pytest run-local` now writes `ci-esta-shards.json` in its log directory
+after all children exit, including on test failure. Publish it from each pool:
+
+```yaml
+- name: Publish shard execution intervals
+  if: always()
+  uses: gigaverse-app/ci-esta/.github/actions/publish-shard-measurements@<reviewed-commit>
+  with:
+    path: pytest-logs/ci-esta-shards.json
+    pool: ${{ matrix.first }}-${{ matrix.last }}
+```
+
+Use the actual `--log-dir` and the pool keys from your matrix. Slot occupancy is
+the sum of observed child-process durations divided by allocated slots times
+pool wall time. It includes Python startup and subprocess waits. It is not CPU
+utilization. Global occupancy is withheld when pools overlap or any configured
+shards are missing. Per-pool wall, visible logical CPUs, idle slot-time, tail/median,
+exit codes and all intervals remain available. Quota, throttling and duration
+prediction error stay unknown without separate measurements. JUnit aggregate
+durations remain visible but cannot substitute for process intervals.
 
 For a report inside the original workflow instead:
 

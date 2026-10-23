@@ -36,3 +36,7 @@ runs:
         SOURCE_IMAGE_TAG: ${{ inputs.source-image }}
         TARGET_IMAGE_TAG: ${{ inputs.target-image }}
       run: "${{ github.action_path }}/reuse_ecr_image.sh"
+    - name: 'CI-esta image v1: reused ${{ steps.reuse.outputs.digest }}'
+      if: steps.reuse.outputs.reused == 'true'
+      shell: bash
+      run: echo 'Source and target image digests match; no layer rebuild was needed for this promotion.'
