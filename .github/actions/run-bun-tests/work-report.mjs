@@ -1,4 +1,8 @@
 // Provider-neutral reporting only. This never authorizes a test skip.
+import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
 export function workSelectionReport(execution, context) {
   const { mode, reason, fallback, testedSha, base, bunVersion, totalFiles,
     executedFiles, alwaysRunFiles = [], durationMs, exitCode, receipt } = execution;
@@ -18,4 +22,13 @@ export function workSelectionReport(execution, context) {
         tested_sha: testedSha, base_sha: base || null, runtime: `Bun ${bunVersion}` },
     }],
   };
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const event = process.env.GITHUB_EVENT_PATH ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")) : {};
+  const result = workSelectionReport(JSON.parse(readFileSync(process.env.BUN_EXECUTION_FILE, "utf8")), {
+    runId: process.env.GITHUB_RUN_ID, attempt: process.env.GITHUB_RUN_ATTEMPT,
+    headSha: event.pull_request?.head.sha || process.env.GITHUB_SHA,
+  });
+  writeFileSync(process.env.BUN_WORK_REPORT || "ci-work-selection.json", JSON.stringify(result, null, 2) + "\n");
 }

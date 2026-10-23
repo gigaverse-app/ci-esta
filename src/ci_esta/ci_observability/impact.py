@@ -121,7 +121,7 @@ def render_impact(results: list[ImpactResult], repository: str) -> str:
         def link(ref, seconds):
             value = "<1s" if seconds == 0 else format_seconds(seconds)
             return f"[{value}](https://github.com/{repository}/actions/runs/{ref.run_id}/attempts/{ref.run_attempt})"
-        reduction = f"{(before - after) / before * 100:.1f}%" if before else "—"
+        reduction = ("≈100%" if after == 0 else f"{(before - after) / before * 100:.1f}%") if before else "—"
         lines.append(f"| {label} | {link(item.before, before)} | {link(item.after, after)} | {reduction} |")
         notes.append(f"- **{label}** ({item.comparison.replace('_', ' ')}): {markdown.inline(item.context)}")
     return "\n".join([*lines, "", "<details><summary>Benchmark scope and evidence</summary>", "", *notes,
