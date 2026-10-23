@@ -44,3 +44,12 @@ Main through `bea0fd0` was merged without conflicts; wrappers were regenerated.
 The new stdlib producer is exercised through its actual CLI and fed through the
 collector/renderer. Real locked-sync controls cover success, lock drift and an
 unwritable telemetry output, preserving validation in every case.
+
+Frozen `4e36a83`: full Linux suite **1,214 passed**, wheel and sdist built.
+Live artifact collection on run `39940622998` recorded three real cache misses
+and their locked-sync durations, with zero claimed reuse and the failed gate
+correctly shown as blocked. The hosted merge included another new public namespace
+from main; adding its generated wrapper fixed the only test failure.
+Hosted run `39941029166` on `9f6261a` is green, including both Python versions,
+quality, packaging and the validation gate. This documentation-only ledger update
+is the positive same-input receipt-reuse control for that successful execution.
