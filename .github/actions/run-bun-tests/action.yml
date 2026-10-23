@@ -23,6 +23,9 @@ inputs:
     description: Fresh output directory outside tracked inputs.
     default: '${{ runner.temp }}/bun-test-selection'
 outputs:
+  selection-module:
+    description: Absolute path to the pinned planner module for consumer policy regression controls in this job.
+    value: ${{ github.action_path }}/selection.mjs
   mode:
     description: full, scoped or none. This is selection intent, never a completion receipt.
     value: ${{ steps.run.outputs.mode }}

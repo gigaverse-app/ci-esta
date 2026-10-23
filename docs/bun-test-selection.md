@@ -22,6 +22,8 @@ hardcoding a monorepo layout in CI-esta. It also works without GitHub Actions:
 import `planAffectedTests`, `readTestSelection` from `selection.mjs` or
 `runBunTests` from `run.mjs` in a pinned checkout of the action directory.
 No npm package or generic plugin registry is needed for this single native adapter.
+The action also exposes `selection-module`, an absolute module path in the current
+job, so consumer controls can exercise their real policy against the pinned planner.
 
 1. Produce a complete inventory with the repository's existing discovery code:
 
