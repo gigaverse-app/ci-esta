@@ -387,6 +387,13 @@ class CiObservabilityReportV1(BaseModel):
     work_selection: WorkSelectionV1 | None = None
     critical_path: CriticalPathResult | None = None
 
+    @property
+    def attempt_elapsed_seconds(self) -> float | None:
+        """Gate latency for this attempt; retain literal creation metrics separately."""
+        if self.provenance.run_attempt > 1:
+            return self.merge_ready_from_run_start_seconds
+        return self.merge_ready_from_creation_seconds
+
     @field_validator("test_selection", "lane_selection", mode="before")
     @classmethod
     def validate_optional_selection(cls, value, info):

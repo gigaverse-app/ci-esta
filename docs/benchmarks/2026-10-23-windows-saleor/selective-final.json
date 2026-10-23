@@ -1,0 +1,2901 @@
+{
+  "schema_version": "ci-observability/v1",
+  "collection_status": "complete",
+  "collection_errors": [],
+  "provenance": {
+    "repository": "gigaverse-app/pytest-selective",
+    "workflow_name": "CI",
+    "run_id": 39921160031,
+    "run_attempt": 1,
+    "head_sha": "27638e4cf5d433d8d22725c019bb37e8c7c2ff20",
+    "pull_request_number": null,
+    "workflow_created_at": "2026-10-23T07:56:31Z",
+    "workflow_run_started_at": "2026-10-23T07:56:31Z",
+    "observed_at": "2026-10-23T08:01:41.998459Z"
+  },
+  "latest_attempt_jobs": [
+    {
+      "job_id": 120306451335,
+      "name": "quality",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:33Z",
+      "completed_at": "2026-10-23T07:56:57Z",
+      "wall_seconds": 24.0,
+      "start_offset_seconds": 2.0,
+      "end_offset_seconds": 26.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 36.0,
+      "seconds_to_save_minute": 24.0,
+      "seconds_until_next_minute": 36.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:34Z",
+          "completed_at": "2026-10-23T07:56:36Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:36Z",
+          "completed_at": "2026-10-23T07:56:37Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:37Z",
+          "completed_at": "2026-10-23T07:56:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 7.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv run --locked pre-commit run --all-files",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:44Z",
+          "completed_at": "2026-10-23T07:56:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Check aggregate gate against the execution lanes",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:56:46Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Validate routing even when the platform matrix is skipped",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:46Z",
+          "completed_at": "2026-10-23T07:56:48Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 7,
+          "name": "Validate GitHub Actions",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:48Z",
+          "completed_at": "2026-10-23T07:56:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 6.0
+        },
+        {
+          "number": 13,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:54Z",
+          "completed_at": "2026-10-23T07:56:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:54Z",
+          "completed_at": "2026-10-23T07:56:55Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:55Z",
+          "completed_at": "2026-10-23T07:56:55Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306451564,
+      "name": "distributions",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:34Z",
+      "completed_at": "2026-10-23T07:57:14Z",
+      "wall_seconds": 40.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 43.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 20.0,
+      "seconds_to_save_minute": 40.0,
+      "seconds_until_next_minute": 20.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:35Z",
+          "completed_at": "2026-10-23T07:56:36Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:36Z",
+          "completed_at": "2026-10-23T07:56:37Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:37Z",
+          "completed_at": "2026-10-23T07:56:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 6.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv build",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:43Z",
+          "completed_at": "2026-10-23T07:56:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run --locked twine check --strict dist/*",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:44Z",
+          "completed_at": "2026-10-23T07:56:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked python scripts/check_metadata.py",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:56:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 7,
+          "name": "Run uv run --locked python scripts/smoke_distribution.py",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:57:08Z",
+          "timing_status": "complete",
+          "wall_seconds": 23.0
+        },
+        {
+          "number": 8,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:08Z",
+          "completed_at": "2026-10-23T07:57:10Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 15,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:10Z",
+          "completed_at": "2026-10-23T07:57:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:11Z",
+          "completed_at": "2026-10-23T07:57:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 17,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:11Z",
+          "completed_at": "2026-10-23T07:57:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306451619,
+      "name": "select-tests",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:33Z",
+      "completed_at": "2026-10-23T07:56:43Z",
+      "wall_seconds": 10.0,
+      "start_offset_seconds": 2.0,
+      "end_offset_seconds": 12.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 50.0,
+      "seconds_to_save_minute": 10.0,
+      "seconds_until_next_minute": 50.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:34Z",
+          "completed_at": "2026-10-23T07:56:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:34Z",
+          "completed_at": "2026-10-23T07:56:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/plan-lanes",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:35Z",
+          "completed_at": "2026-10-23T07:56:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 5,
+          "name": "Post Run ./.github/actions/plan-lanes",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:40Z",
+          "completed_at": "2026-10-23T07:56:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:41Z",
+          "completed_at": "2026-10-23T07:56:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 7,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:41Z",
+          "completed_at": "2026-10-23T07:56:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522704,
+      "name": "pytest-minimum",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:57:08Z",
+      "wall_seconds": 23.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 37.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 37.0,
+      "seconds_to_save_minute": 23.0,
+      "seconds_until_next_minute": 37.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:56:47Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:47Z",
+          "completed_at": "2026-10-23T07:56:48Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:48Z",
+          "completed_at": "2026-10-23T07:56:51Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv pip install 'pytest==8.0.0'",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:51Z",
+          "completed_at": "2026-10-23T07:56:51Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run --no-sync pytest -q -n 4 --durations=20",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:51Z",
+          "completed_at": "2026-10-23T07:57:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 15.0
+        },
+        {
+          "number": 9,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:06Z",
+          "completed_at": "2026-10-23T07:57:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 10,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:07Z",
+          "completed_at": "2026-10-23T07:57:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:07Z",
+          "completed_at": "2026-10-23T07:57:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522746,
+      "name": "tests (3.14, windows-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:46Z",
+      "completed_at": "2026-10-23T07:59:18Z",
+      "wall_seconds": 152.0,
+      "start_offset_seconds": 15.0,
+      "end_offset_seconds": 167.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 3,
+      "rounding_waste_seconds": 28.0,
+      "seconds_to_save_minute": 32.0,
+      "seconds_until_next_minute": 28.0,
+      "runner_labels": [
+        "windows-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:47Z",
+          "completed_at": "2026-10-23T07:56:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:50Z",
+          "completed_at": "2026-10-23T07:56:57Z",
+          "timing_status": "complete",
+          "wall_seconds": 7.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:57Z",
+          "completed_at": "2026-10-23T07:57:04Z",
+          "timing_status": "complete",
+          "wall_seconds": 7.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:04Z",
+          "completed_at": "2026-10-23T07:57:05Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:05Z",
+          "completed_at": "2026-10-23T07:57:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:06Z",
+          "completed_at": "2026-10-23T07:58:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 113.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:58:59Z",
+          "completed_at": "2026-10-23T07:59:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:02Z",
+          "completed_at": "2026-10-23T07:59:10Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:10Z",
+          "completed_at": "2026-10-23T07:59:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:11Z",
+          "completed_at": "2026-10-23T07:59:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:11Z",
+          "completed_at": "2026-10-23T07:59:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:14Z",
+          "completed_at": "2026-10-23T07:59:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522757,
+      "name": "tests (3.11, macos-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:57:47Z",
+      "wall_seconds": 62.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 76.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 2,
+      "rounding_waste_seconds": 58.0,
+      "seconds_to_save_minute": 2.0,
+      "seconds_until_next_minute": 58.0,
+      "runner_labels": [
+        "macos-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:56:47Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:47Z",
+          "completed_at": "2026-10-23T07:56:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:49Z",
+          "completed_at": "2026-10-23T07:56:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 7.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:56Z",
+          "completed_at": "2026-10-23T07:56:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:56Z",
+          "completed_at": "2026-10-23T07:56:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:56Z",
+          "completed_at": "2026-10-23T07:57:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 38.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:34Z",
+          "completed_at": "2026-10-23T07:57:36Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:36Z",
+          "completed_at": "2026-10-23T07:57:39Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:39Z",
+          "completed_at": "2026-10-23T07:57:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:40Z",
+          "completed_at": "2026-10-23T07:57:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:40Z",
+          "completed_at": "2026-10-23T07:57:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:41Z",
+          "completed_at": "2026-10-23T07:57:42Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522762,
+      "name": "tests (3.11, ubuntu-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:57:20Z",
+      "wall_seconds": 35.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 49.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 25.0,
+      "seconds_to_save_minute": 35.0,
+      "seconds_until_next_minute": 25.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:46Z",
+          "completed_at": "2026-10-23T07:56:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 4.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:50Z",
+          "completed_at": "2026-10-23T07:56:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:50Z",
+          "completed_at": "2026-10-23T07:56:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 4.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:54Z",
+          "completed_at": "2026-10-23T07:56:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:54Z",
+          "completed_at": "2026-10-23T07:56:55Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:55Z",
+          "completed_at": "2026-10-23T07:57:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 17.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:12Z",
+          "completed_at": "2026-10-23T07:57:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:14Z",
+          "completed_at": "2026-10-23T07:57:16Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:16Z",
+          "completed_at": "2026-10-23T07:57:17Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:17Z",
+          "completed_at": "2026-10-23T07:57:18Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:18Z",
+          "completed_at": "2026-10-23T07:57:18Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:18Z",
+          "completed_at": "2026-10-23T07:57:18Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522779,
+      "name": "tests (3.14, ubuntu-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:57:22Z",
+      "wall_seconds": 37.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 51.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 23.0,
+      "seconds_to_save_minute": 37.0,
+      "seconds_until_next_minute": 23.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:46Z",
+          "completed_at": "2026-10-23T07:56:47Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:47Z",
+          "completed_at": "2026-10-23T07:56:48Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:48Z",
+          "completed_at": "2026-10-23T07:56:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 4.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:52Z",
+          "completed_at": "2026-10-23T07:56:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:52Z",
+          "completed_at": "2026-10-23T07:56:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:52Z",
+          "completed_at": "2026-10-23T07:57:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 22.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:14Z",
+          "completed_at": "2026-10-23T07:57:15Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:15Z",
+          "completed_at": "2026-10-23T07:57:19Z",
+          "timing_status": "complete",
+          "wall_seconds": 4.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:19Z",
+          "completed_at": "2026-10-23T07:57:19Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:19Z",
+          "completed_at": "2026-10-23T07:57:20Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:20Z",
+          "completed_at": "2026-10-23T07:57:20Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:20Z",
+          "completed_at": "2026-10-23T07:57:20Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522806,
+      "name": "tests (3.11, windows-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:59:27Z",
+      "wall_seconds": 162.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 176.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 3,
+      "rounding_waste_seconds": 18.0,
+      "seconds_to_save_minute": 42.0,
+      "seconds_until_next_minute": 18.0,
+      "runner_labels": [
+        "windows-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:46Z",
+          "completed_at": "2026-10-23T07:56:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:49Z",
+          "completed_at": "2026-10-23T07:56:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:54Z",
+          "completed_at": "2026-10-23T07:57:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:02Z",
+          "completed_at": "2026-10-23T07:57:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:03Z",
+          "completed_at": "2026-10-23T07:57:04Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:04Z",
+          "completed_at": "2026-10-23T07:59:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 123.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:07Z",
+          "completed_at": "2026-10-23T07:59:10Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:10Z",
+          "completed_at": "2026-10-23T07:59:18Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:18Z",
+          "completed_at": "2026-10-23T07:59:19Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:19Z",
+          "completed_at": "2026-10-23T07:59:20Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:20Z",
+          "completed_at": "2026-10-23T07:59:22Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:22Z",
+          "completed_at": "2026-10-23T07:59:22Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522882,
+      "name": "tests (3.14, macos-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:58:06Z",
+      "wall_seconds": 81.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 95.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 2,
+      "rounding_waste_seconds": 39.0,
+      "seconds_to_save_minute": 21.0,
+      "seconds_until_next_minute": 39.0,
+      "runner_labels": [
+        "macos-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:56:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 4.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:49Z",
+          "completed_at": "2026-10-23T07:56:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:52Z",
+          "completed_at": "2026-10-23T07:56:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 7.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:59Z",
+          "completed_at": "2026-10-23T07:56:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:59Z",
+          "completed_at": "2026-10-23T07:57:00Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:00Z",
+          "completed_at": "2026-10-23T07:57:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 54.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:54Z",
+          "completed_at": "2026-10-23T07:57:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:56Z",
+          "completed_at": "2026-10-23T07:57:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:59Z",
+          "completed_at": "2026-10-23T07:58:01Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:58:01Z",
+          "completed_at": "2026-10-23T07:58:01Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:58:01Z",
+          "completed_at": "2026-10-23T07:58:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:58:02Z",
+          "completed_at": "2026-10-23T07:58:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        }
+      ]
+    },
+    {
+      "job_id": 120307538006,
+      "name": "Validation gate",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:59:29Z",
+      "completed_at": "2026-10-23T07:59:32Z",
+      "wall_seconds": 3.0,
+      "start_offset_seconds": 178.0,
+      "end_offset_seconds": 181.0,
+      "queued_offset_seconds": 176.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 57.0,
+      "seconds_to_save_minute": 3.0,
+      "seconds_until_next_minute": 57.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:30Z",
+          "completed_at": "2026-10-23T07:59:30Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 2,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/validation-gate@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:30Z",
+          "completed_at": "2026-10-23T07:59:31Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:31Z",
+          "completed_at": "2026-10-23T07:59:31Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    }
+  ],
+  "billing_jobs": [
+    {
+      "job_id": 120306451335,
+      "name": "quality",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:33Z",
+      "completed_at": "2026-10-23T07:56:57Z",
+      "wall_seconds": 24.0,
+      "start_offset_seconds": 2.0,
+      "end_offset_seconds": 26.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 36.0,
+      "seconds_to_save_minute": 24.0,
+      "seconds_until_next_minute": 36.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:34Z",
+          "completed_at": "2026-10-23T07:56:36Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:36Z",
+          "completed_at": "2026-10-23T07:56:37Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:37Z",
+          "completed_at": "2026-10-23T07:56:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 7.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv run --locked pre-commit run --all-files",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:44Z",
+          "completed_at": "2026-10-23T07:56:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Check aggregate gate against the execution lanes",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:56:46Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Validate routing even when the platform matrix is skipped",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:46Z",
+          "completed_at": "2026-10-23T07:56:48Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 7,
+          "name": "Validate GitHub Actions",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:48Z",
+          "completed_at": "2026-10-23T07:56:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 6.0
+        },
+        {
+          "number": 13,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:54Z",
+          "completed_at": "2026-10-23T07:56:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 14,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:54Z",
+          "completed_at": "2026-10-23T07:56:55Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 15,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:55Z",
+          "completed_at": "2026-10-23T07:56:55Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306451564,
+      "name": "distributions",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:34Z",
+      "completed_at": "2026-10-23T07:57:14Z",
+      "wall_seconds": 40.0,
+      "start_offset_seconds": 3.0,
+      "end_offset_seconds": 43.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 20.0,
+      "seconds_to_save_minute": 40.0,
+      "seconds_until_next_minute": 20.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:35Z",
+          "completed_at": "2026-10-23T07:56:36Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:36Z",
+          "completed_at": "2026-10-23T07:56:37Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:37Z",
+          "completed_at": "2026-10-23T07:56:43Z",
+          "timing_status": "complete",
+          "wall_seconds": 6.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv build",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:43Z",
+          "completed_at": "2026-10-23T07:56:44Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run --locked twine check --strict dist/*",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:44Z",
+          "completed_at": "2026-10-23T07:56:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked python scripts/check_metadata.py",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:56:45Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 7,
+          "name": "Run uv run --locked python scripts/smoke_distribution.py",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:57:08Z",
+          "timing_status": "complete",
+          "wall_seconds": 23.0
+        },
+        {
+          "number": 8,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:08Z",
+          "completed_at": "2026-10-23T07:57:10Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 15,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:10Z",
+          "completed_at": "2026-10-23T07:57:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:11Z",
+          "completed_at": "2026-10-23T07:57:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 17,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:11Z",
+          "completed_at": "2026-10-23T07:57:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306451619,
+      "name": "select-tests",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:33Z",
+      "completed_at": "2026-10-23T07:56:43Z",
+      "wall_seconds": 10.0,
+      "start_offset_seconds": 2.0,
+      "end_offset_seconds": 12.0,
+      "queued_offset_seconds": 1.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 50.0,
+      "seconds_to_save_minute": 10.0,
+      "seconds_until_next_minute": 50.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:34Z",
+          "completed_at": "2026-10-23T07:56:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:34Z",
+          "completed_at": "2026-10-23T07:56:35Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run ./.github/actions/plan-lanes",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:35Z",
+          "completed_at": "2026-10-23T07:56:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 5,
+          "name": "Post Run ./.github/actions/plan-lanes",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:40Z",
+          "completed_at": "2026-10-23T07:56:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:41Z",
+          "completed_at": "2026-10-23T07:56:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 7,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:41Z",
+          "completed_at": "2026-10-23T07:56:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522704,
+      "name": "pytest-minimum",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:57:08Z",
+      "wall_seconds": 23.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 37.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 37.0,
+      "seconds_to_save_minute": 23.0,
+      "seconds_until_next_minute": 37.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:56:47Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:47Z",
+          "completed_at": "2026-10-23T07:56:48Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:48Z",
+          "completed_at": "2026-10-23T07:56:51Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 4,
+          "name": "Run uv pip install 'pytest==8.0.0'",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:51Z",
+          "completed_at": "2026-10-23T07:56:51Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Run uv run --no-sync pytest -q -n 4 --durations=20",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:51Z",
+          "completed_at": "2026-10-23T07:57:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 15.0
+        },
+        {
+          "number": 9,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:06Z",
+          "completed_at": "2026-10-23T07:57:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 10,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:07Z",
+          "completed_at": "2026-10-23T07:57:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 11,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:07Z",
+          "completed_at": "2026-10-23T07:57:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522746,
+      "name": "tests (3.14, windows-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:46Z",
+      "completed_at": "2026-10-23T07:59:18Z",
+      "wall_seconds": 152.0,
+      "start_offset_seconds": 15.0,
+      "end_offset_seconds": 167.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 3,
+      "rounding_waste_seconds": 28.0,
+      "seconds_to_save_minute": 32.0,
+      "seconds_until_next_minute": 28.0,
+      "runner_labels": [
+        "windows-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:47Z",
+          "completed_at": "2026-10-23T07:56:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:50Z",
+          "completed_at": "2026-10-23T07:56:57Z",
+          "timing_status": "complete",
+          "wall_seconds": 7.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:57Z",
+          "completed_at": "2026-10-23T07:57:04Z",
+          "timing_status": "complete",
+          "wall_seconds": 7.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:04Z",
+          "completed_at": "2026-10-23T07:57:05Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:05Z",
+          "completed_at": "2026-10-23T07:57:06Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:06Z",
+          "completed_at": "2026-10-23T07:58:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 113.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:58:59Z",
+          "completed_at": "2026-10-23T07:59:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:02Z",
+          "completed_at": "2026-10-23T07:59:10Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:10Z",
+          "completed_at": "2026-10-23T07:59:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:11Z",
+          "completed_at": "2026-10-23T07:59:11Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:11Z",
+          "completed_at": "2026-10-23T07:59:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:14Z",
+          "completed_at": "2026-10-23T07:59:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522757,
+      "name": "tests (3.11, macos-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:57:47Z",
+      "wall_seconds": 62.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 76.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 2,
+      "rounding_waste_seconds": 58.0,
+      "seconds_to_save_minute": 2.0,
+      "seconds_until_next_minute": 58.0,
+      "runner_labels": [
+        "macos-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:56:47Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:47Z",
+          "completed_at": "2026-10-23T07:56:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:49Z",
+          "completed_at": "2026-10-23T07:56:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 7.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:56Z",
+          "completed_at": "2026-10-23T07:56:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:56Z",
+          "completed_at": "2026-10-23T07:56:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:56Z",
+          "completed_at": "2026-10-23T07:57:34Z",
+          "timing_status": "complete",
+          "wall_seconds": 38.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:34Z",
+          "completed_at": "2026-10-23T07:57:36Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:36Z",
+          "completed_at": "2026-10-23T07:57:39Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:39Z",
+          "completed_at": "2026-10-23T07:57:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:40Z",
+          "completed_at": "2026-10-23T07:57:40Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:40Z",
+          "completed_at": "2026-10-23T07:57:41Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:41Z",
+          "completed_at": "2026-10-23T07:57:42Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522762,
+      "name": "tests (3.11, ubuntu-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:57:20Z",
+      "wall_seconds": 35.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 49.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 25.0,
+      "seconds_to_save_minute": 35.0,
+      "seconds_until_next_minute": 25.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:46Z",
+          "completed_at": "2026-10-23T07:56:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 4.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:50Z",
+          "completed_at": "2026-10-23T07:56:50Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:50Z",
+          "completed_at": "2026-10-23T07:56:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 4.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:54Z",
+          "completed_at": "2026-10-23T07:56:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:54Z",
+          "completed_at": "2026-10-23T07:56:55Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:55Z",
+          "completed_at": "2026-10-23T07:57:12Z",
+          "timing_status": "complete",
+          "wall_seconds": 17.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:12Z",
+          "completed_at": "2026-10-23T07:57:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:14Z",
+          "completed_at": "2026-10-23T07:57:16Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:16Z",
+          "completed_at": "2026-10-23T07:57:17Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:17Z",
+          "completed_at": "2026-10-23T07:57:18Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:18Z",
+          "completed_at": "2026-10-23T07:57:18Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:18Z",
+          "completed_at": "2026-10-23T07:57:18Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522779,
+      "name": "tests (3.14, ubuntu-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:57:22Z",
+      "wall_seconds": 37.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 51.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 23.0,
+      "seconds_to_save_minute": 37.0,
+      "seconds_until_next_minute": 23.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:46Z",
+          "completed_at": "2026-10-23T07:56:47Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:47Z",
+          "completed_at": "2026-10-23T07:56:48Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:48Z",
+          "completed_at": "2026-10-23T07:56:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 4.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:52Z",
+          "completed_at": "2026-10-23T07:56:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:52Z",
+          "completed_at": "2026-10-23T07:56:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:52Z",
+          "completed_at": "2026-10-23T07:57:14Z",
+          "timing_status": "complete",
+          "wall_seconds": 22.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:14Z",
+          "completed_at": "2026-10-23T07:57:15Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:15Z",
+          "completed_at": "2026-10-23T07:57:19Z",
+          "timing_status": "complete",
+          "wall_seconds": 4.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:19Z",
+          "completed_at": "2026-10-23T07:57:19Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:19Z",
+          "completed_at": "2026-10-23T07:57:20Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:20Z",
+          "completed_at": "2026-10-23T07:57:20Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:20Z",
+          "completed_at": "2026-10-23T07:57:20Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522806,
+      "name": "tests (3.11, windows-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:59:27Z",
+      "wall_seconds": 162.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 176.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 3,
+      "rounding_waste_seconds": 18.0,
+      "seconds_to_save_minute": 42.0,
+      "seconds_until_next_minute": 18.0,
+      "runner_labels": [
+        "windows-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:46Z",
+          "completed_at": "2026-10-23T07:56:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:49Z",
+          "completed_at": "2026-10-23T07:56:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 5.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:54Z",
+          "completed_at": "2026-10-23T07:57:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:02Z",
+          "completed_at": "2026-10-23T07:57:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:03Z",
+          "completed_at": "2026-10-23T07:57:04Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:04Z",
+          "completed_at": "2026-10-23T07:59:07Z",
+          "timing_status": "complete",
+          "wall_seconds": 123.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:07Z",
+          "completed_at": "2026-10-23T07:59:10Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:10Z",
+          "completed_at": "2026-10-23T07:59:18Z",
+          "timing_status": "complete",
+          "wall_seconds": 8.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:18Z",
+          "completed_at": "2026-10-23T07:59:19Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:19Z",
+          "completed_at": "2026-10-23T07:59:20Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:20Z",
+          "completed_at": "2026-10-23T07:59:22Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:22Z",
+          "completed_at": "2026-10-23T07:59:22Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    },
+    {
+      "job_id": 120306522882,
+      "name": "tests (3.14, macos-latest)",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:56:45Z",
+      "completed_at": "2026-10-23T07:58:06Z",
+      "wall_seconds": 81.0,
+      "start_offset_seconds": 14.0,
+      "end_offset_seconds": 95.0,
+      "queued_offset_seconds": 12.0,
+      "rounded_minutes": 2,
+      "rounding_waste_seconds": 39.0,
+      "seconds_to_save_minute": 21.0,
+      "seconds_until_next_minute": 39.0,
+      "runner_labels": [
+        "macos-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:45Z",
+          "completed_at": "2026-10-23T07:56:49Z",
+          "timing_status": "complete",
+          "wall_seconds": 4.0
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:49Z",
+          "completed_at": "2026-10-23T07:56:52Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 3,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:52Z",
+          "completed_at": "2026-10-23T07:56:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 7.0
+        },
+        {
+          "number": 4,
+          "name": "Use native Git for Windows",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:59Z",
+          "completed_at": "2026-10-23T07:56:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 5,
+          "name": "Record coverage runtime",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:56:59Z",
+          "completed_at": "2026-10-23T07:57:00Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 6,
+          "name": "Run uv run --locked pytest -q -n 4 --durations=20 --junitxml=test-timings.xml --cov --cov-report=term-missing --cov-report=xml",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:00Z",
+          "completed_at": "2026-10-23T07:57:54Z",
+          "timing_status": "complete",
+          "wall_seconds": 54.0
+        },
+        {
+          "number": 7,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/learn-test-timings@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:54Z",
+          "completed_at": "2026-10-23T07:57:56Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 8,
+          "name": "Run uv run --locked python scripts/tutorial.py --output tutorial-report.json",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:56Z",
+          "completed_at": "2026-10-23T07:57:59Z",
+          "timing_status": "complete",
+          "wall_seconds": 3.0
+        },
+        {
+          "number": 9,
+          "name": "Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:57:59Z",
+          "completed_at": "2026-10-23T07:58:01Z",
+          "timing_status": "complete",
+          "wall_seconds": 2.0
+        },
+        {
+          "number": 17,
+          "name": "Post Run gigaverse-app/ci-esta/.github/actions/setup-cached-uv@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:58:01Z",
+          "completed_at": "2026-10-23T07:58:01Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 18,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:58:01Z",
+          "completed_at": "2026-10-23T07:58:02Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 19,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:58:02Z",
+          "completed_at": "2026-10-23T07:58:03Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        }
+      ]
+    },
+    {
+      "job_id": 120307538006,
+      "name": "Validation gate",
+      "run_attempt": 1,
+      "status": "completed",
+      "conclusion": "success",
+      "timing_status": "complete",
+      "started_at": "2026-10-23T07:59:29Z",
+      "completed_at": "2026-10-23T07:59:32Z",
+      "wall_seconds": 3.0,
+      "start_offset_seconds": 178.0,
+      "end_offset_seconds": 181.0,
+      "queued_offset_seconds": 176.0,
+      "rounded_minutes": 1,
+      "rounding_waste_seconds": 57.0,
+      "seconds_to_save_minute": 3.0,
+      "seconds_until_next_minute": 57.0,
+      "runner_labels": [
+        "ubuntu-latest"
+      ],
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:30Z",
+          "completed_at": "2026-10-23T07:59:30Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        },
+        {
+          "number": 2,
+          "name": "Run gigaverse-app/ci-esta/.github/actions/validation-gate@v0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:30Z",
+          "completed_at": "2026-10-23T07:59:31Z",
+          "timing_status": "complete",
+          "wall_seconds": 1.0
+        },
+        {
+          "number": 3,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-10-23T07:59:31Z",
+          "completed_at": "2026-10-23T07:59:31Z",
+          "timing_status": "complete",
+          "wall_seconds": 0.0
+        }
+      ]
+    }
+  ],
+  "required_gates": [
+    {
+      "kind": "actions_job",
+      "identity": "Validation gate",
+      "display_name": "Validation gate",
+      "status": "completed",
+      "conclusion": "success",
+      "matched": true,
+      "observed_job_id": 120307538006,
+      "completed_at": "2026-10-23T07:59:32Z",
+      "elapsed_from_creation_seconds": 181.0,
+      "elapsed_from_run_start_seconds": 181.0,
+      "direct_prerequisites": []
+    }
+  ],
+  "merge_ready_from_creation_seconds": 181.0,
+  "merge_ready_from_run_start_seconds": 181.0,
+  "workflow_initial_queue_seconds": null,
+  "workflow_job_admission_delay_seconds": 2.0,
+  "merge_ready_after_job_admission_seconds": 179.0,
+  "longest_latest_job_name": "tests (3.11, windows-latest)",
+  "longest_latest_job_seconds": 162.0,
+  "runner_cost": {
+    "raw_runner_seconds": 629.0,
+    "estimated_rounded_runner_minutes": 17,
+    "rounding_waste_seconds": 391.0,
+    "billed_attempts": [
+      1
+    ],
+    "by_sku": [],
+    "unpriced_rounded_runner_minutes": 0,
+    "estimated_cost_usd": null
+  },
+  "overlapping_prior_runner_cost": {
+    "runs": [],
+    "raw_runner_seconds": 0.0,
+    "estimated_rounded_runner_minutes": 0,
+    "rounding_waste_seconds": 0.0,
+    "estimated_cost_usd": null
+  },
+  "repository_signals": [],
+  "extensions": {},
+  "test_selection": null,
+  "lane_selection": null,
+  "critical_path": {
+    "status": "complete",
+    "reason": "",
+    "elapsed_seconds": 181.0,
+    "execution_seconds": 175.0,
+    "observed_path": [
+      "select-tests",
+      "tests (3.11, windows-latest)",
+      "Validation gate"
+    ],
+    "execution_path": [
+      "select-tests",
+      "tests (3.11, windows-latest)",
+      "Validation gate"
+    ],
+    "nodes": [
+      {
+        "name": "select-tests",
+        "needs": [],
+        "conclusion": "success",
+        "execution_seconds": 10.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 0.0
+      },
+      {
+        "name": "quality",
+        "needs": [],
+        "conclusion": "success",
+        "execution_seconds": 24.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 148.0
+      },
+      {
+        "name": "distributions",
+        "needs": [],
+        "conclusion": "success",
+        "execution_seconds": 40.0,
+        "delay_seconds": 3.0,
+        "slack_seconds": 132.0
+      },
+      {
+        "name": "tests (3.11, macos-latest)",
+        "needs": [
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 62.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 100.0
+      },
+      {
+        "name": "tests (3.11, ubuntu-latest)",
+        "needs": [
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 35.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 127.0
+      },
+      {
+        "name": "tests (3.11, windows-latest)",
+        "needs": [
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 162.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 0.0
+      },
+      {
+        "name": "tests (3.14, macos-latest)",
+        "needs": [
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 81.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 81.0
+      },
+      {
+        "name": "tests (3.14, ubuntu-latest)",
+        "needs": [
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 37.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 125.0
+      },
+      {
+        "name": "tests (3.14, windows-latest)",
+        "needs": [
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 152.0,
+        "delay_seconds": 3.0,
+        "slack_seconds": 10.0
+      },
+      {
+        "name": "pytest-minimum",
+        "needs": [
+          "select-tests"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 23.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 139.0
+      },
+      {
+        "name": "Validation gate",
+        "needs": [
+          "distributions",
+          "pytest-minimum",
+          "quality",
+          "select-tests",
+          "tests (3.11, macos-latest)",
+          "tests (3.11, ubuntu-latest)",
+          "tests (3.11, windows-latest)",
+          "tests (3.14, macos-latest)",
+          "tests (3.14, ubuntu-latest)",
+          "tests (3.14, windows-latest)"
+        ],
+        "conclusion": "success",
+        "execution_seconds": 3.0,
+        "delay_seconds": 2.0,
+        "slack_seconds": 0.0
+      }
+    ]
+  }
+}

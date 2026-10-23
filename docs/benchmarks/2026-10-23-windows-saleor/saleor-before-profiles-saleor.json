@@ -1,0 +1,2486 @@
+{
+  "test_order_confirmation.TestCheckoutAsShipped": {
+    "name": "saleor checkout",
+    "profiles": {
+      "A": {
+        "title": "Automatic Recovery",
+        "assessment": {
+          "state": "known gap",
+          "because": "no periodic task Saleor schedules selects an order whose after-commit work never ran: its events, its ORDER_CREATED webhooks and its confirmation are owed by nothing but the lost callbacks"
+        },
+        "families": {},
+        "cases": {
+          "handoff-complete checkout-assert_crash_at_every_commit_converges": {
+            "family": "crash-histories",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          }
+        },
+        "verified": false
+      },
+      "B": {
+        "title": "Bounded Ownership",
+        "assessment": {
+          "state": "declined",
+          "because": "completion serialises on the checkout row lock (select_for_update) inside each of its transactions; it holds no lease that could outlive a worker"
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "C": {
+        "title": "Crash Ambiguity",
+        "assessment": {
+          "state": "known gap",
+          "because": "with the Payments API the gateway captures the payment between two commits: a death after the capture leaves an outcome Saleor never reconciles, so the customer is charged and no order is made"
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "D": {
+        "title": "Durable Retention",
+        "assessment": {
+          "state": "claimed",
+          "because": null
+        },
+        "families": {},
+        "cases": {
+          "D-assert_retention_transition_is_production_bound": {
+            "family": "retention",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "D-assert_retention_preserves_non_terminal_work": {
+            "family": "retention",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          },
+          "D-assert_retention_prunes_settled_work": {
+            "family": "retention",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          }
+        },
+        "verified": false
+      },
+      "E": {
+        "title": "Eventual Convergence",
+        "assessment": {
+          "state": "not applicable",
+          "because": "one completion writes each order's events and confirmation once; no two race"
+        },
+        "families": {
+          "STALE_SNAPSHOTS": {
+            "state": "not applicable",
+            "because": "one completion writes each order's events and confirmation once; no two race"
+          },
+          "MONOTONIC_RESULTS": {
+            "state": "not applicable",
+            "because": "one completion writes each order's events and confirmation once; no two race"
+          },
+          "IN_FLIGHT": {
+            "state": "not applicable",
+            "because": "one completion writes each order's events and confirmation once; no two race"
+          },
+          "EVIDENCE_CONFLUENCE": {
+            "state": "not applicable",
+            "because": "one completion writes each order's events and confirmation once; no two race"
+          }
+        },
+        "cases": {},
+        "verified": false
+      },
+      "F": {
+        "title": "Fact-Derived Obligations",
+        "assessment": {
+          "state": "known gap",
+          "because": "no product state records that an order is still to be confirmed, so no recovery can derive the obligation the lost callback held"
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "H": {
+        "title": "Harmless Replay",
+        "assessment": {
+          "state": "claimed",
+          "because": null
+        },
+        "families": {},
+        "cases": {
+          "REPLAY_SAFE_EXECUTION-assert_replay_transition_is_production_bound": {
+            "family": "replay",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "REPLAY_SAFE_EXECUTION-assert_first_execution_has_visible_effect": {
+            "family": "replay",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "REPLAY_SAFE_EXECUTION-assert_replay_converges": {
+            "family": "replay",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          }
+        },
+        "verified": false
+      },
+      "J": {
+        "title": "Job Retry Limits",
+        "assessment": {
+          "state": "not applicable",
+          "because": "the post-commit callbacks are not retried"
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "G": {
+        "title": "Gated Execution",
+        "assessment": {
+          "state": "not applicable",
+          "because": "Order callbacks are immediately eligible after commit; no admitted callback waits on a product prerequisite."
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "I": {
+        "title": "Indivisible Admission",
+        "assessment": {
+          "state": "known gap",
+          "because": "Order admission keeps its follow-up obligations only in after-commit callbacks; crashes expose the missing durable admission."
+        },
+        "families": {},
+        "cases": {
+          "I-known_gap": {
+            "family": "",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          }
+        },
+        "verified": false
+      }
+    }
+  },
+  "test_order_confirmation.TestCheckoutWithAutomaticCompletion": {
+    "name": "saleor checkout, Transactions API with automatic completion",
+    "profiles": {
+      "A": {
+        "title": "Automatic Recovery",
+        "assessment": {
+          "state": "claimed",
+          "because": null
+        },
+        "families": {},
+        "cases": {
+          "A-assert_sweep_bindings_are_production_bound": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_the_adapter_does_not_author_the_selection": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_the_adapter_does_not_author_the_tick": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_the_tick_selects_what_the_adapter_describes": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_recovers_stranded_work": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_all_owed_variants_are_recovered": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_terminal_rows_are_never_selected": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_in_flight_work_is_not_duplicated": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          },
+          "A-assert_tick_is_bounded": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_oldest_work_is_recovered_first": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_selection_is_stable": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_one_poisoned_identity_does_not_stall_the_tick": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          },
+          "A-assert_a_poisoned_page_does_not_starve_or_abandon_work": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          },
+          "A-assert_a_soft_time_limit_ends_the_tick": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_selection_is_index_served": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_the_tick_is_actually_scheduled": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_outstanding_work_is_observable": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          },
+          "A-assert_selection_does_not_read_the_replica": {
+            "family": "sweep",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[note-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[note-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[currency-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          },
+          "A-assert_database_legal_owed_row_is_handled[currency-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          },
+          "A-assert_database_legal_owed_row_is_handled[currency-max_length]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          },
+          "A-assert_database_legal_owed_row_is_handled[country-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[country-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[country-max_length]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[country-unknown_choice]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[authorize_status-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[authorize_status-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[authorize_status-max_length]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[authorize_status-unknown_choice]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[charge_status-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[charge_status-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[charge_status-max_length]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[charge_status-unknown_choice]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[language_code-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[language_code-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[language_code-max_length]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_database_legal_owed_row_is_handled[language_code-unknown_choice]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[note-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[note-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[currency-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[currency-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[currency-max_length]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[country-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[country-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[country-max_length]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[country-unknown_choice]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[authorize_status-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[authorize_status-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[authorize_status-max_length]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[authorize_status-unknown_choice]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[charge_status-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[charge_status-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[charge_status-max_length]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[charge_status-unknown_choice]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[language_code-blank]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[language_code-whitespace]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[language_code-max_length]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "A-assert_inadmissible_owed_row_does_not_block_the_next[language_code-unknown_choice]": {
+            "family": "owed-row-admissibility",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "handoff-complete paid checkout-assert_crash_at_every_commit_converges": {
+            "family": "crash-histories",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          }
+        },
+        "verified": false
+      },
+      "B": {
+        "title": "Bounded Ownership",
+        "assessment": {
+          "state": "declined",
+          "because": "completion serialises on the checkout row lock; it holds no lease"
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "C": {
+        "title": "Crash Ambiguity",
+        "assessment": {
+          "state": "declined",
+          "because": "the payment app charges before completion and records a TransactionItem, so completion makes no gateway call whose outcome could be unknown"
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "D": {
+        "title": "Durable Retention",
+        "assessment": {
+          "state": "claimed",
+          "because": null
+        },
+        "families": {},
+        "cases": {
+          "D-assert_retention_transition_is_production_bound": {
+            "family": "retention",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "D-assert_retention_preserves_non_terminal_work": {
+            "family": "retention",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "D-assert_retention_prunes_settled_work": {
+            "family": "retention",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          }
+        },
+        "verified": true
+      },
+      "E": {
+        "title": "Eventual Convergence",
+        "assessment": {
+          "state": "not applicable",
+          "because": "one completion writes each order once; no two race"
+        },
+        "families": {
+          "STALE_SNAPSHOTS": {
+            "state": "not applicable",
+            "because": "one completion writes each order once; no two race"
+          },
+          "MONOTONIC_RESULTS": {
+            "state": "not applicable",
+            "because": "one completion writes each order once; no two race"
+          },
+          "IN_FLIGHT": {
+            "state": "not applicable",
+            "because": "one completion writes each order once; no two race"
+          },
+          "EVIDENCE_CONFLUENCE": {
+            "state": "not applicable",
+            "because": "one completion writes each order once; no two race"
+          }
+        },
+        "cases": {},
+        "verified": false
+      },
+      "F": {
+        "title": "Fact-Derived Obligations",
+        "assessment": {
+          "state": "declined",
+          "because": "the obligation is the fully paid checkout itself, which automatic completion selects from product state"
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "H": {
+        "title": "Harmless Replay",
+        "assessment": {
+          "state": "claimed",
+          "because": null
+        },
+        "families": {},
+        "cases": {
+          "REPLAY_SAFE_EXECUTION-assert_replay_transition_is_production_bound": {
+            "family": "replay",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "REPLAY_SAFE_EXECUTION-assert_first_execution_has_visible_effect": {
+            "family": "replay",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "REPLAY_SAFE_EXECUTION-assert_replay_converges": {
+            "family": "replay",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          }
+        },
+        "verified": false
+      },
+      "J": {
+        "title": "Job Retry Limits",
+        "assessment": {
+          "state": "not applicable",
+          "because": "automatic completion retries on the beat schedule, unbounded"
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "G": {
+        "title": "Gated Execution",
+        "assessment": {
+          "state": "not applicable",
+          "because": "An order becomes owed only when the checkout is fully paid; an unpaid cart is not an already-admitted order obligation."
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "I": {
+        "title": "Indivisible Admission",
+        "assessment": {
+          "state": "known gap",
+          "because": "Automatic completion preserves the paid order, but does not durably admit its confirmation; a lost after-commit callback still strands it."
+        },
+        "families": {},
+        "cases": {
+          "I-known_gap": {
+            "family": "",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          }
+        },
+        "verified": false
+      }
+    }
+  },
+  "test_payment_evidence.TestPaymentEventReports": {
+    "name": "saleor payment event reports",
+    "profiles": {
+      "A": {
+        "title": "Automatic Recovery",
+        "assessment": {
+          "state": "not applicable",
+          "because": "This contract scopes incoming payment evidence, not a worker or outgoing payment command."
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "B": {
+        "title": "Bounded Ownership",
+        "assessment": {
+          "state": "not applicable",
+          "because": "This contract scopes incoming payment evidence, not a worker or outgoing payment command."
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "C": {
+        "title": "Crash Ambiguity",
+        "assessment": {
+          "state": "not applicable",
+          "because": "This contract scopes incoming payment evidence, not a worker or outgoing payment command."
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "D": {
+        "title": "Durable Retention",
+        "assessment": {
+          "state": "not applicable",
+          "because": "This contract scopes incoming payment evidence, not a worker or outgoing payment command."
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "E": {
+        "title": "Eventual Convergence",
+        "assessment": {
+          "state": "claimed",
+          "because": null
+        },
+        "families": {
+          "STALE_SNAPSHOTS": {
+            "state": "not applicable",
+            "because": "The resolver rereads transaction events; it accepts no worker snapshot."
+          },
+          "MONOTONIC_RESULTS": {
+            "state": "not applicable",
+            "because": "Charges and refunds legitimately change the amount; the fact-set oracle covers their meaning."
+          },
+          "IN_FLIGHT": {
+            "state": "not applicable",
+            "because": "No outgoing provider operation occurs in this incoming report resolver."
+          },
+          "EVIDENCE_CONFLUENCE": {
+            "state": "claimed",
+            "because": null
+          }
+        },
+        "cases": {
+          "interleaving-payment provider reports-EC.control/canonical": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-charge-eleven-refund-five/charge-seven@0": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-charge-eleven-refund-five/charge-seven@2": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-charge-eleven-refund-five/charge-seven@3": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.late-after-settlement/charge-seven-charge-eleven-refund-five/charge-seven": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-charge-eleven-refund-five/charge-eleven@0": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-charge-eleven-refund-five/charge-eleven@1": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-charge-eleven-refund-five/charge-eleven@3": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.late-after-settlement/charge-seven-charge-eleven-refund-five/charge-eleven": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-charge-eleven-refund-five/refund-five@1": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-charge-eleven-refund-five/refund-five@2": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.late-after-settlement/charge-seven-charge-eleven-refund-five/refund-five": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-seven-charge-eleven-refund-five/0": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-seven-charge-eleven-refund-five/1": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-seven-charge-eleven-refund-five/2": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-seven-charge-eleven-refund-five/3": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-seven-charge-eleven-refund-five/every": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.permutations/charge-seven-refund-five-charge-eleven": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-refund-five-charge-eleven/charge-seven@0": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-refund-five-charge-eleven/charge-seven@2": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-refund-five-charge-eleven/charge-seven@3": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.late-after-settlement/charge-seven-refund-five-charge-eleven/charge-seven": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-refund-five-charge-eleven/charge-eleven@0": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-refund-five-charge-eleven/charge-eleven@2": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.late-after-settlement/charge-seven-refund-five-charge-eleven/charge-eleven": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-seven-refund-five-charge-eleven/refund-five@1": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.late-after-settlement/charge-seven-refund-five-charge-eleven/refund-five": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-seven-refund-five-charge-eleven/0": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-seven-refund-five-charge-eleven/1": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-seven-refund-five-charge-eleven/2": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-seven-refund-five-charge-eleven/3": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-seven-refund-five-charge-eleven/every": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.permutations/charge-eleven-charge-seven-refund-five": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-eleven-charge-seven-refund-five/charge-seven@1": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-eleven-charge-seven-refund-five/charge-seven@3": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.late-after-settlement/charge-eleven-charge-seven-refund-five/charge-seven": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-eleven-charge-seven-refund-five/charge-eleven@0": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.late-after-settlement/charge-eleven-charge-seven-refund-five/charge-eleven": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.duplicates/charge-eleven-charge-seven-refund-five/refund-five@2": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.late-after-settlement/charge-eleven-charge-seven-refund-five/refund-five": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-eleven-charge-seven-refund-five/0": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-eleven-charge-seven-refund-five/1": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-eleven-charge-seven-refund-five/2": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-eleven-charge-seven-refund-five/3": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.recovery-gaps/charge-eleven-charge-seven-refund-five/every": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.owner-reconciler/charge-seven-first": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          },
+          "interleaving-payment provider reports-EC.owner-reconciler/charge-eleven-first": {
+            "family": "evidence_confluence",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "passed"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": true
+          }
+        },
+        "verified": true
+      },
+      "F": {
+        "title": "Fact-Derived Obligations",
+        "assessment": {
+          "state": "not applicable",
+          "because": "This contract scopes incoming payment evidence, not a worker or outgoing payment command."
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "G": {
+        "title": "Gated Execution",
+        "assessment": {
+          "state": "not applicable",
+          "because": "This contract scopes incoming payment evidence, not a worker or outgoing payment command."
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "H": {
+        "title": "Harmless Replay",
+        "assessment": {
+          "state": "not applicable",
+          "because": "This contract scopes incoming payment evidence, not a worker or outgoing payment command."
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      },
+      "I": {
+        "title": "Indivisible Admission",
+        "assessment": {
+          "state": "known gap",
+          "because": "The event commits before its money projection. After death at that boundary, duplicate detection accepts redelivery without repairing the transaction total."
+        },
+        "families": {},
+        "cases": {
+          "I-known_gap": {
+            "family": "",
+            "collected": true,
+            "selected": true,
+            "outcomes": {
+              "setup": [
+                "passed"
+              ],
+              "call": [
+                "xfail"
+              ],
+              "teardown": [
+                "passed"
+              ]
+            },
+            "passed": false
+          }
+        },
+        "verified": false
+      },
+      "J": {
+        "title": "Job Retry Limits",
+        "assessment": {
+          "state": "not applicable",
+          "because": "This contract scopes incoming payment evidence, not a worker or outgoing payment command."
+        },
+        "families": {},
+        "cases": {},
+        "verified": false
+      }
+    }
+  }
+}

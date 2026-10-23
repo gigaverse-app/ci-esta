@@ -72,7 +72,7 @@ def _observe_step(step: GitHubStepV1, observed_at: datetime) -> ObservedStepV1:
     return ObservedStepV1(**step.model_dump(), timing_status=timing_status, wall_seconds=wall_seconds)
 
 
-def _observe_job(job: GitHubJobV1, timeline_start: datetime, observed_at: datetime) -> ObservedJobV1:
+def _observe_job(job: GitHubJobV1, timeline_start: datetime | None, observed_at: datetime) -> ObservedJobV1:
     wall_seconds: float | None = None
     timing_status = TimingStatus.NOT_TIMED
     effective_end = job.completed_at
@@ -313,7 +313,9 @@ def build_report(
     if not gate_selectors:
         errors.append("required gate metadata was not provided")
 
-    timeline_start = run.created_at
+    # GitHub retains created_at across reruns. Waiting before a user requests a
+    # rerun is not this attempt's queue time or critical-path execution.
+    timeline_start = run.run_started_at if run.run_attempt > 1 else run.created_at
     latest = [_observe_job(job, timeline_start, observed_at) for job in latest_jobs]
     billing = [_observe_job(job, timeline_start, observed_at) for job in billing_jobs]
     timed_latest = [job for job in latest if job.wall_seconds is not None]
@@ -338,12 +340,13 @@ def build_report(
         gates,
         from_creation=True,
     )
-    job_admission_delay = _elapsed(run.created_at, first_job_started_at)
+    job_admission_delay = _elapsed(timeline_start, first_job_started_at)
+    attempt_elapsed = _complete_merge_elapsed(gates, from_creation=run.run_attempt == 1)
     merge_ready_after_admission = (
-        round(merge_ready_from_creation - job_admission_delay, 1)
-        if merge_ready_from_creation is not None
+        round(attempt_elapsed - job_admission_delay, 1)
+        if attempt_elapsed is not None
         and job_admission_delay is not None
-        and merge_ready_from_creation >= job_admission_delay
+        and attempt_elapsed >= job_admission_delay
         else None
     )
     status = CollectionStatus.COMPLETE if not errors else CollectionStatus.PARTIAL
@@ -370,7 +373,7 @@ def build_report(
             gates,
             from_creation=False,
         ),
-        workflow_initial_queue_seconds=_elapsed(run.created_at, run.run_started_at),
+        workflow_initial_queue_seconds=_elapsed(run.created_at, run.run_started_at) if run.run_attempt == 1 else None,
         workflow_job_admission_delay_seconds=job_admission_delay,
         merge_ready_after_job_admission_seconds=merge_ready_after_admission,
         longest_latest_job_name=longest.name if longest is not None else None,
@@ -381,7 +384,7 @@ def build_report(
         extensions=extensions or {},
         test_selection=test_selection,
         lane_selection=lane_selection,
-        critical_path=analyze(run.created_at, latest_jobs, job_dependencies,
+        critical_path=analyze(timeline_start, latest_jobs, job_dependencies,
                               [next((job.name for job in latest_jobs if job.id == gate.observed_job_id),
                                     gate.identity) for gate in gates]) if job_dependencies else None,
     )
@@ -481,7 +484,7 @@ def _readiness(report: CiObservabilityReportV1) -> brand.Badge | None:
     """Merge readiness, colored by status; None when no required gate is configured."""
     if not report.required_gates:
         return None
-    gates = report.merge_ready_from_creation_seconds
+    gates = report.attempt_elapsed_seconds
     if gates is not None:
         return brand.Badge("merge-ready", format_seconds(gates), brand.GREEN)
     label = _readiness_label(report)
@@ -498,7 +501,7 @@ def _cost_badges(report: CiObservabilityReportV1) -> list[brand.Badge]:
 
 def _latency_summary(report: CiObservabilityReportV1) -> str:
     """One line standing in for the latency and cost report when it is collapsed."""
-    gates = report.merge_ready_from_creation_seconds
+    gates = report.attempt_elapsed_seconds
     parts = [f"merge-ready in {format_seconds(gates)}" if gates is not None else _readiness_label(report)]
     return "⏱️ CI time and cost: " + " · ".join([*parts, *_cost(report)])
 
@@ -572,7 +575,7 @@ def _readiness_label(report: CiObservabilityReportV1) -> str:
 def _latency_table(report: CiObservabilityReportV1) -> list[str]:
     """One row with the numbers a reader looks for; the rest of the section is detail."""
     cost = report.runner_cost
-    gates = report.merge_ready_from_creation_seconds
+    gates = report.attempt_elapsed_seconds
     admission = report.workflow_job_admission_delay_seconds
     longest, longest_name = report.longest_latest_job_seconds, report.longest_latest_job_name
     columns = [
