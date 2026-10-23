@@ -1,4 +1,4 @@
-![CI-esta: Let proven work rest. Measure the rest.](https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/banner.png)
+![CI-esta: Let proven work rest. Measure the rest.](https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/banner.png?v=e68364fbb504)
 
 # CI-esta: make GitHub Actions faster, with evidence
 
