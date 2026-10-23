@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/gigaverse-app/ci-esta/compare/v1.1.2...v1.1.3) (2026-10-23)
+
+
+### Bug fixes
+
+* **report:** restore the approved sticky layout ([#67](https://github.com/gigaverse-app/ci-esta/issues/67)) ([5e196ba](https://github.com/gigaverse-app/ci-esta/commit/5e196ba7fe2acebc515a47288a19587ba7d67688))
+
 ## [1.1.2](https://github.com/gigaverse-app/ci-esta/compare/v1.1.1...v1.1.2) (2026-10-23)
 
 
