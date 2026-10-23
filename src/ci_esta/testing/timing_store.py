@@ -54,10 +54,12 @@ class TimingHistory(BaseModel):
         return self
 
     def expire(self, now: datetime) -> None:
+        # Git restoration resets the deletion grace even when a partial run
+        # does not measure the file and its previous observations have expired.
+        for file in self.tracked_files:
+            self.removed_files.pop(file, None)
         for file in {node.split("::", 1)[0] for node in self.observations}:
-            if file in self.tracked_files:
-                self.removed_files.pop(file, None)
-            else:
+            if file not in self.tracked_files:
                 self.removed_files.setdefault(file, self.inventory_at)
         self.observations, _ = load_observations(
             {"observations": {node: asdict(value) for node, value in self.observations.items()},

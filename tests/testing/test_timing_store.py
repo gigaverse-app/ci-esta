@@ -96,6 +96,32 @@ def test_expired_deletion_survives_late_checkpoint_and_restoration():
     assert result.removed_files == {}
 
 
+def test_unmeasured_restoration_resets_grace_for_a_later_deletion():
+    first_removal = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    expired = TimingHistory(
+        key="unit", removed_files={"test_a.py": first_removal},
+        inventory_at=first_removal, inventory_stamp=observation_stamp(first_removal),
+    )
+    # A partial run notices the restored file in Git but never measures it.
+    restored = expired.model_copy(deep=True)
+    restored.tracked_files = {"test_a.py"}
+    restored.inventory_at = first_removal.replace(day=17)
+    restored.inventory_stamp = observation_stamp(restored.inventory_at)
+    restored = combine_histories([restored, expired], "unit", restored.inventory_at)
+    assert restored.observations == {}
+    assert restored.removed_files == {}
+
+    removed_again = TimingHistory.model_validate_json(restored.model_dump_json())
+    removed_again.tracked_files = set()
+    removed_again.inventory_at = first_removal.replace(day=19)
+    removed_again.inventory_stamp = observation_stamp(removed_again.inventory_at)
+    delayed = restored.model_copy(deep=True)
+    delayed.observations = {"test_a.py": Observation(42, observation_stamp(first_removal.replace(day=18)))}
+    result = combine_histories([removed_again, delayed], "unit", first_removal.replace(day=20))
+    assert result.observations["test_a.py"].seconds == 42
+    assert result.removed_files == {"test_a.py": removed_again.inventory_at}
+
+
 @pytest.mark.parametrize("invalid", ["broken", '{"version":2,"key":"unit"}'])
 def test_invalid_history_preserves_history_and_output(tmp_path, invalid):
     (tmp_path / "history.json").write_text(invalid)
