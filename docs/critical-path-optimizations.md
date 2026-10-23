@@ -49,3 +49,36 @@ platform, coverage and dependency policy. Report gate elapsed time separately
 from execution critical path and runner-seconds; hosted scheduling variation is
 not a test speedup. Parallel work can reduce latency while increasing runner
 cost. Retain the change only when its measured tradeoff is useful.
+# Profile the slow step before changing its schedule
+
+Temporary filesystem placement can dominate Windows suites that create real Git
+repositories. Keep the complete matrix and coverage, then compare the same test
+inventory with temporary files on the runner work disk. Set these on the **step**,
+where the `runner` context is available:
+
+```yaml
+- run: uv run --locked pytest -q -n 4 --cov --junitxml=test-timings.xml
+  env:
+    TMP: ${{ runner.temp }}
+    TEMP: ${{ runner.temp }}
+    TMPDIR: ${{ runner.temp }}
+```
+
+For disposable Git fixtures, `git init --template=` avoids copying sample hooks
+and descriptions that tests never execute. Keep real commits and verify that
+independent fixtures do not share history. Do not disable antivirus or replace
+Git with a fake to improve the measurement.
+
+Profile database conformance tests separately from snapshot preparation. Saleor's
+crash-history recovery ran every periodic task at four time horizons; repeatedly
+installing Freezegun's global patches added overhead. One `freeze_time` context
+with `clock.move_to(...)` preserves those horizons and task order. Compare full
+JUnit inventories and expected failures, not just the fastest individual test.
+More workers can add contention, and a profiler reduction alone does not prove
+an elapsed-time improvement.
+
+For cached PostgreSQL test databases, use the [version-matched client action](postgres-client.md).
+A newer hosted `pg_restore` can emit server settings an older database does not
+support. Version the snapshot key and record cold migration separately from
+warm restore so a cache hit does not get credited to a test optimization.
+
