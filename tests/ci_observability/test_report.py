@@ -878,9 +878,9 @@ def test_visible_summary_text_cannot_inject_markup_or_expand_its_details() -> No
                     estimated_cost_usd=COST,
                 ),
             },
-            "merge-ready in 5m 56s · 16 rounded runner-min · $0.18",
+            "<strong>16 min</strong> <sub>runner</sub> &ensp;│&ensp; <strong>$0.18</strong> <sub>est. cost</sub>",
         ),
-        ({}, "gates running · 0 rounded runner-min"),
+        ({}, "<strong>0 min</strong> <sub>runner</sub> &ensp;│&ensp; <strong>unavailable</strong> <sub>est. cost</sub>"),
     ],
     ids=["complete-and-priced", "running-and-unpriced"],
 )
@@ -891,7 +891,7 @@ def test_the_selection_sticky_keeps_cost_figures_visible_above_folded_details(
 
     assert sticky.startswith('<a href="https://github.com/gigaverse-app/ci-esta"><picture>')
     assert "#### 🎯 Test selection" in sticky
-    assert f"<strong>{summary}</strong>" in sticky
+    assert summary in sticky
     # The summary line stands in for the heading; the footer that identifies the sticky stays outside.
     assert "#### ⏱️ CI time and cost" not in sticky
     latency = sticky.index(summary)

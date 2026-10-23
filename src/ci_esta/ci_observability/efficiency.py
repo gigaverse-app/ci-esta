@@ -119,12 +119,13 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
     caches = [item for item in report.measurements if isinstance(item, CacheMeasurement)]
     counts = Counter(item.outcome for item in caches)
     known_reuse = any(isinstance(item, ReuseMeasurement) for item in report.measurements)
-    summary = [reuse_badge(report).summary]
+    metrics = [reuse_badge(report)]
     timed = [lane.source_seconds for lane in lanes if lane.source_seconds is not None]
     if timed:
-        summary[0] += f" · ≈{format_seconds(sum(timed))} runner time avoided (estimated)"
+        metrics.append(brand.Badge("est. runner time avoided", f"≈{format_seconds(sum(timed))}", brand.BLUE))
     lookups = sum(counts[key] for key in ("hit", "miss", "repaired"))
-    summary.append(f"{counts['hit']}/{lookups} environment cache hits" if lookups else "no measured cache lookups")
+    metrics.append(brand.Badge("environment cache hits", f"{counts['hit']}/{lookups}", brand.BLUE)
+                   if lookups else brand.unavailable("environment cache hits"))
     body = ["#### Reused validation evidence", ""]
     if lanes:
         body += ["| Lane | Successful source | Source job duration |", "|:--|:--|--:|"]
@@ -161,7 +162,7 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
     body += ["Cache time saved is unavailable without a comparable cold run."]
     images = [item for item in report.measurements if isinstance(item, ImageReuseMeasurement)]
     if images:
-        summary[-1] += f" · {len(images)} verified image reuse{'s' if len(images) != 1 else ''}"
+        metrics.append(brand.Badge("verified image reuses", str(len(images)), brand.BLUE))
         body += ["", "#### Image reuse", "", "| Job | Verified image digest |", "|:--|:--|",
                  *(f"| {markdown.cell(markdown.code(item.job))} | {markdown.code(item.digest)} |" for item in images),
                  "", "The source and target image digests matched. Build time avoided is unknown without a comparable build; "
@@ -171,7 +172,7 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
     body += ["", "Incremental test evidence is not inferred from skipped jobs or added to whole-lane reuse totals."]
     if report.measurement_errors:
         body += ["", "Measurement gaps:", *(f"- {markdown.inline(error)}" for error in report.measurement_errors)]
-    return markdown.report_section("What else avoided work?", summary, body)
+    return markdown.report_section("What else avoided work?", [], body, metrics=metrics)
 
 
 def render_sharding(report: CiObservabilityReportV1) -> str:
@@ -180,22 +181,25 @@ def render_sharding(report: CiObservabilityReportV1) -> str:
     if timings is None and report.test_selection is not None and not isinstance(report.test_selection, dict):
         timings = report.test_selection.pytest
     signals = [signal for signal in report.repository_signals if signal.key == "pytest_parallelism"]
-    summary, body = [], []
+    metrics, body = [], []
     if pools:
         indices = [shard.index for pool in pools for shard in pool.shards]
         configured = {pool.configured_shards for pool in pools}
         complete = len(configured) == 1 and sorted(indices) == list(range(1, next(iter(configured)) + 1))
         capacity = sum(pool.capacity_seconds for pool in pools)
         active = sum(pool.active_seconds for pool in pools)
-        summary += [f"{len(indices)} measured shards / {len(pools)} pool{'s' if len(pools) != 1 else ''}"]
+        metrics += [brand.Badge("measured shards", str(len(indices)), brand.BLUE),
+                    brand.Badge("pool" if len(pools) == 1 else "pools", str(len(pools)), brand.BLUE)]
         cpus = {pool.cpu_count for pool in pools}
         if len(cpus) == 1 and None not in cpus:
-            summary[0] += f" · {next(iter(cpus))} visible CPUs per pool"
-        wall = (f"{format_seconds(pools[0].wall_seconds)} test pool wall · " if len(pools) == 1 else "")
+            metrics.append(brand.Badge("visible CPUs / pool", str(next(iter(cpus))), brand.BLUE))
+        if len(pools) == 1:
+            metrics.append(brand.Badge("test pool wall", format_seconds(pools[0].wall_seconds), brand.BLUE))
         if complete and capacity > 0:
-            summary += [f"{wall}{active / capacity:.0%} slot occupancy"]
+            metrics.append(brand.Badge("slot occupancy", f"{active / capacity:.0%}", brand.BLUE))
         else:
-            summary += ["overall occupancy unavailable (incomplete or overlapping pools)"]
+            metrics.append(brand.unavailable("slot occupancy"))
+            body += ["Overall occupancy unavailable (incomplete or overlapping pools).", ""]
         body += ["| Pool | Slots | Visible logical CPUs | Observed wall | Slot occupancy | Idle slot-time | Tail / median |",
                  "|:--|--:|--:|--:|--:|--:|--:|"]
         for pool in pools:
@@ -216,7 +220,8 @@ def render_sharding(report: CiObservabilityReportV1) -> str:
                 body.append(f"| {markdown.cell(markdown.code(pool.pool))} / {shard.index} | {shard.start_seconds:.2f}s | "
                             f"{shard.end_seconds:.2f}s | {shard.seconds:.2f}s | {shard.exit_code} |")
     else:
-        summary += [f"{timings.shard_count} shards" if timings else "shards unmeasured", "occupancy unavailable"]
+        metrics += [brand.Badge("shards", str(timings.shard_count), brand.BLUE) if timings else brand.unavailable("shards"),
+                    brand.unavailable("slot occupancy")]
         body += ["Process intervals were not recorded. Aggregate JUnit durations cannot establish pool occupancy."]
     if timings:
         wall = format_seconds(timings.wall_seconds) if timings.wall_seconds is not None else "unknown"
@@ -228,4 +233,4 @@ def render_sharding(report: CiObservabilityReportV1) -> str:
         # the same numbers when available; keep the signal in the raw report.
         body += ["", *(f"{markdown.inline(signal.label)}: {markdown.inline(signal.value)}." for signal in signals)]
     body += ["", "CPU quota, throttling and predicted-duration error are unavailable unless separately measured."]
-    return markdown.report_section("Sharding & runner efficiency", summary, body)
+    return markdown.report_section("Sharding & runner efficiency", [], body, metrics=metrics)

@@ -55,7 +55,7 @@ def test_cache_producer_and_report_use_verified_artifact_outcomes(tmp_path, enab
     sticky = render_markdown(report().model_copy(update={"measurements": records}))
     assert f"| `tests` | {expected} |" in sticky
     if expected in {"hit", "miss", "repaired"}:
-        assert f"{int(expected == 'hit')}/1 environment cache hits" in sticky
+        assert f"{int(expected == 'hit')}/1</strong> <sub>environment cache hits</sub>" in sticky
     else:
-        assert "no measured cache lookups" in sticky
+        assert "unavailable</strong> <sub>environment cache hits</sub>" in sticky
     assert "Cache time saved is unavailable" in sticky

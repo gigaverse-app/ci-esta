@@ -474,15 +474,6 @@ def sticky_marker(key: str = "") -> str:
     return f"{STICKY_KEY_MARKER_PREFIX}{slug} -->" if slug else STICKY_MARKER
 
 
-def _cost(report: CiObservabilityReportV1) -> list[str]:
-    if report.collection_status == CollectionStatus.UNAVAILABLE:
-        return ["runner usage unavailable"]
-    parts = [f"{report.runner_cost.estimated_rounded_runner_minutes} rounded runner-min"]
-    if report.runner_cost.estimated_cost_usd is not None:
-        parts.append(f"${report.runner_cost.estimated_cost_usd:.2f}")
-    return parts
-
-
 def _readiness(report: CiObservabilityReportV1) -> brand.Badge | None:
     """Merge readiness, colored by status; None when no required gate is configured."""
     if not report.required_gates:
@@ -515,13 +506,6 @@ def _work_badges(report: CiObservabilityReportV1) -> list[brand.Badge]:
         if figures:
             selected = figures[0]
     return [selected, executed, reuse_badge(report)]
-
-
-def _latency_summary(report: CiObservabilityReportV1) -> str:
-    """One line standing in for the latency and cost report when it is collapsed."""
-    gates = report.attempt_elapsed_seconds
-    parts = [f"merge-ready in {format_seconds(gates)}" if gates is not None else _readiness_label(report)]
-    return " · ".join([*parts, *_cost(report)])
 
 
 def _check_status(report: CiObservabilityReportV1) -> str:
@@ -589,10 +573,11 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
                     f"Earlier attempts: **{format_seconds(prior)}**. "
                     "The runner badge includes all attempts; merge-ready describes the latest attempt.", ""]
     sections += [render_avoided_work(report), render_sharding(report),
-                 markdown.report_section("CI time and cost", [_latency_summary(report)],
-                                         [*attempts, *impact, *_latency_lines(report)],
-                                         note=("Latest attempt; runner usage includes all attempts" if attempts else
-                                               "This attempt · timeline, bottlenecks, and billing detail"))]
+                 markdown.report_section("CI time and cost", [],
+                                         ["Runner minutes use per-job rounding; cost is an estimate.", "",
+                                          *attempts, *impact, *_latency_lines(report)],
+                                         metrics=[_readiness(report) or brand.unavailable("merge-ready"),
+                                                  *_cost_badges(report)])]
     body = "\n---\n\n".join(sections)
     return "\n".join([*_header(report), body, "", "---", "", *_footer(report, marker)])
 

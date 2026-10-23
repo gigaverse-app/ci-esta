@@ -53,7 +53,7 @@ def test_reuse_plan_does_not_claim_new_execution():
     assert "![reused: 1 / 1 work units]" in header
     sticky = render_markdown(report_with_work(item))
     assert "reuse unmeasured" not in sticky
-    assert "1 / 1 work units reused" in sticky.split("What else avoided work?")[1]
+    assert "1 / 1 work units</strong> <sub>reused</sub>" in sticky.split("What else avoided work?")[1]
     assert "receipt `proof`" in sticky
 
 
