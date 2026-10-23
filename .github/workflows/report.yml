@@ -35,6 +35,10 @@ on:
           grant pull-requests write; read-only callers keep the job summary.
         type: boolean
         default: false
+      work-selection-artifact:
+        description: Optional provider-neutral ci-esta/work-selection/v1 artifact.
+        type: string
+        default: ''
       sticky-key:
         description: One sticky per key; pass the workflow name when observing several workflows.
         type: string
@@ -79,6 +83,7 @@ jobs:
           job-dependencies-json: ${{ inputs.job-dependencies-json }}
           analyze-critical-path: ${{ inputs.analyze-critical-path }}
           post-sticky: ${{ inputs.post-sticky }}
+          work-selection-artifact: ${{ inputs.work-selection-artifact }}
           sticky-key: ${{ inputs.sticky-key }}
           lane-selection-artifact: ${{ inputs.lane-selection-artifact }}
           test-selection-artifact: ${{ inputs.test-selection-artifact }}

@@ -96,6 +96,9 @@ inputs:
       branch's last green push run. Empty disables.
     required: false
     default: test-lane-selection
+  work-selection-artifact:
+    description: Optional provider-neutral ci-esta/work-selection/v1 artifact from the observed run.
+    default: ""
   sticky-key:
     description: >
       Keys the sticky comment, for a repository that reports several workflows
@@ -126,11 +129,14 @@ runs:
       continue-on-error: true
       shell: bash
       env:
+        PYTEST_SELECTION: ${{ inputs.test-selection-artifact != '' || inputs.lane-selection-artifact != '' }}
         REPORTER_SOURCE: ${{ github.action_path }}/../../..
       run: |
         runtime="$(mktemp -d "$RUNNER_TEMP/ci-esta.XXXXXX")"
         python3 -m venv "$runtime"
-        "$runtime/bin/python" -m pip install --disable-pip-version-check "$REPORTER_SOURCE"
+        extra=""
+        if [ "$PYTEST_SELECTION" = "true" ]; then extra="[selection]"; fi
+        "$runtime/bin/python" -m pip install --disable-pip-version-check "$REPORTER_SOURCE$extra"
         echo "python=$runtime/bin/python" >> "$GITHUB_OUTPUT"
 
     - name: Render CI observability report
@@ -158,6 +164,7 @@ runs:
         INPUT_FULL_SUITE_REFERENCE_ARTIFACT: ${{ inputs.full-suite-reference-artifact }}
         INPUT_FULL_SUITE_REFERENCE_OUTPUT: ${{ inputs.full-suite-reference-output }}
         INPUT_LANE_SELECTION_ARTIFACT: ${{ inputs.lane-selection-artifact }}
+        INPUT_WORK_SELECTION_ARTIFACT: ${{ inputs.work-selection-artifact }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
         REPORTER_PYTHON: ${{ steps.runtime.outputs.python }}
       run: '"$REPORTER_PYTHON" -m ci_esta.ci_observability.action'
