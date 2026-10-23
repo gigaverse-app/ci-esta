@@ -1,6 +1,6 @@
 # Measure one workflow, then change admission
 
-For a first read-only measurement, install CI-esta from a reviewed Git revision
+For a first read-only measurement, install the released CI-esta package
 in a separate tool environment (Python 3.11+). Use a token already authorized for
 the target repository in `GH_TOKEN` or `GITHUB_TOKEN`; the report command accepts
 no token argument and posts no comment.
@@ -18,29 +18,18 @@ using the report as evidence. The output is JSON, Markdown and Prometheus.
 
 ## Add ongoing reporting
 
-Use the [README observer example](https://github.com/gigaverse-app/ci-esta#start-by-measuring-one-workflow)
-or [complete workflow](https://github.com/gigaverse-app/ci-esta/blob/main/.github/workflows/observe-ci.yml).
-Adapt the source workflow name and required jobs to the target. The reusable
-workflow's verified interface is:
+Copy the [complete public-action observer](https://github.com/gigaverse-app/ci-esta/blob/main/docs/quickstart.md#report-a-completed-workflow).
+Adapt the source workflow name and exact required job names. The root action uses
+`run-id`, `run-attempt` and `commit-sha` from the completed source run. Check
+[entry-point availability](https://github.com/gigaverse-app/ci-esta/blob/main/docs/actions.md)
+before selecting a release pin. The optional reusable workflow remains documented
+in the [reporting guide](https://github.com/gigaverse-app/ci-esta/blob/main/docs/github-actions-observability.md).
 
-```yaml
-jobs:
-  report:
-    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@v0.1
-    with:
-      run-id: ${{ github.event.workflow_run.id }}
-      run-attempt: ${{ github.event.workflow_run.run_attempt }}
-      head-sha: ${{ github.event.workflow_run.head_sha }}
-      required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
-      analyze-critical-path: true
-```
-
-This is a fragment for a `workflow_run` observer with `types: [completed]` and
-read-only `contents`, `actions`, `checks`, `pull-requests` permissions. It must
-exist on the default branch to observe future runs. Keep the trusted reusable
-reporter; do not check out or execute source PR code in this observer. Review the
-pin against the target's requirements. Basic reporting neither needs an MCP
-server nor changes the application's Python dependencies.
+For read-only reporting set `post-sticky: 'false'` and `pull-requests: read`.
+Enable comments only when authorized. The observer must exist on the default
+branch to observe future runs. Do not check out or execute source PR code in it.
+Basic reporting neither needs an MCP server nor changes the application's Python
+dependencies.
 
 ## Read the result
 

@@ -52,6 +52,7 @@ jobs:
           run-id: ${{ steps.source.outputs.id }}
           run-attempt: ${{ steps.source.outputs.attempt }}
           commit-sha: ${{ steps.source.outputs.sha }}
+          required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
           post-sticky: 'false'
           test-selection-artifact: ''
           lane-selection-artifact: ''
