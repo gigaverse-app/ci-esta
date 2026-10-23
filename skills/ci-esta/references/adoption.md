@@ -26,7 +26,7 @@ workflow's verified interface is:
 ```yaml
 jobs:
   report:
-    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@e9d279269e80a4e68435dbd65cdb9dbd23048f7b
+    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@v0.1
     with:
       run-id: ${{ github.event.workflow_run.id }}
       run-attempt: ${{ github.event.workflow_run.run_attempt }}
