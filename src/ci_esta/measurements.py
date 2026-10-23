@@ -78,3 +78,21 @@ class ReuseMeasurement(MeasurementIdentity):
     receipt: str = Field(min_length=1, max_length=1000)
     execution_context: str = Field(default="", max_length=4000)
     lanes: list[ReusedLane] = Field(default_factory=list)
+
+
+class CacheMeasurement(MeasurementIdentity):
+    schema_version: Literal["ci-esta/cache/v1"] = "ci-esta/cache/v1"
+    job: str = Field(min_length=1, max_length=200)
+    scope: str = Field(min_length=1, max_length=1000)
+    outcome: Literal["hit", "miss", "repaired", "disabled", "unavailable"]
+    sync_seconds: float = Field(ge=0)
+
+
+class ImageReuseMeasurement(MeasurementIdentity):
+    schema_version: Literal["ci-esta/image/v1"] = "ci-esta/image/v1"
+    job: str = Field(min_length=1, max_length=200)
+    scope: str = Field(min_length=1, max_length=1000)
+    digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+
+
+ExecutionMeasurement = ReuseMeasurement | ShardPoolMeasurement | CacheMeasurement | ImageReuseMeasurement

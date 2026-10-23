@@ -95,7 +95,8 @@ rather than editing one theme by hand.
 
 ### Execution measurements
 
-CI-esta discovers `ci-esta-reuse-*` and `ci-esta-shards-*` artifacts in the observed
+CI-esta discovers `ci-esta-reuse-*`, `ci-esta-shards-*`, `ci-esta-cache-*` and
+`ci-esta-image-*` artifacts in the observed
 run. Each contains one versioned JSON record bound to its run ID, attempt and head
 SHA. Old-attempt and fork artifacts cannot explain the current attempt. Measurement
 errors stay visible in `measurement_errors` without removing the timing report.
@@ -107,12 +108,16 @@ runner work avoided; they do not measure wall-clock savings or billed minutes.
 The same proof job is never added twice. Selection and evidence reuse can overlap,
 so their historical estimates must not be added together.
 
-`setup-cached-uv` records hit, miss, repaired or disabled only after locked
+`setup-cached-uv` records hit, miss, repaired, disabled or unavailable only after locked
 synchronization succeeds. These counts describe complete environments, separately
 from uv's download cache. `reuse-ecr-image` records successful digest-preserving
 promotions. Neither a cache hit nor an image promotion establishes seconds saved
 without a comparable cold run or build. Existing Docker cache signals are retained
 in the same avoided-work section.
+
+Artifacts are used because GitHub's jobs API omits the inner steps of composite
+actions. Cache measurement includes the duration of environment validation and
+locked sync; disabled and unavailable restores do not count as cache misses.
 
 `ci-esta-pytest run-local` now writes `ci-esta-shards.json` in its log directory
 after all children exit, including on test failure. Publish it from each pool:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from collections import Counter
 from html import escape
 from statistics import median
@@ -14,14 +13,19 @@ from ci_esta.ci_observability import markdown
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.enrichment.profiles import pytest_timings
 from ci_esta.ci_observability.job_names import job_family
-from ci_esta.measurements import ReuseMeasurement, ShardPoolMeasurement
+from ci_esta.measurements import (
+    CacheMeasurement,
+    ExecutionMeasurement,
+    ImageReuseMeasurement,
+    ReuseMeasurement,
+    ShardPoolMeasurement,
+)
 
 if TYPE_CHECKING:
     from ci_esta.ci_observability.github import GitHubActionsClient
     from ci_esta.ci_observability.models import CiObservabilityReportV1, GitHubJobV1, GitHubRunV1
 
-MEASUREMENT = TypeAdapter(ReuseMeasurement | ShardPoolMeasurement)
-CACHE_MARKER = "CI-esta cache v1: "
+MEASUREMENT = TypeAdapter(ExecutionMeasurement)
 
 
 def collect_measurements(client: GitHubActionsClient, run: GitHubRunV1, jobs: list[GitHubJobV1]):
@@ -34,7 +38,7 @@ def collect_measurements(client: GitHubActionsClient, run: GitHubRunV1, jobs: li
     except Exception as error:
         return [], [f"Execution measurements unavailable: {error}"]
     for artifact in artifacts:
-        if not artifact.name.startswith(("ci-esta-reuse-", "ci-esta-shards-")):
+        if not artifact.name.startswith(("ci-esta-reuse-", "ci-esta-shards-", "ci-esta-cache-", "ci-esta-image-")):
             continue
         try:
             if not artifact.from_same_repository or artifact.workflow_run.id != run.id:
@@ -72,10 +76,16 @@ def collect_measurements(client: GitHubActionsClient, run: GitHubRunV1, jobs: li
                         identities.add(identity)
                         lanes.append(lane.model_copy(update={"source_seconds": seconds}))
                 measurements.append(item.model_copy(update={"lanes": lanes}))
-            else:
+            elif isinstance(item, ShardPoolMeasurement):
                 identity = ("pool", item.pool)
                 if identity in identities:
                     raise ValueError("duplicate shard pool measurement")
+                identities.add(identity)
+                measurements.append(item)
+            else:
+                identity = (item.schema_version, item.job, item.scope)
+                if identity in identities:
+                    raise ValueError("duplicate action measurement")
                 identities.add(identity)
                 measurements.append(item)
         except Exception as error:
@@ -98,17 +108,15 @@ def _details(summary: str, body: list[str]) -> str:
 def render_avoided_work(report: CiObservabilityReportV1) -> str:
     lanes = reused_lanes(report)
     lane_count = reused_lane_count(report)
-    caches = [(job.name, step.name.removeprefix(CACHE_MARKER))
-              for job in report.latest_attempt_jobs for step in job.steps
-              if step.name.startswith(CACHE_MARKER) and step.conclusion == "success"
-              and step.name.removeprefix(CACHE_MARKER) in {"hit", "miss", "repaired", "disabled"}]
-    counts = Counter(outcome for _, outcome in caches)
+    caches = [item for item in report.measurements if isinstance(item, CacheMeasurement)]
+    counts = Counter(item.outcome for item in caches)
     known_reuse = any(isinstance(item, ReuseMeasurement) for item in report.measurements)
     summary = [f"{lane_count} proven lane{'s' if lane_count != 1 else ''} reused" if known_reuse else "reuse unmeasured"]
     timed = [lane.source_seconds for lane in lanes if lane.source_seconds is not None]
     if timed:
         summary.append(f"≈{format_seconds(sum(timed))} runner time avoided")
-    summary.append(f"{counts['hit']}/{len(caches)} environment cache hits" if caches else "cache outcomes unmeasured")
+    lookups = sum(counts[key] for key in ("hit", "miss", "repaired"))
+    summary.append(f"{counts['hit']}/{lookups} environment cache hits" if lookups else "no measured cache lookups")
     body = ["#### Reused validation evidence", ""]
     if lanes:
         body += ["| Lane | Successful source | Source job duration |", "|:--|:--|--:|"]
@@ -130,20 +138,19 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
                      f"Execution context: {markdown.code(item.execution_context or 'default')}.", ""]
     body += ["#### Environment caching", ""]
     if caches:
-        body += ["| Job | Observed outcome after locked sync |", "|:--|:--|",
-                 *(f"| {markdown.cell(markdown.code(job))} | {outcome} |" for job, outcome in caches), "",
+        body += ["| Job | Observed outcome after locked sync | Validation / sync |", "|:--|:--|--:|",
+                 *(f"| {markdown.cell(markdown.code(item.job))} | {item.outcome} | {format_seconds(item.sync_seconds)} |"
+                   for item in caches), "",
                  "Every recorded environment passed locked synchronization. A restored but unusable environment "
                  "is recorded as repaired. Download caches are separate and are not included in these counts.", ""]
     else:
         body += ["No validated environment cache outcomes were recorded.", ""]
     body += ["Cache time saved is unavailable without a comparable cold run."]
-    images = [(job.name, step.name.removeprefix("CI-esta image v1: reused "))
-              for job in report.latest_attempt_jobs for step in job.steps
-              if step.conclusion == "success" and re.fullmatch(r"CI-esta image v1: reused sha256:[0-9a-f]{64}", step.name)]
+    images = [item for item in report.measurements if isinstance(item, ImageReuseMeasurement)]
     if images:
         summary.append(f"{len(images)} verified image reuses")
         body += ["", "#### Image reuse", "", "| Job | Verified image digest |", "|:--|:--|",
-                 *(f"| {markdown.cell(markdown.code(job))} | {markdown.code(digest)} |" for job, digest in images),
+                 *(f"| {markdown.cell(markdown.code(item.job))} | {markdown.code(item.digest)} |" for item in images),
                  "", "The source and target image digests matched. Build time avoided is unknown without a comparable build; "
                  "image promotions are not added to lane-reuse totals."]
     cache_signals = [signal for signal in report.repository_signals if signal.key == "mean_docker_cache_hit"]

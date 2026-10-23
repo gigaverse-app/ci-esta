@@ -36,7 +36,21 @@ runs:
         SOURCE_IMAGE_TAG: ${{ inputs.source-image }}
         TARGET_IMAGE_TAG: ${{ inputs.target-image }}
       run: "${{ github.action_path }}/reuse_ecr_image.sh"
-    - name: 'CI-esta image v1: reused ${{ steps.reuse.outputs.digest }}'
+    - name: Record verified image reuse
+      id: measurement
       if: steps.reuse.outputs.reused == 'true'
+      continue-on-error: true
       shell: bash
-      run: echo 'Source and target image digests match; no layer rebuild was needed for this promotion.'
+      env:
+        MEASUREMENT_SCRIPT: ${{ github.action_path }}/../../../scripts/ci/record_measurement.py
+        MEASUREMENT_SCOPE: ${{ inputs.target-image }}
+        IMAGE_DIGEST: ${{ steps.reuse.outputs.digest }}
+      run: python3 "$MEASUREMENT_SCRIPT" image
+    - name: Publish image reuse measurement
+      if: steps.measurement.outputs.measurement-path != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ steps.measurement.outputs.measurement-name }}
+        path: ${{ steps.measurement.outputs.measurement-path }}
+        retention-days: 7

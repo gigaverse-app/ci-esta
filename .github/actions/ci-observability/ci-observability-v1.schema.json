@@ -5,6 +5,71 @@
       "title": "BaseModel",
       "type": "object"
     },
+    "CacheMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "head_sha": {
+          "pattern": "^(?:[0-9a-f]{40})?$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "ci-esta/cache/v1",
+          "default": "ci-esta/cache/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "job": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Job",
+          "type": "string"
+        },
+        "scope": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Scope",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "hit",
+            "miss",
+            "repaired",
+            "disabled",
+            "unavailable"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "sync_seconds": {
+          "minimum": 0,
+          "title": "Sync Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "job",
+        "scope",
+        "outcome",
+        "sync_seconds"
+      ],
+      "title": "CacheMeasurement",
+      "type": "object"
+    },
     "CollectionStatus": {
       "enum": [
         "complete",
@@ -120,6 +185,59 @@
       ],
       "title": "GateKind",
       "type": "string"
+    },
+    "ImageReuseMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "head_sha": {
+          "pattern": "^(?:[0-9a-f]{40})?$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "ci-esta/image/v1",
+          "default": "ci-esta/image/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "job": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Job",
+          "type": "string"
+        },
+        "scope": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Scope",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "job",
+        "scope",
+        "digest"
+      ],
+      "title": "ImageReuseMeasurement",
+      "type": "object"
     },
     "ImpactComparison": {
       "additionalProperties": false,
@@ -1660,6 +1778,12 @@
           },
           {
             "$ref": "#/$defs/ShardPoolMeasurement"
+          },
+          {
+            "$ref": "#/$defs/CacheMeasurement"
+          },
+          {
+            "$ref": "#/$defs/ImageReuseMeasurement"
           }
         ]
       },

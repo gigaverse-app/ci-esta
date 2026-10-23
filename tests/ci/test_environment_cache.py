@@ -76,3 +76,31 @@ def test_private_sync_credentials_use_process_memory_and_preserve_existing_git_c
     assert all('test-only-not-a-real-token' not in value for key, value in env.items()
                if key.startswith('GIT_CONFIG_'))
     assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("case", ["valid", "drift", "broken-output"])
+def test_cache_measurement_is_written_only_after_real_locked_sync(tmp_path, case):
+    import os
+    import subprocess
+
+    project = tmp_path / "pyproject.toml"
+    project.write_text('[project]\nname="cache-control"\nversion="1.0"\nrequires-python=">=3.11"\n')
+    env = {key: value for key, value in os.environ.items() if key not in {"UV_PROJECT_ENVIRONMENT", "VIRTUAL_ENV"}}
+    env.update(UV_OFFLINE="1", CACHE_WORKING_DIRECTORY=str(tmp_path), CACHE_SYNC_ARGS="")
+    subprocess.run(["uv", "lock", "--python", sys.executable], cwd=tmp_path, env=env, check=True, capture_output=True)
+    if case == "drift":
+        project.write_text(project.read_text().replace('version="1.0"', 'version="2.0"'))
+    output = tmp_path if case == "broken-output" else tmp_path / "outputs"
+    result = subprocess.run([sys.executable, str(SCRIPT.resolve()), "sync"],
+                            env={**env, "GITHUB_OUTPUT": str(output)}, text=True, capture_output=True)
+    if case == "drift":
+        assert result.returncode != 0
+        assert not output.exists()
+    else:
+        assert result.returncode == 0, result.stderr
+        if case == "broken-output":
+            assert "Cache measurement unavailable" in result.stdout
+        else:
+            outputs = dict(line.split("=", 1) for line in output.read_text().splitlines())
+            assert outputs["restored-usable"] == "false"
+            assert float(outputs["sync-seconds"]) > 0

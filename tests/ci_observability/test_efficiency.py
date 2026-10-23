@@ -65,21 +65,15 @@ def test_invalid_intervals_cannot_create_efficiency(end):
         ShardInterval(index=1, start_seconds=0, end_seconds=end, exit_code=0)
 
 
-@pytest.mark.parametrize("outcome", ["hit", "miss", "repaired", "disabled"])
-@pytest.mark.parametrize("conclusion", ["success", "failure", "skipped"])
-def test_only_completed_cache_validation_is_counted(outcome, conclusion):
+def test_a_step_name_does_not_substitute_for_a_cache_measurement():
     from ci_esta.ci_observability.models import ObservedStepV1
 
     original = report()
-    step = ObservedStepV1(number=1, name=f"CI-esta cache v1: {outcome}", status="completed",
-                          conclusion=conclusion, timing_status="not_timed", wall_seconds=None)
+    step = ObservedStepV1(number=1, name="CI-esta cache v1: hit", status="completed",
+                          conclusion="success", timing_status="not_timed", wall_seconds=None)
     job = original.latest_attempt_jobs[0].model_copy(update={"steps": [step]})
     sticky = render_markdown(original.model_copy(update={"latest_attempt_jobs": [job]}))
-    if conclusion == "success":
-        assert f"{int(outcome == 'hit')}/1 environment cache hits" in sticky
-        assert f"| `Tests` | {outcome} |" in sticky
-    else:
-        assert "cache outcomes unmeasured" in sticky
+    assert "no measured cache lookups" in sticky
     assert "Cache time saved is unavailable" in sticky
 
 

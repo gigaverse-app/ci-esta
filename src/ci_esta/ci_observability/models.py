@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, SerializeAsAny, fi
 from ci_esta.ci_observability.critical_path import CriticalPathResult
 from ci_esta.ci_observability.impact import ImpactResult
 from ci_esta.ci_observability.work_selection import WorkSelectionV1
-from ci_esta.measurements import ReuseMeasurement, ShardPoolMeasurement
+from ci_esta.measurements import ExecutionMeasurement
 
 
 class CollectionStatus(StrEnum):
@@ -396,7 +396,7 @@ class CiObservabilityReportV1(BaseModel):
     lane_selection: SerializeAsAny[BaseModel] | dict[str, JsonValue] | None = None
     work_selection: WorkSelectionV1 | None = None
     measured_impact: list[ImpactResult] = Field(default_factory=list, max_length=12)
-    measurements: list[ReuseMeasurement | ShardPoolMeasurement] = Field(default_factory=list)
+    measurements: list[ExecutionMeasurement] = Field(default_factory=list)
     measurement_errors: list[str] = Field(default_factory=list)
     critical_path: CriticalPathResult | None = None
 

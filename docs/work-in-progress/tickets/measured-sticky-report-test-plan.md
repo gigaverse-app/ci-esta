@@ -7,8 +7,8 @@
   slow steps, overlap, benchmark and Bun details behind their owning sections.
 - [ ] A selection plan never claims execution or receipt reuse. Unknown savings
   remain unknown; historical comparisons remain estimates with their sources.
-- [ ] Successful cache markers follow locked validation; cache hits do not imply
-  a measured time saving. Failed validation cannot publish a successful marker.
+- [x] Successful cache records follow locked validation; cache hits do not imply
+  a measured time saving. Failed validation cannot publish a successful record.
 - [x] Reuse telemetry describes the resolver's admitted source jobs and current
   run/attempt/head. Reporting failure cannot change validation admission.
 - [x] Local shards record observed process intervals, including failed children.
@@ -34,3 +34,13 @@ Ruff and both import contracts. Fail-first controls reproduced missing process
 records and missing proof callbacks. Report regressions exposed a pre-existing
 zero-offset Gantt omission; jobs beginning at the workflow timestamp now retain
 their bars. Telemetry tests also bind PR head separately from the tested merge.
+
+Frozen `83c1744`: full Linux suite **1,174 passed**, wheel and sdist built.
+Hosted run `39939766004` exercised the real actions and revealed two integration
+issues: main had gained generated public action wrappers (the new shard publisher
+needed one), and the jobs API hides inner composite steps. Cache/image recording
+therefore uses small source-bound artifacts instead of unobservable step names.
+Main through `bea0fd0` was merged without conflicts; wrappers were regenerated.
+The new stdlib producer is exercised through its actual CLI and fed through the
+collector/renderer. Real locked-sync controls cover success, lock drift and an
+unwritable telemetry output, preserving validation in every case.
