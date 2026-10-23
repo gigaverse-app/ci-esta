@@ -165,6 +165,8 @@ def test_action_config_reads_typed_environment_and_extension(
     monkeypatch.setenv("INPUT_PROMETHEUS_OUTPUT", str(prometheus_path))
     monkeypatch.setenv("INPUT_POST_STICKY", "false")
     monkeypatch.setenv("INPUT_STICKY_WORKFLOW", "Primary CI")
+    monkeypatch.setenv("INPUT_HEADLINE_SVG", "true")
+    monkeypatch.setenv("INPUT_HEADLINE_ASSET_TOKEN", "ghp_attachment_test")
     monkeypatch.setenv("INPUT_APPEND_SUMMARY", "false")
     monkeypatch.setenv(
         "INPUT_RUNNER_SKU_RATES_JSON",
@@ -186,6 +188,9 @@ def test_action_config_reads_typed_environment_and_extension(
     assert config.report_output == report_path
     assert config.post_sticky is False
     assert config.sticky_workflow == "Primary CI"
+    assert config.headline_svg is True
+    assert config.headline_asset_token == "ghp_attachment_test"
+    assert "ghp_attachment_test" not in repr(config)
     assert config.append_summary is False
     assert config.runner_sku_rates == [
         RunnerSkuRateV1(
@@ -197,13 +202,15 @@ def test_action_config_reads_typed_environment_and_extension(
 
 
 @pytest.mark.parametrize("owner,publishes", [("", True), ("Primary CI", True), ("Other workflow", False)])
+@pytest.mark.parametrize("svg", [True, False])
 def test_run_writes_all_outputs_summary_and_sticky(
     monkeypatch,
     tmp_path: Path,
     owner,
     publishes,
+    svg,
 ) -> None:
-    config = _config(tmp_path).model_copy(update={"sticky_workflow": owner})
+    config = _config(tmp_path).model_copy(update={"sticky_workflow": owner, "headline_svg": svg})
     summary_path = tmp_path / "summary.md"
     action_output_path = tmp_path / "action-output.txt"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary_path))
@@ -227,6 +234,8 @@ def test_run_writes_all_outputs_summary_and_sticky(
     assert summary_path.read_text() == config.markdown_output.read_text() + "\n"
     assert "report-file=" in action_output_path.read_text()
     assert upsert.called is publishes
+    if svg:
+        assert "img.shields.io" not in config.markdown_output.read_text()
     if publishes:
         assert upsert.call_args.args[0] == PR_NUMBER
 

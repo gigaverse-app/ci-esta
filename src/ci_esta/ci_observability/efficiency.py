@@ -114,7 +114,7 @@ def reuse_badge(report: CiObservabilityReportV1) -> brand.Badge:
     return brand.unavailable("reused")
 
 
-def render_avoided_work(report: CiObservabilityReportV1) -> str:
+def render_avoided_work(report: CiObservabilityReportV1, *, headlines=None) -> str:
     lanes = reused_lanes(report)
     caches = [item for item in report.measurements if isinstance(item, CacheMeasurement)]
     counts = Counter(item.outcome for item in caches)
@@ -172,10 +172,10 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
     body += ["", "Incremental test evidence is not inferred from skipped jobs or added to whole-lane reuse totals."]
     if report.measurement_errors:
         body += ["", "Measurement gaps:", *(f"- {markdown.inline(error)}" for error in report.measurement_errors)]
-    return markdown.report_section("What else avoided work?", [], body, metrics=metrics)
+    return markdown.report_section("What else avoided work?", [], body, metrics=metrics, headlines=headlines)
 
 
-def render_sharding(report: CiObservabilityReportV1) -> str:
+def render_sharding(report: CiObservabilityReportV1, *, headlines=None) -> str:
     pools = [item for item in report.measurements if isinstance(item, ShardPoolMeasurement)]
     timings = pytest_timings(report.extensions)
     if timings is None and report.test_selection is not None and not isinstance(report.test_selection, dict):
@@ -233,4 +233,4 @@ def render_sharding(report: CiObservabilityReportV1) -> str:
         # the same numbers when available; keep the signal in the raw report.
         body += ["", *(f"{markdown.inline(signal.label)}: {markdown.inline(signal.value)}." for signal in signals)]
     body += ["", "CPU quota, throttling and predicted-duration error are unavailable unless separately measured."]
-    return markdown.report_section("Sharding & runner efficiency", [], body, metrics=metrics)
+    return markdown.report_section("Sharding & runner efficiency", [], body, metrics=metrics, headlines=headlines)

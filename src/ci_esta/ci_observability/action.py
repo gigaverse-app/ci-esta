@@ -80,6 +80,8 @@ class ActionConfig(BaseModel):
     #: Keys the sticky, so several observed workflows each keep their own comment.
     sticky_key: str = ""
     sticky_workflow: str = ""
+    headline_svg: bool = False
+    headline_asset_token: str = Field(default="", repr=False)
     work_selection_artifact: str = ""
     impact_comparisons: list[ImpactComparison] = Field(default_factory=list, max_length=12)
     job_dependencies: dict[str, list[str]] = Field(default_factory=dict)
@@ -127,6 +129,8 @@ class ActionConfig(BaseModel):
                 os.environ.get("INPUT_IMPACT_COMPARISONS_JSON", "[]")),
             sticky_key=os.environ.get("INPUT_STICKY_KEY", "").strip(),
             sticky_workflow=os.environ.get("INPUT_STICKY_WORKFLOW", "").strip(),
+            headline_svg=os.environ.get("INPUT_HEADLINE_SVG", "false").lower() == "true",
+            headline_asset_token=os.environ.get("INPUT_HEADLINE_ASSET_TOKEN", ""),
             job_dependencies=TypeAdapter(dict[str, list[str]]).validate_json(
                 os.environ.get("INPUT_JOB_DEPENDENCIES_JSON", "{}")),
             analyze_critical_path=os.environ.get("INPUT_ANALYZE_CRITICAL_PATH", "false").lower() == "true",
@@ -425,7 +429,7 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
 
     report_json = report.model_dump_json(indent=2) + "\n"
     marker = sticky_marker(config.sticky_key)
-    markdown = render_markdown(report, marker)
+    markdown = render_markdown(report, marker, private_metrics=config.headline_svg)
     prometheus = render_prometheus(report)
     _write_outputs(config, report_json, markdown, prometheus)
     if reference_to_record is not None:
@@ -434,6 +438,11 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
     if (config.post_sticky and config.pull_request_number is not None
             and (not config.sticky_workflow or report.provenance.workflow_name == config.sticky_workflow)):
         try:
+            if config.headline_svg:
+                from ci_esta.ci_observability.svg_publication import publish_headlines
+                markdown = publish_headlines(report, marker, repository=config.repository,
+                                             token=config.headline_asset_token or config.github_token)
+                config.markdown_output.write_text(markdown, encoding="utf-8")
             client.upsert_sticky(
                 config.pull_request_number,
                 marker,

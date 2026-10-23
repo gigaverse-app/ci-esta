@@ -508,7 +508,7 @@ def _work_badges(report: CiObservabilityReportV1) -> list[brand.Badge]:
     return [selected, executed, reuse_badge(report)]
 
 
-def _check_status(report: CiObservabilityReportV1) -> str:
+def _check_status(report: CiObservabilityReportV1, *, private_metrics: bool = False) -> str:
     """Only matched, successful required gates earn the green status pill."""
     gates = report.required_gates
     if any(gate.conclusion not in (None, "success") for gate in gates):
@@ -521,22 +521,29 @@ def _check_status(report: CiObservabilityReportV1) -> str:
         label, color = "✓ Required checks passed", brand.GREEN
     else:
         label, color = "Required checks running", brand.AMBER
-    return brand.status_badge(label, color)
+    return f"**{label}**" if private_metrics else brand.status_badge(label, color)
 
 
-def _header(report: CiObservabilityReportV1) -> list[str]:
+def _header(report: CiObservabilityReportV1, *, headlines=None, private_metrics: bool = False) -> list[str]:
     """The banner, then one line of badges: readiness, what ran and saved, and what it cost."""
     provenance = report.provenance
     verdict = [item for item in [_readiness(report)] if item is not None]
     verdict.extend(_work_badges(report))
     workflow = f"{markdown.inline(provenance.workflow_name)} · " if provenance.workflow_name else ""
+    def row(metrics, key):
+        if headlines is not None:
+            return headlines.row(metrics, key)
+        if private_metrics:
+            return " · ".join(f"**{markdown.inline(m.label)}: {markdown.inline(m.value)}**" for m in metrics)
+        return " ".join(brand.badge(item) for item in metrics)
     return [
         brand.banner(),
         "",
-        " ".join(brand.badge(item) for item in verdict) + "<br>\n" +
-        " ".join(brand.badge(item) for item in _cost_badges(report)),
+        (row([*verdict, *_cost_badges(report)], "headline") if headlines is not None else
+         row(verdict, "headline") + "<br>\n" + row(_cost_badges(report), "cost")),
         "",
-        f"{_check_status(report)} {workflow}{markdown.code(provenance.head_sha[:7])} · attempt {provenance.run_attempt} · "
+        f"{_check_status(report, private_metrics=private_metrics)} {workflow}"
+        f"{markdown.code(provenance.head_sha[:7])} · attempt {provenance.run_attempt} · "
         f"{report.collection_status.value} snapshot",
         "",
         "---",
@@ -544,7 +551,8 @@ def _header(report: CiObservabilityReportV1) -> list[str]:
     ]
 
 
-def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER) -> str:
+def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER, *,
+                    headlines=None, private_metrics: bool = False) -> str:
     """
     The sticky: a branded verdict, the selection sections there are, then latency and cost.
 
@@ -562,7 +570,7 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
                 [],
                 ["Selected is the plan; executed is observed; reused requires a receipt. Units can differ.", "",
                  *(selection_details or ["Selection and execution evidence was not recorded."])],
-                metrics=_work_badges(report))]
+                metrics=_work_badges(report), headlines=headlines)]
     impact = [render_impact(report.measured_impact, report.provenance.repository)] if report.measured_impact else []
     attempts = []
     if len(report.runner_cost.billed_attempts) > 1:
@@ -572,14 +580,15 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
         attempts = [f"Latest attempt: **{format_seconds(current)} runner time**. "
                     f"Earlier attempts: **{format_seconds(prior)}**. "
                     "The runner badge includes all attempts; merge-ready describes the latest attempt.", ""]
-    sections += [render_avoided_work(report), render_sharding(report),
+    sections += [render_avoided_work(report, headlines=headlines), render_sharding(report, headlines=headlines),
                  markdown.report_section("CI time and cost", [],
                                          ["Runner minutes use per-job rounding; cost is an estimate.", "",
                                           *attempts, *impact, *_latency_lines(report)],
                                          metrics=[_readiness(report) or brand.unavailable("merge-ready"),
-                                                  *_cost_badges(report)])]
+                                                  *_cost_badges(report)], headlines=headlines)]
     body = "\n---\n\n".join(sections)
-    return "\n".join([*_header(report), body, "", "---", "", *_footer(report, marker)])
+    return "\n".join([*_header(report, headlines=headlines, private_metrics=private_metrics or headlines is not None),
+                      body, "", "---", "", *_footer(report, marker)])
 
 
 def _footer(report: CiObservabilityReportV1, marker: str = STICKY_MARKER) -> list[str]:

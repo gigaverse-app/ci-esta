@@ -2,7 +2,15 @@ name: Reusable CI report
 
 on:
   workflow_call:
+    secrets:
+      headline-asset-token:
+        description: Optional repository-authorized GitHub user token for SVG attachments.
+        required: false
     inputs:
+      headline-svg:
+        description: Use repository-scoped SVG metric images, with private text fallback.
+        type: boolean
+        default: false
       run-id:
         description: Completed workflow run in the caller repository.
         type: number
@@ -99,6 +107,8 @@ jobs:
           job-dependencies-json: ${{ inputs.job-dependencies-json }}
           analyze-critical-path: ${{ inputs.analyze-critical-path }}
           post-sticky: ${{ inputs.post-sticky }}
+          headline-svg: ${{ inputs.headline-svg }}
+          headline-asset-token: ${{ secrets.headline-asset-token }}
           work-selection-artifact: ${{ inputs.work-selection-artifact }}
           impact-comparisons-json: ${{ inputs.impact-comparisons-json }}
           sticky-key: ${{ inputs.sticky-key }}

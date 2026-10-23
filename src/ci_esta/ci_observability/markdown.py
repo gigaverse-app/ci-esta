@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ci_esta.ci_observability.brand import Badge
+    from ci_esta.ci_observability.svg_headlines import SvgHeadlines
 
 LONGEST_BACKTICK_RUN = re.compile(r"`+")
 
@@ -52,7 +53,7 @@ def html_code(value: str) -> str:
 
 
 def report_section(title: str, facts: list[str], body: list[str], *, note: str = "",
-                   metrics: list[Badge] | None = None) -> str:
+                   metrics: list[Badge] | None = None, headlines: SvgHeadlines | None = None) -> str:
     """Keep titles and key figures visible while diagnostics stay closed.
 
     GitHub strips custom CSS and does not parse Markdown inside summary. Explicit
@@ -60,7 +61,11 @@ def report_section(title: str, facts: list[str], body: list[str], *, note: str =
     Facts are escaped plain text; only the diagnostic body accepts Markdown.
     """
     summary = [f"<summary><strong>{escape(title)}</strong><br>"]
-    if metrics is not None:
+    if metrics is not None and headlines is not None:
+        summary.append(headlines.row(metrics, title))
+        # Copyable and accessible values also survive failed image loads.
+        body = [" · ".join(f"**{inline(m.value)}** {inline(m.label)}" for m in metrics), "", *body]
+    elif metrics is not None:
         # Inline HTML survives GitHub's sanitizer and wraps naturally on narrow
         # screens. Emphasize values, keep labels quiet, and avoid custom CSS.
         summary.append("&emsp;" + " &ensp;│&ensp; ".join(

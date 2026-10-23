@@ -114,6 +114,12 @@ inputs:
   sticky-workflow:
     description: Only this observed workflow may publish the sticky; other reports keep summaries and artifacts. Empty allows any workflow.
     default: ""
+  headline-svg:
+    description: Opt in to repository-scoped SVG metric attachments; unsupported credentials retain private text headlines.
+    default: 'false'
+  headline-asset-token:
+    description: Optional GitHub user token with write access to this repository for attachments. Never sent to other hosts.
+    default: ''
   full-suite-reference-output:
     description: Where this run's own full-suite reference is written before upload.
     required: false
@@ -168,6 +174,8 @@ runs:
         INPUT_MARKDOWN_OUTPUT: ${{ inputs.markdown-output }}
         INPUT_PROMETHEUS_OUTPUT: ${{ inputs.prometheus-output }}
         INPUT_POST_STICKY: ${{ inputs.post-sticky }}
+        INPUT_HEADLINE_SVG: ${{ inputs.headline-svg }}
+        INPUT_HEADLINE_ASSET_TOKEN: ${{ inputs.headline-asset-token }}
         INPUT_APPEND_SUMMARY: ${{ inputs.append-summary }}
         INPUT_RUNNER_SKU_RATES_JSON: ${{ inputs.runner-sku-rates-json }}
         INPUT_TEST_SELECTION_ARTIFACT: ${{ inputs.test-selection-artifact }}
