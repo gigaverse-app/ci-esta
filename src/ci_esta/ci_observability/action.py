@@ -55,6 +55,7 @@ class ActionConfig(BaseModel):
 
     repository: str
     github_token: str
+    workflow_source_token: str = Field(default="", repr=False)
     api_url: str
     run_id: int
     run_attempt: int
@@ -95,6 +96,7 @@ class ActionConfig(BaseModel):
         return cls(
             repository=os.environ["GITHUB_REPOSITORY"],
             github_token=os.environ["INPUT_GITHUB_TOKEN"],
+            workflow_source_token=os.environ.get("INPUT_WORKFLOW_SOURCE_TOKEN", ""),
             api_url=os.environ.get("GITHUB_API_URL", "https://api.github.com"),
             run_id=int(os.environ["INPUT_RUN_ID"]),
             run_attempt=int(os.environ["INPUT_RUN_ATTEMPT"]),
@@ -313,7 +315,8 @@ def _own_reference(
 
 
 def run(config: ActionConfig, observed_at: datetime) -> int:
-    client = GitHubActionsClient(config.repository, config.github_token, config.api_url)
+    client = GitHubActionsClient(config.repository, config.github_token, config.api_url,
+                                workflow_source_token=config.workflow_source_token)
     errors: list[str] = []
     reference_to_record: FullSuiteReferenceV1 | None = None
     try:

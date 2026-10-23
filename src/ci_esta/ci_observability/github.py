@@ -94,8 +94,10 @@ class GitHubActionsClient:
         token: str,
         api_url: str = "https://api.github.com",
         transport: httpx.BaseTransport | None = None,
+        workflow_source_token: str = "",
     ) -> None:
         self._repository = repository
+        self._workflow_source_token = workflow_source_token
         self._client = httpx.Client(
             base_url=api_url.rstrip("/"),
             headers={
@@ -152,7 +154,10 @@ class GitHubActionsClient:
     def _workflow_source(self, repository: str, ref: str, path: str) -> dict:
         if not re.fullmatch(r"\.github/workflows/[\w.-]+\.ya?ml", path):
             raise ValueError("Unsupported reusable workflow path")
-        response = self._client.get(f"/repos/{repository}/contents/{path}", params={"ref": ref})
+        headers = {}
+        if repository != self._repository and self._workflow_source_token:
+            headers["Authorization"] = f"Bearer {self._workflow_source_token}"
+        response = self._client.get(f"/repos/{repository}/contents/{path}", params={"ref": ref}, headers=headers)
         response.raise_for_status()
         data = response.json()
         if data.get("encoding") != "base64" or data.get("size", 0) > 1_000_000:

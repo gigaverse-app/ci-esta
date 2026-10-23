@@ -8,6 +8,9 @@ inputs:
   github-token:
     description: Token with actions:read and, when posting a sticky, pull-requests:write.
     required: true
+  workflow-source-token:
+    description: Optional read token for private reusable workflow repositories; used only for external workflow Contents reads.
+    default: ''
   run-id:
     description: GitHub Actions run ID to observe.
     required: false
@@ -145,6 +148,7 @@ runs:
       shell: bash
       env:
         INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+        INPUT_WORKFLOW_SOURCE_TOKEN: ${{ inputs.workflow-source-token }}
         INPUT_RUN_ID: ${{ inputs.run-id }}
         INPUT_RUN_ATTEMPT: ${{ inputs.run-attempt }}
         INPUT_COMMIT_SHA: ${{ inputs.commit-sha }}
