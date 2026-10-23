@@ -194,11 +194,14 @@ def test_action_config_reads_typed_environment_and_extension(
     ]
 
 
+@pytest.mark.parametrize("owner,publishes", [("", True), ("Primary CI", True), ("Other workflow", False)])
 def test_run_writes_all_outputs_summary_and_sticky(
     monkeypatch,
     tmp_path: Path,
+    owner,
+    publishes,
 ) -> None:
-    config = _config(tmp_path)
+    config = _config(tmp_path).model_copy(update={"sticky_workflow": owner})
     summary_path = tmp_path / "summary.md"
     action_output_path = tmp_path / "action-output.txt"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary_path))
@@ -221,7 +224,9 @@ def test_run_writes_all_outputs_summary_and_sticky(
     assert "ci_raw_runner_seconds" in config.prometheus_output.read_text()
     assert summary_path.read_text() == config.markdown_output.read_text() + "\n"
     assert "report-file=" in action_output_path.read_text()
-    assert upsert.call_args.args[0] == PR_NUMBER
+    assert upsert.called is publishes
+    if publishes:
+        assert upsert.call_args.args[0] == PR_NUMBER
 
 
 def test_historical_attempt_recovers_exact_metadata_and_jobs(tmp_path):

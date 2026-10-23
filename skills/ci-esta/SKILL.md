@@ -6,6 +6,17 @@ license: Apache-2.0
 
 # Find the work worth avoiding
 
+## Keep reporting shared
+
+Use the canonical `actions/NAME@v1` entry points and the shared report renderer.
+Declare one `sticky-workflow` owner when observing multiple workflows; a different
+sticky key deliberately creates another comment. The reusable reporting workflow
+owns PR-scoped publication serialization. Direct action callers share duplicate
+recovery but still need job serialization for strict ordering. Keep selection
+plans separate from observed execution, and use the shared headline helpers so
+Python and Bun summaries cannot disagree with their badges. Verify the required
+inputs have reached `@v1` before merging a consumer change.
+
 Work in the user's target repository. CI-esta's hosted reporting and evidence
 actions target GitHub Actions, regardless of the application's language. If the
 target uses another CI provider, report that boundary and use its native timing

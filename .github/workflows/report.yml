@@ -44,7 +44,11 @@ on:
         type: string
         default: '[]'
       sticky-key:
-        description: One sticky per key; pass the workflow name when observing several workflows.
+        description: Stable comment identity. Different keys deliberately create separate comments.
+        type: string
+        default: ''
+      sticky-workflow:
+        description: Only this observed workflow publishes; others keep summaries and artifacts.
         type: string
         default: ''
       lane-selection-artifact:
@@ -67,6 +71,9 @@ jobs:
   report:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    concurrency:
+      group: ci-esta-publish-${{ github.repository }}-${{ inputs.post-sticky && inputs.pull-request-number || github.run_id }}
+      cancel-in-progress: false
     steps:
       # The reporter at this reusable workflow's own commit, so one pin covers both. Never check
       # out or execute source-run code, including fork pull requests.
@@ -90,6 +97,7 @@ jobs:
           work-selection-artifact: ${{ inputs.work-selection-artifact }}
           impact-comparisons-json: ${{ inputs.impact-comparisons-json }}
           sticky-key: ${{ inputs.sticky-key }}
+          sticky-workflow: ${{ inputs.sticky-workflow }}
           lane-selection-artifact: ${{ inputs.lane-selection-artifact }}
           test-selection-artifact: ${{ inputs.test-selection-artifact }}
           full-suite-reference-artifact: ${{ inputs.full-suite-reference-artifact }}

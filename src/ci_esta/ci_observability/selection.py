@@ -24,7 +24,7 @@ from pytest_selective.impact_models import (
 )
 
 from ci_esta.ci_observability import markdown
-from ci_esta.ci_observability.brand import BLUE, SELECTIVE_URL, Badge
+from ci_esta.ci_observability.brand import SELECTIVE_URL, Badge, quantity
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.models import SelectionSectionV1
 
@@ -128,7 +128,7 @@ def _saved(share: float | None) -> str | None:
 def badges(section: SelectionSectionV1) -> list[Badge]:
     """The sticky's badges for file selection: what ran, and the saving when there is a baseline."""
     explanation = section.explanation
-    return [Badge("selected", f"{_count(explanation.selected)} / {_count(explanation.total)} files", BLUE)]
+    return [quantity("selected", explanation.selected, explanation.total, "files")]
 
 
 def _one_funnel(explanation: SelectionExplanation) -> bool:
@@ -464,7 +464,7 @@ def _reference_note(section: SelectionSectionV1, repository: str | None) -> list
 def render_selection_section(section: SelectionSectionV1, repository: str | None = None) -> str:
     """The sticky's test-selection section, as GitHub-flavored Markdown; `repository` links runs."""
     explanation = section.explanation
-    summary = f"{_count(explanation.selected)} / {_count(explanation.total)} files selected"
+    summary = badges(section)[0].summary
     saved = _saved(_test_share(section))
     if saved is not None and not explanation.full_suite:
         summary += f" · {saved} less summed test time"

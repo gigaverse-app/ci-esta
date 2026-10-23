@@ -26,7 +26,7 @@ permissions:
   pull-requests: write # Only to post the sticky; use read to keep the report in the job summary.
 jobs:
   report:
-    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@<reviewed-commit>
+    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@v1
     with:
       run-id: ${{ github.event.workflow_run.id }}
       run-attempt: ${{ github.event.workflow_run.run_attempt }}
@@ -34,8 +34,7 @@ jobs:
       required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
       pull-request-number: ${{ format('{0}', github.event.workflow_run.pull_requests[0].number || '') }}
       post-sticky: true
-      # When `workflows:` lists several workflows, give each its own sticky:
-      # sticky-key: ${{ github.event.workflow_run.name }}
+      sticky-workflow: CI
 ```
 
 The observer must land on the default branch before `workflow_run` triggers it.
@@ -105,7 +104,36 @@ never earn a passed status. Readiness appears only when required gates are confi
 Enable `analyze-critical-path` to read the source workflow topology at its
 verified revision and compute dependency paths and execution slack. Timing
 adjacency alone is not a dependency edge; unsupported topology stays unavailable. A pull request keeps one sticky per `sticky-key`; each
-new run updates it in place, and an older run never overwrites a newer one.
+new run updates it in place. The publisher compares source run, attempt, completed
+gates and observation time before replacing a report.
+
+### Shared headlines and publication ownership
+
+Python and Bun use the same renderer and quantity formatting for header badges
+and section summaries. Python's `selected` count describes the plan before
+evidence reuse. Bun's `executed` count comes from an observed file inventory;
+without one, the headline shows requested work units. Multiple work inventories
+are not summed because they can overlap. None of these counts implies time saved
+or passing checks.
+
+Set `sticky-workflow` to the exact source workflow name that owns the PR comment.
+Other observed workflows still produce summaries and artifacts. Keep `sticky-key`
+stable across upgrades: distinct keys deliberately create distinct comments, and
+sharing a key does not combine unrelated reports.
+
+The reusable workflow serializes report jobs per PR without cancelling an active
+publisher. Consumers do not need to copy its concurrency block. Direct action
+callers use the same publication code; they should serialize overlapping jobs
+if they need strict ordering, since GitHub's comment API has no atomic upsert.
+The publisher also repairs matching bot duplicates, including a concurrent first
+create: it keeps the oldest permalink, saves the newest snapshot there, then
+removes redundant comments from the same bot. Human comments, other keys and
+malformed duplicate snapshots are preserved. A failed save never deletes the
+other report. This recovery is not a cross-workflow lock.
+
+Install these inputs only after the release containing them is available at
+`@v1`. Automatic `workflow_run` observers load their definition from the default
+branch; changing a PR branch does not update that observer until merge.
 
 The banner and mark live in [`docs/assets`](assets/). Change both banners
 through [`scripts/render_sticky_banners.py`](../scripts/render_sticky_banners.py)

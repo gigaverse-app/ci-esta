@@ -11,7 +11,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, JsonValue
 
-from ci_esta.ci_observability import brand, markdown, optional_selection
+from ci_esta.ci_observability import brand, markdown, optional_selection, work_selection
 from ci_esta.ci_observability.critical_path import analyze
 from ci_esta.ci_observability.efficiency import render_avoided_work, render_sharding, reused_lane_count
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
@@ -43,7 +43,6 @@ from ci_esta.ci_observability.models import (
     TimingStatus,
 )
 from ci_esta.ci_observability.timeline import render_timeline
-from ci_esta.ci_observability.work_selection import render_work_selection
 from ci_esta.measurements import ReuseMeasurement
 
 STICKY_MARKER = "<!-- ci-observability-v1 -->"
@@ -537,6 +536,8 @@ def _header(report: CiObservabilityReportV1) -> list[str]:
         verdict.extend(optional_selection.badges(report.test_selection))
     elif report.lane_selection is not None:
         verdict.extend(optional_selection.badges(report.lane_selection, lanes=True))
+    elif report.work_selection is not None:
+        verdict.extend(work_selection.badges(report.work_selection))
     if any(isinstance(item, ReuseMeasurement) for item in report.measurements):
         verdict.append(brand.Badge("reused", f"{reused_lane_count(report)} lanes", brand.BLUE))
     verdict.extend(_cost_badges(report))
@@ -564,9 +565,9 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
     sections = []
     if report.work_selection is not None:
         plan = report.work_selection
-        requested = sum(item.decision == "run" for item in plan.decisions)
         sections.append(markdown.report_section("Work selection and execution",
-                        [f"{requested} / {len(plan.decisions)} work units requested"], [render_work_selection(plan)],
+                        [item.summary for item in work_selection.badges(plan)],
+                        [work_selection.render_work_selection(plan)],
                         note="Admission plan; execution outcomes in details"))
     if report.test_selection is not None:
         sections.append(optional_selection.render(report.test_selection, report.provenance.repository))

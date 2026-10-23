@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ci_esta.ci_observability import markdown
+from ci_esta.ci_observability import brand, markdown
 
 
 class WorkExecutionV1(BaseModel):
@@ -74,6 +74,15 @@ class WorkSelectionV1(BaseModel):
         if self.fallback and any(item.decision != "run" for item in self.decisions):
             raise ValueError("fallback must request every declared unit of work")
         return self
+
+
+def badges(plan: WorkSelectionV1) -> list[brand.Badge]:
+    if len(plan.decisions) == 1:
+        execution = plan.decisions[0].execution
+        if execution is not None and execution.executed_files is not None and execution.status != "not_run":
+            return [brand.quantity("executed", len(execution.executed_files), execution.total_files, "files")]
+    return [brand.quantity("requested", sum(item.decision == "run" for item in plan.decisions),
+                           len(plan.decisions), "work units")]
 
 
 def render_work_selection(plan: WorkSelectionV1) -> str:
