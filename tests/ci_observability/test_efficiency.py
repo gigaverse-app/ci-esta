@@ -52,6 +52,27 @@ def test_junit_aggregate_cannot_claim_pool_occupancy():
     assert "75%" not in sticky
 
 
+@pytest.mark.parametrize("structured", [True, False])
+def test_ai_timing_summary_has_one_owner_and_keeps_legacy_fallback(structured):
+    from ci_esta.ci_observability.enrichment.ai import AiExtensions, build_repository_signals
+
+    extension = AiExtensions.model_validate({"ai": {"workflow_class": "python_tests", "pytest": {
+        "shard_count": 16, "wall_seconds": 150, "total_test_seconds": 2187}}})
+    measured = report().model_copy(update={
+        "extensions": extension.model_dump(mode="json") if structured else {},
+        "repository_signals": build_repository_signals(extension),
+    })
+
+    sticky = render_markdown(measured)
+
+    assert sticky.count("36m 27s summed test time") == 1
+    assert "2m 30s" in sticky
+    assert ("Reported pytest timings: 16 shards" in sticky) is structured
+    assert ("pytest: 16 shards · 2m 30s wall" in sticky) is not structured
+    # Rendering keeps both raw representations available to JSON consumers.
+    assert len(measured.repository_signals) == 1
+
+
 @pytest.mark.parametrize("field,value", [("run_id", 432), ("run_attempt", 1), ("head_sha", "b" * 40)])
 def test_report_rejects_measurements_from_another_source(field, value):
     measured = pool().model_copy(update={field: value})
