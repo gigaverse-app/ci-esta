@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/gigaverse-app/ci-esta/compare/v1.1.0...v1.1.1) (2026-10-23)
+
+
+### Bug fixes
+
+* **actions:** use the stable selector action API ([#62](https://github.com/gigaverse-app/ci-esta/issues/62)) ([a184c33](https://github.com/gigaverse-app/ci-esta/commit/a184c33f639cee2bcd163f7ac4d692659870bcd4))
+
 ## [1.1.0](https://github.com/gigaverse-app/ci-esta/compare/v1.0.0...v1.1.0) (2026-10-23)
 
 
