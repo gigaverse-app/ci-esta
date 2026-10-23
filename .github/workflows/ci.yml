@@ -124,7 +124,7 @@ jobs:
         with:
           bun-version: '1.4.2'
       - name: Exercise native Bun selection and fallback controls
-        run: node --test tests/github_actions/bun-selection.test.mjs
+        run: node --test tests/github_actions/bun-selection.test.mjs tests/github_actions/bun-work-report.test.mjs
       - name: Always exercise routing and gate contracts
         run: uv run pytest -q tests/ci/test_repository_routing.py tests/ci/test_validation_gate.py tests/testing/test_workflow_adoption.py
       - run: uv build

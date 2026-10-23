@@ -62,6 +62,11 @@ reference leaves savings unmeasured. This configures observation, not test execu
 
 ### What the sticky shows
 
+Add [measured-impact pairs](measured-impact.md) to preserve verified optimization
+results at the top of the sticky. Bun execution artifacts show structured counts,
+wall time and fallback reasons without installing pytest-selective. Timeline and
+critical-path diagnostics are always collapsed, including reports with no tests.
+
 ```text
 [CI-esta banner: dark or light, following the reader's GitHub theme]
 [merge-ready 2m 9s] [lanes 1 of 14 ran] [skipped ≈28 runner-min] [runner 4 min] [cost $0.03]  CI · `17f3325`
@@ -69,7 +74,7 @@ reference leaves savings unmeasured. This configures observation, not test execu
 🎯 Test selection · by pytest-selective   (when the run uploaded a file-selection explanation)
 🧪 Test lanes · by pytest-selective       (when the run uploaded a lane plan; one square per lane)
 ⏱️ CI time and cost                        (collapsed beside a selection section)
-   gantt: one row per job labeled with its run and ⏳ wait for a runner, orange
+   closed Timeline and critical path: one row per job labeled with its run and ⏳ wait, orange
    for the critical path, a green bar from merge-ready on
 [mark] Powered by CI-esta · run · schema
 ```

@@ -121,6 +121,128 @@
       "title": "GateKind",
       "type": "string"
     },
+    "ImpactComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "metric": {
+          "enum": [
+            "gate",
+            "runner",
+            "steps"
+          ],
+          "title": "Metric",
+          "type": "string"
+        },
+        "before": {
+          "$ref": "#/$defs/RunReference"
+        },
+        "after": {
+          "$ref": "#/$defs/RunReference"
+        },
+        "job": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Job"
+        },
+        "steps": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Steps",
+          "type": "array"
+        },
+        "context": {
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Context",
+          "type": "string"
+        },
+        "comparison": {
+          "default": "same_head",
+          "enum": [
+            "same_head",
+            "workflow_change"
+          ],
+          "title": "Comparison",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "metric",
+        "before",
+        "after",
+        "context"
+      ],
+      "title": "ImpactComparison",
+      "type": "object"
+    },
+    "ImpactResult": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "$ref": "#/$defs/ImpactComparison"
+        },
+        "before_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before Seconds"
+        },
+        "after_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After Seconds"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        }
+      },
+      "required": [
+        "request"
+      ],
+      "title": "ImpactResult",
+      "type": "object"
+    },
     "JsonValue": {},
     "ObservedGateV1": {
       "additionalProperties": false,
@@ -745,6 +867,33 @@
       "title": "RunProvenanceV1",
       "type": "object"
     },
+    "RunReference": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "exclusiveMinimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "run_attempt",
+        "head_sha"
+      ],
+      "title": "RunReference",
+      "type": "object"
+    },
     "RunnerCostV1": {
       "additionalProperties": false,
       "properties": {
@@ -908,6 +1057,17 @@
           ],
           "default": null,
           "title": "Receipt"
+        },
+        "execution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkExecutionV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -916,6 +1076,107 @@
         "reason"
       ],
       "title": "WorkDecisionV1",
+      "type": "object"
+    },
+    "WorkExecutionV1": {
+      "additionalProperties": false,
+      "description": "Observed runner output, separate from the admission request and benchmark evidence.",
+      "properties": {
+        "mode": {
+          "enum": [
+            "full",
+            "scoped",
+            "none",
+            "reused"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_run",
+            "incomplete"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "total_files": {
+          "minimum": 0,
+          "title": "Total Files",
+          "type": "integer"
+        },
+        "executed_files": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 100000,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Executed Files"
+        },
+        "always_run_files": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100000,
+          "title": "Always Run Files",
+          "type": "array"
+        },
+        "duration_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Seconds"
+        },
+        "tested_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Tested Sha",
+          "type": "string"
+        },
+        "base_sha": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Sha"
+        },
+        "runtime": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Runtime",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "status",
+        "total_files",
+        "tested_sha",
+        "runtime"
+      ],
+      "title": "WorkExecutionV1",
       "type": "object"
     },
     "WorkSelectionV1": {
@@ -1169,6 +1430,14 @@
         }
       ],
       "default": null
+    },
+    "measured_impact": {
+      "items": {
+        "$ref": "#/$defs/ImpactResult"
+      },
+      "maxItems": 12,
+      "title": "Measured Impact",
+      "type": "array"
     },
     "critical_path": {
       "anyOf": [

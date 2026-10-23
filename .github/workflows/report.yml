@@ -39,6 +39,10 @@ on:
         description: Optional provider-neutral ci-esta/work-selection/v1 artifact.
         type: string
         default: ''
+      impact-comparisons-json:
+        description: Historical benchmark pairs, verified against exact GitHub run attempts.
+        type: string
+        default: '[]'
       sticky-key:
         description: One sticky per key; pass the workflow name when observing several workflows.
         type: string
@@ -84,6 +88,7 @@ jobs:
           analyze-critical-path: ${{ inputs.analyze-critical-path }}
           post-sticky: ${{ inputs.post-sticky }}
           work-selection-artifact: ${{ inputs.work-selection-artifact }}
+          impact-comparisons-json: ${{ inputs.impact-comparisons-json }}
           sticky-key: ${{ inputs.sticky-key }}
           lane-selection-artifact: ${{ inputs.lane-selection-artifact }}
           test-selection-artifact: ${{ inputs.test-selection-artifact }}
