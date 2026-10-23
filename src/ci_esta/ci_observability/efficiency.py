@@ -151,7 +151,7 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
     body += ["Cache time saved is unavailable without a comparable cold run."]
     images = [item for item in report.measurements if isinstance(item, ImageReuseMeasurement)]
     if images:
-        summary.append(f"{len(images)} verified image reuses")
+        summary.append(f"{len(images)} verified image reuse{'s' if len(images) != 1 else ''}")
         body += ["", "#### Image reuse", "", "| Job | Verified image digest |", "|:--|:--|",
                  *(f"| {markdown.cell(markdown.code(item.job))} | {markdown.code(item.digest)} |" for item in images),
                  "", "The source and target image digests matched. Build time avoided is unknown without a comparable build; "
@@ -209,6 +209,9 @@ def render_sharding(report: CiObservabilityReportV1) -> str:
         total = format_seconds(timings.total_test_seconds) if timings.total_test_seconds is not None else "unknown"
         body += ["", f"Reported pytest timings: {timings.shard_count} shards, {wall} longest-shard wall, "
                  f"{total} summed test time. JUnit durations omit work outside its timed suites."]
-    body += ["", *(f"{markdown.inline(signal.label)}: {markdown.inline(signal.value)}." for signal in signals),
-             "CPU quota, throttling and predicted-duration error are unavailable unless separately measured."]
+    elif signals:
+        # Older producers supplied only this signal. Structured timings above own
+        # the same numbers when available; keep the signal in the raw report.
+        body += ["", *(f"{markdown.inline(signal.label)}: {markdown.inline(signal.value)}." for signal in signals)]
+    body += ["", "CPU quota, throttling and predicted-duration error are unavailable unless separately measured."]
     return _details("⚡ Sharding &amp; runner efficiency · " + escape(" · ".join(summary)), body)

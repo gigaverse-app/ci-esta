@@ -17,7 +17,7 @@
 - [x] Existing action harnesses exercise the real resolver with API-boundary fakes;
   local process tests exercise the actual shard runner. Missing telemetry preserves
   the rest of the report.
-- [ ] Full local checks and hosted CI pass on the published revision.
+- [x] Full local checks and hosted CI pass on the published revision.
 - [x] Real GitHub report includes measured cache/reuse and shard artifacts; inspect
   the actual sticky and JSON. Exercise positive execution and reuse controls.
 - [ ] Release through Release Please, verify exact PyPI installation, update all
@@ -69,3 +69,27 @@ intervals. This small smoke proves measurement plumbing, not production savings.
 The source API cache outcome was one validated miss. Banner, Gantt and per-shard
 raw details survived rendering. A fail-first partial-proof regression now keeps
 valid reused lanes when another source job is unreadable.
+
+The feature shipped in Python 1.1.0, followed by 1.1.1's canonical selector
+delegation. Publish runs `39945266185` and `39946769471` passed, and exact PyPI
+installs were checked outside the source checkout. Actions remain on `v1`,
+independently of Python versions. Canonical-only public smoke `39948203418`
+passed on `4438f46` after the last legacy action alias was removed.
+
+Due#95, pytest-obligation#118 and pytest-selective#48 merged their adoption.
+Web#4259 and mobile#3733 passed CI and await required independent reviews.
+Common#280's own checks passed; generated backend#5517 and AI#3127 are testing
+their adaptations before the common merge and automatic final pin updates.
+Real consumer reports `39947935251` (backend) and `39947524670` (AI) contain
+12/16 shards on 16 visible logical CPUs at 92%/94% slot occupancy respectively.
+They retain failed child exits and show blocked validation correctly. Backend
+also recorded five validated environment misses and one verified image reuse;
+AI explicitly recorded disabled environment caching. These are observed runs,
+not claims about incremental savings or CPU utilization.
+
+Live AI inspection found duplicate JUnit totals from its structured extension
+and legacy repository signal. The production AI enrichment producer reproduces
+the duplicate in a fail-first regression; rendering now uses the structured
+timing once and preserves legacy-only fallback plus both raw JSON fields.
+Consumer failures were stale assertions of the pre-v1 action namespace/version,
+corrected without changing validation gates or test coverage.
