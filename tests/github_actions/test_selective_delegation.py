@@ -14,7 +14,7 @@ def test_test_impact_delegates_every_input_and_output_to_the_compatible_selector
     version = re.match(r"pytest-selective>=([0-9]+)\.([0-9]+)\.[0-9]+", requirement)
     assert version, requirement
     revision = f"v{version[1]}.{version[2]}"
-    action = yaml.safe_load((root / ".github/actions/test-impact/action.yml").read_text())
+    action = yaml.safe_load((root / "actions/test-impact/action.yml").read_text())
     steps = action["runs"]["steps"]
     assert len(steps) == 1
     assert steps[0]["uses"] == f"gigaverse-app/pytest-selective/.github/actions/test-impact@{revision}"

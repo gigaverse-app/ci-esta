@@ -4,7 +4,7 @@ import yaml
 
 
 def test_pr_state_action_enforces_head_sha_and_full_matrix_owned_state() -> None:
-    action_path = Path(".github/actions/pytest-canary-pr-state/action.yml")
+    action_path = Path("actions/pytest-canary-pr-state/action.yml")
     action = yaml.safe_load(action_path.read_text())
 
     assert action["inputs"]["state"]["description"]
@@ -23,6 +23,6 @@ def test_pr_state_action_enforces_head_sha_and_full_matrix_owned_state() -> None
 
 
 def test_shared_actions_readme_lists_pytest_canary_pr_state() -> None:
-    readme = Path(".github/actions/README.md").read_text()
+    readme = Path("actions/README.md").read_text()
 
     assert "`pytest-canary-pr-state`" in readme

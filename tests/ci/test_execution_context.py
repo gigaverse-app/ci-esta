@@ -9,7 +9,7 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-ACTION = ROOT / ".github/actions/resolve-lane-evidence"
+ACTION = ROOT / "actions/resolve-lane-evidence"
 
 
 def admission(context: str, prior_context: str, *, later_failure: bool = False, attempt: int = 1) -> dict:

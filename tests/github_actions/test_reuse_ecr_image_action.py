@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-ACTION_DIRECTORY = Path(".github/actions/reuse-ecr-image")
+ACTION_DIRECTORY = Path("actions/reuse-ecr-image")
 ACTION_PATH = ACTION_DIRECTORY / "action.yml"
 SCRIPT_PATH = ACTION_DIRECTORY / "reuse_ecr_image.sh"
 SOURCE_IMAGE = "249422357769.dkr.ecr.us-east-1.amazonaws.com/dev-app:ci-tree-source"

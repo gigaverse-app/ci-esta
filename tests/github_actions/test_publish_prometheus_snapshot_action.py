@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yaml
 
-ACTION_DIRECTORY = Path(".github/actions/publish-prometheus-snapshot")
+ACTION_DIRECTORY = Path("actions/publish-prometheus-snapshot")
 ACTION_PATH = ACTION_DIRECTORY / "action.yml"
 SCRIPT_PATH = ACTION_DIRECTORY / "publish.py"
 PUSHGATEWAY_URL = "https://pushgateway.example.test/base/"

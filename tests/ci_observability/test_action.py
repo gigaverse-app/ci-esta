@@ -745,7 +745,7 @@ def test_generic_work_artifact_matches_observed_source(tmp_path, identity):
 
 
 def test_action_default_uses_source_head_instead_of_pull_request_merge_sha(tmp_path):
-    definition = yaml.safe_load((Path(__file__).parents[2] / ".github/actions/ci-observability/action.yml").read_text())
+    definition = yaml.safe_load((Path(__file__).parents[2] / "actions/ci-observability/action.yml").read_text())
     default = definition["inputs"]["commit-sha"]["default"]
     # In a pull_request job github.sha is the synthetic merge commit, while the
     # Actions run API identifies the source branch head.

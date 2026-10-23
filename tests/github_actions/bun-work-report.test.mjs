@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { workSelectionReport } from "../../.github/actions/run-bun-tests/work-report.mjs";
+import { workSelectionReport } from "../../actions/run-bun-tests/work-report.mjs";
 
 const context = { runId: 123, attempt: 2, headSha: "a".repeat(40) };
 const execution = { mode: "scoped", reason: "Affected imports", fallback: false,

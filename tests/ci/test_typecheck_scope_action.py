@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-ACTION = ROOT / ".github/actions/typecheck-scope"
+ACTION = ROOT / "actions/typecheck-scope"
 BASE = "b" * 40
 
 

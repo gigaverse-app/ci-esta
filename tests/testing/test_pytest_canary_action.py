@@ -195,7 +195,7 @@ def test_main_does_not_require_github_output_outside_actions(tmp_path: Path, mon
 
 
 def test_composite_action_exposes_planner_inputs_and_outputs() -> None:
-    action = Path(".github/actions/pytest-failure-canary/action.yml").read_text()
+    action = Path("actions/pytest-failure-canary/action.yml").read_text()
 
     for action_input in (
         "artifact-directory",
