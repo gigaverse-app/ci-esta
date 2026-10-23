@@ -1,5 +1,9 @@
 # CI-esta: make GitHub Actions faster, with evidence
 
+[![Documentation](https://readthedocs.org/projects/ci-esta/badge/?version=latest)](https://ci-esta.readthedocs.io/en/latest/)
+
+[Read the documentation](https://ci-esta.readthedocs.io/en/latest/) · [Related tools](https://ci-esta.readthedocs.io/en/latest/ecosystem/)
+
 See what holds up your PR, avoid repeating validated work, and run the remaining
 tests efficiently. CI-esta adds reports, environment caching, reusable execution
 evidence and test scheduling to your existing GitHub Actions workflows. No account,
