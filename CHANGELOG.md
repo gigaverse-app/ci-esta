@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/gigaverse-app/ci-esta/compare/v1.2.0...v1.3.0) (2026-10-23)
+
+
+### Features
+
+* **timings:** add opt-in retained history adoption ([#86](https://github.com/gigaverse-app/ci-esta/issues/86)) ([cb12365](https://github.com/gigaverse-app/ci-esta/commit/cb12365d98ff4128d1dac0d86418708f06a3ea54))
+
 ## [1.2.0](https://github.com/gigaverse-app/ci-esta/compare/v1.1.4...v1.2.0) (2026-10-23)
 
 
