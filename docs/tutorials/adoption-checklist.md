@@ -12,7 +12,7 @@ enable every action. Mark a capability **adopted**, **not applicable**, or
 
 This tutorial gives the order, acceptance checks and rollback choices. Linked
 recipes own the complete configurations. Use the
-[pytest-selective checklist](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/tutorials/adoption-checklist.md)
+[pytest-selective checklist](https://github.com/gigaverse-app/pytest-selective/blob/ed14fa784f2b28d5a303e4e92985dd8bd3644299/docs/tutorials/adoption-checklist.md)
 for dependency declarations, local development and selection health.
 
 ## 1. Record a useful baseline
@@ -148,7 +148,7 @@ mandatory installation steps.
 | Export metrics or shard intervals; confirm destination and source identity | `publish-prometheus-snapshot`, `publish-shard-measurements` | [Runner diagnostics](../runners-and-diagnostics.md), [report integration](../integrations.md) |
 | Collect complete changes once; test renames, deletions and incomplete history | `collect-pr-changes`, `collect-pytest-changes`, `collect-ci-changes` | [Selection and gates](../selected-gates.md) |
 | Reject stale reruns and superseded work; preserve deliberate full runs | `current-pr-head`, `cancel-obsolete-pr-runs` | [Critical-path optimizations](../critical-path-optimizations.md) |
-| Choose test/type-check scope; validate changed-input and full fallbacks | `test-impact`, `typecheck-scope`, `pytest-expansion` | [Selector checklist](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/tutorials/adoption-checklist.md) |
+| Choose test/type-check scope; validate changed-input and full fallbacks | `test-impact`, `typecheck-scope`, `pytest-expansion` | [Selector checklist](https://github.com/gigaverse-app/pytest-selective/blob/ed14fa784f2b28d5a303e4e92985dd8bd3644299/docs/tutorials/adoption-checklist.md) |
 | Install efficiently; validate exact identity and broken-cache repair | `setup-cached-uv`, `setup-python-uv`, `native-windows-git` | [Environment cache](../environment-cache.md), [platform tuning](../critical-path-optimizations.md) |
 | Retain costs and partition current tests; verify partial/stale/concurrent updates | `restore-test-timings`, `learn-test-timings`, `plan-pytest-shards`, `plan-runner-pools` | [Timing tutorial](../learned-test-timings.md) |
 | Aggregate exact artifacts and retain coverage policy; fail on missing shards | `pytest-timings`, `verify-pytest-completion`, `coverage-policy` | [Sharding example](../../examples/pytest-shards/workflow.yml), [runner guide](../runners-and-diagnostics.md) |
