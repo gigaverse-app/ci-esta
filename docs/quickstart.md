@@ -2,9 +2,9 @@
 
 Start with a report if you do not know the bottleneck. If repeated dependency
 installation is already the problem, replace those setup steps directly. Use
-[the public action version policy](actions.md#availability-and-pinning): the new
-root/short paths below use `@main` until a release containing them is published.
-Pin a reviewed commit when adopting them in production.
+[the public action version policy](actions.md#availability-and-pinning): the
+root/short paths below use `@v1` for automatic compatible 1.x upgrades.
+Use an exact release tag or commit SHA if your project requires fixed revisions.
 
 ## Report a completed workflow
 
@@ -27,7 +27,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: gigaverse-app/ci-esta@main
+      - uses: gigaverse-app/ci-esta@v1
         with:
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}

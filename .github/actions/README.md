@@ -60,7 +60,7 @@ artifact, sticky/summary Markdown, and bounded Prometheus exposition. Workflow
 job names, matrix size, and step ordering are never accounting keys.
 
 ```yaml
-- uses: gigaverse-app/ci-esta@main
+- uses: gigaverse-app/ci-esta@v1
   with:
     github-token: ${{ github.token }}
     commit-sha: ${{ github.event.pull_request.head.sha }}

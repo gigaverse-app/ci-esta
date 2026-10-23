@@ -7,12 +7,16 @@ analyze your project still need your project's checkout.
 
 ## Availability and pinning
 
-These public paths are new on main and are not present in older released tags.
-Use a reviewed commit containing the root `action.yml`, or `@main` while evaluating.
-After Release Please publishes this feature, use the corresponding compatible
-release tag or an immutable commit SHA. Do not change an old version tag to make
-new paths appear. Python package versions and installed agent skills are separate:
-updating one does not update the others.
+The shared `actions/NAME` paths are new on main. Use `@main` for evaluation or
+a reviewed commit containing them until a published release includes these paths.
+Then use the compatible release tag. The planned `@v1` alias provides automatic
+compatible minor and patch upgrades within 1.x. The publish workflow
+advances `v1` only after full release validation and successful publication.
+Breaking changes ship under a new major tag, so `v1` never advances to 2.x.
+Prereleases do not advance the alias. For a fixed revision, use an exact release
+tag such as `@v1.0.0` or an immutable commit SHA. Full release tags are never moved.
+Python package versions and installed agent skills are separate: updating one
+does not update the others.
 
 Use `actions/NAME` for new workflows. Existing `.github/actions/NAME` and
 top-level `NAME` paths remain compatibility aliases with the same inputs,

@@ -1,7 +1,7 @@
 # Publishing CI-esta
 
 The Python distribution is `ci-esta`; imports use `ci_esta`. Package versions
-come from `pyproject.toml` and must match the GitHub release tag, such as `v0.1.0`.
+come from `pyproject.toml` and must match the GitHub release tag, such as `v1.0.0`.
 
 PyPI Trusted Publishing uses owner `gigaverse-app`, repository `ci-esta`,
 workflow `release.yml`, and GitHub environment `pypi`. No API token is needed.
@@ -18,8 +18,11 @@ workflow `release.yml`, and GitHub environment `pypi`. No API token is needed.
    and `ci-esta-pytest pools` outside the source checkout.
 
 After successful publication, the workflow advances the compatible Actions tag
-(for example, `v0.1`). Consumers use `@v0.1` for Actions and requirements such as
-`ci-esta>=0.1.0,<0.2.0` for Python. Lockfiles retain exact resolved artifacts.
+(for example, `v1`). Consumers use `@v1` to receive all compatible 1.x minor
+and patch releases automatically, or an exact tag such as `@v1.0.0` or commit SHA
+for a fixed revision. Breaking changes require a new major tag, such as `v2`;
+they do not advance `v1`. Pre-1.0 releases retain minor aliases such as `v0.3`.
+Python consumers can use `ci-esta>=1.0.0,<2.0.0`; lockfiles retain exact artifacts.
 Prereleases do not advance the compatible tag. Published package versions and
 full release tags are never replaced; fixes require a new patch release.
 
@@ -73,3 +76,7 @@ tag. It rechecks the tag/version match and full CI before uploading. Never move
 an existing full release tag or reuse a published version for changed contents.
 Prereleases remain a deliberate manual version/tag/release path; this automation
 proposes normal SemVer releases.
+
+To deliberately graduate to a major release, retain a `Release-As: 1.0.0`
+footer in the merged commit body. Release Please prepares the version, lockfile
+and changelog together; no permanent version override is needed in its config.
