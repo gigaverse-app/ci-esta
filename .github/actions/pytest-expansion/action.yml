@@ -20,7 +20,7 @@ inputs:
 runs:
   using: composite
   steps:
-  - uses: gigaverse-app/pytest-selective/.github/actions/pytest-expansion@efa054971aeeb051f410a1696f89337ac3c184bb
+  - uses: gigaverse-app/pytest-selective/.github/actions/pytest-expansion@6c65e923adf9e4283ba64c0db994304b3d426031
     with:
       base: ${{ inputs.base }}
       head: ${{ inputs.head }}

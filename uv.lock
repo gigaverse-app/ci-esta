@@ -85,7 +85,7 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.2,<4" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "pytest", marker = "extra == 'pytest'", specifier = ">=8" },
-    { name = "pytest-selective", url = "https://github.com/gigaverse-app/pytest-selective/archive/4acd29e638b1f52c8101c9f4ed4e1a17c8080abd.tar.gz" },
+    { name = "pytest-selective", url = "https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz" },
     { name = "pyyaml", specifier = ">=6,<7" },
 ]
 provides-extras = ["pytest", "postgres"]
@@ -616,12 +616,12 @@ wheels = [
 [[package]]
 name = "pytest-selective"
 version = "0.1.0a1"
-source = { url = "https://github.com/gigaverse-app/pytest-selective/archive/4acd29e638b1f52c8101c9f4ed4e1a17c8080abd.tar.gz" }
+source = { url = "https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz" }
 dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { hash = "sha256:d283b0043538d67edfd2ba92efbec93de86ebab3d4008c0d06487f89c9c54b6e" }
+sdist = { hash = "sha256:b07ffb2bcf4e6cbcb44e528abd208365462559c43a14cc005f6c8df641b9bddd" }
 
 [package.metadata]
 requires-dist = [

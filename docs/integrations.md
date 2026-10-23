@@ -18,6 +18,14 @@ Due application behavior
 
 ## pytest-selective: one contract, two granularities
 
+The selector also supports local edits with `pytest-selective run --config CONFIG
+-- PYTEST_OPTIONS`. Its private-index snapshot leaves staging and HEAD intact;
+selection happens before pytest collection. Common dependency environment files
+invalidate tests and lanes by default. CI-esta's import-boundary guards share the
+selector's warning-stable source parser instead of maintaining another policy.
+See the [pytest-impacted comparison](https://github.com/gigaverse-app/pytest-selective/blob/codex/impacted-improvements/docs/comparison-pytest-impacted.md)
+for adopted ideas, measured parser improvements and limits.
+
 CI-esta imports pytest-selective's models (`SelectionExplanation`, `LanePlan`) directly; it does not fork the selector. pytest-selective decides what runs; CI-esta measures what that decision cost and saved, keeps required checks honest when work is skipped, and explains both on the pull request. CI-esta never changes a selection decision while rendering it.
 
 pytest-selective selects at two granularities, and the sticky has a section for each:

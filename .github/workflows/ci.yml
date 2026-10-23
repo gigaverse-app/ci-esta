@@ -34,7 +34,7 @@ jobs:
           pr-number: ${{ github.event.pull_request.number }}
           expected-head-sha: ${{ github.event.pull_request.head.sha }}
       - uses: ./.github/actions/collect-pr-changes
-      - uses: gigaverse-app/pytest-selective/.github/actions/plan-lanes@4acd29e638b1f52c8101c9f4ed4e1a17c8080abd
+      - uses: gigaverse-app/pytest-selective/.github/actions/plan-lanes@6c65e923adf9e4283ba64c0db994304b3d426031
         id: selection
         with:
           config: .github/test-lanes.json
