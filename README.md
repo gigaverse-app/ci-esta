@@ -6,6 +6,7 @@ PostgreSQL worker databases and native Git on Windows, with full conformance
 and coverage retained.
 
 [![CI](https://github.com/gigaverse-app/ci-esta/actions/workflows/ci.yml/badge.svg)](https://github.com/gigaverse-app/ci-esta/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/ci-esta)](https://pypi.org/project/ci-esta/)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue)](pyproject.toml)
 [![Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 [![Agent skill](https://img.shields.io/badge/Agent_Skill-ready-2563EB)](docs/agents.md)
@@ -191,6 +192,16 @@ Receipts are recorded only after required work passes. Explicit reruns execute a
 | Compare CI optimization approaches | [Alternatives](docs/alternatives.md) |
 | Understand extraction scope and migration | [Upstreaming](docs/upstreaming.md) |
 | Run tests and contribute | [Contributing](CONTRIBUTING.md) |
+
+## Install the Python tools
+
+```bash
+pip install "ci-esta>=0.1.0,<0.2.0"
+ci-esta --help
+```
+
+Actions and reusable workflows use the compatible `@v0.1` release tag. Python
+lockfiles retain exact resolved versions and artifact hashes.
 
 ## Status and limits
 
