@@ -16,7 +16,7 @@ for each shard. Start services and restore the environment alongside planning wh
 those jobs are independent, and keep test execution independent of image builds.
 
 ```bash
-# Install CI-esta at a reviewed immutable revision in the test environment.
+# Install CI-esta at a compatible release version in the test environment.
 export CI_TEST_RESOURCE_OBSERVABILITY=true
 ci-esta-resources ci-esta-pytest run-local --shards 12 --log-dir shard-logs -- \
   bash deployment/scripts/ci/run_unit_test_shard.sh
@@ -41,7 +41,7 @@ ci-esta-pytest pools --shards 55 --shards-per-runner 2 --github-output "$GITHUB_
 ```
 
 For a planning job without application dependencies, use the composite action
-`.github/actions/plan-runner-pools` at a reviewed immutable revision with inputs
+`.github/actions/plan-runner-pools` at a compatible release version with inputs
 `shards` and `shards-per-runner`. It exposes the same outputs as the CLI.
 
 The `pools` output is a JSON array suitable for a matrix's `pool` axis. Each object

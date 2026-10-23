@@ -143,7 +143,7 @@ ci-esta render ci-esta-report/ci-observability.json \
   --markdown report.md --prometheus report.prom
 ```
 
-The alpha distribution installs pytest-selective's shared explanation contract from an immutable Git revision. Neither package is claimed to be published on PyPI. The Actions for evidence, gates and change collection do not require a Python application or pytest.
+The Python distribution installs pytest-selective's shared explanation contract through a compatible package-version range. The Actions for evidence, gates and change collection do not require a Python application or pytest.
 
 ## Prometheus without unbounded labels
 

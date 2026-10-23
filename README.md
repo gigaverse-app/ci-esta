@@ -70,7 +70,7 @@ permissions:
   pull-requests: read
 jobs:
   report:
-    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@e9d279269e80a4e68435dbd65cdb9dbd23048f7b
+    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@v0.1
     with:
       run-id: ${{ github.event.workflow_run.id }}
       run-attempt: ${{ github.event.workflow_run.run_attempt }}
@@ -194,7 +194,7 @@ Receipts are recorded only after required work passes. Explicit reruns execute a
 
 ## Status and limits
 
-**Alpha, extracted from Gigaverse's backend-common CI tools.** APIs and schemas may evolve. Git installs work; no PyPI or npm release is claimed. The reporting package currently installs pytest-selective from a pinned public Git revision. Python 3.11+ is required for the CLI; Actions do not require your application to use Python.
+Extracted from Gigaverse's backend-common CI tools. APIs and schemas may evolve before 1.0. The Python package depends on compatible pytest-selective releases. Python 3.11+ is required for the CLI; Actions do not require your application to use Python.
 
 Cost figures are estimates using configured rates, not billing records. Admission delay includes more than runner queue time. Evidence reuse is bounded by declared inputs, proof freshness and GitHub API visibility. No universal speedup is claimed. The backend-common compatibility migration is tracked separately from publication; see [adoption](docs/upstreaming.md).
 
@@ -218,6 +218,6 @@ CI-esta consolidates reusable CI execution, measurement and evidence tooling. Se
 
 See the [action catalog](.github/actions/README.md), [migration inventory](docs/migration-inventory.json) and [preservation test plan](docs/migration-test-plan.md). Some actions retain the originating project's defaults (Python 3.14, coverage schedule, security labels); review their documented inputs. The optional dependency-token receipt adapter recognizes backend-common pins. Without that adapter, evidence uses exact dependency pins.
 
-The wheel includes action support resources. `ci_esta.resources.source_root()` locates them for compatibility imports; normal Actions users should use immutable GitHub `uses:` references. Install `ci-esta[pytest]` when loading `ci_esta.testing.pytest_completion` as a pytest plugin.
+The wheel includes action support resources. `ci_esta.resources.source_root()` locates them for compatibility imports; normal Actions users can use compatible GitHub `uses:` tags such as `@v0.1`. Install `ci-esta[pytest]` when loading `ci_esta.testing.pytest_completion` as a pytest plugin.
 
 Runner sizing, distributed shard pools and opt-in resource/pytest hang diagnostics: [runner recipes](docs/runners-and-diagnostics.md). Standard import rules use import-linter; filesystem-specific rules remain in the shared boundary checker.
