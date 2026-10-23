@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/gigaverse-app/ci-esta/compare/v0.2.0...v0.2.1) (2026-10-23)
+
+
+### Bug fixes
+
+* **setup:** preserve caller uv conformance versions ([#44](https://github.com/gigaverse-app/ci-esta/issues/44)) ([7e522bf](https://github.com/gigaverse-app/ci-esta/commit/7e522bfebcdba1dcb3c82857b7a3463b8c46136b))
+
 ## [0.2.0](https://github.com/gigaverse-app/ci-esta/compare/v0.1.2...v0.2.0) (2026-10-23)
 
 
