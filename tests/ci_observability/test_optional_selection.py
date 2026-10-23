@@ -98,3 +98,12 @@ assert 'ci-esta[selection]' in render_markdown(restored)
 """
     result = subprocess.run([sys.executable, "-c", script, str(path)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+def test_large_work_inventory_keeps_sticky_bounded_and_preserves_json():
+    plan = WorkSelectionV1(provider="bun", run_id=1, run_attempt=1, head_sha="a"*40,
+        input_identity="tree abc", decisions=[WorkDecisionV1(name=f"Tests {index}", decision="run",
+        reason="x" * 1000) for index in range(100)])
+    assert len(render_work_selection(plan)) < 12000
+    assert "80 additional work decisions" in render_work_selection(plan)
+    assert len(WorkSelectionV1.model_validate_json(plan.model_dump_json()).decisions) == 100

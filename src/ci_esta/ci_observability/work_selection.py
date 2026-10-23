@@ -1,5 +1,4 @@
 """Provider-neutral work decisions. These explain admission; they never authorize a skip."""
-from html import escape
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -45,7 +44,12 @@ def render_work_selection(plan: WorkSelectionV1) -> str:
     labels = {"run": "Run requested", "unaffected": "Unaffected", "reused": "Prior validation reused"}
     lines = ["#### CI work decisions", "", f"Provider: {markdown.code(plan.provider)}.", "",
              "| Work | Decision | Why |", "| :-- | :-- | :-- |"]
-    for item in plan.decisions:
-        lines.append(f"| {markdown.cell(escape(item.name))} | {labels[item.decision]} | {markdown.cell(escape(item.reason))} |")
+    # Preserve the full inventory in JSON while keeping the sticky below GitHub's comment limit.
+    for item in plan.decisions[:20]:
+        name = markdown.inline(item.name).replace("|", "\\|")
+        reason = markdown.inline(item.reason[:300]).replace("|", "\\|")
+        lines.append(f"| {name} | {labels[item.decision]} | {reason} |")
+    if len(plan.decisions) > 20:
+        lines.extend(["", f"{len(plan.decisions) - 20} additional work decisions are preserved in the JSON report."])
     lines.extend(["", "These are admission decisions. Required gates and job results below determine success.", ""])
     return "\n".join(lines)

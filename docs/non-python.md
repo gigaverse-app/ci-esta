@@ -1,5 +1,9 @@
 # CI-esta for non-Python repositories
 
+This optional-provider boundary is available from the current Git revision;
+published 0.1.0 predates it. Install from the checkout (`pip install .`) or use
+the reviewed immutable Actions revision.
+
 CI-esta measures GitHub Actions jobs regardless of application language. Its base
 Python package installs neither pytest nor pytest-selective. The hosted reporter
 provides its own Python runtime; your application does not need Python dependencies.
