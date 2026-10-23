@@ -8,7 +8,7 @@ def test_shared_actions_use_versioned_toolkits_and_pinned_external_actions() -> 
     root = Path(__file__).resolve().parents[2]
     remote = re.compile(r"^\s*(?:-\s*)?uses:\s+(?!\./)(\S+)", re.MULTILINE)
     immutable = re.compile(r"^[^@\s]+@[0-9a-f]{40}$")
-    toolkit = re.compile(r"^gigaverse-app/(?:ci-esta|pytest-selective)/[^@]+@v[0-9]+\.[0-9]+$")
+    toolkit = re.compile(r"^gigaverse-app/(?:ci-esta|pytest-selective)/actions/[a-z][a-z0-9-]*@v1$")
     unpinned = [
         f"{path.relative_to(root)}: {reference}"
         for path in (root / "actions").glob("*/action.y*ml")
