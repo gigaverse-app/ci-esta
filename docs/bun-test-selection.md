@@ -93,8 +93,9 @@ full/conformance policy of their own.
 
 The inventory command is an adopter API, not a built-in Bun flag. For a PR use
 its trusted base SHA; for a push use `event.before`; manual measurements supply
-an explicit base SHA. Fetch history. Preserve main/scheduled full checkpoints,
-explicit full overrides and reruns. Do not apply a whole-suite coverage floor
+an explicit base SHA. Fetch history. Ordinary PRs and main pushes use selection;
+retain scheduled/manual full checkpoints, explicit full overrides and reruns.
+Unreferenced documentation must not start tests. Do not apply a whole-suite coverage floor
 to a subset or lower a floor to make it pass. Coverage lanes should stay full.
 
 `shards` means sequential fresh-process batches on one runner, not a matrix.
