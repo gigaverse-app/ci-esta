@@ -1,0 +1,11 @@
+{
+  "name": "CI-esta",
+  "tagline": "Let proven work rest. Measure the rest.",
+  "color": "#FB923C",
+  "repository": "ci-esta",
+  "logo_aliases": [
+    "docs/assets/ci-esta-mark.svg",
+    "docs/assets/ci-esta-badge-logo.svg"
+  ],
+  "sticky": true
+}
