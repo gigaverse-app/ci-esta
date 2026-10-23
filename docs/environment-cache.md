@@ -8,7 +8,7 @@ that dependencies or tests are valid.
 
 ```yaml
 - uses: actions/checkout@v7
-- uses: gigaverse-app/ci-esta/actions/setup-cached-uv@main
+- uses: gigaverse-app/ci-esta/actions/setup-cached-uv@v1
   with:
     python-version: '3.14'
     sync-args: --all-packages --only-group lint

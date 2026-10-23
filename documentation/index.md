@@ -1,42 +1,80 @@
 ---
 title: CI-esta documentation
-description: Measure GitHub Actions critical paths, cache Python environments, and verify CI improvements.
+description: Find what is delaying CI, then verify the improvement.
 ---
 
-# CI-esta
+![CI-esta](assets/banner.svg)
 
-Measure GitHub Actions critical paths, cache Python environments, and verify CI improvements.
+# Find what is delaying CI, then verify the improvement.
 
-[Get started](../docs/quickstart.md){ .md-button .md-button--primary }
-[Source on GitHub](https://github.com/gigaverse-app/ci-esta){ .md-button }
+CI-esta reports GitHub Actions jobs, steps and dependency critical paths. Start
+with a completed run, find the work delaying your required gate, and choose a
+change you can measure: caching, parallel tests, lane selection or reuse of
+previously completed equivalent work.
 
-## Follow a measured example
+[Measure your first run](../docs/tutorials/measure-critical-path.md){ .md-button .md-button--primary }
+[Add the reporting action](../docs/quickstart.md){ .md-button }
 
-[Measure the actual critical path](../docs/tutorials/measure-critical-path.md). Apply the steps to your own
-repository, and inspect the original runs, retained checks, and measurement limits.
+## Read a completed run
 
-## Measure first, then optimize the work that matters
+```bash
+uv tool install 'ci-esta>=1.1.0,<2'
+# Set GH_TOKEN or GITHUB_TOKEN through your credential mechanism.
+ci-esta report --repository owner/project --run-id 123456 --run-attempt 1 \
+  --gate 'Validation gate' --critical-path --output-dir report
+```
 
-Use CI-esta to explain where GitHub Actions time goes. Start with a report of a
-completed run. Then choose caching, selection, evidence reuse, or parallelism
-based on the measured bottleneck and the checks your workflow must preserve.
+Use your repository, run ID, attempt and exact required job name. The CLI needs
+Python 3.11+ and read access to the run and workflow sources. Open
+`report/ci-observability.md`; check collection completeness before trusting a
+number. No hosted CI-esta account is needed.
 
-- [Add a completed-run report](../docs/quickstart.md#report-a-completed-workflow): collect job and step timings without adding work to the validation gate.
-- [Read the critical path](../docs/critical-path.md): distinguish execution time from waiting and inspect the Gantt chart.
-- [Cache a Python environment](../docs/environment-cache.md): retain locked synchronization and repair invalid restores.
-- [Reuse completed evidence](../docs/evidence-reuse.md): skip equivalent work only when its complete inputs and successful result match.
-- [Preserve required gates](../docs/selected-gates.md): reject missing or incomplete validation.
-- [Compare measured outcomes](../docs/measured-impact.md): inspect the original runs and attribution limits.
+```mermaid
+flowchart LR
+  A[Completed Actions run] --> B[Job + step timings]
+  W[Workflow dependencies] --> C[Critical-path analysis]
+  B --> C
+  C --> D[One measured change]
+  D --> E[Same checks + before/after report]
+```
 
-## Use the tools together
+## Use the report to choose a change
 
-[Choose the tool for your problem](ecosystem.md). Each project works on its own;
-combine them when you need both faster feedback and evidence that the required
-work still happened.
+| What dominates | Next step |
+| --- | --- |
+| Repeated Python environment setup | [Validated environment caching](../docs/environment-cache.md) |
+| Uneven test workers | [Learned timings and complete shards](../docs/learned-test-timings.md) |
+| Unrelated jobs start on every edit | [pytest-selective lane routing](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/) |
+| Identical work already passed | [Completion evidence reuse](../docs/evidence-reuse.md) |
+| A short job spends a long time waiting | [Critical paths and admission delays](../docs/critical-path.md) |
 
-## Versions and support
+Keep the observer outside the validation gate. Reports do not grant a pass;
+[required gates](../docs/selected-gates.md) still check every required test and
+validator. Missing timings remain unavailable, and runner-seconds are not billing.
 
-`latest` follows the main branch. Release-specific documentation is available
-through Read the Docs when that release contains the site configuration.
-Use [GitHub issues](https://github.com/gigaverse-app/ci-esta/issues) for a minimal
-reproducer or a missing explanation. [Contributions](../CONTRIBUTING.md) are welcome.
+## One bottleneck, measured before and after
+
+![Windows critical-path comparison: gate elapsed 249 to 185 seconds, execution path 242 to 177 seconds](assets/critical-path-comparison.svg)
+
+The Windows case retained all existing test outcomes. These are individual hosted
+observations with runner variation, not a stable average. The [case study](../docs/benchmarks/2026-10-23-windows-saleor.md)
+includes source runs, test inventories and the slower control that must not be
+cherry-picked as the baseline.
+
+## What the report looks like
+
+![CI-esta report showing a 3 minute 5 second gate and the slow Windows job](assets/report-example.png)
+
+Rendered from the CLI's real report for [run 39919114589, attempt 1](https://github.com/gigaverse-app/pytest-selective/actions/runs/39919114589).
+The absent reuse and cache measurements stay unmeasured. Rounded runner-minutes
+in the report are distinct from the unrounded runner-seconds used in comparisons.
+[Report fields and interpretation](../docs/github-actions-observability.md).
+
+## Related tools and support
+
+[Choose a related tool](ecosystem.md) when you also need test selection, CI
+measurement or background-work guarantees. Each project works independently.
+
+`latest` follows main and can contain APIs newer than your installed package.
+Check the release notes for that version. [Report an issue](https://github.com/gigaverse-app/ci-esta/issues)
+with a minimal reproducer, or read [the contribution guide](../CONTRIBUTING.md).

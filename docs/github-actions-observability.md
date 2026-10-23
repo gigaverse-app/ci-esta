@@ -171,7 +171,7 @@ report:
     actions: read
   runs-on: ubuntu-latest
   steps:
-    - uses: gigaverse-app/ci-esta@main
+    - uses: gigaverse-app/ci-esta/actions/ci-observability@v1
       with:
         github-token: ${{ github.token }}
         required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
@@ -180,7 +180,7 @@ report:
         full-suite-reference-artifact: ''
 ```
 
-The action installs its Python reporter in an isolated temporary environment. It does not need your application's Python environment or a repository checkout. Composite actions require Bash; the reporting action is validated on Linux runners. The CLI is tested on Python 3.11 and 3.14; local Windows tests are part of the extraction checks.
+The action installs its Python reporter in an isolated temporary environment. It does not need your application's Python environment or a repository checkout. Composite actions require Bash; the reporting action is validated on Linux runners. The CLI supports Python 3.11+; use the current CI matrix for tested platforms.
 
 An Actions gate selector must provide exactly one of `job_name` (the job's display name, recommended) or legacy `runner_name` (the machine identity from GitHub's API). They are different fields. Duplicate matches leave the gate unobserved rather than choosing an arbitrary job.
 
@@ -192,7 +192,7 @@ To post a sticky PR report, supply `pull-request-number`, set `post-sticky: 'tru
 
 | Measurement | Meaning and limit |
 | --- | --- |
-| Required-gate elapsed time | Time from workflow creation to explicitly configured gates; no inferred full DAG |
+| Required-gate elapsed time | Time to the explicitly configured gates, from creation on attempt 1 or the rerun attempt start; topology analysis is a separate opt-in |
 | Job admission delay | Time before a job starts, which can include dependencies, approvals and runner queueing |
 | Runner seconds | Observed timed jobs across attempts, including retries |
 | Slowest step per job | Latest-attempt API step durations, with links to job logs; all steps remain in the JSON report |
