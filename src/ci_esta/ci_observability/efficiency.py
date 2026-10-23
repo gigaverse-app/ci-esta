@@ -53,28 +53,31 @@ def collect_measurements(client: GitHubActionsClient, run: GitHubRunV1, jobs: li
                     current = [job for job in jobs if job_family(job.name) == job_family(lane.job)]
                     if not current or any(job.conclusion != "skipped" for job in current):
                         continue
-                    key = (lane.source_run_id, lane.source_attempt)
-                    if key not in sources:
-                        source = client.get_run(key[0], run_attempt=key[1])
-                        source_jobs = client.list_jobs(key[0], include_all_attempts=False, run_attempt=key[1])
-                        sources[key] = (source, source_jobs)
-                    source, source_jobs = sources[key]
-                    proof = next((job for job in source_jobs if job.id == lane.source_job_id), None)
-                    if (source.id != lane.source_run_id or source.head_sha != lane.source_head_sha
-                        or source.run_attempt != lane.source_attempt or run.workflow_id is None
-                        or source.workflow_id != run.workflow_id or source.id == run.id
-                        or proof is None or proof.run_attempt != lane.source_attempt
-                        or proof.name != lane.job or proof.conclusion != "success"):
-                        raise ValueError("reuse source job does not match admitted evidence")
-                    seconds = None
-                    if proof.started_at is not None and proof.completed_at is not None:
-                        seconds = (proof.completed_at - proof.started_at).total_seconds()
-                        if seconds < 0:
-                            seconds = None
-                    identity = ("reuse", proof.id)
-                    if identity not in identities:
-                        identities.add(identity)
-                        lanes.append(lane.model_copy(update={"source_seconds": seconds}))
+                    try:
+                        key = (lane.source_run_id, lane.source_attempt)
+                        if key not in sources:
+                            source = client.get_run(key[0], run_attempt=key[1])
+                            source_jobs = client.list_jobs(key[0], include_all_attempts=False, run_attempt=key[1])
+                            sources[key] = (source, source_jobs)
+                        source, source_jobs = sources[key]
+                        proof = next((job for job in source_jobs if job.id == lane.source_job_id), None)
+                        if (source.id != lane.source_run_id or source.head_sha != lane.source_head_sha
+                            or source.run_attempt != lane.source_attempt or run.workflow_id is None
+                            or source.workflow_id != run.workflow_id or source.id == run.id
+                            or proof is None or proof.run_attempt != lane.source_attempt
+                            or proof.name != lane.job or proof.conclusion != "success"):
+                            raise ValueError("reuse source job does not match admitted evidence")
+                        seconds = None
+                        if proof.started_at is not None and proof.completed_at is not None:
+                            seconds = (proof.completed_at - proof.started_at).total_seconds()
+                            if seconds < 0:
+                                seconds = None
+                        identity = ("reuse", proof.id)
+                        if identity not in identities:
+                            identities.add(identity)
+                            lanes.append(lane.model_copy(update={"source_seconds": seconds}))
+                    except Exception as error:
+                        errors.append(f"{artifact.name} / {lane.lane}: {error}")
                 measurements.append(item.model_copy(update={"lanes": lanes}))
             elif isinstance(item, ShardPoolMeasurement):
                 identity = ("pool", item.pool)

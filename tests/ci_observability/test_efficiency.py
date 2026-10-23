@@ -77,7 +77,7 @@ def test_a_step_name_does_not_substitute_for_a_cache_measurement():
     assert "Cache time saved is unavailable" in sticky
 
 
-@pytest.mark.parametrize("variant", ["valid", "executed", "stale", "foreign", "bad-source", "missing-time"])
+@pytest.mark.parametrize("variant", ["valid", "executed", "stale", "foreign", "bad-source", "missing-time", "partial"])
 def test_collector_binds_reuse_to_this_attempt_and_reads_actual_source_duration(variant):
     from ci_esta.ci_observability.efficiency import collect_measurements
     from ci_esta.measurements import ReusedLane, ReuseMeasurement
@@ -93,6 +93,8 @@ def test_collector_binds_reuse_to_this_attempt_and_reads_actual_source_duration(
                              receipt="Validated inputs example", lanes=[ReusedLane(
                                  lane="tests", job="Tests", source_run_id=420, source_attempt=1,
                                  source_head_sha="b" * 40, source_job_id=101, source_seconds=9999)])
+    if variant == "partial":
+        reused.lanes.append(reused.lanes[0].model_copy(update={"source_job_id": 999}))
     upload = artifact(123, 431, fork=variant == "foreign").model_copy(update={"name": "ci-esta-reuse-plan-2"})
 
     class API:
@@ -117,10 +119,10 @@ def test_collector_binds_reuse_to_this_attempt_and_reads_actual_source_duration(
                                           "conclusion": "success" if variant == "executed" else "skipped"})
     records, errors = collect_measurements(API(), current, [current_job])
     lanes = [lane for record in records for lane in record.lanes]
-    if variant in {"valid", "missing-time"}:
+    if variant in {"valid", "missing-time", "partial"}:
         assert len(lanes) == 1
-        assert lanes[0].source_seconds == (73 if variant == "valid" else None)
-        assert errors == []
+        assert lanes[0].source_seconds == (None if variant == "missing-time" else 73)
+        assert bool(errors) is (variant == "partial")
     else:
         assert lanes == []
         assert bool(errors) is (variant in {"foreign", "bad-source"})
