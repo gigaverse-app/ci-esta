@@ -11,7 +11,7 @@ services:
     image: postgres:16
 # Under the job's steps, after checkout:
 steps:
-  - uses: gigaverse-app/ci-esta/actions/postgres-client@main
+  - uses: gigaverse-app/ci-esta/actions/postgres-client@v1
     with:
       image: postgres:16
   - run: pg_dump --format=custom --file "$RUNNER_TEMP/database.dump" "$DATABASE_URL"

@@ -4,13 +4,13 @@ A skipped job is not proof that its work passed. CI-esta reuses a lane only when
 
 ## Start with the whole tree
 
-Use `gigaverse-app/ci-esta/actions/resolve-lane-evidence@main` with a `lanes` JSON map of output keys to exact job names. Pin a reviewed commit SHA for production. Omitting `input-paths` binds the merged tree, base commit, and head tree. Recreated merge commits can match; changed inputs cannot.
+Use `gigaverse-app/ci-esta/actions/resolve-lane-evidence@v1` with a `lanes` JSON map of output keys to exact job names. Pin a reviewed commit SHA for production. Omitting `input-paths` binds the merged tree, base commit, and head tree. Recreated merge commits can match; changed inputs cannot.
 
 Record the returned `receipt` as the name of a final successful step in each lane. It must run only after every required check succeeds. Never use `if: always()` or `continue-on-error` on that completion step. A planner's success is not a test result.
 
 ```yaml
 # In your existing planner, after checkout:
-- uses: gigaverse-app/ci-esta/actions/resolve-lane-evidence@main
+- uses: gigaverse-app/ci-esta/actions/resolve-lane-evidence@v1
   id: evidence
   with:
     lanes: '{"tests":"Tests"}'

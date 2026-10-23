@@ -25,7 +25,8 @@ ci-esta report --repository owner/project --run-id 123456 --run-attempt 1 \
 The **observed dependency chain** follows the latest-finishing prerequisite
 backwards from the last required gate. Each node contributes its execution time
 and the delay between its dependencies finishing and its own start. Those
-contributions sum to gate elapsed time from workflow creation. A short job with
+contributions sum to gate elapsed time from workflow creation on attempt 1,
+or from the attempt start on a rerun. The human wait before rerunning is excluded. A short job with
 a long admission delay can therefore determine the observed path.
 
 The **execution-only critical path** uses the critical-path method on the same

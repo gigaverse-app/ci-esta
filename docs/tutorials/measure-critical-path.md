@@ -52,66 +52,38 @@ scheduling, approvals and resource contention; timestamps alone do not identify
 which cause applies. A later rerun starts at that attempt's start, excluding the
 human wait before clicking rerun. [Definitions and reusable workflow handling](../critical-path.md).
 
-## 3. Change the bottleneck the report identifies
+## 3. Turn the report into one experiment
 
-In pytest-selective, moving setup code into a shared action did not improve the
-Windows test loop. The measured chain was:
+Open `report/ci-observability.md`. Find the required gate and its observed chain,
+then look up the expensive job's steps. Use the JSON alongside the rendered
+report when you need exact durations; missing values are unavailable, not zero.
 
-```mermaid
-flowchart LR
-  A[Select tests] --> B[Windows test matrix]
-  B --> C[Validation gate]
-  A --> D[Linux and macOS tests]
-  D --> C
-```
+Write down one hypothesis before changing the workflow:
 
-The follow-up kept temporary repositories on the runner work disk and avoided
-copying unused Git sample hooks. Coverage, real Git histories, every OS/Python
-lane, minimum-pytest compatibility and the executable tutorial remained enabled.
+| You observe | Change to try | Keep fixed |
+| --- | --- | --- |
+| Dependency installation dominates the chain | Restore a validated environment | Lockfile, Python and dependency groups |
+| Tests dominate one worker | Balance or parallelize independent tests | Test identities, outcomes and validators |
+| A short job starts late | Inspect runner capacity, approval and `needs` | Required dependencies and runner policy |
+| A README edit starts test services | Select complete affected lanes | Docs, package checks and full checkpoints |
 
-| Metric | Fresh unchanged control | Optimized | Unit |
-| --- | ---: | ---: | --- |
-| Windows Python 3.11 pytest step | 187 | 73 | seconds |
-| Windows Python 3.14 pytest step | 185 | 115 | seconds |
-| Required gate elapsed | 249 | 185 | seconds |
-| Execution critical path | 242 | 177 | seconds |
-| Sum of job execution | 740 | 597 | runner-seconds |
+Run a baseline and candidate with the same workload. Record both run IDs and
+attempts, source revisions, cache state, required gate, elapsed time and summed
+runner-seconds. Check that all expected tests and post-test validators ran.
+Repeat the pair before claiming an average improvement.
 
-Lower is better for these timings. The
-[control](https://github.com/gigaverse-app/pytest-selective/actions/runs/39919567540)
-and [optimized run](https://github.com/gigaverse-app/pytest-selective/actions/runs/39919114589)
-are both attempt 1. All 626 existing Windows cases retained their outcomes;
-one regression was added. The longest Windows variant changed from Python 3.11
-to 3.14, so remeasure after each optimization.
+## 4. Check an example of the decision
 
-The control was deliberately repeated after the optimized run. An earlier
-unchanged run took 391 seconds to the gate, showing why selecting the slowest
-baseline would exaggerate the claim. The local template-only experiment showed
-no speedup. These hosted observations do not isolate the contribution of each
-filesystem change or establish a stable average.
+In the [Windows case study](../benchmarks/2026-10-23-windows-saleor.md), the
+required gate took 249 seconds in a fresh unchanged control and 185 seconds after
+filesystem changes. The execution critical path fell from 242 to 177 seconds.
+The full study keeps the source runs, the slower earlier control, test inventories,
+and limits on attribution. It does not establish a universal 26% speedup.
 
-[Full Gantt, source revisions, raw reports and case inventories](../benchmarks/2026-10-23-windows-saleor.md).
-
-## 4. Preserve the contract and compare like workloads
-
-Change one execution mechanism at a time and retain test identities, outcomes,
-coverage, validators and required gates. Compare cache state explicitly. In the
-Saleor conformance lane, comparing warm snapshots kept database preparation at
-2 seconds in both runs:
-
-| Metric | Warm baseline | Optimized |
-| --- | ---: | ---: |
-| Saleor pytest duration | 223.78 s | 205.07 s |
-| Required gate elapsed | 318 s | 304 s |
-| Execution critical path | 310 s | 297 s |
-| Original outcomes | 207 passed, 19 expected failures | Preserved |
-
-Profiling found repeated clock setup; the optimized recovery loop kept all four
-time horizons and every scheduled task, while reusing one clock context per
-history. Import discovery was also shared within a scan. An additional passing
-regression checks the clock behavior. The [warm baseline, attempt 2](https://github.com/gigaverse-app/pytest-obligation/actions/runs/39919031768/attempts/2)
-and [optimized run, attempt 1](https://github.com/gigaverse-app/pytest-obligation/actions/runs/39920641011)
-support this combined change, not an isolated speedup from either component.
+The same study's Saleor comparison keeps database preparation warm in both arms;
+comparing its cold baseline against a warm candidate would overstate the benefit.
+Use that evidence format for your own experiment rather than copying its worker
+count or assuming the same bottleneck.
 
 ## 5. Choose your next action
 
