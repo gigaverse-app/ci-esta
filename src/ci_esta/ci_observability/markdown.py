@@ -10,6 +10,10 @@ from __future__ import annotations
 
 import re
 from html import escape
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ci_esta.ci_observability.brand import Badge
 
 LONGEST_BACKTICK_RUN = re.compile(r"`+")
 
@@ -47,7 +51,8 @@ def html_code(value: str) -> str:
     return f"<code>{escaped}</code>"
 
 
-def report_section(title: str, facts: list[str], body: list[str], *, note: str = "") -> str:
+def report_section(title: str, facts: list[str], body: list[str], *, note: str = "",
+                   metrics: list[Badge] | None = None) -> str:
     """Keep titles and key figures visible while diagnostics stay closed.
 
     GitHub strips custom CSS and does not parse Markdown inside summary. Explicit
@@ -55,7 +60,13 @@ def report_section(title: str, facts: list[str], body: list[str], *, note: str =
     Facts are escaped plain text; only the diagnostic body accepts Markdown.
     """
     summary = [f"<summary><strong>{escape(title)}</strong><br>"]
-    summary += ["<br>\n".join(f"&emsp;<strong>{escape(fact)}</strong>" for fact in facts)]
+    if metrics is not None:
+        # Inline HTML survives GitHub's sanitizer and wraps naturally on narrow
+        # screens. Emphasize values, keep labels quiet, and avoid custom CSS.
+        summary.append("&emsp;" + " &ensp;│&ensp; ".join(
+            f"<strong>{escape(item.value)}</strong> <sub>{escape(item.label)}</sub>" for item in metrics))
+    else:
+        summary += ["<br>\n".join(f"&emsp;<strong>{escape(fact)}</strong>" for fact in facts)]
     if note:
         summary.append(f"<br>\n&emsp;<sub>{escape(note)}</sub>")
     return "\n".join(["<details>", *summary, "</summary>", "", *body, "", "</details>", ""])

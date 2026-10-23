@@ -575,9 +575,10 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
     if report.lane_selection is not None:
         selection_details.append(optional_selection.render(report.lane_selection, report.provenance.repository, lanes=True))
     sections = [markdown.report_section("Selection and execution",
-                [item.summary for item in _work_badges(report)],
-                selection_details or ["Selection and execution evidence was not recorded."],
-                note="Selected is the plan; executed is observed; reused requires a receipt. Units can differ.")]
+                [],
+                ["Selected is the plan; executed is observed; reused requires a receipt. Units can differ.", "",
+                 *(selection_details or ["Selection and execution evidence was not recorded."])],
+                metrics=_work_badges(report))]
     impact = [render_impact(report.measured_impact, report.provenance.repository)] if report.measured_impact else []
     attempts = []
     if len(report.runner_cost.billed_attempts) > 1:

@@ -26,7 +26,7 @@ def test_bun_headline_uses_observed_inventory_without_claiming_selection_or_succ
     header = rendered.split("\n---\n", 1)[0]
     assert "![executed: 2 / 10 files]" in header
     assert "![selected: unavailable]" in header
-    assert "2 / 10 files executed" in rendered.split("</summary>", 1)[0]
+    assert "2 / 10 files</strong> <sub>executed</sub>" in rendered.split("</summary>", 1)[0]
     assert "Required checks passed" not in header
 
 
