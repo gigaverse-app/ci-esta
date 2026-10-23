@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
@@ -91,6 +91,41 @@ def _job(
         runner_name=runner_name,
         labels=labels or [],
     )
+
+
+@pytest.mark.parametrize("attempt", [1, 2])
+def test_rerun_excludes_wait_before_attempt_from_critical_path_and_timeline(attempt: int) -> None:
+    run = _run().model_copy(update={"run_attempt": attempt, "created_at": CREATED_AT - timedelta(hours=2)})
+    jobs = [_job(job_id=FIRST_JOB_ID, name="Validation gate", attempt=attempt,
+                 started_at=FIRST_START, completed_at=FIRST_END)]
+    selector = ActionsJobGateSelectorV1(kind="actions_job", job_name="Validation gate")
+    report = build_report(repository=REPOSITORY, pull_request_number=None, run=run, latest_jobs=jobs,
+                          billing_jobs=jobs, commit_statuses=[], gate_selectors=[selector], observed_at=OBSERVED_AT,
+                          job_dependencies={"Validation gate": []})
+    expected = 7331 if attempt == 1 else 126
+    assert report.critical_path is not None
+    assert report.critical_path.elapsed_seconds == expected
+    assert report.attempt_elapsed_seconds == expected
+    assert report.latest_attempt_jobs[0].start_offset_seconds == (7210 if attempt == 1 else 5)
+    assert report.workflow_job_admission_delay_seconds == (7210 if attempt == 1 else 5)
+    assert report.merge_ready_from_creation_seconds == 7331  # Literal historical metric stays available.
+    if attempt == 2:
+        assert report.workflow_initial_queue_seconds is None  # Rerun-request time is not available.
+        assert "2m 6s to merge-ready" in render_markdown(report)
+        assert "122m" not in render_markdown(report)
+
+
+def test_rerun_missing_attempt_start_does_not_substitute_original_creation_time() -> None:
+    run = _run().model_copy(update={"run_started_at": None})
+    jobs = [_job(job_id=FIRST_JOB_ID, name="Validation gate", attempt=2,
+                 started_at=FIRST_START, completed_at=FIRST_END)]
+    selector = ActionsJobGateSelectorV1(kind="actions_job", job_name="Validation gate")
+    report = build_report(repository=REPOSITORY, pull_request_number=None, run=run, latest_jobs=jobs,
+                          billing_jobs=jobs, commit_statuses=[], gate_selectors=[selector], observed_at=OBSERVED_AT,
+                          job_dependencies={"Validation gate": []})
+    assert report.critical_path is not None and report.critical_path.status == "unavailable"
+    assert report.attempt_elapsed_seconds is None
+    assert report.latest_attempt_jobs[0].start_offset_seconds is None
 
 
 @pytest.mark.parametrize("duplicate", [False, True])
@@ -302,8 +337,8 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
     assert report.runner_cost.unpriced_rounded_runner_minutes == 0
     assert report.merge_ready_from_creation_seconds == 140.0
     assert report.merge_ready_from_run_start_seconds == 135.0
-    assert report.workflow_initial_queue_seconds == 5.0
-    assert report.workflow_job_admission_delay_seconds == 10.0
+    assert report.workflow_initial_queue_seconds is None
+    assert report.workflow_job_admission_delay_seconds == 5.0
     assert report.merge_ready_after_job_admission_seconds == 130.0
     assert report.provenance.workflow_name == WORKFLOW_NAME
     assert report.longest_latest_job_name == "Build: image"
@@ -315,12 +350,12 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
         "#### ⏱️ CI time and cost\n\n"
         "| Workflow | Merge-ready | First runner | Longest job | Runner time | Cost |\n"
         "|:--|--:|--:|:--|--:|--:|\n"
-        f"| {WORKFLOW_NAME} | 2m 20s | after 10s | Build: image · 2m 1s | 6 min | — |\n"
+        f"| {WORKFLOW_NAME} | 2m 15s | after 5s | Build: image · 2m 1s | 6 min | — |\n"
     ) in markdown
     # One row per job, named in the left column; orange is the job that finished last before merge-ready.
-    assert "    section Build image\n    2m 1s :crit, j0, 2000-01-01 00:00:10, 2000-01-01 00:02:11\n" in markdown
-    assert "    section Required gate\n    59s :done, j1, 2000-01-01 00:00:10, 2000-01-01 00:01:09\n" in markdown
-    assert "    section ✅ merge-ready 2m 20s\n    ✅ :active, m, 2000-01-01 00:02:20, 2000-01-01 00:03:02\n" in markdown
+    assert "    section Build image\n    2m 1s :crit, j0, 2000-01-01 00:00:05, 2000-01-01 00:02:06\n" in markdown
+    assert "    section Required gate\n    59s :done, j1, 2000-01-01 00:00:05, 2000-01-01 00:01:04\n" in markdown
+    assert "    section ✅ merge-ready 2m 15s\n    ✅ :active, m, 2000-01-01 00:02:15, 2000-01-01 00:02:56\n" in markdown
     assert "| Backend validation |" not in markdown
     assert "| Required gate | Plan | success |" in markdown
     assert "| Build: image | 1 | 61s | 2 | 1s | 59s |" in markdown
@@ -501,7 +536,7 @@ def test_active_skipped_reversed_and_missing_gate_data_are_explicit() -> None:
     assert "| gates running |" in markdown
     # Before merge-ready there is no merge-ready bar, and the chain is the longest one so far.
     assert "orange is the longest chain" in markdown
-    assert "    section Active (running)\n    2m 50s :crit, j0, 2000-01-01 00:00:10, 2000-01-01 00:03:00\n" in markdown
+    assert "    section Active (running)\n    2m 50s :crit, j0, 2000-01-01 00:00:05, 2000-01-01 00:02:55\n" in markdown
     assert "section ✅ merge-ready" not in markdown
     assert 'gate_conclusion="pending"' in render_prometheus(report)
 
@@ -753,7 +788,7 @@ def _sticky_with_selection(**report_changes: object) -> str:
     [
         (
             {
-                "merge_ready_from_creation_seconds": MERGE_READY_SECONDS,
+                "merge_ready_from_run_start_seconds": MERGE_READY_SECONDS,
                 "runner_cost": RunnerCostV1(
                     raw_runner_seconds=0,
                     estimated_rounded_runner_minutes=ROUNDED_MINUTES,

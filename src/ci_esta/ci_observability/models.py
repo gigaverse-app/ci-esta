@@ -417,6 +417,13 @@ class CiObservabilityReportV1(BaseModel):
     lane_selection: LaneSelectionSectionV1 | None = None
     critical_path: CriticalPathResult | None = None
 
+    @property
+    def attempt_elapsed_seconds(self) -> float | None:
+        """Gate latency for this attempt; retain literal creation metrics separately."""
+        if self.provenance.run_attempt > 1:
+            return self.merge_ready_from_run_start_seconds
+        return self.merge_ready_from_creation_seconds
+
     @model_validator(mode="after")
     def validate_status_errors(self) -> "CiObservabilityReportV1":
         if self.collection_status == CollectionStatus.COMPLETE and self.collection_errors:

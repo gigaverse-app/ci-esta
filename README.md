@@ -1,5 +1,13 @@
 # CI-esta: faster GitHub Actions with evidence
 
+[A measured Windows optimization](docs/benchmarks/2026-10-23-windows-saleor.md)
+reduced pytest-selective's full validation gate from **249s to 185s** and its
+dependency critical path from **242s to 177s**, with every original case and
+coverage retained. Raw reports and a fresh unchanged control accompany the claim.
+The same [investigation](docs/benchmarks/2026-10-23-windows-saleor.md#saleor-profile-the-tests-and-compare-warm-caches)
+reduced Saleor's full conformance test duration from **223.8s to 205.1s** with
+warm caches on both sides, retaining all 226 original cases and outcomes.
+
 For slow test execution after routing is correct, see
 [critical-path optimizations](docs/critical-path-optimizations.md): isolated
 PostgreSQL worker databases and native Git on Windows, with full conformance
