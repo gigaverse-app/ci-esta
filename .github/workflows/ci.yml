@@ -136,7 +136,7 @@ jobs:
       - name: Verify source distribution
         run: |
           uv venv "$RUNNER_TEMP/sdist-test" --python 3.14
-          uv pip install --python "$RUNNER_TEMP/sdist-test/bin/python" dist/*.tar.gz
+          uv pip install --python "$RUNNER_TEMP/sdist-test/bin/python" "$(find dist -name '*.tar.gz' -print -quit)[pytest]"
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/sdist-test/bin/ci-esta" --help
           "$RUNNER_TEMP/sdist-test/bin/ci-esta-pytest" pools --shards 5 --shards-per-runner 2

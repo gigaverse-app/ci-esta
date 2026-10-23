@@ -1,11 +1,15 @@
 """Reporting must work when the application and tool environment have no pytest."""
 import subprocess
 import sys
+from datetime import datetime, timezone
 
 import pytest
 from pydantic import ValidationError
 
+from ci_esta.ci_observability.models import SelectionSectionV1
+from ci_esta.ci_observability.report import build_unavailable_report
 from ci_esta.ci_observability.work_selection import WorkDecisionV1, WorkSelectionV1, render_work_selection
+from tests.ci_observability.test_selection import explanation
 
 
 def test_core_reporting_without_pytest_selective():
@@ -69,3 +73,28 @@ def test_invalid_work_decisions_cannot_claim_reuse(case):
         payload["schema_version"] = "future/v9"
     with pytest.raises(ValidationError):
         WorkSelectionV1.model_validate(payload)
+
+
+def test_saved_python_details_survive_without_provider(tmp_path):
+    report = build_unavailable_report(repository="example/python", run_id=123, run_attempt=1,
+        head_sha="a"*40, pull_request_number=5, observed_at=datetime.now(timezone.utc), error="API unavailable")
+    report = report.model_copy(update={"test_selection": SelectionSectionV1(explanation=explanation())})
+    path = tmp_path / "python-report.json"
+    path.write_text(report.model_dump_json(), encoding="utf-8")
+    script = """
+import importlib.abc, json, sys
+class NoSelector(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname.split('.')[0] == 'pytest_selective':
+            raise ModuleNotFoundError(fullname, name=fullname)
+sys.meta_path.insert(0, NoSelector())
+from pathlib import Path
+from ci_esta.ci_observability.models import CiObservabilityReportV1
+from ci_esta.ci_observability.report import render_markdown
+original = json.loads(Path(sys.argv[1]).read_text())
+restored = CiObservabilityReportV1.model_validate(original)
+assert restored.model_dump(mode='json')['test_selection'] == original['test_selection']
+assert 'ci-esta[selection]' in render_markdown(restored)
+"""
+    result = subprocess.run([sys.executable, "-c", script, str(path)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
