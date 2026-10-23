@@ -87,7 +87,11 @@ warm restore so a cache hit does not get credited to a test optimization.
 
 For a large expanded environment, archive transfer and extraction can cost more
 than a fresh `uv sync` using the download cache. Measure both on the same runner
-and dependency lock. Use `cache-environment: false` on `setup-cached-uv` to disable
+and dependency lock. Set `uv-version` when conformance checks must use the same
+exporter as a production Dockerfile; it also separates environment cache keys.
+For example, `uv-version: '0.9.1'` retains that caller's exporter contract while
+other callers keep the action's default. Keep the exporter checks enabled.
+Use `cache-environment: false` on `setup-cached-uv` to disable
 only the `.venv` restore/save. The uv download cache and mandatory locked sync
 remain enabled. Keep the default when restoring the environment wins, and record
 cold versus warm download-cache conditions separately.
