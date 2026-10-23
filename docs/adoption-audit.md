@@ -86,7 +86,7 @@ were populated or establish a new comparative performance result.
    merged rollout. Completion means reviewed merged pins and successful consumer
    runs against those exact pins.
 2. **Environment caches are not fully extracted.** Backend's
-   `.github/actions/setup-python-uv/action.yml` restores and validates `.venv`,
+   `actions/setup-python-uv/action.yml` restores and validates `.venv`,
    keys it by resolved Python patch plus manifests, and supports trusted saves.
    AI has its own restore/save steps in `.github/workflows/testing.yaml`.
    CI-esta's similarly named action only installs Python/uv, caches downloads and

@@ -76,7 +76,7 @@ jobs:
           ref: ${{ job.workflow_sha }}
           path: .ci-esta
           persist-credentials: false
-      - uses: ./.ci-esta/.github/actions/ci-observability
+      - uses: ./.ci-esta/actions/ci-observability
         with:
           github-token: ${{ github.token }}
           run-id: ${{ inputs.run-id }}

@@ -12,6 +12,6 @@ def source_root() -> Path:
     if bundled.is_dir():
         return bundled
     checkout = package.parents[1]
-    if (checkout / ".github/actions").is_dir():
+    if (checkout / "actions").is_dir():
         return checkout
     raise FileNotFoundError("CI-esta action resources are missing; reinstall the package")

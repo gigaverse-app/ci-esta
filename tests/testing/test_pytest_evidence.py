@@ -13,7 +13,7 @@ from ci_esta.testing.canary_action import CanaryConfig, build_canary
 ROOT = Path(__file__).resolve().parents[2]
 COLLECT = ROOT / "src/ci_esta/testing/evidence_scripts/collect.sh"
 RECEIPT = ROOT / "src/ci_esta/testing/evidence_scripts/verify.sh"
-VERIFY_ACTION = ROOT / ".github/actions/verify-pytest-completion/action.yml"
+VERIFY_ACTION = ROOT / "actions/verify-pytest-completion/action.yml"
 
 
 class History(BaseModel):

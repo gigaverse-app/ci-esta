@@ -43,7 +43,7 @@ const github = strictGithub({git: {
         env={
             **os.environ,
             "GITHUB_REST_FAKE": str(ROOT / "tests/ci/github_rest_fake.cjs"),
-            "ACTIONS_ROOT": str(ROOT / ".github/actions"),
+            "ACTIONS_ROOT": str(ROOT / "actions"),
             "GITHUB_RUN_ATTEMPT": str(attempt),
             "INVENTORY_CASE": json.dumps(dict(changed=changed, reused=reused, error=error, mode=mode)),
         },

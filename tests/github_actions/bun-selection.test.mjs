@@ -5,8 +5,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 
-import { planAffectedTests, readTestSelection } from "../../.github/actions/run-bun-tests/selection.mjs";
-import { runBunTests, readInventory } from "../../.github/actions/run-bun-tests/run.mjs";
+import { planAffectedTests, readTestSelection } from "../../actions/run-bun-tests/selection.mjs";
+import { runBunTests, readInventory } from "../../actions/run-bun-tests/run.mjs";
 
 const policy = { schema_version: "ci-esta/bun-policy/v1", scopedRoots: ["packages/features/", "packages/components/"],
   unaffectedPaths: ["README.md", ".github/PULL_REQUEST_TEMPLATE.md"], unaffectedRoots: ["docs/"],
@@ -322,5 +322,5 @@ test("the action exports its real planner path for subsequent consumer controls"
   try { execute(f, f.plan({ full: true })); }
   finally { if (previous === undefined) delete process.env.GITHUB_OUTPUT; else process.env.GITHUB_OUTPUT = previous; }
   const values = Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").map(line => line.split("=")));
-  assert.equal(values["selection-module"], new URL("../../.github/actions/run-bun-tests/selection.mjs", import.meta.url).pathname);
+  assert.equal(values["selection-module"], new URL("../../actions/run-bun-tests/selection.mjs", import.meta.url).pathname);
 });

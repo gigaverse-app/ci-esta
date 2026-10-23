@@ -8,10 +8,10 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 
-INCREMENTAL_BASE_RESOLVER = ROOT / ".github/actions/resolve-incremental-pr-base/resolve.cjs"
+INCREMENTAL_BASE_RESOLVER = ROOT / "actions/resolve-incremental-pr-base/resolve.cjs"
 
 
-SECURITY_TRIGGER_ACTION = ROOT / ".github/actions/resolve-security-trigger/action.yml"
+SECURITY_TRIGGER_ACTION = ROOT / "actions/resolve-security-trigger/action.yml"
 
 
 STRICT_FAKE = ROOT / "tests/ci/github_rest_fake.cjs"

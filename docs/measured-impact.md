@@ -63,7 +63,7 @@ formats evidence and cannot authorize a skip. Python repositories retain
 pytest-selective's graph and explanation contracts; base reporting needs no
 pytest installation.
 
-Alternatively use `.github/actions/report-bun-tests` with `execution-file` pointing
+Alternatively use `actions/report-bun-tests` with `execution-file` pointing
 to your runner's execution JSON and `output-file: ci-work-selection.json`. Invoke
 it with `if: always()` after the runner, then upload the output even on failure.
 It converts evidence only, so an existing runner can keep memory sampling,

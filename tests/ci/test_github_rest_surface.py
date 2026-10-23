@@ -22,7 +22,10 @@ STRICT_FAKE = ROOT / "tests/ci/github_rest_fake.cjs"
 SURFACE = json.loads(SURFACE_FILE.read_text(encoding="utf-8"))
 PIN = re.compile(r"actions/github-script@([0-9a-f]{40})")
 REST_CALL = re.compile(r"github\.rest\.(\w+)\.(\w+)")
-SHARED_SOURCES = [".github/**/*.yml", ".github/**/*.yaml", ".github/**/*.cjs", ".github/**/*.js", "scripts/**/*.cjs"]
+SHARED_SOURCES = [
+    ".github/**/*.yml", ".github/**/*.yaml", ".github/**/*.cjs", ".github/**/*.js",
+    "actions/**/*.yml", "actions/**/*.yaml", "actions/**/*.cjs", "actions/**/*.js", "scripts/**/*.cjs",
+]
 # Every call site this repo is known to rely on; a scanner that finds none of them is broken.
 KNOWN_CALLS = {("actions", "getWorkflowRun"), ("actions", "listJobsForWorkflowRun"), ("repos", "getCommit")}
 

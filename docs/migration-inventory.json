@@ -367,124 +367,124 @@
   ],
   "scripts": [
     {
-      "source": ".github/actions/cancel-obsolete-pr-runs/action.yml",
-      "target": ".github/actions/cancel-obsolete-pr-runs/action.yml"
+      "source": "actions/cancel-obsolete-pr-runs/action.yml",
+      "target": "actions/cancel-obsolete-pr-runs/action.yml"
     },
     {
-      "source": ".github/actions/ci-observability-enrichment/action.yml",
-      "target": ".github/actions/ci-observability-enrichment/action.yml"
+      "source": "actions/ci-observability-enrichment/action.yml",
+      "target": "actions/ci-observability-enrichment/action.yml"
     },
     {
-      "source": ".github/actions/collect-pytest-changes/action.yml",
-      "target": ".github/actions/collect-pytest-changes/action.yml"
+      "source": "actions/collect-pytest-changes/action.yml",
+      "target": "actions/collect-pytest-changes/action.yml"
     },
     {
-      "source": ".github/actions/coverage-policy/action.yml",
-      "target": ".github/actions/coverage-policy/action.yml"
+      "source": "actions/coverage-policy/action.yml",
+      "target": "actions/coverage-policy/action.yml"
     },
     {
-      "source": ".github/actions/lint-ci-code/action.yml",
-      "target": ".github/actions/lint-ci-code/action.yml"
+      "source": "actions/lint-ci-code/action.yml",
+      "target": "actions/lint-ci-code/action.yml"
     },
     {
-      "source": ".github/actions/lint-ci-code/filter_changed_diagnostics.py",
-      "target": ".github/actions/lint-ci-code/filter_changed_diagnostics.py"
+      "source": "actions/lint-ci-code/filter_changed_diagnostics.py",
+      "target": "actions/lint-ci-code/filter_changed_diagnostics.py"
     },
     {
-      "source": ".github/actions/lint-ci-code/validate_actions.py",
-      "target": ".github/actions/lint-ci-code/validate_actions.py"
+      "source": "actions/lint-ci-code/validate_actions.py",
+      "target": "actions/lint-ci-code/validate_actions.py"
     },
     {
-      "source": ".github/actions/plan-pytest-shards/action.yml",
-      "target": ".github/actions/plan-pytest-shards/action.yml"
+      "source": "actions/plan-pytest-shards/action.yml",
+      "target": "actions/plan-pytest-shards/action.yml"
     },
     {
-      "source": ".github/actions/pytest-canary-pr-state/action.yml",
-      "target": ".github/actions/pytest-canary-pr-state/action.yml"
+      "source": "actions/pytest-canary-pr-state/action.yml",
+      "target": "actions/pytest-canary-pr-state/action.yml"
     },
     {
-      "source": ".github/actions/pytest-expansion/action.yml",
-      "target": ".github/actions/pytest-expansion/action.yml"
+      "source": "actions/pytest-expansion/action.yml",
+      "target": "actions/pytest-expansion/action.yml"
     },
     {
-      "source": ".github/actions/pytest-failure-canary/action.yml",
-      "target": ".github/actions/pytest-failure-canary/action.yml"
+      "source": "actions/pytest-failure-canary/action.yml",
+      "target": "actions/pytest-failure-canary/action.yml"
     },
     {
-      "source": ".github/actions/pytest-failure-canary/README.md",
-      "target": ".github/actions/pytest-failure-canary/README.md"
+      "source": "actions/pytest-failure-canary/README.md",
+      "target": "actions/pytest-failure-canary/README.md"
     },
     {
-      "source": ".github/actions/pytest-timings/action.yml",
-      "target": ".github/actions/pytest-timings/action.yml"
+      "source": "actions/pytest-timings/action.yml",
+      "target": "actions/pytest-timings/action.yml"
     },
     {
-      "source": ".github/actions/resolve-pytest-evidence/action.yml",
-      "target": ".github/actions/resolve-pytest-evidence/action.yml"
+      "source": "actions/resolve-pytest-evidence/action.yml",
+      "target": "actions/resolve-pytest-evidence/action.yml"
     },
     {
-      "source": ".github/actions/resolve-security-trigger/action.yml",
-      "target": ".github/actions/resolve-security-trigger/action.yml"
+      "source": "actions/resolve-security-trigger/action.yml",
+      "target": "actions/resolve-security-trigger/action.yml"
     },
     {
-      "source": ".github/actions/resolve-security-trigger/inventory.cjs",
-      "target": ".github/actions/resolve-security-trigger/inventory.cjs"
+      "source": "actions/resolve-security-trigger/inventory.cjs",
+      "target": "actions/resolve-security-trigger/inventory.cjs"
     },
     {
-      "source": ".github/actions/resolve-security-trigger/scope.cjs",
-      "target": ".github/actions/resolve-security-trigger/scope.cjs"
+      "source": "actions/resolve-security-trigger/scope.cjs",
+      "target": "actions/resolve-security-trigger/scope.cjs"
     },
     {
-      "source": ".github/actions/reuse-ecr-image/action.yml",
-      "target": ".github/actions/reuse-ecr-image/action.yml"
+      "source": "actions/reuse-ecr-image/action.yml",
+      "target": "actions/reuse-ecr-image/action.yml"
     },
     {
-      "source": ".github/actions/reuse-ecr-image/reuse_ecr_image.sh",
-      "target": ".github/actions/reuse-ecr-image/reuse_ecr_image.sh"
+      "source": "actions/reuse-ecr-image/reuse_ecr_image.sh",
+      "target": "actions/reuse-ecr-image/reuse_ecr_image.sh"
     },
     {
-      "source": ".github/actions/semgrep-scan/action.yml",
-      "target": ".github/actions/semgrep-scan/action.yml"
+      "source": "actions/semgrep-scan/action.yml",
+      "target": "actions/semgrep-scan/action.yml"
     },
     {
-      "source": ".github/actions/semgrep-scan/setup.sh",
-      "target": ".github/actions/semgrep-scan/setup.sh"
+      "source": "actions/semgrep-scan/setup.sh",
+      "target": "actions/semgrep-scan/setup.sh"
     },
     {
-      "source": ".github/actions/semgrep-scan-ci-code/action.yml",
-      "target": ".github/actions/semgrep-scan-ci-code/action.yml"
+      "source": "actions/semgrep-scan-ci-code/action.yml",
+      "target": "actions/semgrep-scan-ci-code/action.yml"
     },
     {
-      "source": ".github/actions/setup-python-uv/action.yml",
-      "target": ".github/actions/setup-python-uv/action.yml"
+      "source": "actions/setup-python-uv/action.yml",
+      "target": "actions/setup-python-uv/action.yml"
     },
     {
-      "source": ".github/actions/test-impact/action.yml",
-      "target": ".github/actions/test-impact/action.yml"
+      "source": "actions/test-impact/action.yml",
+      "target": "actions/test-impact/action.yml"
     },
     {
-      "source": ".github/actions/trivy-scan-ci-code/action.yml",
-      "target": ".github/actions/trivy-scan-ci-code/action.yml"
+      "source": "actions/trivy-scan-ci-code/action.yml",
+      "target": "actions/trivy-scan-ci-code/action.yml"
     },
     {
-      "source": ".github/actions/trivy-scan-image/action.yml",
-      "target": ".github/actions/trivy-scan-image/action.yml"
+      "source": "actions/trivy-scan-image/action.yml",
+      "target": "actions/trivy-scan-image/action.yml"
     },
     {
-      "source": ".github/actions/typecheck-scope/action.yml",
-      "target": ".github/actions/typecheck-scope/action.yml"
+      "source": "actions/typecheck-scope/action.yml",
+      "target": "actions/typecheck-scope/action.yml"
     },
     {
-      "source": ".github/actions/typecheck-scope/proof.cjs",
-      "target": ".github/actions/typecheck-scope/proof.cjs"
+      "source": "actions/typecheck-scope/proof.cjs",
+      "target": "actions/typecheck-scope/proof.cjs"
     },
     {
-      "source": ".github/actions/typecheck-scope/scope.sh",
-      "target": ".github/actions/typecheck-scope/scope.sh"
+      "source": "actions/typecheck-scope/scope.sh",
+      "target": "actions/typecheck-scope/scope.sh"
     },
     {
-      "source": ".github/actions/verify-pytest-completion/action.yml",
-      "target": ".github/actions/verify-pytest-completion/action.yml"
+      "source": "actions/verify-pytest-completion/action.yml",
+      "target": "actions/verify-pytest-completion/action.yml"
     },
     {
       "source": "scripts/ci/pytest_selective_requirement.py",
@@ -503,12 +503,12 @@
     {
       "source": ".github/workflows/reusable-ci-code-validation.yaml",
       "step": "changes",
-      "target": ".github/actions/collect-ci-changes/action.yml"
+      "target": "actions/collect-ci-changes/action.yml"
     },
     {
       "source": ".github/workflows/reusable-current-pr-head.yaml",
       "step": "current",
-      "target": ".github/actions/current-pr-head/action.yml"
+      "target": "actions/current-pr-head/action.yml"
     }
   ],
   "external_owners": [
@@ -526,7 +526,7 @@
       "compatibility": [
         "src/ci_esta/testing/hygiene.py",
         "src/ci_esta/testing/pytest_expansion.py",
-        ".github/actions/pytest-expansion/action.yml"
+        "actions/pytest-expansion/action.yml"
       ]
     }
   ]

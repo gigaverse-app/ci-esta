@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[2]
     [("current", [90]), ("stale", []), ("advanced", []), ("unavailable", []), ("missing_order", []), ("missing_caller_order", []), ("force", [90])],
 )
 def test_cleanup_requires_live_head_and_older_same_workflow_run(scenario: str, expected: list[int]) -> None:
-    action = yaml.safe_load((ROOT / ".github/actions/cancel-obsolete-pr-runs/action.yml").read_text())
+    action = yaml.safe_load((ROOT / "actions/cancel-obsolete-pr-runs/action.yml").read_text())
     script = action["runs"]["steps"][0]["with"]["script"]
     harness = r"""
 const {strictGithub}=require(process.env.STRICT_FAKE);

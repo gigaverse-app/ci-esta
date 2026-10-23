@@ -5,7 +5,7 @@ import os
 import subprocess
 from pathlib import Path
 
-ACTION = Path(__file__).resolve().parents[2] / ".github/actions/postgres-client"
+ACTION = Path(__file__).resolve().parents[2] / "actions/postgres-client"
 
 
 def test_clients_preserve_paths_arguments_and_secret_environment(tmp_path: Path) -> None:

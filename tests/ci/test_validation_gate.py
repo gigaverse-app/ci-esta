@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-GATE = ROOT / ".github/actions/validation-gate/gate.cjs"
+GATE = ROOT / "actions/validation-gate/gate.cjs"
 
 
 def gate_succeeds(needs: dict[str, dict[str, str]], required: dict[str, bool | str]) -> bool:

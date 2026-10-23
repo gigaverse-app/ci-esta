@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 @pytest.mark.parametrize("live,expected", [("same", "true"), ("newer", "false")])
 def test_current_head_uses_the_live_pull_request(live: str, expected: str) -> None:
-    step = yaml.safe_load((ROOT / ".github/actions/current-pr-head/action.yml").read_text())["runs"]["steps"][0]
+    step = yaml.safe_load((ROOT / "actions/current-pr-head/action.yml").read_text())["runs"]["steps"][0]
     script = """
 const {strictGithub}=require(process.env.STRICT_FAKE);
 const github=strictGithub({pulls:{get:async()=>({data:{head:{sha:process.env.LIVE_HEAD}}})}});
@@ -42,7 +42,7 @@ def test_changed_ci_inputs_are_classified_from_git(tmp_path: Path, changed: str)
     (tmp_path / changed).write_text("changed: true\n")
     git("add", ".")
     git("commit", "-qm", "change")
-    action = yaml.safe_load((ROOT / ".github/actions/collect-ci-changes/action.yml").read_text())
+    action = yaml.safe_load((ROOT / "actions/collect-ci-changes/action.yml").read_text())
     output = tmp_path / "outputs"
     subprocess.run(["bash", "-e", "-o", "pipefail", "-c", action["runs"]["steps"][0]["run"]], cwd=tmp_path, check=True, env=os.environ | {
         "CI_PATHS": ".github", "EVENT_NAME": "push", "PR_BASE_SHA": "", "PUSH_BEFORE_SHA": base,

@@ -29,25 +29,25 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/current-pr-head
+      - uses: ./actions/current-pr-head
         if: ${{ github.event_name == 'pull_request' }}
         with:
           pr-number: ${{ github.event.pull_request.number }}
           expected-head-sha: ${{ github.event.pull_request.head.sha }}
-      - uses: ./.github/actions/collect-pr-changes
+      - uses: ./actions/collect-pr-changes
       - uses: gigaverse-app/pytest-selective/.github/actions/plan-lanes@v0.2
         id: selection
         with:
           config: .github/test-lanes.json
           base: ${{ github.event.pull_request.base.sha || github.event.before }}
           full: ${{ github.run_attempt > 1 || github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'test:full') }}
-      - uses: ./.github/actions/resolve-lane-evidence
+      - uses: ./actions/resolve-lane-evidence
         id: evidence
         if: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'test:full') }}
         with:
           lanes: '{"tests":"Test suite","compat":"Python compatibility"}'
           # Complete test/build inputs; docs and the disposable live probe do not affect these jobs.
-          input-paths: '["actions","action.yml","cancel-obsolete-pr-runs","ci-observability","ci-observability-enrichment","collect-ci-changes","collect-pr-changes","collect-pytest-changes","coverage-policy","current-pr-head","learn-test-timings","lint-ci-code","native-windows-git","plan-pytest-shards","plan-runner-pools","postgres-client","publish-prometheus-snapshot","pytest-canary-pr-state","pytest-expansion","pytest-failure-canary","pytest-timings","resolve-incremental-pr-base","resolve-lane-evidence","resolve-pytest-evidence","resolve-security-trigger","reuse-ecr-image","run-bun-tests","semgrep-scan","semgrep-scan-ci-code","setup-cached-uv","setup-python-uv","test-impact","trivy-scan-ci-code","trivy-scan-image","typecheck-scope","validation-gate","verify-pytest-completion","report-bun-tests","examples",".github","src","tests","scripts","pyproject.toml","uv.lock","importlinter.toml","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
+          input-paths: '["actions","action.yml","examples",".github","src","tests","scripts","pyproject.toml","uv.lock","importlinter.toml","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
       - name: Record admission
         env:
           REUSED: ${{ steps.evidence.outputs.reused }}
@@ -68,7 +68,7 @@ jobs:
           uv python install 3.14
           echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
       - run: uv run pytest -q -n 4 --junitxml=junit.xml
-      - uses: ./.github/actions/learn-test-timings
+      - uses: ./actions/learn-test-timings
         with:
           junit-pattern: junit.xml
           artifact-name: test-timings-py311
@@ -90,7 +90,7 @@ jobs:
           uv python install 3.14
           echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
       - run: uv run pytest -q -n 4 --junitxml=junit.xml
-      - uses: ./.github/actions/learn-test-timings
+      - uses: ./actions/learn-test-timings
         with:
           junit-pattern: junit.xml
           artifact-name: test-timings-py314
