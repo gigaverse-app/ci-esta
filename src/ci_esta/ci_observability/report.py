@@ -386,7 +386,7 @@ def build_report(
         lane_selection=lane_selection,
         critical_path=analyze(timeline_start, latest_jobs, job_dependencies,
                               [next((job.name for job in latest_jobs if job.id == gate.observed_job_id),
-                                    gate.identity) for gate in gates]) if job_dependencies else None,
+                                    gate.identity) for gate in gates if gate.kind == GateKind.ACTIONS_JOB]) if job_dependencies else None,
     )
 
 
