@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ci-esta"
-version = "0.1.0a1"
+version = "0.1.0"
 description = "GitHub Actions observability and evidence-based CI reuse"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -13,11 +13,11 @@ license-files = ["LICENSE"]
 authors = [{name = "Gigaverse"}]
 dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7"]
 keywords = ["github-actions", "ci-observability", "ci-optimization", "continuous-integration", "prometheus"]
-classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Developers", "Topic :: Software Development :: Build Tools", "Programming Language :: Python :: 3", "Typing :: Typed"]
+classifiers = ["Intended Audience :: Developers", "Topic :: Software Development :: Build Tools", "Programming Language :: Python :: 3", "Typing :: Typed"]
 
 [project.optional-dependencies]
-selection = ["pytest-selective @ https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz"]
-pytest = ["pytest>=8", "pytest-selective @ https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz"]
+selection = ["pytest-selective>=0.1.0,<0.2.0"]
+pytest = ["pytest>=8", "pytest-selective>=0.1.0,<0.2.0"]
 postgres = ["psycopg[binary]>=3.2,<4"]
 
 [project.scripts]
@@ -36,21 +36,18 @@ Repository = "https://github.com/gigaverse-app/ci-esta"
 Issues = "https://github.com/gigaverse-app/ci-esta/issues"
 
 [dependency-groups]
-dev = ["pytest-selective @ https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz", "pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3", "psycopg[binary]>=3.2,<4"]
+dev = ["pytest-selective>=0.1.0,<0.2.0", "pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3", "psycopg[binary]>=3.2,<4"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ci_esta"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "tests", "scripts", ".github", "docs", "examples", "README.md", "CONTRIBUTING.md", "PROVENANCE.md", "LICENSE", "pyproject.toml", "uv.lock", "importlinter.toml", ".gitattributes"]
+include = ["src", "tests", "scripts", ".github", "docs", "examples", "README.md", "CONTRIBUTING.md", "PROVENANCE.md", "RELEASING.md", "CHANGELOG.md", "LICENSE", "pyproject.toml", "uv.lock", "importlinter.toml", ".gitattributes"]
 
 [tool.hatch.build.targets.wheel.force-include]
 ".github/actions" = "ci_esta/_resources/.github/actions"
 "scripts/ci" = "ci_esta/_resources/scripts/ci"
 "pyproject.toml" = "ci_esta/_resources/pyproject.toml"
-
-[tool.hatch.metadata]
-allow-direct-references = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

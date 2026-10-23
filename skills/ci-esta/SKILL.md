@@ -19,7 +19,7 @@ Inspect workflows, exact required job names, reusable workflows, current caches
 and a recent completed run. Separate slow test execution, installs/services,
 admission waits and overlapping superseded runs. Use the
 [reporting recipe](references/adoption.md) for read-only CLI collection or a
-completed-run observer. Pin a reviewed revision and report the source run's ID,
+completed-run observer. Use a compatible release tag and report the source run's ID,
 attempt and head, not the observer's own identity.
 
 Use `ci-esta report --critical-path` and the named aggregate gate to compute the

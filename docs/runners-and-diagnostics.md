@@ -16,7 +16,7 @@ for each shard. Start services and restore the environment alongside planning wh
 those jobs are independent, and keep test execution independent of image builds.
 
 ```bash
-# Install CI-esta at a reviewed immutable revision in the test environment.
+# Install CI-esta at a compatible release version in the test environment.
 export CI_TEST_RESOURCE_OBSERVABILITY=true
 ci-esta-resources ci-esta-pytest run-local --shards 12 --log-dir shard-logs -- \
   bash deployment/scripts/ci/run_unit_test_shard.sh
@@ -32,7 +32,26 @@ prints the log tail of shards still running, so a blocked first shard cannot hid
 other results or watchdog traces before a job timeout. Tune this interval with
 `--progress-interval-seconds`; full logs remain in `--log-dir`.
 
-## Several smaller runners
+## Pools across standard or larger runners
+
+The same planner supports sharding inside one runner and distributing shards
+across several runners. Runner capacity does not change which tests are selected.
+
+| Layout | Global shards | Shards per runner | Runner jobs |
+| --- | ---: | ---: | ---: |
+| One larger runner | 16 | 16 | 1 |
+| Several standard runners | 16 | 2 | 8 |
+| Several larger runners | 55 | 16 | 4 |
+
+Set the consumer's `runs-on` to its provisioned runner label, and choose the
+per-runner process count from measurements. A 16-vCPU runner does not imply that
+16 processes is always optimal. Keep the global shard count bounded by the
+consumer's intended runner budget; 64 shards at two per runner requests 32 jobs,
+which can add substantial queue and repeated setup time.
+
+Public repositories receive free standard GitHub-hosted runner time. Larger
+runners are billed for both public and private repositories and do not use
+included minutes. See [GitHub's larger-runner billing rules](https://docs.github.com/en/actions/concepts/runners/larger-runners#billing).
 
 Plan bounded, consecutive ranges once, then execute the returned assignment:
 
@@ -41,7 +60,7 @@ ci-esta-pytest pools --shards 55 --shards-per-runner 2 --github-output "$GITHUB_
 ```
 
 For a planning job without application dependencies, use the composite action
-`.github/actions/plan-runner-pools` at a reviewed immutable revision with inputs
+`.github/actions/plan-runner-pools` at a compatible release version with inputs
 `shards` and `shards-per-runner`. It exposes the same outputs as the CLI.
 
 The `pools` output is a JSON array suitable for a matrix's `pool` axis. Each object
