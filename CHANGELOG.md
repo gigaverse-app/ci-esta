@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/gigaverse-app/ci-esta/compare/v0.1.2...v0.2.0) (2026-10-23)
+
+
+### Features
+
+* **ci:** expand reusable workflow critical paths ([#39](https://github.com/gigaverse-app/ci-esta/issues/39)) ([7c87180](https://github.com/gigaverse-app/ci-esta/commit/7c87180aae89ae351e825ed99ae42eb5217d79e3))
+
+
+### Bug fixes
+
+* **report:** preserve source identity and show unavailable usage honestly ([#40](https://github.com/gigaverse-app/ci-esta/issues/40)) ([d880533](https://github.com/gigaverse-app/ci-esta/commit/d8805330dd08f8dfe517503902bcfe752685ce2e))
+
 ## 0.1.2 (2026-10-23)
 
 - Adopt pytest-selective 0.1.1 and preserve prior-failure canary plans when native local selection is enabled. Canary collection and execution explicitly disable re-selection, including when pytest plugin autoload is disabled.
