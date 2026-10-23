@@ -1,6 +1,9 @@
 name: Restore a validated Python environment
 description: Cache a complete uv environment with exact installation identity, repair broken restores, and always verify the lock.
 inputs:
+  uv-version:
+    description: Exact uv version; match this to a production exporter or lockfile contract when required.
+    default: '0.11.19'
   python-version:
     description: Python version to install; the cache uses the resolved patch and architecture.
     default: '3.14'
@@ -34,7 +37,7 @@ runs:
         python-version: ${{ inputs.python-version }}
     - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       with:
-        version: '0.11.19'
+        version: ${{ inputs.uv-version }}
         enable-cache: true
         prune-cache: true
     - id: identity
@@ -43,7 +46,7 @@ runs:
         CACHE_SCRIPT: ${{ github.action_path }}/../../../scripts/ci/environment_cache.py
         CACHE_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         CACHE_SYNC_ARGS: ${{ inputs.sync-args }}
-        CACHE_VARIANT: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-variant }}
+        CACHE_VARIANT: ${{ runner.os }}-${{ runner.arch }}-${{ inputs.uv-version }}-${{ inputs.cache-variant }}
         CACHE_MANIFESTS: ${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/uv.toml', '**/.python-version') }}
       run: python "$CACHE_SCRIPT" identity
     - id: restore
