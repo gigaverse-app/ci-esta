@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-MODULE = ROOT / ".github/actions/resolve-security-trigger/scope.cjs"
+MODULE = ROOT / "actions/resolve-security-trigger/scope.cjs"
 
 
 def scope(files: object, *, complete: bool = True, excluded: tuple[str, ...] = ()) -> dict[str, bool]:

@@ -11,7 +11,7 @@ def test_shared_actions_use_versioned_toolkits_and_pinned_external_actions() -> 
     toolkit = re.compile(r"^gigaverse-app/(?:ci-esta|pytest-selective)/[^@]+@v[0-9]+\.[0-9]+$")
     unpinned = [
         f"{path.relative_to(root)}: {reference}"
-        for path in (root / ".github/actions").glob("*/action.y*ml")
+        for path in (root / "actions").glob("*/action.y*ml")
         for reference in remote.findall(path.read_text())
         if not (
             toolkit.fullmatch(reference)

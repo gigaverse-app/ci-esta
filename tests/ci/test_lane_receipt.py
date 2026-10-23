@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-RECEIPT = Path(__file__).resolve().parents[2] / ".github/actions/resolve-lane-evidence/inputs.cjs"
+RECEIPT = Path(__file__).resolve().parents[2] / "actions/resolve-lane-evidence/inputs.cjs"
 
 
 def receipt(root: Path, sha: str = "merge-a") -> str:
@@ -21,7 +21,7 @@ def receipt(root: Path, sha: str = "merge-a") -> str:
             "-e",
             "const {validationReceipt}=require(process.argv[1]); console.log(validationReceipt(process.argv[2],process.argv[3]));",
             str(RECEIPT),
-            str(root / ".github/actions/resolve-lane-evidence"),
+            str(root / "actions/resolve-lane-evidence"),
             sha,
         ],
         check=True,
@@ -34,7 +34,7 @@ def receipt(root: Path, sha: str = "merge-a") -> str:
 @pytest.mark.parametrize("changed", ["merge", "action", "workflow", "script", "source", "delete"])
 def test_changed_execution_inputs_invalidate_the_receipt(tmp_path: Path, changed: str) -> None:
     files = {
-        "action": tmp_path / ".github/actions/resolve-lane-evidence/action.yml",
+        "action": tmp_path / "actions/resolve-lane-evidence/action.yml",
         "workflow": tmp_path / ".github/workflows/check.yaml",
         "script": tmp_path / "scripts/check.py",
         "source": tmp_path / "src/ci_esta/check.py",
@@ -52,7 +52,7 @@ def test_changed_execution_inputs_invalidate_the_receipt(tmp_path: Path, changed
 
 
 ACTION = RECEIPT.parent / "action.yml"
-STRICT_FAKE = RECEIPT.parents[3] / "tests/ci/github_rest_fake.cjs"
+STRICT_FAKE = RECEIPT.parents[2] / "tests/ci/github_rest_fake.cjs"
 TREE = "7e598c9ab0000000000000000000000000000000"
 OTHER_TREE = "1111111111111111111111111111111111111111"
 BASE = "a0f071b160000000000000000000000000000000"

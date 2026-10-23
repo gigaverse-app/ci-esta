@@ -11,7 +11,7 @@ def test_complete_pr_collection_rejects_truncation_and_head_races() -> None:
     import os
     import subprocess
 
-    action = yaml.load((ROOT / ".github/actions/collect-pr-changes/action.yml").read_text(), Loader=yaml.BaseLoader)
+    action = yaml.load((ROOT / "actions/collect-pr-changes/action.yml").read_text(), Loader=yaml.BaseLoader)
     script = action["runs"]["steps"][0]["with"]["script"]
     for case in ["complete", "truncated", "head-before", "head-after", "base-after", "api-failure"]:
         harness = r"""

@@ -10,7 +10,7 @@ import yaml
 
 @pytest.mark.parametrize("existing", [True, False])
 def test_canary_installs_uv_only_when_the_caller_has_none(tmp_path: Path, existing: bool) -> None:
-    action = yaml.safe_load(Path(".github/actions/pytest-failure-canary/action.yml").read_text())
+    action = yaml.safe_load(Path("actions/pytest-failure-canary/action.yml").read_text())
     steps = action["runs"]["steps"]
     discovery = next((step for step in steps if step.get("id") == "caller-uv"), None)
     assert discovery is not None, "The action must discover and preserve the caller toolchain"

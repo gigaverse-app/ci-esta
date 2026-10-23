@@ -30,12 +30,10 @@
     ".python-version",
     ".gitattributes",
     ".github/test-lanes.json",
-    ".github/actions/**",
+    "actions/**",
     ".github/workflows/ci.yml",
     "action.yml",
-    "*/action.yml",
     "examples/**",
-    ".github/workflows/public-actions.yml",
-    "actions/**"
+    ".github/workflows/public-actions.yml"
   ]
 }

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-MODULE = Path(__file__).resolve().parents[2] / ".github/actions/resolve-lane-evidence/inputs.cjs"
+MODULE = Path(__file__).resolve().parents[2] / "actions/resolve-lane-evidence/inputs.cjs"
 
 
 def node(script: str, *args: str) -> subprocess.CompletedProcess[str]:
@@ -14,7 +14,7 @@ def node(script: str, *args: str) -> subprocess.CompletedProcess[str]:
 
 
 def test_receipt_covers_packaged_tools_and_ignores_generated_caches(tmp_path: Path) -> None:
-    action = tmp_path / ".github/actions/resolve-lane-evidence"
+    action = tmp_path / "actions/resolve-lane-evidence"
     action.mkdir(parents=True)
     source = tmp_path / "src/ci_esta/tool.py"
     source.parent.mkdir(parents=True)
@@ -39,7 +39,7 @@ def test_receipt_covers_packaged_tools_and_ignores_generated_caches(tmp_path: Pa
 def test_invalid_input_paths_cannot_produce_reusable_evidence(paths: list[str]) -> None:
     script = """
 const {inventoryIdentity}=require(process.argv[1]);
-const {strictGithub}=require(process.argv[1].replace(".github/actions/resolve-lane-evidence/inputs.cjs", "tests/ci/github_rest_fake.cjs"));
+const {strictGithub}=require(process.argv[1].replace("actions/resolve-lane-evidence/inputs.cjs", "tests/ci/github_rest_fake.cjs"));
 const github=strictGithub({git:{getCommit:async()=>({data:{tree:{sha:'root'}}}),getTree:async()=>({data:{tree:[]}})}});
 inventoryIdentity(github,null,{},'commit',JSON.parse(process.argv[2])).then(()=>process.exit(1),()=>process.exit(0));
 """
@@ -51,7 +51,7 @@ def test_declared_input_changes_invalidate_evidence_but_unrelated_changes_do_not
     script = """
 const {inventoryIdentity}=require(process.argv[1]);
 let selected='lock-v1',other='app-v1';
-const {strictGithub}=require(process.argv[1].replace(".github/actions/resolve-lane-evidence/inputs.cjs", "tests/ci/github_rest_fake.cjs"));
+const {strictGithub}=require(process.argv[1].replace("actions/resolve-lane-evidence/inputs.cjs", "tests/ci/github_rest_fake.cjs"));
 const github=strictGithub({git:{getCommit:async()=>({data:{tree:{sha:'root'}}}),getTree:async()=>({data:{tree:[
 {path:'lock',type:'blob',mode:'100644',sha:selected},{path:'app',type:'blob',mode:'100644',sha:other}]}})}});
 (async()=>{

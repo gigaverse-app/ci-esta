@@ -23,7 +23,7 @@ from ci_esta.ci_observability.enrichment.backend.models import GitHubEnrichment
 from ci_esta.ci_observability.enrichment.cli import build_parser, main
 from ci_esta.ci_observability.enrichment.models import PytestTimingMetadata
 
-ACTION_PATH = Path(".github/actions/ci-observability-enrichment/action.yml")
+ACTION_PATH = Path("actions/ci-observability-enrichment/action.yml")
 GITHUB_ENV_VARS = ("GITHUB_REPOSITORY", "GH_TOKEN", "GITHUB_TOKEN", "GITHUB_RUN_ID")
 
 
@@ -194,7 +194,7 @@ class TestActionMetadata:
         assert action["inputs"]["mode"]["required"] is True
         assert action["inputs"]["extension-output"]["default"] == "ci-observability-extension.json"
         assert action["inputs"]["signals-output"]["default"] == "ci-observability-signals.json"
-        assert "${{ github.action_path }}/../../../src" in run_step["env"]["PYTHONPATH"]
+        assert "${{ github.action_path }}/../../src" in run_step["env"]["PYTHONPATH"]
         assert "python3 -m ci_esta.ci_observability.enrichment" in run_step["run"]
         # Inputs reach the CLI through quoted env vars, never inline ${{ }}
         # interpolation into the shell script.

@@ -53,7 +53,7 @@ def test_diff_fetch_sends_exactly_one_authorization_header(tmp_path: Path, persi
             if persisted:
                 git("config", f"http.{url}/.extraheader", "AUTHORIZATION: basic checkout-token")
             original_config = (tmp_path / ".git/config").read_text()
-            action = yaml.safe_load((ROOT / ".github/actions/semgrep-scan/action.yml").read_text())
+            action = yaml.safe_load((ROOT / "actions/semgrep-scan/action.yml").read_text())
             script = next(step["run"] for step in action["runs"]["steps"] if step.get("id") == "targets")
             result = subprocess.run(
                 ["sh", "-c", script], cwd=tmp_path, env=env, capture_output=True, text=True, timeout=10
@@ -73,7 +73,7 @@ def test_diff_fetch_sends_exactly_one_authorization_header(tmp_path: Path, persi
 def test_private_diff_fetch_authenticates_without_persisted_checkout_credentials(
     tmp_path: Path, fetch_result: int
 ) -> None:
-    action = yaml.load((ROOT / ".github/actions/semgrep-scan/action.yml").read_text(), Loader=yaml.BaseLoader)
+    action = yaml.load((ROOT / "actions/semgrep-scan/action.yml").read_text(), Loader=yaml.BaseLoader)
     step = next(step for step in action["runs"]["steps"] if step.get("name") == "Resolve scan targets")
     binary = tmp_path / "git"
     binary.write_text(
@@ -110,7 +110,7 @@ def test_private_diff_fetch_authenticates_without_persisted_checkout_credentials
 @pytest.mark.parametrize("mode", ["diff", "full"])
 @pytest.mark.parametrize("scanner_result", [0, 1, 2])
 def test_scanner_keeps_verdict_and_only_excludes_ci_from_diff(tmp_path: Path, mode: str, scanner_result: int) -> None:
-    action = yaml.load((ROOT / ".github/actions/semgrep-scan/action.yml").read_text(), Loader=yaml.BaseLoader)
+    action = yaml.load((ROOT / "actions/semgrep-scan/action.yml").read_text(), Loader=yaml.BaseLoader)
     script = next(step["run"] for step in action["runs"]["steps"] if step.get("name") == "Run semgrep scan")
     binary = tmp_path / "semgrep"
     binary.write_text(
@@ -147,7 +147,7 @@ def test_scanner_keeps_verdict_and_only_excludes_ci_from_diff(tmp_path: Path, mo
 
 def test_ci_owner_includes_every_source_ruleset() -> None:
     def configs(action_name: str) -> set[str]:
-        action = yaml.load((ROOT / f".github/actions/{action_name}/action.yml").read_text(), Loader=yaml.BaseLoader)
+        action = yaml.load((ROOT / f"actions/{action_name}/action.yml").read_text(), Loader=yaml.BaseLoader)
         return set(action["inputs"]["configs"]["default"].split())
 
     assert configs("semgrep-scan") <= configs("semgrep-scan-ci-code")
@@ -156,7 +156,7 @@ def test_ci_owner_includes_every_source_ruleset() -> None:
 @pytest.mark.parametrize("remaining", ["", "src/application.py", ".github-other/action.py"])
 def test_diff_targets_remove_files_owned_by_ci_before_scanning(tmp_path: Path, remaining: str) -> None:
     """Explicit Semgrep file arguments must never bypass the CI ownership boundary."""
-    action = yaml.safe_load((ROOT / ".github/actions/semgrep-scan/action.yml").read_text())
+    action = yaml.safe_load((ROOT / "actions/semgrep-scan/action.yml").read_text())
     script = next(step["run"] for step in action["runs"]["steps"] if step.get("id") == "targets")
     git = tmp_path / "git"
     git.write_text('#!/bin/sh\nif [ "$1" = diff ]; then cat "$DIFF_FILE"; fi\n')

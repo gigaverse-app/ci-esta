@@ -86,14 +86,14 @@ ci-esta-pytest plan --test-root tests --shards 4 --exact-files \
 ```
 
 The plan is not execution. Integrate the generated exact-file plan with your
-runner through [plan-pytest-shards](../plan-pytest-shards/action.yml)
-and [completion verification](../verify-pytest-completion/action.yml).
+runner through [plan-pytest-shards](../actions/plan-pytest-shards/action.yml)
+and [completion verification](../actions/verify-pytest-completion/action.yml).
 For local concurrent pools, inspect `ci-esta-pytest run-local --help`; its worker
 command must consume the selected shard and produce the expected completion
 evidence. Do not replace a conformance suite's own report validators.
 
 Upload per-shard JUnit and duration manifests, download them into one directory,
-then use [pytest-timings](../pytest-timings/action.yml) with the
+then use [pytest-timings](../actions/pytest-timings/action.yml) with the
 exact expected shard count. Cache the merged duration output after a complete
 trusted run. Partial or missing artifacts are not a successful full reference.
 Require every distributed pool and a complete, disjoint partition before issuing

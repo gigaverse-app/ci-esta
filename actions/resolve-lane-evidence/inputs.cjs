@@ -136,14 +136,14 @@ async function inventoryIdentity(github, shared, repo, ref, paths) {
 }
 
 function validationReceipt(actionPath, testedIdentity, executionContext = '') {
-  const root = path.resolve(actionPath, '../../..');
+  const root = path.resolve(actionPath, '../..');
   const hash = crypto.createHash('sha256').update(testedIdentity);
   if (executionContext !== '') {
     hash.update('\0execution-context-v1\0').update(JSON.stringify(executionContext)).update('\0');
   }
   // PR<N> refs move. Bind proof to the downloaded shared implementation,
   // not just the consumer commit or the spelling of the shared ref.
-  for (const directory of ['.github/actions', '.github/workflows', 'scripts', 'src/ci_esta']) {
+  for (const directory of ['actions', '.github/workflows', 'scripts', 'src/ci_esta']) {
     if (!fs.existsSync(path.join(root, directory))) continue;
     for (const entry of fs.readdirSync(path.join(root, directory), {recursive: true}).sort()) {
       const relative = `${directory}/${entry.split(path.sep).join('/')}`;

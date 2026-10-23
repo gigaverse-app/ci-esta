@@ -21,9 +21,9 @@ args=(typecheck-scope --config "$SCOPE_CONFIG" --base "$SCOPE_BASE" --head "$SCO
       --output typecheck-scope.txt --github-output typecheck-scope.env)
 for pattern in $SCOPE_GLOBAL_INPUTS; do args+=(--global-input "$pattern"); done
 rm -f typecheck-scope.txt typecheck-scope.env
-export PYTHONPATH="$SHARED_ACTION_PATH/../../../src${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONPATH="$SHARED_ACTION_PATH/../../src${PYTHONPATH:+:$PYTHONPATH}"
 # The same isolated parser runtime as test-impact, so both read the graph cache identically.
-uv run --no-project --python 3.14 --with pydantic==2.13.4 --with pyyaml==6.0.3 --with "$(python3 "$SHARED_ACTION_PATH/../../../scripts/ci/pytest_selective_requirement.py")" \
+uv run --no-project --python 3.14 --with pydantic==2.13.4 --with pyyaml==6.0.3 --with "$(python3 "$SHARED_ACTION_PATH/../../scripts/ci/pytest_selective_requirement.py")" \
   python -m pytest_selective.impact_cli "${args[@]}" || full "scope computation failed"
 [ -f typecheck-scope.env ] || full "scope computation wrote no result"
 

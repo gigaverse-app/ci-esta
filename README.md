@@ -43,7 +43,7 @@ Use your project's interpreter and dependency groups. The root action,
 The shared `actions/NAME` paths are new on `main`. Use a reviewed commit that
 contains them, or `@main` while evaluating. Once a 1.x release includes these
 paths, `@v1` will receive compatible minor and patch upgrades automatically.
-Existing root and named aliases remain supported. [Action API and versioning](docs/actions.md).
+The root default remains available; named actions live only under `actions/`. [Action API and versioning](docs/actions.md).
 
 [Copy the complete reporting or cache workflow](docs/quickstart.md). The actions
 set up their own tools; using them does not require adding CI-esta to your app.
@@ -93,7 +93,7 @@ selection, timing feedback, execution and measurement in order.
 
 ## Further documentation
 
-- [Public actions](docs/actions.md) and [full toolkit catalog](.github/actions/README.md)
+- [Public actions](docs/actions.md) and [full toolkit catalog](actions/README.md)
 - [Critical path and slack](docs/critical-path.md), [cost reporting](docs/github-actions-observability.md), and [environment caching](docs/environment-cache.md)
 - [Learned timings](docs/learned-test-timings.md), [runner pools](docs/runners-and-diagnostics.md), and [Python CI tuning](docs/python-ci-tuning.md)
 - [Integrations](docs/integrations.md), [alternatives](docs/alternatives.md), and [revision-bound adoption audit](docs/adoption-audit.md)

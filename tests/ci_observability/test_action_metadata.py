@@ -6,10 +6,10 @@ import yaml
 
 from ci_esta.ci_observability.models import CiObservabilityReportV1
 
-ACTION_PATH = Path(".github/actions/ci-observability/action.yml")
-SCHEMA_PATH = Path(".github/actions/ci-observability/ci-observability-v1.schema.json")
+ACTION_PATH = Path("actions/ci-observability/action.yml")
+SCHEMA_PATH = Path("actions/ci-observability/ci-observability-v1.schema.json")
 WORKFLOW_PATH = Path(".github/workflows/trigger_downstream.yaml")
-TEST_IMPACT_PATH = Path(".github/actions/test-impact/action.yml")
+TEST_IMPACT_PATH = Path("actions/test-impact/action.yml")
 SOURCE_ROOT = Path("src")
 #: The ci-observability actions run this package's source with the runner image's own python3,
 #: not the project's Python: ubuntu-24.04, GitHub's ubuntu-latest, ships 3.12.
@@ -117,7 +117,7 @@ def test_the_reusable_report_runs_its_own_commit_and_inherits_the_callers_permis
     assert "permissions" not in workflow
     assert checkout["with"]["repository"] == "gigaverse-app/ci-esta"
     assert checkout["with"]["ref"] == "${{ job.workflow_sha }}"
-    assert report["uses"] == "./.ci-esta/.github/actions/ci-observability"
+    assert report["uses"] == "./.ci-esta/actions/ci-observability"
     inputs = workflow[True]["workflow_call"]["inputs"]
     assert inputs["post-sticky"]["default"] is False
     assert inputs["lane-selection-artifact"]["default"] == "test-lane-selection"
