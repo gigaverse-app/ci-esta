@@ -33,6 +33,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Exercise isolated planning before an application environment can mask
+      # missing action dependencies (the 1.3.0 filelock regression).
+      - uses: ./actions/plan-runner-pools
+        id: pools
+        with:
+          shards: '5'
+          shards-per-runner: '4'
+      - uses: ./actions/plan-pytest-shards
+        with:
+          working-directory: .
+          test-root: examples/timing-history/tests
+          shards: '3'
+          durations: .public-action-durations
+          output-dir: .public-action-shards
+      - name: Verify action outputs
+        env:
+          POOLS: ${{ steps.pools.outputs.pools }}
+          COUNT: ${{ steps.pools.outputs.count }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          pools = json.loads(os.environ['POOLS'])
+          assert os.environ['COUNT'] == '2'
+          assert [(p['first_shard'], p['last_shard']) for p in pools] == [(1, 4), (5, 5)]
+          files = [line for path in Path('.public-action-shards').glob('*.txt') for line in path.read_text().splitlines()]
+          assert sorted(files) == ['examples/timing-history/tests/test_alpha.py', 'examples/timing-history/tests/test_beta.py'], files
+          PY
       - uses: ./actions/setup-cached-uv
         with:
           python-version: '3.12'
@@ -47,22 +75,6 @@ jobs:
         with:
           path: shard-logs/ci-esta-shards.json
           pool: public-smoke
-      - uses: ./actions/plan-runner-pools
-        id: pools
-        with:
-          shards: '5'
-          shards-per-runner: '4'
-      - name: Verify action outputs
-        env:
-          POOLS: ${{ steps.pools.outputs.pools }}
-          COUNT: ${{ steps.pools.outputs.count }}
-        run: |
-          python - <<'PY'
-          import json, os
-          pools = json.loads(os.environ['POOLS'])
-          assert os.environ['COUNT'] == '2'
-          assert [(p['first_shard'], p['last_shard']) for p in pools] == [(1, 4), (5, 5)]
-          PY
       - name: Select a completed source run
         id: source
         env:
