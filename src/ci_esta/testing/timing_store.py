@@ -12,13 +12,13 @@ from collections.abc import Sequence
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Literal, Self
 
 from filelock import FileLock
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 from ci_esta.testing.junit import LearnedTimings, learn_junit_timings, write_learned_timings
+from ci_esta.testing.persistence import write_atomic_text
 from ci_esta.testing.timing_history import Observation, load_observations, merge_observations
 
 
@@ -84,6 +84,7 @@ def combine_histories(states: list[TimingHistory], key: str, now: datetime) -> T
     latest = max(states, key=lambda state: state.inventory_stamp)
     result = latest.model_copy(deep=True)
     result.observations = {}
+    result.removed_files = _reconcile_removals(states)
     result.covered_artifact_ids = set().union(*(state.covered_artifact_ids for state in states))
     for state in states:
         by_stamp: dict[str, dict[str, float]] = {}
@@ -93,6 +94,27 @@ def combine_histories(states: list[TimingHistory], key: str, now: datetime) -> T
             merge_observations(result.observations, values, stamp)
     result.expire(now)
     return result
+
+
+def _reconcile_removals(states: list[TimingHistory]) -> dict[str, datetime]:
+    """Keep earliest removal after the last observed presence, across all writers."""
+    ordered = sorted(states, key=lambda state: state.inventory_stamp)
+    last_present = {file: state for state in ordered for file in state.tracked_files}
+    known = set().union(*(state.removed_files.keys() for state in states))
+    known.update(node.split("::", 1)[0] for state in states for node in state.observations)
+    removed: dict[str, datetime] = {}
+    for state in ordered:
+        for file in known - state.tracked_files:
+            present = last_present.get(file)
+            if present is not None and state.inventory_stamp <= present.inventory_stamp:
+                continue
+            since = state.removed_files.get(file, state.inventory_at)
+            if present is not None and since < present.inventory_at:
+                since = state.inventory_at
+            # A newer independent inventory cannot reset an existing deletion's
+            # grace. A later presence, above, invalidates earlier deletion clocks.
+            removed[file] = min(removed.get(file, since), since)
+    return removed
 
 
 def tracked_python_files(working_directory: Path, inventory: Path | None = None) -> set[str]:
@@ -106,14 +128,7 @@ def tracked_python_files(working_directory: Path, inventory: Path | None = None)
 
 
 def write_history(state: TimingHistory, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent, delete=False) as stream:
-        stream.write(state.model_dump_json(indent=2) + "\n")
-        temporary = Path(stream.name)
-    try:
-        temporary.replace(path)
-    finally:
-        temporary.unlink(missing_ok=True)
+    write_atomic_text(state.model_dump_json(indent=2) + "\n", path)
 
 
 def learn_with_history(

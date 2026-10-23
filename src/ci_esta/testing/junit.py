@@ -8,7 +8,6 @@ import json
 import math
 from collections import Counter
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from tempfile import NamedTemporaryFile
 
 # Element is imported for type annotations only; defusedxml does not re-export
 # it, and all parsing below goes through defusedxml. The stdlib class itself
@@ -19,6 +18,8 @@ from xml.etree.ElementTree import Element
 import defusedxml.ElementTree as ET
 from defusedxml.common import DefusedXmlException
 from pydantic import BaseModel, ConfigDict, computed_field
+
+from ci_esta.testing.persistence import write_atomic_text
 
 DEFAULT_CANARY_MAX_FILES = 5
 
@@ -216,14 +217,7 @@ def learn_junit_timings(paths: list[Path], working_directory: Path = Path(".")) 
 
 def write_learned_timings(timings: LearnedTimings, output: Path) -> None:
     """Atomically replace a hint manifest only after every report validates."""
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with NamedTemporaryFile(mode="w", encoding="utf-8", dir=output.parent, delete=False) as temporary:
-        temporary.write(json.dumps(timings.durations, indent=2, allow_nan=False) + "\n")
-        temporary_path = Path(temporary.name)
-    try:
-        temporary_path.replace(output)
-    finally:
-        temporary_path.unlink(missing_ok=True)
+    write_atomic_text(json.dumps(timings.durations, indent=2, allow_nan=False) + "\n", output)
 
 
 def plan_failure_canary(

@@ -113,6 +113,11 @@ IDs it incorporated, so later readers skip those ancestors. Normally one checkpo
 download is sufficient. The 20-download budget fails visibly rather than publishing
 truncated history; restore falls back unless strict mode is enabled.
 
+Deletion clocks are reconciled across all checkpoints too. A newer independent
+writer cannot reset an expired file's grace period by omitting its old tombstone.
+A later tracked-file restoration resets that clock, including restorations not
+measured by a partial run.
+
 Reruns replace only their own run's checkpoint, with producer attempt validation.
 No workflow-wide concurrency lock is required. This avoids GitHub concurrency
 queues dropping pending publishers. If all checkpoints expire after a long idle

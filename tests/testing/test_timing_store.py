@@ -2,7 +2,8 @@
 
 import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from itertools import permutations
 
 import pytest
 
@@ -117,9 +118,43 @@ def test_unmeasured_restoration_resets_grace_for_a_later_deletion():
     removed_again.inventory_stamp = observation_stamp(removed_again.inventory_at)
     delayed = restored.model_copy(deep=True)
     delayed.observations = {"test_a.py": Observation(42, observation_stamp(first_removal.replace(day=18)))}
-    result = combine_histories([removed_again, delayed], "unit", first_removal.replace(day=20))
+    result = combine_histories([removed_again, delayed, expired], "unit", first_removal.replace(day=20))
     assert result.observations["test_a.py"].seconds == 42
     assert result.removed_files == {"test_a.py": removed_again.inventory_at}
+
+
+def test_independent_newer_inventory_preserves_expired_deletion_through_cli(tmp_path):
+    now = datetime.now(timezone.utc)
+    start = now - timedelta(days=30)
+    removed_at = start + timedelta(days=1)
+    independent_at = now - timedelta(days=1)
+    old = TimingHistory(
+        key="unit", tracked_files={"test_a.py"},
+        observations={"test_a.py": Observation(42, observation_stamp(start))},
+        inventory_at=start, inventory_stamp=observation_stamp(start),
+    )
+    deletion = TimingHistory(
+        key="unit", removed_files={"test_a.py": removed_at},
+        inventory_at=removed_at, inventory_stamp=observation_stamp(removed_at),
+    )
+    independent = TimingHistory(
+        key="unit", tracked_files={"test_b.py"},
+        observations={"test_b.py": Observation(7, observation_stamp(independent_at))},
+        inventory_at=independent_at, inventory_stamp=observation_stamp(independent_at),
+    )
+    snapshots = []
+    for index, state in enumerate([old, deletion, independent]):
+        path = tmp_path / f"snapshot-{index}.json"
+        path.write_text(state.model_dump_json())
+        snapshots.append(str(path))
+    for order in permutations(snapshots):
+        output = tmp_path / "durations.json"
+        assert main(["history", *order, "--history-key", "unit", "--output", str(output)]) == 0
+        assert json.loads(output.read_text()) == {"test_b.py": 7}
+    # Compaction must preserve the tombstone even before the old writer arrives.
+    compacted = combine_histories([deletion, independent], "unit", now)
+    assert compacted.removed_files == deletion.removed_files
+    assert combine_histories([compacted, old], "unit", now).observations == independent.observations
 
 
 @pytest.mark.parametrize("invalid", ["broken", '{"version":2,"key":"unit"}'])
