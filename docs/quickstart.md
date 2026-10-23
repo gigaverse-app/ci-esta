@@ -27,7 +27,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: gigaverse-app/ci-esta@v1
+      - uses: gigaverse-app/ci-esta@main
         with:
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
