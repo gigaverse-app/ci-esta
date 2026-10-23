@@ -56,7 +56,9 @@ async function resolveIncrementalPrBase({
   // never verdicts: each lane still enforces its own receipt and newer-failure revocation.
   // The caller owns this snapshot; it must never survive into another planning invocation.
   const readEvidence = async (key, read) => {
-    if (!evidenceCache.has(key)) evidenceCache.set(key, await read());
+    // Cache the promise before awaiting it, including rejection. A slow API outage
+    // must not repeat once per lane; each caller still handles uncertainty itself.
+    if (!evidenceCache.has(key)) evidenceCache.set(key, Promise.resolve().then(read));
     return evidenceCache.get(key);
   };
   const fallback = { baseSha: fallbackBaseSha, reused: false };
