@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import TypeAdapter
 
-from ci_esta.ci_observability import markdown
+from ci_esta.ci_observability import brand, markdown
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.enrichment.profiles import pytest_timings
 from ci_esta.ci_observability.job_names import job_family
@@ -103,13 +103,23 @@ def reused_lane_count(report: CiObservabilityReportV1) -> int:
     return len({(lane.lane, job_family(lane.job)) for lane in reused_lanes(report)})
 
 
+def reuse_badge(report: CiObservabilityReportV1) -> brand.Badge:
+    # Receipts and work decisions can describe the same work. Prefer measured
+    # lanes, and never sum their count with provider work units.
+    if any(isinstance(item, ReuseMeasurement) for item in report.measurements):
+        return brand.Badge("reused", f"{reused_lane_count(report)} lanes", brand.BLUE)
+    if report.work_selection is not None:
+        decisions = report.work_selection.decisions
+        return brand.quantity("reused", sum(item.decision == "reused" for item in decisions), len(decisions), "work units")
+    return brand.unavailable("reused")
+
+
 def render_avoided_work(report: CiObservabilityReportV1) -> str:
     lanes = reused_lanes(report)
-    lane_count = reused_lane_count(report)
     caches = [item for item in report.measurements if isinstance(item, CacheMeasurement)]
     counts = Counter(item.outcome for item in caches)
     known_reuse = any(isinstance(item, ReuseMeasurement) for item in report.measurements)
-    summary = [f"{lane_count} proven lane{'s' if lane_count != 1 else ''} reused" if known_reuse else "reuse unmeasured"]
+    summary = [reuse_badge(report).summary]
     timed = [lane.source_seconds for lane in lanes if lane.source_seconds is not None]
     if timed:
         summary[0] += f" · ≈{format_seconds(sum(timed))} runner time avoided (estimated)"
@@ -127,6 +137,11 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
         body += ["", "Avoided runner time estimates the durations of the original successful jobs. "
                  "It is not a new execution measurement, a wall-clock saving, or billed minutes. "
                  "Only jobs skipped in this attempt are counted; missing source durations remain unknown.", ""]
+    elif not known_reuse and report.work_selection is not None:
+        receipts = [item for item in report.work_selection.decisions if item.decision == "reused"]
+        body += ([f"- {markdown.code(item.name)}: receipt {markdown.code(item.receipt)}." for item in receipts]
+                 if receipts else ["No work units were reused in the recorded plan."])
+        body += ["", "Work-unit receipts do not establish avoided time or a file-level reuse count.", ""]
     else:
         body += ["No receipt-proven reuse in this attempt." if known_reuse else
                  "Reuse evidence was not recorded. Skipped jobs alone do not prove reuse.", ""]

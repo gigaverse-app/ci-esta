@@ -77,12 +77,20 @@ class WorkSelectionV1(BaseModel):
 
 
 def badges(plan: WorkSelectionV1) -> list[brand.Badge]:
+    selected, executed = brand.unavailable("selected"), brand.unavailable("executed")
+    # Inventories from different work units may overlap. Do not sum their files.
     if len(plan.decisions) == 1:
         execution = plan.decisions[0].execution
-        if execution is not None and execution.executed_files is not None and execution.status != "not_run":
-            return [brand.quantity("executed", len(execution.executed_files), execution.total_files, "files")]
-    return [brand.quantity("requested", sum(item.decision == "run" for item in plan.decisions),
-                           len(plan.decisions), "work units")]
+        if execution is not None:
+            # Full/none modes establish admission independently of success. Native
+            # scoped selection has no separate selected-file inventory to report.
+            if execution.mode in ("full", "none"):
+                selected = brand.quantity("selected", execution.total_files if execution.mode == "full"
+                                          else len(execution.always_run_files),
+                                          execution.total_files, "files")
+            if execution.executed_files is not None:
+                executed = brand.quantity("executed", len(execution.executed_files), execution.total_files, "files")
+    return [selected, executed]
 
 
 def render_work_selection(plan: WorkSelectionV1) -> str:

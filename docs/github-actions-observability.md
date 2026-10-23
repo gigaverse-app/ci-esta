@@ -109,12 +109,34 @@ gates and observation time before replacing a report.
 
 ### Shared headlines and publication ownership
 
-Python and Bun use the same renderer and quantity formatting for header badges
-and section summaries. Python's `selected` count describes the plan before
-evidence reuse. Bun's `executed` count comes from an observed file inventory;
-without one, the headline shows requested work units. Multiple work inventories
-are not summed because they can overlap. None of these counts implies time saved
-or passing checks.
+Python and Bun use the same headline fields, in the same order: readiness,
+selected, executed, reused, runner minutes, and estimated cost. Both lead with
+the same **Selection and execution** section; provider-specific explanations
+stay inside it. Missing evidence is explicitly `unavailable`, never omitted or
+converted to zero.
+
+Python's `selected` count describes the plan before evidence reuse, not the
+files that actually ran. Bun's full/none modes establish selected-file counts
+(all files for full, always-run contracts for none);
+native scoped selection does not expose a separate plan inventory and remains
+unavailable. `executed` comes only from an observed file inventory. A failed
+full run can select every file while executing only some. A reused plan without
+an execution inventory does not invent one. Multiple work inventories are not
+summed because they can overlap. Reuse retains its evidence's units (lanes or
+work units), never file counts inferred from skipped jobs. None of these counts
+implies time saved or passing checks.
+
+The reusable workflow forwards `runner-sku-rates-json` to the same accounting
+code as direct action callers. Supply rates for the runner labels actually used:
+
+```yaml
+runner-sku-rates-json: '[{"sku":"actions_linux","runner_label":"ubuntu-latest","usd_per_minute":"0.006"}]'
+```
+
+This example uses the [standard Linux list rate](https://docs.github.com/en/billing/reference/actions-runner-pricing).
+Maintain the rates for your account. Cost is a per-job rounded-minute estimate
+before allowances and discounts, not an invoice. Missing or unmatched rates
+keep the total unavailable; a partially priced run is not presented as fully priced.
 
 Set `sticky-workflow` to the exact source workflow name that owns the PR comment.
 Other observed workflows still produce summaries and artifacts. Keep `sticky-key`

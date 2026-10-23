@@ -26,6 +26,10 @@ on:
         description: Explicit gate selectors; empty leaves gate latency unassessed.
         type: string
         default: '[]'
+      runner-sku-rates-json:
+        description: Explicit runner-label rates for estimated cost; absent or unmatched rates remain unavailable.
+        type: string
+        default: '[]'
       pull-request-number:
         type: string
         default: ''
@@ -91,6 +95,7 @@ jobs:
           commit-sha: ${{ inputs.head-sha }}
           pull-request-number: ${{ inputs.pull-request-number }}
           required-gates-json: ${{ inputs.required-gates-json }}
+          runner-sku-rates-json: ${{ inputs.runner-sku-rates-json }}
           job-dependencies-json: ${{ inputs.job-dependencies-json }}
           analyze-critical-path: ${{ inputs.analyze-critical-path }}
           post-sticky: ${{ inputs.post-sticky }}
