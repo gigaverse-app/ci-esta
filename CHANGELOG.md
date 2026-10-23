@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/gigaverse-app/ci-esta/compare/v0.2.1...v0.2.2) (2026-10-23)
+
+
+### Bug fixes
+
+* **report:** measure completed gates before downstream publication ([#47](https://github.com/gigaverse-app/ci-esta/issues/47)) ([7fd7f61](https://github.com/gigaverse-app/ci-esta/commit/7fd7f61aacaf0b14a446001f06f8a7f2c63d6a20))
+
 ## [0.2.1](https://github.com/gigaverse-app/ci-esta/compare/v0.2.0...v0.2.1) (2026-10-23)
 
 
