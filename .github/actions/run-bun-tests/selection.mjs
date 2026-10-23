@@ -69,13 +69,10 @@ export function planAffectedTests({ cwd = process.cwd(), base, full = false, pol
     for (const entry of tracked) {
       const [metadata, file] = entry.split("\t");
       if (alwaysRunFiles.includes(file)) continue;
-      if (
-        !policy.runtimeRoots.some((root) => file.startsWith(root)) ||
-        !policy.sourceExtensions.includes(extname(file))
-      )
-        continue;
+      if (!policy.runtimeRoots.some((root) => file.startsWith(root))) continue;
       if (!metadata.startsWith("100644 ") && !metadata.startsWith("100755 "))
         throw new Error(`Non-regular source input: ${file}`);
+      if (!policy.sourceExtensions.includes(extname(file))) continue;
       if (opaqueDependency.test(readFileSync(join(cwd, file), "utf8"))) {
         if (policy.reviewedReaders[file]?.blob === metadata.split(" ")[1]) continue;
         return {

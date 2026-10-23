@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -303,4 +303,13 @@ test("an explicit full override supersedes even a valid none plan", t => {
   const result = execute(f, f.plan(), { full: true, shards: 2 });
   assert.equal(result.selection.mode, "full");
   assert.equal(result.selection.executedFiles.length, 3);
+});
+
+test("an unchanged extensionless symlink in a runtime root forces full execution", t => {
+  const f = fixture(t);
+  symlinkSync("features", join(f.cwd, "packages/linked"));
+  const base = f.commit();
+  f.put("packages/features/value.ts", "export const value = 2;"); f.commit();
+  assert.equal(f.plan({ base }).mode, "full");
+  assert.equal(f.plan({ base }).fallback, true);
 });
