@@ -11,7 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.mark.parametrize("path, expected", [
-    ("README.md", False), ("docs/critical-path.md", False),
+    ("action.yml", True), ("setup-cached-uv/action.yml", True),
+        ("README.md", False), ("docs/critical-path.md", False),
     (".github/workflows/observe-ci.yml", False), (".github/pull_request_template.md", False),
     ("src/example.py", True), ("tests/test_example.py", True), ("scripts/ci/setup.py", True),
     ("uv.lock", True), ("importlinter.toml", True), (".github/workflows/ci.yml", True),

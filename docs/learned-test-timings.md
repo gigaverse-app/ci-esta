@@ -19,7 +19,7 @@ still inventories current files and assigns an explicit fallback to unknown
 files. New tests therefore remain in the plan. Use separate manifests for
 Python versions, operating systems, services and dependency variants.
 
-For CI, add `.github/actions/learn-test-timings` at a reviewed immutable CI-esta
+For CI, add `learn-test-timings` at a reviewed immutable CI-esta
 commit after a successful pytest step. Supply `junit-pattern: junit.xml` and a
 unique `artifact-name`, such as `test-timings-py311-linux`. It requires uv, writes
 `.ci-test-durations.json`, and retains both that file and the source XML for 21

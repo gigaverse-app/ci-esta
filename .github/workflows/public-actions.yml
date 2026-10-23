@@ -1,0 +1,68 @@
+name: Public action smoke
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  checks: read
+  pull-requests: read
+jobs:
+  public-actions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./setup-cached-uv
+        with:
+          python-version: '3.12'
+      - uses: ./plan-runner-pools
+        id: pools
+        with:
+          shards: '5'
+          shards-per-runner: '4'
+      - name: Verify forwarded outputs
+        env:
+          POOLS: ${{ steps.pools.outputs.pools }}
+          COUNT: ${{ steps.pools.outputs.count }}
+        run: |
+          python - <<'PY'
+          import json, os
+          pools = json.loads(os.environ['POOLS'])
+          assert os.environ['COUNT'] == '2'
+          assert [(p['first_shard'], p['last_shard']) for p in pools] == [(1, 4), (5, 5)]
+          PY
+      - name: Select a completed source run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&status=completed&per_page=1" > source-run.json
+          python - <<'PY'
+          import json, os
+          run = json.load(open('source-run.json'))['workflow_runs'][0]
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"id={run['id']}\nattempt={run['run_attempt']}\nsha={run['head_sha']}\n")
+          PY
+      - uses: ./
+        id: report
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.id }}
+          run-attempt: ${{ steps.source.outputs.attempt }}
+          commit-sha: ${{ steps.source.outputs.sha }}
+          post-sticky: 'false'
+          test-selection-artifact: ''
+          lane-selection-artifact: ''
+          full-suite-reference-artifact: ''
+      - name: Verify the public reporter produced data
+        env:
+          REPORT: ${{ steps.report.outputs.report-file }}
+        run: |
+          test -s "$REPORT"
+          python - <<'PY'
+          import json, os
+          report = json.load(open(os.environ['REPORT']))
+          assert report['collection_status'] == 'complete', report.get('collection_errors')
+          PY

@@ -8,7 +8,7 @@ that dependencies or tests are valid.
 
 ```yaml
 - uses: actions/checkout@v7
-- uses: gigaverse-app/ci-esta/.github/actions/setup-cached-uv@REVIEWED_COMMIT_SHA
+- uses: gigaverse-app/ci-esta/setup-cached-uv@main
   with:
     python-version: '3.14'
     sync-args: --all-packages --only-group lint
@@ -22,8 +22,8 @@ uv locks/Python manifests, group/extra/install flags and the helper's own versio
 Different dependency groups cannot share an exact environment accidentally.
 There are no broad restore prefixes. Cache errors fall back to installation.
 
-Only successful default-branch push setup saves the shared environment cache.
-PRs and explicit reruns can restore it but cannot warm other branches. Package
+Successful default-branch push, schedule and manual-dispatch setup can save the shared environment cache.
+PRs can restore it but cannot save into the shared default-branch scope. Package
 download caching remains enabled. Private dependency authentication belongs in
 the caller process; never cache credentials or token files inside `.venv`.
 

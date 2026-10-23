@@ -1,0 +1,121 @@
+name: Sharded tests
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+env:
+  SHARDS: '4'
+  SHARDS_PER_RUNNER: '4'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      pools: ${{ steps.pools.outputs.pools }}
+      shards: ${{ steps.inventory.outputs.shards }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: gigaverse-app/ci-esta/setup-cached-uv@main
+        with:
+          python-version: '3.12'
+      - uses: actions/cache/restore@v5
+        with:
+          path: .test_durations
+          key: pytest-costs-linux-py312-${{ github.sha }}
+          restore-keys: pytest-costs-linux-py312-
+      - name: Plan the complete inventory
+        id: inventory
+        shell: bash
+        run: |
+          test -f .test_durations || printf '{}\n' > .test_durations
+          uv run ci-esta-pytest plan --durations .test_durations --test-root tests \
+            --shards "$SHARDS" --exact-files --output-dir splits
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          groups = sorted(int(p.stem.split('-')[1]) for p in Path('splits').glob('group-*.txt') if p.read_text().strip())
+          if not groups or groups != list(range(1, len(groups) + 1)):
+              raise SystemExit('Expected a nonempty, consecutive file plan')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'shards={len(groups)}\n')
+          PY
+      - uses: gigaverse-app/ci-esta/plan-runner-pools@main
+        id: pools
+        with:
+          shards: ${{ steps.inventory.outputs.shards }}
+          shards-per-runner: ${{ env.SHARDS_PER_RUNNER }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pytest-plan
+          path: splits/
+          if-no-files-found: error
+  tests:
+    needs: plan
+    # Set this to your provisioned larger-runner label when benchmarking that layout.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pool: ${{ fromJSON(needs.plan.outputs.pools) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: gigaverse-app/ci-esta/setup-cached-uv@main
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v8
+        with:
+          name: pytest-plan
+          path: splits/
+      - name: Execute this pool
+        env:
+          FIRST: ${{ matrix.pool.first_shard }}
+          LAST: ${{ matrix.pool.last_shard }}
+          COUNT: ${{ matrix.pool.shard_count }}
+        run: >-
+          uv run ci-esta-pytest run-local --shards "$COUNT"
+          --first-shard "$FIRST" --last-shard "$LAST" --log-dir shard-logs --
+          uv run python .github/scripts/run_shard.py
+      - uses: gigaverse-app/ci-esta/verify-pytest-completion@main
+        env:
+          PLAN_SHARD_COUNT: ${{ matrix.pool.shard_count }}
+          PLAN_FIRST_SHARD: ${{ matrix.pool.first_shard }}
+          PLAN_LAST_SHARD: ${{ matrix.pool.last_shard }}
+          PLAN_MODE: full
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: pytest-pool-${{ matrix.pool.id }}
+          path: |
+            junit-group-*.xml
+            pytest-status-group-*
+            shard-logs/
+          if-no-files-found: error
+  gate:
+    name: Test gate
+    needs: [plan, tests]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gigaverse-app/ci-esta/validation-gate@main
+        with:
+          needs: ${{ toJSON(needs) }}
+          required: '{"plan":true,"tests":true}'
+      - uses: actions/checkout@v7
+      - uses: gigaverse-app/ci-esta/setup-cached-uv@main
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: pytest-pool-*
+          merge-multiple: true
+      - uses: gigaverse-app/ci-esta/verify-pytest-completion@main
+        env:
+          PLAN_SHARD_COUNT: ${{ needs.plan.outputs.shards }}
+          PLAN_MODE: full
+      - run: uv run ci-esta-pytest learn junit-group-*.xml --output .test_durations
+      - uses: actions/cache/save@v5
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          path: .test_durations
+          key: pytest-costs-linux-py312-${{ github.sha }}
