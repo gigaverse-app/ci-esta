@@ -1,10 +1,14 @@
-# Shared CI building blocks
+# CI action implementation catalog
+
+Start with the [public action API](../../docs/actions.md) and
+[quickstart](../../docs/quickstart.md). This catalog includes advanced and
+consumer-specific tools; they are not all required for adoption.
 
 Reusable pieces so `gigaverse-ai` and `gigaverse-backend` share identical CI
 mechanics without forcing repository-specific build and test layouts into one
 workflow.
 
-Use `gigaverse-app/ci-esta/.github/actions/<name>@<reviewed-commit>` for the
+Use `gigaverse-app/ci-esta/<name>@<reviewed-commit>` for the
 extracted actions. The backend-common reusable workflows listed below retain
 Gigaverse event/security/release policy; they are external compositions, not
 workflows shipped by CI-esta. Start with the [portable adoption guide](../../docs/ci-optimization.md)
@@ -56,7 +60,7 @@ artifact, sticky/summary Markdown, and bounded Prometheus exposition. Workflow
 job names, matrix size, and step ordering are never accounting keys.
 
 ```yaml
-- uses: gigaverse-app/ci-esta/.github/actions/ci-observability@v0.1
+- uses: gigaverse-app/ci-esta@main
   with:
     github-token: ${{ github.token }}
     commit-sha: ${{ github.event.pull_request.head.sha }}
@@ -84,7 +88,7 @@ proves that the source and target ECR references resolve to the same digest.
 
 ```yaml
 - id: image-reuse
-  uses: gigaverse-app/ci-esta/.github/actions/reuse-ecr-image@v0.1
+  uses: gigaverse-app/ci-esta/reuse-ecr-image@main
   with:
     source-image: ${{ env.REPOSITORY }}:verified-${{ steps.identity.outputs.key }}
     target-image: ${{ env.REPOSITORY }}:${{ github.sha }}
@@ -101,7 +105,7 @@ handles `/` in grouping values with Pushgateway's required URL-safe base64
 encoding.
 
 ```yaml
-- uses: gigaverse-app/ci-esta/.github/actions/publish-prometheus-snapshot@v0.1
+- uses: gigaverse-app/ci-esta/publish-prometheus-snapshot@main
   with:
     metrics-file: build-metrics.prom
     pushgateway-url: ${{ secrets.PUSHGW_URL }}
@@ -163,7 +167,7 @@ fail-open.
 
 ```yaml
 - id: gate
-  uses: gigaverse-app/ci-esta/.github/actions/resolve-security-trigger@v0.1
+  uses: gigaverse-app/ci-esta/resolve-security-trigger@main
   with:
     require-same-repo: "true"   # set for image-building scans (Trivy); needs same-repo secrets
     automatic-same-repo-pull-requests: "true"  # optional; default false
@@ -193,14 +197,14 @@ scanner. Callers should similarly narrow `vuln-type` when they deliberately
 split package inventories.
 
 ```yaml
-- uses: gigaverse-app/ci-esta/.github/actions/trivy-scan-image@v0.1
+- uses: gigaverse-app/ci-esta/trivy-scan-image@main
   with:
     image-ref: "trivy-scan:my_service"
 ```
 
 ```yaml
 - run: uv sync --frozen --all-groups --no-install-project
-- uses: gigaverse-app/ci-esta/.github/actions/trivy-scan-image@v0.1
+- uses: gigaverse-app/ci-esta/trivy-scan-image@main
   with:
     # rootfs inventories installed .dist-info packages; fs is for manifests.
     scan-type: rootfs
@@ -228,7 +232,7 @@ and does not depend on Poetry's global cache layout.
 - run: poetry install --all-groups --no-root
   env:
     POETRY_VIRTUALENVS_IN_PROJECT: "true"
-- uses: gigaverse-app/ci-esta/.github/actions/trivy-scan-image@v0.1
+- uses: gigaverse-app/ci-esta/trivy-scan-image@main
   with:
     scan-type: rootfs
     scan-ref: .venv

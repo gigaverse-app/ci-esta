@@ -13,6 +13,17 @@ data; do not migrate providers merely to apply this skill. Python pytest suites
 can use [pytest-selective](https://github.com/gigaverse-app/pytest-selective) with
 other runners as well.
 
+## Public onboarding
+
+Use the [quickstart](https://github.com/gigaverse-app/ci-esta/blob/main/docs/quickstart.md)
+and [public action API](https://github.com/gigaverse-app/ci-esta/blob/main/docs/actions.md).
+Prefer `gigaverse-app/ci-esta@REF` for reporting and `/setup-cached-uv@REF` or
+other named public actions for setup/execution. Check that the selected release
+contains the entry point. Retain old paths for existing pinned consumers until
+upgrading; never present an unreleased path as available at an old tag.
+Actions install their own support tools. Add the Python package to the test
+environment only when invoking its CLI or pytest plugins.
+
 ## Observe first
 
 Inspect workflows, exact required job names, reusable workflows, current caches
@@ -55,13 +66,20 @@ or committed reports.
 - Use the shared `setup-cached-uv` action for exact environment identity, broken
   restore repair and mandatory locked synchronization. Keep cache variants for
   application ABI/system dependencies; never use a cache hit as test evidence.
+- Choose runner capacity and local process count separately. Benchmark one larger
+  runner, several standard runners or several larger pools against the existing
+  layout. Use the [complete shard recipe](https://github.com/gigaverse-app/ci-esta/tree/main/examples/pytest-shards)
+  and preserve every shard's completion checks. Do not turn 16 local workers into
+  16 hosted jobs accidentally. Larger runners have a different billing policy.
 - Learn file costs from successful JUnit with `ci-esta-pytest learn`; retain
   separate lane/matrix artifacts. Follow the
   [timing feedback tutorial](https://github.com/gigaverse-app/ci-esta/blob/main/docs/learned-test-timings.md).
   Benchmark whole-file pools against existing xdist before adding runners.
   Preserve service isolation, coverage and domain conformance checks.
 - Reuse completed lanes only when repeating the same declared work is the actual
-  bottleneck. A prior green workflow is not sufficient proof.
+  bottleneck. A prior green workflow is not sufficient proof. A passing lane from
+  a partly failed workflow may be reusable when its own receipt and freshness
+  checks pass.
 
 ## Evidence reuse is optional
 

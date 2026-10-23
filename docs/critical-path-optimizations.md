@@ -35,7 +35,7 @@ Git for Windows can expose `bin/git.exe` or `cmd/git.exe`, which launches the
 native executable. For suites creating many temporary Git repositories, use:
 
 ```yaml
-- uses: gigaverse-app/ci-esta/.github/actions/native-windows-git@<reviewed-commit>
+- uses: gigaverse-app/ci-esta/native-windows-git@main
 - run: uv run --locked pytest -n 4 --cov
 ```
 

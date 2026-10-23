@@ -31,6 +31,10 @@
     ".gitattributes",
     ".github/test-lanes.json",
     ".github/actions/**",
-    ".github/workflows/ci.yml"
+    ".github/workflows/ci.yml",
+    "action.yml",
+    "*/action.yml",
+    "examples/**",
+    ".github/workflows/public-actions.yml"
   ]
 }

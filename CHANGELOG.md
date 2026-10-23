@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.0](https://github.com/gigaverse-app/ci-esta/compare/v0.3.0...v0.4.0) (2026-10-23)
+
+
+### Features
+
+* add public action entry points and task-focused onboarding ([#51](https://github.com/gigaverse-app/ci-esta/issues/51)) ([ecfbdca](https://github.com/gigaverse-app/ci-esta/commit/ecfbdca0fd895276e2f7503629d659485bd3b070))
+
+## [0.3.0](https://github.com/gigaverse-app/ci-esta/compare/v0.2.2...v0.3.0) (2026-10-23)
+
+
+### Features
+
+* **report:** lead with verified impact and Bun execution evidence ([#49](https://github.com/gigaverse-app/ci-esta/issues/49)) ([91d2975](https://github.com/gigaverse-app/ci-esta/commit/91d2975f8580811550fa757cf5ba3fe118a381b4))
+
 ## [0.2.2](https://github.com/gigaverse-app/ci-esta/compare/v0.2.1...v0.2.2) (2026-10-23)
 
 

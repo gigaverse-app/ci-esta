@@ -2,6 +2,9 @@
 
 CI-esta reads GitHub's run and job APIs and writes one versioned JSON report, a human-readable Markdown summary and bounded Prometheus metrics. No hosted CI-esta service is required.
 
+Start with the [public-action quickstart](quickstart.md#report-a-completed-workflow).
+The reusable-workflow alternative below additionally owns artifact upload.
+
 ## Add a reporting job
 
 For CI that already has a long critical path, prefer a separate completed-run
@@ -81,10 +84,9 @@ CI · `17f3325` · attempt 1 · complete snapshot
 The example above is illustrative. The badge line answers "can I merge, what was selected,
 what evidence was reused, what did it cost" before any
 detail, colored with GitHub's status palette; each badge's alt text carries its
-figure. Readiness appears only when required gates are configured. GitHub's API
-has no `needs` graph, so the gantt infers the chain: GitHub creates a job when
-the jobs it needs finish, so a job's predecessor is the one that finished just
-before it was created. A pull request keeps one sticky per `sticky-key`; each
+figure. Readiness appears only when required gates are configured. Enable `analyze-critical-path` to read the source workflow topology at its
+verified revision and compute dependency paths and execution slack. Timing
+adjacency alone is not a dependency edge; unsupported topology stays unavailable. A pull request keeps one sticky per `sticky-key`; each
 new run updates it in place, and an older run never overwrites a newer one.
 
 The banner and mark live in [`docs/assets`](assets/). Change both banners
@@ -146,7 +148,7 @@ report:
     actions: read
   runs-on: ubuntu-latest
   steps:
-    - uses: gigaverse-app/ci-esta/.github/actions/ci-observability@main
+    - uses: gigaverse-app/ci-esta@main
       with:
         github-token: ${{ github.token }}
         required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
@@ -186,14 +188,16 @@ time and are never added to runner usage. Older v1 reports without steps still l
 ## Local reports and offline rendering
 
 ```bash
-pip install "ci-esta>=0.1.0,<0.2.0"
+pip install "ci-esta"
 # Set GITHUB_TOKEN or GH_TOKEN in your environment; do not put it in command history.
 ci-esta report --repository owner/repo --run-id 123456 --gate 'Validation gate'
 ci-esta render ci-esta-report/ci-observability.json \
   --markdown report.md --prometheus report.prom
 ```
 
-The Python distribution installs pytest-selective's shared explanation contract through a compatible package-version range. The Actions for evidence, gates and change collection do not require a Python application or pytest.
+Base reporting installs neither pytest nor pytest-selective. Install
+`ci-esta[selection]` for Python selection explanations or `ci-esta[pytest]` for
+pytest execution tools. The Actions for evidence, gates and change collection do not require a Python application or pytest.
 
 ## Prometheus without unbounded labels
 
