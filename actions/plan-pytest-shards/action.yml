@@ -35,6 +35,6 @@ runs:
       run: |
         # Timing history changes weights only; discovery always includes new files.
         if [ ! -f "$DURATIONS" ]; then printf '{}\n' > "$DURATIONS"; fi
-        uv run --no-project --python 3.14 --with 'pydantic>=2.11,<3' --with 'defusedxml>=0.7,<0.8' \
-          --with "$(python3 "$SHARED_ACTION_PATH/../../scripts/ci/pytest_selective_requirement.py")" python -m ci_esta.testing.cli plan --exact-files \
+        uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../..[selection]" \
+          python -m ci_esta.testing.cli plan --exact-files \
           --durations "$DURATIONS" --test-root "$TEST_ROOT" --shards "$SHARDS" --output-dir "$OUTPUT_DIR"

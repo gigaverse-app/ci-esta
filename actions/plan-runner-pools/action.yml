@@ -28,7 +28,6 @@ runs:
         SHARDS: ${{ inputs.shards }}
         SHARDS_PER_RUNNER: ${{ inputs.shards-per-runner }}
       run: |
-        uv run --no-project --python 3.14 --with 'pydantic>=2.11,<3' --with 'defusedxml>=0.7,<1' \
-          --with "$(python3 "$SHARED_ACTION_PATH/../../scripts/ci/pytest_selective_requirement.py")" \
+        uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../..[selection]" \
           python -m ci_esta.testing.cli pools --shards "$SHARDS" \
           --shards-per-runner "$SHARDS_PER_RUNNER" --github-output "$GITHUB_OUTPUT"
