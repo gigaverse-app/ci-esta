@@ -27,7 +27,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: gigaverse-app/ci-esta@main
+      - uses: gigaverse-app/ci-esta@v1
         with:
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@main
+      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@v1
         with:
           python-version: '3.12'
           sync-args: '--group test'

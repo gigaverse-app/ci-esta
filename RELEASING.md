@@ -17,14 +17,20 @@ workflow `release.yml`, and GitHub environment `pypi`. No API token is needed.
 5. Verify a clean install of the exact version and exercise `ci-esta --help`
    and `ci-esta-pytest pools` outside the source checkout.
 
-After successful publication, the workflow advances the compatible Actions tag
-(for example, `v1`). Consumers use `@v1` to receive all compatible 1.x minor
-and patch releases automatically, or an exact tag such as `@v1.0.0` or commit SHA
-for a fixed revision. Breaking changes require a new major tag, such as `v2`;
-they do not advance `v1`. Pre-1.0 releases retain minor aliases such as `v0.3`.
-Python consumers can use `ci-esta>=1.0.0,<2.0.0`; lockfiles retain exact artifacts.
-Prereleases do not advance the compatible tag. Published package versions and
-full release tags are never replaced; fixes require a new patch release.
+After successful publication, the workflow advances `v1`, the explicitly declared
+Actions API major in `release.yml`. It is independent of the Python package's
+version. Consumers use `gigaverse-app/ci-esta/actions/NAME@v1`; the root default
+action remains available. Python consumers declare their own compatible package
+range and keep exact artifacts in lockfiles.
+
+Only canonical `actions/NAME` paths are supported by this Actions API. When
+upgrading older callers, migrate `.github/actions/NAME` or top-level `NAME` to
+`actions/NAME`. The initial namespace migration is deliberately included in the
+1.x line. Later incompatible Actions API changes require an explicit new Actions
+major; Python package version changes alone never change that alias.
+
+Full package release tags remain immutable. Prereleases do not advance the Actions
+alias. Fixes require a new package release and successful validation/publication.
 
 ## Conventional Commits to PyPI
 
