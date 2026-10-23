@@ -28,6 +28,7 @@ Each piece is matched to the shape of the shared work:
 | `cancel-obsolete-pr-runs` | composite action | post-admission stale-run cancellation from existing jobs |
 | `setup-python-uv` | composite action | backend-common test and type-check workflows |
 | `setup-cached-uv` | composite action | portable exact environment restore, repair and locked synchronization |
+| [`postgres-client`](../../docs/postgres-client.md) | composite action | version-matched PostgreSQL dump/restore on Linux Docker runners |
 | `publish-prometheus-snapshot` | composite action | bounded CI/build metric producers |
 | `ci-observability` | composite action | CI latency/cost sticky and evidence in all three repos |
 | `reuse-ecr-image` | composite action | deployments that can reuse an exact verified image |
