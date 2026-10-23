@@ -65,3 +65,11 @@ to bounded, verified procedures, and the open
 instructions stay in [AGENTS.md](https://agents.md/); detailed adoption commands
 load only when needed. These are influences, not affiliations or endorsements.
 The skill neither signs up nor posts to external communities.
+
+## Keep installed skills current
+
+The repository's `skills/` directory is the authoritative copy. A package upgrade
+does not refresh an agent's installed Markdown. Reinstall/update with your skill
+manager, or replace the complete skill folder (including `references/`) after
+reviewing the source revision. Compare that revision when an agent gives advice
+that conflicts with the current quickstart. Preserve local customizations separately.

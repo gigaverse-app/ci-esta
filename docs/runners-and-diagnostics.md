@@ -60,7 +60,7 @@ ci-esta-pytest pools --shards 55 --shards-per-runner 2 --github-output "$GITHUB_
 ```
 
 For a planning job without application dependencies, use the composite action
-`.github/actions/plan-runner-pools` at a compatible release version with inputs
+`plan-runner-pools` at a compatible release version with inputs
 `shards` and `shards-per-runner`. It exposes the same outputs as the CLI.
 
 The `pools` output is a JSON array suitable for a matrix's `pool` axis. Each object

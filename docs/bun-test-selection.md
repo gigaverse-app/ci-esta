@@ -8,7 +8,8 @@ continue to use pytest-selective; CI-esta does not build a second import graph.
 
 ## Contract and ownership
 
-The portable action is `gigaverse-app/ci-esta/.github/actions/run-bun-tests`.
+The public action is `gigaverse-app/ci-esta/run-bun-tests`; see
+[entry-point availability](actions.md) before selecting a release pin.
 Pin a reviewed commit. It needs Node 22+ and Bun >=1.4.2 <2 installed by the caller;
 it installs no Python or application dependencies. Bun owns static/transitive
 imports, aliases and literal dynamic imports through
@@ -79,7 +80,7 @@ full/conformance policy of their own.
 
 ```yaml
 - run: bun run test --inventory > "$RUNNER_TEMP/bun-inventory.json"
-- uses: gigaverse-app/ci-esta/.github/actions/run-bun-tests@<reviewed-commit>
+- uses: gigaverse-app/ci-esta/run-bun-tests@main
   with:
     inventory: ${{ runner.temp }}/bun-inventory.json
     policy: .github/test-selection.json

@@ -47,7 +47,7 @@ jobs:
         with:
           lanes: '{"tests":"Test suite","compat":"Python compatibility"}'
           # Complete test/build inputs; docs and the disposable live probe do not affect these jobs.
-          input-paths: '[".github","src","tests","scripts","pyproject.toml","uv.lock","importlinter.toml","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
+          input-paths: '["action.yml","cancel-obsolete-pr-runs","ci-observability","ci-observability-enrichment","collect-ci-changes","collect-pr-changes","collect-pytest-changes","coverage-policy","current-pr-head","learn-test-timings","lint-ci-code","native-windows-git","plan-pytest-shards","plan-runner-pools","postgres-client","publish-prometheus-snapshot","pytest-canary-pr-state","pytest-expansion","pytest-failure-canary","pytest-timings","resolve-incremental-pr-base","resolve-lane-evidence","resolve-pytest-evidence","resolve-security-trigger","reuse-ecr-image","run-bun-tests","semgrep-scan","semgrep-scan-ci-code","setup-cached-uv","setup-python-uv","test-impact","trivy-scan-ci-code","trivy-scan-image","typecheck-scope","validation-gate","verify-pytest-completion","report-bun-tests","examples",".github","src","tests","scripts","pyproject.toml","uv.lock","importlinter.toml","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
       - name: Record admission
         env:
           REUSED: ${{ steps.evidence.outputs.reused }}
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/setup-cached-uv
+      - uses: ./setup-cached-uv
         with:
           python-version: '3.11'
       - name: Install the Python 3.14 source-parser runtime
@@ -82,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/setup-cached-uv
+      - uses: ./setup-cached-uv
         with:
           python-version: '3.14'
       - name: Install the Python 3.14 source-parser runtime
@@ -104,7 +104,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./.github/actions/validation-gate
+      - uses: ./validation-gate
         with:
           needs: ${{ toJSON(needs) }}
           required: >-
@@ -114,10 +114,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: ./.github/actions/setup-cached-uv
+      - uses: ./setup-cached-uv
         with:
           python-version: '3.14'
       - run: uv run ruff check .
+      - run: uv run python scripts/public_actions.py --check
       - run: uv run lint-imports --config importlinter.toml --no-cache
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
