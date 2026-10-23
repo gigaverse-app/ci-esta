@@ -152,3 +152,43 @@ The reusable interface adds what a second consumer requires: versioned inventory
 always-run contracts, configurable roots/flags/batches, no full-suite receipt for
 a subset, and a separate portable report contract. Do not copy the web-app's file
 roots, allowlist, worker count or opaque-reader fingerprints into another repo.
+
+## Measured mobile adoption
+
+Keep source-scanning contracts running even when application tests are selected.
+[Mobile #3733](https://github.com/gigaverse-app/gigaverse-mobile/pull/3733) uses its
+existing discovery API to supply 495 files, including 99 always-run contracts.
+A controlled parameter rename in `src/utils/uploadSizeLimit.ts` selected 14
+application tests plus all 99 contracts. Both runs passed on the same checked-out
+revision `24f45ee5a3385bfe75d7332459c26fb5052a0610`, attempt 1, with Bun 1.4.2,
+eight batches, the same lockfile and isolation/parallel flags. The selection base
+was `008280aa5933351b3d71954532880bba1cf181da`; neither run reused completion evidence.
+
+| Measurement (lower is better) | [Full control](https://github.com/gigaverse-app/gigaverse-mobile/actions/runs/39929512702) | [Selected](https://github.com/gigaverse-app/gigaverse-mobile/actions/runs/39929509389) |
+| --- | ---: | ---: |
+| Executed test files | 495 | 113 |
+| Test execution wall seconds | 230.806 | 81.849 |
+| All required jobs complete, elapsed seconds | 359 | 235 |
+| Raw summed runner-seconds | 551 | 422 |
+| Started jobs | 3 | 3 |
+
+For this pair, tests took 64.5% less time and required-job completion took 34.5%
+less time. Static checks and dependency installation remain; raw runner usage
+fell 23.4%. These are observations for one source edit, with hosted setup variance,
+not average PR savings or billing measurements. The smaller reduction compared
+with web-app reflects a different suite and always-run contract cost.
+
+Each linked run retains `bun-test-execution-1` and `ci-work-selection-1` artifacts.
+Native execution inventories confirm every contract ran and the selected set is
+a subset of the full 495 files. Reports were collected with
+`ci-esta report --critical-path`; the production reporter also consumed both
+hosted work-selection artifacts successfully with posting disabled. All three
+jobs passed: `test`, `checks`, `run-maestro-es5`. Reporter execution and cancelled
+or failed preliminary trials are excluded. Automatic completed-run reporting
+starts after the observer workflow reaches the consumer's default branch.
+
+The hosted rehearsal caught a composite-action boundary issue that local module
+tests alone could not prove: `github.action_path` was empty when evaluated as a
+composite output. The action now exports the planner's resolved filesystem path
+from its running step. A regression protects the output, and the consumer's
+18 real-Git policy controls passed through that output in both measured runs.
