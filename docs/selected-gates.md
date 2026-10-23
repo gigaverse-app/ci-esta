@@ -14,7 +14,7 @@ validation-gate:
   if: ${{ !cancelled() }}
   runs-on: ubuntu-latest
   steps:
-    - uses: gigaverse-app/ci-esta/validation-gate@main
+    - uses: gigaverse-app/ci-esta/actions/validation-gate@main
       with:
         needs: ${{ toJSON(needs) }}
         lanes: ${{ needs.select-tests.outputs.lanes || '{}' }}

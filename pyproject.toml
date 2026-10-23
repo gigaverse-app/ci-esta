@@ -42,7 +42,7 @@ dev = ["pytest-selective>=0.1.1,<0.2.0", "pytest>=8", "pytest-xdist>=3.6", "ruff
 packages = ["src/ci_esta"]
 
 [tool.hatch.build.targets.sdist]
-include = ["action.yml", "*/action.yml", "src", "tests", "scripts", ".github", "docs", "examples", "README.md", "CONTRIBUTING.md", "PROVENANCE.md", "RELEASING.md", "CHANGELOG.md", "LICENSE", "pyproject.toml", "uv.lock", "importlinter.toml", ".gitattributes"]
+include = ["actions", "action.yml", "*/action.yml", "src", "tests", "scripts", ".github", "docs", "examples", "README.md", "CONTRIBUTING.md", "PROVENANCE.md", "RELEASING.md", "CHANGELOG.md", "LICENSE", "pyproject.toml", "uv.lock", "importlinter.toml", ".gitattributes"]
 
 [tool.hatch.build.targets.wheel.force-include]
 ".github/actions" = "ci_esta/_resources/.github/actions"
