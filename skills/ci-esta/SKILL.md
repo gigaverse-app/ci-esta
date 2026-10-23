@@ -42,6 +42,11 @@ environment only when invoking its CLI or pytest plugins.
 
 ## Observe first
 
+Use the [staged adoption checklist](https://github.com/gigaverse-app/ci-esta/blob/main/docs/tutorials/adoption-checklist.md)
+to inventory the toolkit's capabilities. For each applicable stage, record its
+acceptance evidence, configuration overrides and rollback; mark others deferred
+or not applicable. Do not enable every action merely to finish a checklist.
+
 Inspect workflows, exact required job names, reusable workflows, current caches
 and a recent completed run. Separate slow test execution, installs/services,
 admission waits and overlapping superseded runs. Use the

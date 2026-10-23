@@ -1,5 +1,9 @@
 # Measure one workflow, then change admission
 
+The [adoption tutorial and checklist](https://github.com/gigaverse-app/ci-esta/blob/main/docs/tutorials/adoption-checklist.md)
+maps every action and command to a measured problem, with acceptance controls
+and rollback choices. Use it to keep the adopter's rollout reviewable.
+
 For a first read-only measurement, install the released CI-esta package
 in a separate tool environment (Python 3.11+). Use a token already authorized for
 the target repository in `GH_TOKEN` or `GITHUB_TOKEN`; the report command accepts

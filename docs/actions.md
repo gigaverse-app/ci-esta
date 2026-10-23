@@ -48,6 +48,7 @@ a stable `history-key`. See the [executable retention tutorial](learned-test-tim
 | `gigaverse-app/ci-esta/actions/plan-runner-pools@v1` | [plan-runner-pools](../actions/plan-runner-pools/action.yml) |
 | `gigaverse-app/ci-esta/actions/postgres-client@v1` | [postgres-client](../actions/postgres-client/action.yml) |
 | `gigaverse-app/ci-esta/actions/publish-prometheus-snapshot@v1` | [publish-prometheus-snapshot](../actions/publish-prometheus-snapshot/action.yml) |
+| `gigaverse-app/ci-esta/actions/publish-shard-measurements@v1` | [publish-shard-measurements](../actions/publish-shard-measurements/action.yml) |
 | `gigaverse-app/ci-esta/actions/pytest-canary-pr-state@v1` | [pytest-canary-pr-state](../actions/pytest-canary-pr-state/action.yml) |
 | `gigaverse-app/ci-esta/actions/pytest-expansion@v1` | [pytest-expansion](../actions/pytest-expansion/action.yml) |
 | `gigaverse-app/ci-esta/actions/pytest-failure-canary@v1` | [pytest-failure-canary](../actions/pytest-failure-canary/action.yml) |

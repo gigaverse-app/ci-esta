@@ -1,5 +1,8 @@
 # Improve one CI cost first
 
+For a staged rollout across the toolkit, use the
+[adoption checklist](tutorials/adoption-checklist.md).
+
 Start with a report if you do not know the bottleneck. If repeated dependency
 installation is already the problem, replace those setup steps directly. Use
 [the public action version policy](actions.md#availability-and-pinning): the
