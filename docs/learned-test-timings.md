@@ -29,6 +29,42 @@ on a miss, initialize `{}` and let inventory fallback cover every file.
 Do not combine reports for overlapping matrix variants: that sums repeated work.
 For a partial selected run, the learned costs cover only the observed files.
 
+## Retain history across partial runs
+
+`ci_esta.testing.timing_history` provides the backend's existing incremental
+history contract for consumers that maintain a persistent timing cache:
+
+```python
+from dataclasses import asdict
+from datetime import datetime, timezone
+
+from ci_esta.testing.timing_history import load_observations, merge_observations
+
+observations, removed = load_observations(state, tracked_files, datetime.now(timezone.utc))
+merge_observations(observations, validated_complete_file_durations, observation_stamp)
+state.update(
+    observations={node: asdict(value) for node, value in observations.items()},
+    removed_files=removed,
+)
+durations = {node: value.seconds for node, value in observations.items()}
+```
+
+Keep one history per execution environment. The caller validates input durations,
+supplies the complete current tracked-file inventory, and persists the returned
+state alongside its own processed-run metadata. Stamps must sort in observation
+order; the backend uses a run-start timestamp followed by zero-padded run ID and
+attempt. An older or equal stamp cannot replace a newer file observation or
+resurrect removed test nodes. A newer observation replaces all nodes in that
+complete file while preserving files absent from the update. Empty updates do
+nothing. Partial observations *within* a file are not supported.
+
+Removed files remain available to older PRs for 14 days from the first observed
+removal, including the exact boundary. Later loads preserve that removal date;
+restoring a tracked file clears it. Existing `observations` and `removed_files`
+JSON caches need no migration. The library neither fetches artifacts nor writes
+cache files. `learn` retains its existing report-to-manifest replacement behavior;
+retained history is explicit and never authorizes skipping tests.
+
 ## Execute an exact file plan
 
 The files in `splits/group-N.txt` contain one test path per line. Pass them as
