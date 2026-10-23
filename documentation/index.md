@@ -3,7 +3,7 @@ title: CI-esta documentation
 description: Find what is delaying CI, then verify the improvement.
 ---
 
-![CI-esta](assets/banner.svg)
+![CI-esta](../docs/assets/banner.svg)
 
 # Find what is delaying CI, then verify the improvement.
 

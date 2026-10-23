@@ -1,3 +1,5 @@
+![CI-esta: Let proven work rest. Measure the rest.](https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/banner.png)
+
 # CI-esta: make GitHub Actions faster, with evidence
 
 [![Documentation](https://readthedocs.org/projects/ci-esta/badge/?version=latest)](https://ci-esta.readthedocs.io/en/latest/)
