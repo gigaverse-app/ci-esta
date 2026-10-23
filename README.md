@@ -90,7 +90,7 @@ workflow alone cannot. Missing or contradictory proof executes the work again.
 Explicit reruns and scheduled full checks retain their meaning.
 
 Input declarations, service isolation and conformance requirements belong to your
-project. [Evidence reuse](docs/evidence-reuse.md) and [strict gates](docs/validation.md)
+project. [Evidence reuse](docs/evidence-reuse.md) and [strict gates](docs/selected-gates.md)
 explain these boundaries. The [optimization guide](docs/ci-optimization.md) connects
 selection, timing feedback, execution and measurement in order.
 

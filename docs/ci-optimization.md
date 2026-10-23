@@ -3,8 +3,8 @@
 Start with one completed workflow and the checks required to merge. Add the
 [completed-run observer](github-actions-observability.md), retain its JSON, and
 record the source run ID, attempt, head SHA and exact gate names. Fix one measured
-cost at a time. The [adoption audit](adoption-audit.md) distinguishes shipped
-capabilities from integrations still missing in the example repositories.
+cost at a time. Use the [action reference](actions.md) to choose the component
+that addresses the bottleneck you measured.
 
 ## Read the timeline before changing parallelism
 
@@ -48,9 +48,9 @@ Begin with the package manager cache:
 - run: uv sync --locked
 ```
 
-This is not a `.venv` cache. Use the new [setup-cached-uv action](environment-cache.md)
-to restore and validate a complete environment. The inherited `setup-python-uv`
-retains its original simpler contract. If measured installation cost justifies one,
+This is not a `.venv` cache. Use the [setup-cached-uv action](environment-cache.md)
+to restore and validate a complete environment. The `setup-python-uv` action
+provides package-manager caching without a full environment restore. If measured installation cost justifies one,
 validate the restored interpreter, sync after partial matches, and rebuild on
 unusable caches. Skip synchronization only under a reviewed complete exact-key
 contract. Editable installs and workspace paths need special care. Save shared

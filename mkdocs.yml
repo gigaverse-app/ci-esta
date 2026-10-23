@@ -26,7 +26,6 @@ theme:
     primary: teal
     accent: cyan
   features:
-  - navigation.sections
   - navigation.top
   - search.suggest
   - search.highlight
@@ -61,14 +60,10 @@ extra:
   - docs/actions.md
   - docs/agents.md
   - docs/alternatives.md
-  - docs/benchmarks/2026-10-22-selective-report.md
   - docs/benchmarks/2026-10-22.md
   - docs/benchmarks/2026-10-23-critical-execution.md
-  - docs/benchmarks/2026-10-23-critical-path.md
   - docs/benchmarks/2026-10-23-toolkit.md
   - docs/benchmarks/2026-10-23-windows-saleor.md
-  - docs/benchmarks/2026-10-23-windows-saleor/saleor-after-timeline.md
-  - docs/benchmarks/2026-10-23-windows-saleor/saleor-warm-before-timeline.md
   - docs/bun-test-selection.md
   - docs/ci-optimization.md
   - docs/critical-path-optimizations.md
@@ -85,43 +80,41 @@ extra:
   - docs/quickstart.md
   - docs/runners-and-diagnostics.md
   - docs/selected-gates.md
-  - docs/validation.md
   - CONTRIBUTING.md
   - RELEASING.md
 nav:
-- Start here: index.md
-- Measure the actual critical path: docs/tutorials/measure-critical-path.md
-- Quickstart: docs/quickstart.md
-- Guides:
-  - Actions: docs/actions.md
-  - Agents: docs/agents.md
-  - Alternatives: docs/alternatives.md
-  - Bun test selection: docs/bun-test-selection.md
-  - CI optimization: docs/ci-optimization.md
-  - Critical path optimizations: docs/critical-path-optimizations.md
-  - Critical path: docs/critical-path.md
-  - Environment cache: docs/environment-cache.md
-  - Evidence reuse: docs/evidence-reuse.md
-  - GitHub Actions observability: docs/github-actions-observability.md
-  - Integrations: docs/integrations.md
-  - Learned test timings: docs/learned-test-timings.md
-  - Measured impact: docs/measured-impact.md
+- Home: index.md
+- Getting started:
+  - Quickstart: docs/quickstart.md
+  - Measure your CI critical path: docs/tutorials/measure-critical-path.md
+  - Plan a CI optimization: docs/ci-optimization.md
+  - Let your agent set it up: docs/agents.md
+- Measure and diagnose:
+  - Workflow reports and metrics: docs/github-actions-observability.md
+  - Critical-path analysis: docs/critical-path.md
+  - Report before-and-after impact: docs/measured-impact.md
+  - Runner capacity and hang diagnostics: docs/runners-and-diagnostics.md
+- Optimize safely:
+  - Shorten blocking jobs: docs/critical-path-optimizations.md
+  - Cache Python environments: docs/environment-cache.md
+  - Tune Python test execution: docs/python-ci-tuning.md
+  - Balance tests with timing data: docs/learned-test-timings.md
+  - Reuse successful job evidence: docs/evidence-reuse.md
+  - Validate skipped test lanes: docs/selected-gates.md
+- Actions and integrations:
+  - GitHub Actions reference: docs/actions.md
   - Non-Python projects: docs/non-python.md
-  - PostgreSQL client: docs/postgres-client.md
-  - Python CI tuning: docs/python-ci-tuning.md
-  - Runners and diagnostics: docs/runners-and-diagnostics.md
-  - Selected gates: docs/selected-gates.md
-  - Validation: docs/validation.md
-- Evidence:
-  - 2026 10 22 selective report: docs/benchmarks/2026-10-22-selective-report.md
-  - 2026 10 22: docs/benchmarks/2026-10-22.md
-  - 2026 10 23 critical execution: docs/benchmarks/2026-10-23-critical-execution.md
-  - 2026 10 23 critical path: docs/benchmarks/2026-10-23-critical-path.md
-  - 2026 10 23 toolkit: docs/benchmarks/2026-10-23-toolkit.md
-  - 2026 10 23 windows saleor: docs/benchmarks/2026-10-23-windows-saleor.md
-  - saleor after timeline: docs/benchmarks/2026-10-23-windows-saleor/saleor-after-timeline.md
-  - saleor warm before timeline: docs/benchmarks/2026-10-23-windows-saleor/saleor-warm-before-timeline.md
-- Related tools: ecosystem.md
-- Contributing: CONTRIBUTING.md
-- Releasing: RELEASING.md
-- Documentation publishing: publishing.md
+  - Bun test selection: docs/bun-test-selection.md
+  - PostgreSQL client setup: docs/postgres-client.md
+  - Combine the four tools: docs/integrations.md
+  - Related tools: ecosystem.md
+  - Compare alternatives: docs/alternatives.md
+- Benchmarks and evidence:
+  - CI routing and reporting results: docs/benchmarks/2026-10-22.md
+  - Toolkit adoption and critical paths: docs/benchmarks/2026-10-23-toolkit.md
+  - Parallel conformance test results: docs/benchmarks/2026-10-23-critical-execution.md
+  - Windows and Saleor bottleneck fixes: docs/benchmarks/2026-10-23-windows-saleor.md
+- Contributing:
+  - Development setup: CONTRIBUTING.md
+  - Releasing: RELEASING.md
+  - Documentation publishing: publishing.md
