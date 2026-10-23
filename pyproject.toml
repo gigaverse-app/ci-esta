@@ -31,7 +31,7 @@ ci-esta-enrich = "ci_esta.ci_observability.enrichment.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/gigaverse-app/ci-esta"
-Documentation = "https://github.com/gigaverse-app/ci-esta/tree/main/docs"
+Documentation = "https://ci-esta.readthedocs.io/en/latest/"
 Repository = "https://github.com/gigaverse-app/ci-esta"
 Issues = "https://github.com/gigaverse-app/ci-esta/issues"
 

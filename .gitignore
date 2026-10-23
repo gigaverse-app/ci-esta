@@ -10,3 +10,7 @@ ci-observability.md
 ci-observability.prom
 
 *.log
+
+# Built documentation
+/site/
+/.venv-docs/
