@@ -638,7 +638,7 @@ def test_unavailable_report_is_schema_valid_and_fail_open() -> None:
     assert report.collection_status == CollectionStatus.UNAVAILABLE
     assert report.provenance.workflow_created_at is None
     assert report.runner_cost.raw_runner_seconds == 0.0
-    assert "Partial snapshot: GitHub API unavailable" in render_markdown(report)
+    assert "Collection unavailable: GitHub API unavailable" in render_markdown(report)
 
 
 def test_additive_admission_and_overlap_fields_accept_older_v1_artifacts() -> None:
@@ -782,14 +782,15 @@ COST = Decimal("0.176")
 
 def _sticky_with_selection(**report_changes: object) -> str:
     """A report carrying a test-selection section, rendered as the sticky."""
-    report = build_unavailable_report(
+    report = build_report(
         repository=REPOSITORY,
-        run_id=RUN_ID,
-        run_attempt=RUN_ATTEMPT,
-        head_sha=HEAD_SHA,
         pull_request_number=PR_NUMBER,
+        run=_run(),
+        latest_jobs=[],
+        billing_jobs=[],
+        commit_statuses=[],
+        gate_selectors=[],
         observed_at=OBSERVED_AT,
-        error="GitHub API unavailable",
     )
     explanation = SelectionExplanation(base="base", head="head", graph_base="base", selected=1, total=2, floor=floor())
     changes = {"test_selection": SelectionSectionV1(explanation=explanation), **report_changes}

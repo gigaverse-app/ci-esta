@@ -375,7 +375,7 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         statuses = []
         if any(isinstance(selector, CommitStatusGateSelectorV1) for selector in config.gate_selectors):
             try:
-                statuses = client.list_commit_statuses(config.commit_sha)
+                statuses = client.list_commit_statuses(run_metadata.head_sha)
             except Exception as error:
                 errors.append(f"commit statuses unavailable: {error}")
         report = build_report(

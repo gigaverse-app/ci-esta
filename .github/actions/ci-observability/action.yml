@@ -17,9 +17,9 @@ inputs:
     required: false
     default: ${{ github.run_attempt }}
   commit-sha:
-    description: Commit whose required status contexts are observed.
+    description: Optional expected source head; empty uses the observed run metadata.
     required: false
-    default: ${{ github.sha }}
+    default: ""
   pull-request-number:
     description: Pull request number for sticky publication; empty disables the sticky.
     required: false
