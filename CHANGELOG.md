@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/gigaverse-app/ci-esta/compare/v1.1.1...v1.1.2) (2026-10-23)
+
+
+### Bug fixes
+
+* **report:** render shared pytest timing totals once ([#65](https://github.com/gigaverse-app/ci-esta/issues/65)) ([ae330a5](https://github.com/gigaverse-app/ci-esta/commit/ae330a539dc048c439a34730bdbe4d6c607a5851))
+
 ## [1.1.1](https://github.com/gigaverse-app/ci-esta/compare/v1.1.0...v1.1.1) (2026-10-23)
 
 
