@@ -80,13 +80,15 @@ const github = strictGithub({
           })),
         },
       }),
-      listJobsForWorkflowRun: async ({ run_id }) => (reads.push(`jobs:${run_id}`), {
-        data: {
+      listJobsForWorkflowRun: async ({ run_id }) => {
+        reads.push(`jobs:${run_id}`);
+        if (input.failAt === "jobs") throw new Error("jobs API unavailable");
+        return { data: {
           jobs: input.jobsByRun?.[run_id] ?? [
             { name: "Security evidence", conclusion: "success" },
           ],
-        },
-      }),
+        }};
+      },
     },
     checks: {
       listForRef: async ({ ref }) => {
@@ -1324,3 +1326,24 @@ def test_inventory_cannot_reach_back_past_an_unidentified_failed_scan() -> None:
     result = _resolve_incremental_base(scenario)["result"]
     assert isinstance(result, dict)
     assert result["reused"] is False
+
+
+@pytest.mark.parametrize("failed_read", ["current-run", "jobs"])
+@pytest.mark.parametrize("listing_lag", [False, True])
+def test_unavailable_evidence_is_read_once_and_keeps_every_lane_required(failed_read: str, listing_lag: bool) -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    scenario["lanes"] = ["Search validation", "Python validation", "Missing validation"]
+    scenario["failAt"] = failed_read
+    if listing_lag:
+        scenario["indexedRuns"] = []
+        scenario["checkRuns"] = {
+            CURRENT_HEAD_SHA: [{"details_url": "https://github.com/gigaverse-app/example/actions/runs/1/job/2"}]
+        }
+    outcome = _resolve_incremental_base(scenario)
+    assert outcome["result"] == [{"baseSha": FALLBACK_BASE_SHA, "reused": False}] * 3
+    reads = outcome["reads"]
+    assert isinstance(reads, list)
+    assert len(reads) == len(set(reads)), reads
+    # A new planner invocation must retry; an outage is never persisted as proof.
+    fresh = _resolve_incremental_base(_same_head_lane_scenario("success", "valid"))
+    assert fresh["result"] == {"baseSha": CURRENT_HEAD_SHA, "reused": True}
