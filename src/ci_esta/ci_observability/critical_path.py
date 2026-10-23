@@ -54,6 +54,21 @@ def _analyze(created_at, jobs, dependencies, gates):
     by_name = {job.name: job for job in jobs}
     if len(by_name) != len(jobs) or len({job.run_attempt for job in jobs}) != 1:
         raise ValueError("Duplicate job names or mixed run attempts")
+    # A report can run immediately after the gate, before GitHub has created
+    # downstream publishing jobs. Only the gate's complete ancestry is needed.
+    required_patterns = set()
+    pending = [pattern for pattern in dependencies
+               if any(fnmatchcase(gate, pattern) for gate in gates)]
+    while pending:
+        pattern = pending.pop()
+        if pattern in required_patterns:
+            continue
+        if pattern not in dependencies:
+            raise ValueError(f"Undeclared prerequisite {pattern}")
+        required_patterns.add(pattern)
+        pending.extend(dependencies[pattern])
+    dependencies = {pattern: parents for pattern, parents in dependencies.items()
+                    if pattern in required_patterns}
     matches = {pattern: sorted(name for name in by_name if fnmatchcase(name, pattern))
                for pattern in dependencies}
     if any(not names for names in matches.values()):

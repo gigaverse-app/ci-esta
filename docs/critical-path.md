@@ -82,3 +82,16 @@ Keep it synchronized with reusable workflow internals. Unknown topology is
 reported as unavailable instead of inferred from timestamps. Prefer automatic
 source-workflow parsing for ordinary jobs so adding a `needs` edge automatically
 changes the next report.
+# Reports immediately after a gate
+
+A completed gate can be measured while later publishing jobs are still absent
+from the Actions API. CI-esta requires the gate and every declared prerequisite;
+it excludes downstream publishing from that calculation. Missing prerequisites,
+ambiguous matches, cycles and incomplete required timings remain unavailable.
+
+For private reusable workflows in another repository, pass the reporter action
+`workflow-source-token: ${{ secrets.CI_SOURCE_READ_TOKEN }}` with Contents read
+access to those source repositories. Keep `github-token: ${{ github.token }}`
+for run collection and comments. The source token is used only on external
+workflow Contents requests, never for status or comment writes.
+

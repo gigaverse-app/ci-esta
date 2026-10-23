@@ -123,6 +123,29 @@ def test_mutable_reusable_reference_without_run_identity_is_not_guessed():
         client.close()
 
 
+def test_private_workflow_source_token_is_scoped_to_external_content_reads():
+    seen = []
+
+    def respond(request):
+        seen.append((request.url.path, request.headers["Authorization"]))
+        if "/contents/" not in request.url.path:
+            return httpx.Response(200, json={"jobs": []})
+        source = b"jobs:\n  test: {}\n"
+        return httpx.Response(200, json={"encoding": "base64", "size": len(source),
+                                        "content": base64.b64encode(source).decode()})
+
+    client = GitHubActionsClient(REPOSITORY, TOKEN, API_URL,
+                                transport=httpx.MockTransport(respond),
+                                workflow_source_token="read-private-sources")
+    try:
+        client._workflow_source(REPOSITORY, HEAD_SHA, ".github/workflows/ci.yml")
+        client._workflow_source("other/private", HEAD_SHA, ".github/workflows/ci.yml")
+        client.list_jobs(RUN_ID, include_all_attempts=False)
+    finally:
+        client.close()
+    assert [token for _, token in seen] == [f"Bearer {TOKEN}", "Bearer read-private-sources", f"Bearer {TOKEN}"]
+
+
 def _snapshot(
     *,
     completed_gates: int,

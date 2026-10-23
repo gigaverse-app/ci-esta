@@ -36,6 +36,21 @@ def test_longest_job_is_not_necessarily_on_the_gate_path():
     assert "report" not in [n.name for n in result.nodes]
 
 
+def test_completed_gate_does_not_wait_for_uncreated_publishing_jobs():
+    result = analyze(START, [job("test", 1, 5), job("gate", 6, 7)],
+                     {"test": [], "gate": ["test"], "publish": ["gate"],
+                      "later report": ["publish"]}, ["gate"])
+    assert result.status == "complete"
+    assert result.elapsed_seconds == 7
+    assert result.observed_path == ["test", "gate"]
+
+
+def test_unobserved_required_prerequisite_still_makes_path_unavailable():
+    result = analyze(START, [job("gate", 6, 7)],
+                     {"test": [], "gate": ["test"], "publish": ["gate"]}, ["gate"])
+    assert result.status == "unavailable"
+
+
 def test_queue_delay_can_make_observed_path_differ_from_execution_path():
     result = analyze(START, [job("cpu", 0, 20), job("delayed", 30, 31), job("gate", 32, 33)],
                      {"cpu": [], "delayed": [], "gate": ["cpu", "delayed"]}, ["gate"])
