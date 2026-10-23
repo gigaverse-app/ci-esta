@@ -4,7 +4,7 @@ Start with a report if you do not know the bottleneck. If repeated dependency
 installation is already the problem, replace those setup steps directly. Use
 [the public action version policy](actions.md#availability-and-pinning): the
 root/short paths below use `@v1` for automatic compatible 1.x upgrades.
-Pin a reviewed commit when adopting them in production.
+Use an exact release tag or commit SHA if your project requires fixed revisions.
 
 ## Report a completed workflow
 
