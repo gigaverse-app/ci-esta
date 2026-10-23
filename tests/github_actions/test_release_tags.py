@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 @pytest.mark.parametrize("exists", [True, False])
 @pytest.mark.parametrize("release,alias", [
-    ("v0.3.1", "v0.3"), ("v0.4.0", "v0.4"),
-    ("v1.0.0", "v1"), ("v1.0.1", "v1"), ("v1.2.0", "v1"), ("v2.0.0", "v2"),
+    ("v0.3.1", "v1"), ("v0.4.0", "v1"),
+    ("v1.0.0", "v1"), ("v1.0.1", "v1"), ("v1.2.0", "v1"), ("v2.0.0", "v1"),
     ("v1.1.0-rc.1", None), ("v1.1.0+build", None), ("main", None), ("v1", None),
 ])
 def test_publication_updates_only_the_compatible_alias(release: str, alias: str | None, exists: bool) -> None:
@@ -33,7 +33,7 @@ gh() {
         ["bash", "-e", "-o", "pipefail", "-c", fake + script],
         capture_output=True, text=True, check=True,
         env=os.environ | {"RELEASE_TAG": release, "RELEASE_SHA": "tested-release-sha",
-                          "GH_REPO": "org/tool", "LOOKUP_STATUS": "0" if exists else "1"},
+                          "ACTION_API_MAJOR": job["steps"][0]["env"]["ACTION_API_MAJOR"], "GH_REPO": "org/tool", "LOOKUP_STATUS": "0" if exists else "1"},
     )
     if alias is None:
         assert not result.stdout

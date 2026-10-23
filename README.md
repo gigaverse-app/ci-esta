@@ -29,7 +29,7 @@ setup, uv setup and dependency installation with:
 
 ```yaml
 - uses: actions/checkout@v7
-- uses: gigaverse-app/ci-esta/actions/setup-cached-uv@main
+- uses: gigaverse-app/ci-esta/actions/setup-cached-uv@v1
   with:
     python-version: '3.12'
     sync-args: '--group test'
@@ -37,13 +37,13 @@ setup, uv setup and dependency installation with:
 ```
 
 Use your project's interpreter and dependency groups. The root action,
-`gigaverse-app/ci-esta@main`, produces the report; individual actions share the
+`gigaverse-app/ci-esta@v1`, produces the report; individual actions share the
 `actions/` directory, such as `/actions/setup-cached-uv` and `/actions/plan-runner-pools`.
 
-The shared `actions/NAME` paths are new on `main`. Use a reviewed commit that
-contains them, or `@main` while evaluating. Once a 1.x release includes these
-paths, `@v1` will receive compatible minor and patch upgrades automatically.
-The root default remains available; named actions live only under `actions/`. [Action API and versioning](docs/actions.md).
+Use `actions/NAME@v1` for automatic Actions API upgrades. That alias is
+independent of Python package versions. Older `.github/actions/NAME` and top-level
+named callers must migrate to `actions/NAME`; each action has one implementation.
+[Action API and versioning](docs/actions.md).
 
 [Copy the complete reporting or cache workflow](docs/quickstart.md). The actions
 set up their own tools; using them does not require adding CI-esta to your app.
