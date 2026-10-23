@@ -5,6 +5,71 @@
       "title": "BaseModel",
       "type": "object"
     },
+    "CacheMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "head_sha": {
+          "pattern": "^(?:[0-9a-f]{40})?$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "ci-esta/cache/v1",
+          "default": "ci-esta/cache/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "job": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Job",
+          "type": "string"
+        },
+        "scope": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Scope",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "hit",
+            "miss",
+            "repaired",
+            "disabled",
+            "unavailable"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "sync_seconds": {
+          "minimum": 0,
+          "title": "Sync Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "job",
+        "scope",
+        "outcome",
+        "sync_seconds"
+      ],
+      "title": "CacheMeasurement",
+      "type": "object"
+    },
     "CollectionStatus": {
       "enum": [
         "complete",
@@ -120,6 +185,59 @@
       ],
       "title": "GateKind",
       "type": "string"
+    },
+    "ImageReuseMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "head_sha": {
+          "pattern": "^(?:[0-9a-f]{40})?$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "ci-esta/image/v1",
+          "default": "ci-esta/image/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "job": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Job",
+          "type": "string"
+        },
+        "scope": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Scope",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "job",
+        "scope",
+        "digest"
+      ],
+      "title": "ImageReuseMeasurement",
+      "type": "object"
     },
     "ImpactComparison": {
       "additionalProperties": false,
@@ -782,6 +900,119 @@
       "title": "RepositorySignalV1",
       "type": "object"
     },
+    "ReuseMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "head_sha": {
+          "pattern": "^(?:[0-9a-f]{40})?$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "ci-esta/reuse/v1",
+          "default": "ci-esta/reuse/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "receipt": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Receipt",
+          "type": "string"
+        },
+        "execution_context": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Execution Context",
+          "type": "string"
+        },
+        "lanes": {
+          "items": {
+            "$ref": "#/$defs/ReusedLane"
+          },
+          "title": "Lanes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "receipt"
+      ],
+      "title": "ReuseMeasurement",
+      "type": "object"
+    },
+    "ReusedLane": {
+      "additionalProperties": false,
+      "properties": {
+        "lane": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Lane",
+          "type": "string"
+        },
+        "job": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Job",
+          "type": "string"
+        },
+        "source_run_id": {
+          "minimum": 1,
+          "title": "Source Run Id",
+          "type": "integer"
+        },
+        "source_attempt": {
+          "minimum": 1,
+          "title": "Source Attempt",
+          "type": "integer"
+        },
+        "source_head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Source Head Sha",
+          "type": "string"
+        },
+        "source_job_id": {
+          "minimum": 1,
+          "title": "Source Job Id",
+          "type": "integer"
+        },
+        "source_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Seconds"
+        }
+      },
+      "required": [
+        "lane",
+        "job",
+        "source_run_id",
+        "source_attempt",
+        "source_head_sha",
+        "source_job_id"
+      ],
+      "title": "ReusedLane",
+      "type": "object"
+    },
     "RunProvenanceV1": {
       "additionalProperties": false,
       "properties": {
@@ -1010,6 +1241,106 @@
         "estimated_cost_usd"
       ],
       "title": "RunnerSkuCostV1",
+      "type": "object"
+    },
+    "ShardInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "index": {
+          "minimum": 1,
+          "title": "Index",
+          "type": "integer"
+        },
+        "start_seconds": {
+          "minimum": 0,
+          "title": "Start Seconds",
+          "type": "number"
+        },
+        "end_seconds": {
+          "minimum": 0,
+          "title": "End Seconds",
+          "type": "number"
+        },
+        "exit_code": {
+          "title": "Exit Code",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "index",
+        "start_seconds",
+        "end_seconds",
+        "exit_code"
+      ],
+      "title": "ShardInterval",
+      "type": "object"
+    },
+    "ShardPoolMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "head_sha": {
+          "pattern": "^(?:[0-9a-f]{40})?$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "ci-esta/shards/v1",
+          "default": "ci-esta/shards/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "pool": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Pool",
+          "type": "string"
+        },
+        "configured_shards": {
+          "minimum": 1,
+          "title": "Configured Shards",
+          "type": "integer"
+        },
+        "cpu_count": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cpu Count"
+        },
+        "shards": {
+          "items": {
+            "$ref": "#/$defs/ShardInterval"
+          },
+          "minItems": 1,
+          "title": "Shards",
+          "type": "array"
+        }
+      },
+      "required": [
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "pool",
+        "configured_shards",
+        "shards"
+      ],
+      "title": "ShardPoolMeasurement",
       "type": "object"
     },
     "TimingStatus": {
@@ -1437,6 +1768,33 @@
       },
       "maxItems": 12,
       "title": "Measured Impact",
+      "type": "array"
+    },
+    "measurements": {
+      "items": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/ReuseMeasurement"
+          },
+          {
+            "$ref": "#/$defs/ShardPoolMeasurement"
+          },
+          {
+            "$ref": "#/$defs/CacheMeasurement"
+          },
+          {
+            "$ref": "#/$defs/ImageReuseMeasurement"
+          }
+        ]
+      },
+      "title": "Measurements",
+      "type": "array"
+    },
+    "measurement_errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Measurement Errors",
       "type": "array"
     },
     "critical_path": {

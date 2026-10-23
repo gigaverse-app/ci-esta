@@ -1,8 +1,8 @@
 """
 Render the test-selection section of the CI sticky.
 
-The layout is fixed: a one-row TLDR (what ran, wall and test time, the saving against a full
-suite, whether the graph changed), one sentence with the thing to know, then collapsed expanders:
+The summary owns selected files and the full-suite comparison. Execution timings live in the
+sharding section. Inside are the graph change, one sentence with the thing to know, then expanders:
 why these tests (left out when that sentence already names the one route), and the startup floor
 (which files, what this PR did to it, what to do). An expander whose contents are worth opening
 is marked yellow, never opened: the sticky stays short on every PR, and the marker is the prompt.
@@ -24,7 +24,7 @@ from pytest_selective.impact_models import (
 )
 
 from ci_esta.ci_observability import markdown
-from ci_esta.ci_observability.brand import BLUE, GREEN, SELECTIVE_URL, Badge
+from ci_esta.ci_observability.brand import BLUE, SELECTIVE_URL, Badge
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.models import SelectionSectionV1
 
@@ -128,28 +128,7 @@ def _saved(share: float | None) -> str | None:
 def badges(section: SelectionSectionV1) -> list[Badge]:
     """The sticky's badges for file selection: what ran, and the saving when there is a baseline."""
     explanation = section.explanation
-    items = [Badge("tests", f"{_count(explanation.selected)} of {_count(explanation.total)} files", BLUE)]
-    saved = _saved(_test_share(section))
-    if saved is not None and not explanation.full_suite:
-        items.append(Badge("saved", saved, GREEN))
-    return items
-
-
-def _tldr_row(section: SelectionSectionV1) -> str:
-    explanation, pytest = section.explanation, section.pytest
-    wall = format_seconds(pytest.wall_seconds) if pytest and pytest.wall_seconds is not None else "—"
-    test_seconds = pytest.total_test_seconds if pytest else None
-    test_time = format_seconds(test_seconds) if test_seconds is not None else "—"
-    share = _test_share(section)
-    if explanation.full_suite:
-        saved = "none"
-    else:
-        saved = _saved(share) or "—"
-    if share is not None and test_seconds is not None:
-        test_time = f"{_gauge(share)} {test_time}"
-    graph = "**wider**" if explanation.graph_widened else "narrower" if explanation.graph_narrowed else "unchanged"
-    ran = f"{_count(explanation.selected)} of {_count(explanation.total)} files"
-    return f"| {ran} | {wall} | {test_time} | {saved} | {graph} |"
+    return [Badge("selected", f"{_count(explanation.selected)} / {_count(explanation.total)} files", BLUE)]
 
 
 def _one_funnel(explanation: SelectionExplanation) -> bool:
@@ -485,17 +464,26 @@ def _reference_note(section: SelectionSectionV1, repository: str | None) -> list
 def render_selection_section(section: SelectionSectionV1, repository: str | None = None) -> str:
     """The sticky's test-selection section, as GitHub-flavored Markdown; `repository` links runs."""
     explanation = section.explanation
+    summary = f"🎯 Test selection · {_count(explanation.selected)} / {_count(explanation.total)} files"
+    saved = _saved(_test_share(section))
+    if saved is not None and not explanation.full_suite:
+        summary += f" · {saved} less summed test time vs full-suite reference"
+    graph = "wider" if explanation.graph_widened else "narrower" if explanation.graph_narrowed else "unchanged"
     lines = [
+        f"<details><summary>{summary}</summary>",
+        "",
         f"#### 🎯 Test selection · by [pytest-selective]({SELECTIVE_URL})",
         "",
-        "| Ran | Wall | Test time | Saved | Graph |",
-        "|:--|--:|--:|--:|:--|",
-        _tldr_row(section),
+        f"Graph: **{graph}**. Selection counts describe the plan; shard measurements describe execution.",
         "",
         _takeaway(explanation),
         "",
         *_why(explanation),
         *_graph(explanation),
         *_reference_note(section, repository),
+        "Historical time comparisons include every reason work was avoided, including reused evidence. "
+        "They do not isolate the effect of selection and must not be added to other savings estimates.",
+        "",
+        "</details>",
     ]
     return "\n".join(lines).rstrip() + "\n"

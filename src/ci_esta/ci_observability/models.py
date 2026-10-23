@@ -14,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, SerializeAsAny, fi
 from ci_esta.ci_observability.critical_path import CriticalPathResult
 from ci_esta.ci_observability.impact import ImpactResult
 from ci_esta.ci_observability.work_selection import WorkSelectionV1
+from ci_esta.measurements import ExecutionMeasurement
 
 
 class CollectionStatus(StrEnum):
@@ -395,6 +396,8 @@ class CiObservabilityReportV1(BaseModel):
     lane_selection: SerializeAsAny[BaseModel] | dict[str, JsonValue] | None = None
     work_selection: WorkSelectionV1 | None = None
     measured_impact: list[ImpactResult] = Field(default_factory=list, max_length=12)
+    measurements: list[ExecutionMeasurement] = Field(default_factory=list)
+    measurement_errors: list[str] = Field(default_factory=list)
     critical_path: CriticalPathResult | None = None
 
     @property
@@ -423,6 +426,12 @@ class CiObservabilityReportV1(BaseModel):
             if (plan.run_id, plan.run_attempt, plan.head_sha) != (source.run_id, source.run_attempt, source.head_sha):
                 raise ValueError("work selection does not match report provenance")
         signal_keys = [signal.key for signal in self.repository_signals]
+        source = self.provenance
+        for measurement in self.measurements:
+            if (measurement.run_id, measurement.run_attempt, measurement.head_sha) != (
+                source.run_id, source.run_attempt, source.head_sha
+            ):
+                raise ValueError("measurement does not match report provenance")
         if len(signal_keys) != len(set(signal_keys)):
             raise ValueError("repository signal keys must be unique")
         return self

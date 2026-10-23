@@ -9,6 +9,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -82,11 +83,19 @@ def main() -> None:
         with open(os.environ["GITHUB_OUTPUT"], "a") as output:
             output.write(f"key={key}\n")
     else:
+        started = time.monotonic()
         usable = validate(root)
         print(f"Restored environment usable: {usable}; verifying locked dependencies")
         # Always synchronize: restored environments are acceleration, never validation receipts.
         subprocess.run(["uv", "sync", "--locked", "--python", sys.executable, *sync_arguments(args)],
                        cwd=root, check=True, env=sync_environment())
+        if output_path := os.environ.get("GITHUB_OUTPUT"):
+            try:
+                with open(output_path, "a") as output:
+                    output.write(f"restored-usable={str(usable).lower()}\n")
+                    output.write(f"sync-seconds={time.monotonic() - started}\n")
+            except OSError as error:
+                print(f"::warning::Cache measurement unavailable: {error}")
 
 
 if __name__ == "__main__":

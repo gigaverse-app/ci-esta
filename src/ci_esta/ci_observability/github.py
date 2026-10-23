@@ -258,14 +258,15 @@ class GitHubActionsClient:
                 return statuses
             page += 1
 
-    def list_artifacts(self, name: str, run_id: int | None = None) -> list[GitHubArtifactV1]:
+    def list_artifacts(self, name: str | None, run_id: int | None = None) -> list[GitHubArtifactV1]:
         """Unexpired artifacts called `name`, newest first: one run's, or the whole repository's."""
         path = f"/actions/runs/{run_id}/artifacts" if run_id is not None else "/actions/artifacts"
         artifacts: list[GitHubArtifactV1] = []
         page = 1
         while True:
             response = self._client.get(
-                f"/repos/{self._repository}{path}", params={"name": name, "per_page": 100, "page": page}
+                f"/repos/{self._repository}{path}",
+                params={"per_page": 100, "page": page, **({"name": name} if name is not None else {})}
             )
             response.raise_for_status()
             batch = GitHubArtifactsPageV1.model_validate_json(response.content).artifacts

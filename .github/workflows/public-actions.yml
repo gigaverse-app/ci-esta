@@ -17,6 +17,17 @@ jobs:
       - uses: ./actions/setup-cached-uv
         with:
           python-version: '3.12'
+      - name: Run real pytest files through the shard runner
+        run: |
+          mkdir -p splits
+          printf '%s\n' tests/testing/test_runner_pools.py > splits/group-1.txt
+          printf '%s\n' tests/testing/test_coverage.py > splits/group-2.txt
+          uv run ci-esta-pytest run-local --shards 2 --log-dir shard-logs -- python examples/pytest-shards/run_shard.py -q
+      - uses: ./actions/publish-shard-measurements
+        if: always()
+        with:
+          path: shard-logs/ci-esta-shards.json
+          pool: public-smoke
       - uses: ./actions/plan-runner-pools
         id: pools
         with:

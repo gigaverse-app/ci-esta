@@ -56,13 +56,35 @@ runs:
       with:
         path: ${{ inputs.working-directory }}/.venv
         key: ci-esta-venv-${{ inputs.cache-salt }}-${{ steps.identity.outputs.key }}
-    - shell: bash
+    - id: sync
+      shell: bash
       env:
         CI_ESTA_GIT_TOKEN: ${{ inputs.private-dependency-token }}
         CACHE_SCRIPT: ${{ github.action_path }}/../../scripts/ci/environment_cache.py
         CACHE_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         CACHE_SYNC_ARGS: ${{ inputs.sync-args }}
       run: python "$CACHE_SCRIPT" sync
+    - name: Record validated cache outcome
+      id: measurement
+      continue-on-error: true
+      shell: bash
+      env:
+        MEASUREMENT_SCRIPT: ${{ github.action_path }}/../../scripts/ci/record_measurement.py
+        MEASUREMENT_SCOPE: ${{ inputs.working-directory }}:${{ steps.identity.outputs.key }}
+        CACHE_ENABLED: ${{ inputs.cache-environment }}
+        CACHE_RESTORE_OUTCOME: ${{ steps.restore.outcome }}
+        CACHE_HIT: ${{ steps.restore.outputs.cache-hit }}
+        CACHE_USABLE: ${{ steps.sync.outputs.restored-usable }}
+        CACHE_SYNC_SECONDS: ${{ steps.sync.outputs.sync-seconds }}
+      run: python "$MEASUREMENT_SCRIPT" cache
+    - name: Publish cache measurement
+      if: steps.measurement.outputs.measurement-path != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ steps.measurement.outputs.measurement-name }}
+        path: ${{ steps.measurement.outputs.measurement-path }}
+        retention-days: 7
     - if: ${{ success() && inputs.cache-environment == 'true' && steps.restore.outputs.cache-hit != 'true' && contains(fromJSON('["push","schedule","workflow_dispatch"]'), github.event_name) && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
       uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
       continue-on-error: true

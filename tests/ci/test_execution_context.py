@@ -3,6 +3,7 @@
 import json
 import os
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -28,7 +29,7 @@ const run = (id, conclusion, sha) => ({id, workflow_id:55, head_sha:sha, status:
 const runs = [run(1, 'success', head)];
 if (input.failure) runs.unshift(run(2, 'failure', 'e'.repeat(40)));
 const jobs = {
-  1:[{name:'Validation', conclusion:'success', steps:[{name:previous, conclusion:'success'}]}],
+  1:[{id:101,name:'Validation', conclusion:'success', steps:[{name:previous, conclusion:'success'}]}],
   2:[{name:'Validation', conclusion:'failure', steps:[{name:other, conclusion:'skipped'}]}],
 };
 const github = strictGithub({
@@ -50,25 +51,33 @@ new AsyncFunction('github','context','core','require','process','getOctokit',inp
   github,context,core,require,process,()=>{throw Error('unexpected dependency client');}
 ).then(()=>console.log(JSON.stringify({outputs,warnings}))).catch(error=>{console.error(error);process.exit(1);});
 """
-    result = subprocess.run(
-        ["node", "-e", harness],
-        env={
-            **os.environ,
-            "CONTEXT_CASE": json.dumps({"script": script, "prior": prior_context, "failure": later_failure}),
-            "GITHUB_ACTION_PATH": str(ACTION),
-            "GITHUB_REST_FAKE": str(ROOT / "tests/ci/github_rest_fake.cjs"),
-            "GITHUB_RUN_ATTEMPT": str(attempt),
-            "TESTED_MERGE_SHA": "a" * 40,
-            "EVIDENCE_EXECUTION_CONTEXT": context,
-            "EVIDENCE_LANES": '{"tests":"Validation"}',
-            "EVIDENCE_INPUT_PATHS": "[]",
-            "DEPENDENCY_TOKEN": "",
-        },
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    parsed = json.loads(result.stdout)
+    with tempfile.TemporaryDirectory() as directory:
+        result = subprocess.run(
+            ["node", "-e", harness],
+            env={
+                **os.environ,
+                "CONTEXT_CASE": json.dumps({"script": script, "prior": prior_context, "failure": later_failure}),
+                "GITHUB_ACTION_PATH": str(ACTION),
+                "GITHUB_REST_FAKE": str(ROOT / "tests/ci/github_rest_fake.cjs"),
+                "GITHUB_RUN_ATTEMPT": str(attempt),
+                "GITHUB_JOB": "plan",
+                "RUNNER_TEMP": directory,
+                "TESTED_MERGE_SHA": "a" * 40,
+                "EVIDENCE_EXECUTION_CONTEXT": context,
+                "EVIDENCE_LANES": '{"tests":"Validation"}',
+                "EVIDENCE_INPUT_PATHS": "[]",
+                "DEPENDENCY_TOKEN": "",
+            },
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        parsed = json.loads(result.stdout)
+        from ci_esta.measurements import ReuseMeasurement
+        measurement = ReuseMeasurement.model_validate_json(Path(parsed["outputs"]["measurement-path"]).read_bytes())
+        assert (measurement.run_id, measurement.run_attempt, measurement.head_sha) == (9999, attempt, "f" * 40)
+        assert bool(measurement.lanes) is bool(json.loads(parsed["outputs"]["reused"]))
+        assert measurement.receipt == parsed["outputs"]["receipt"]
     # The only intended API failure is the identity lookup, which safely binds the exact merge.
     assert len(parsed["warnings"]) == 1, parsed["warnings"]
     return parsed["outputs"]

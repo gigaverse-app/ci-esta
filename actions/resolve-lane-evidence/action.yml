@@ -48,6 +48,7 @@ runs:
         retries: 2
         script: |
           const reused = {};
+          const measuredLanes = [];
           const { testedIdentity, inventoryIdentity, validationReceipt } = require(`${process.env.GITHUB_ACTION_PATH}/inputs.cjs`);
           const shared = process.env.DEPENDENCY_TOKEN ? getOctokit(process.env.DEPENDENCY_TOKEN) : null;
           let tested;
@@ -78,8 +79,39 @@ runs:
                 evidenceJobName: jobName, evidenceStepName: receipt,
                 sameHeadOnly: true, maxAgeHours: 24,
                 conservativeFailures: paths.length > 0 || executionContext !== '',
+                onReuse: ({run, jobs}) => {
+                  for (const job of jobs) {
+                    const seconds = (Date.parse(job.completed_at) - Date.parse(job.started_at)) / 1000;
+                    measuredLanes.push({lane: key, job: job.name,
+                      source_run_id: run.id, source_attempt: run.run_attempt,
+                      source_head_sha: run.head_sha, source_job_id: job.id,
+                      source_seconds: Number.isFinite(seconds) && seconds >= 0 ? seconds : null});
+                  }
+                },
               });
               if (result.reused) reused[key] = true;
             }
           }
           core.setOutput('reused', JSON.stringify(reused));
+          try {
+            const fs = require('fs');
+            const path = require('path');
+            const suffix = require('crypto').createHash('sha256').update(process.env.EVIDENCE_LANES).digest('hex').slice(0, 12);
+            const name = `ci-esta-reuse-${process.env.GITHUB_JOB}-${suffix}-${process.env.GITHUB_RUN_ATTEMPT}`;
+            const file = path.join(process.env.RUNNER_TEMP, `${name}.json`);
+            fs.writeFileSync(file, JSON.stringify({schema_version: 'ci-esta/reuse/v1',
+              run_id: context.runId, run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+              head_sha: pr?.head.sha || context.sha, receipt, execution_context: executionContext, lanes: measuredLanes}));
+            core.setOutput('measurement-path', file);
+            core.setOutput('measurement-name', name);
+          } catch (error) {
+            core.warning(`Reuse measurements unavailable: ${error.message}`);
+          }
+    - name: Publish reuse measurements
+      if: steps.resolve.outputs.measurement-path != ''
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ steps.resolve.outputs.measurement-name }}
+        path: ${{ steps.resolve.outputs.measurement-path }}
+        retention-days: 7

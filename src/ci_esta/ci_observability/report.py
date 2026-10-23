@@ -13,6 +13,7 @@ from pydantic import BaseModel, JsonValue
 
 from ci_esta.ci_observability import brand, markdown, optional_selection
 from ci_esta.ci_observability.critical_path import analyze
+from ci_esta.ci_observability.efficiency import render_avoided_work, render_sharding, reused_lane_count
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.impact import render_impact
 from ci_esta.ci_observability.models import (
@@ -43,6 +44,7 @@ from ci_esta.ci_observability.models import (
 )
 from ci_esta.ci_observability.timeline import render_timeline
 from ci_esta.ci_observability.work_selection import render_work_selection
+from ci_esta.measurements import ReuseMeasurement
 
 STICKY_MARKER = "<!-- ci-observability-v1 -->"
 #: The keyed sticky marker's prefix. A bare marker is never a substring of a keyed one.
@@ -50,11 +52,11 @@ STICKY_KEY_MARKER_PREFIX = "<!-- ci-observability-v1 key="
 SNAPSHOT_MARKER_PREFIX = "<!-- ci-observability-snapshot "
 
 
-def _elapsed(start: datetime | None, end: datetime | None) -> float | None:
+def _elapsed(start: datetime | None, end: datetime | None, *, allow_zero: bool = False) -> float | None:
     if start is None or end is None:
         return None
     seconds = (end - start).total_seconds()
-    return round(seconds, 1) if seconds > 0 else None
+    return round(seconds, 1) if seconds > 0 or (allow_zero and seconds == 0) else None
 
 
 def _observe_step(step: GitHubStepV1, observed_at: datetime) -> ObservedStepV1:
@@ -101,9 +103,9 @@ def _observe_job(job: GitHubJobV1, timeline_start: datetime | None, observed_at:
         started_at=job.started_at,
         completed_at=job.completed_at,
         wall_seconds=wall_seconds,
-        start_offset_seconds=_elapsed(timeline_start, job.started_at),
-        end_offset_seconds=_elapsed(timeline_start, effective_end),
-        queued_offset_seconds=_elapsed(timeline_start, job.created_at),
+        start_offset_seconds=_elapsed(timeline_start, job.started_at, allow_zero=True),
+        end_offset_seconds=_elapsed(timeline_start, effective_end, allow_zero=True),
+        queued_offset_seconds=_elapsed(timeline_start, job.created_at, allow_zero=True),
         rounded_minutes=rounded_minutes,
         rounding_waste_seconds=(
             round(upper_boundary - wall_seconds, 1) if upper_boundary is not None and wall_seconds is not None else None
@@ -517,14 +519,19 @@ def _header(report: CiObservabilityReportV1) -> list[str]:
     verdict = [item for item in [_readiness(report)] if item is not None]
     if report.test_selection is not None:
         verdict.extend(optional_selection.badges(report.test_selection))
-    if report.lane_selection is not None:
+    elif report.lane_selection is not None:
         verdict.extend(optional_selection.badges(report.lane_selection, lanes=True))
+    if any(isinstance(item, ReuseMeasurement) for item in report.measurements):
+        verdict.append(brand.Badge("reused", f"{reused_lane_count(report)} lanes", brand.BLUE))
     verdict.extend(_cost_badges(report))
     workflow = f"{markdown.inline(provenance.workflow_name)} · " if provenance.workflow_name else ""
     return [
         brand.banner(),
         "",
-        " ".join(brand.badge(item) for item in verdict) + f" &nbsp; {workflow}{markdown.code(provenance.head_sha[:7])}",
+        " ".join(brand.badge(item) for item in verdict),
+        "",
+        f"{workflow}{markdown.code(provenance.head_sha[:7])} · attempt {provenance.run_attempt} · "
+        f"{report.collection_status.value} snapshot",
         "",
     ]
 
@@ -538,22 +545,11 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
     """
     sections = []
     if report.work_selection is not None:
-        sections.append(render_work_selection(report.work_selection))
+        sections.append("\n".join(_details("🎯 Work selection and execution", [render_work_selection(report.work_selection)])))
     if report.test_selection is not None:
         sections.append(optional_selection.render(report.test_selection, report.provenance.repository))
     if report.lane_selection is not None:
         sections.append(optional_selection.render(report.lane_selection, report.provenance.repository, lanes=True))
-    if not sections:
-        body = ["#### ⏱️ CI time and cost", "", *_latency_lines(report)]
-    else:
-        body = [
-            *sections,
-            f"<details><summary>{_latency_summary(report)}</summary>",
-            "",
-            *_latency_lines(report),
-            "",
-            "</details>",
-        ]
     impact = [render_impact(report.measured_impact, report.provenance.repository)] if report.measured_impact else []
     attempts = []
     if len(report.runner_cost.billed_attempts) > 1:
@@ -563,7 +559,10 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
         attempts = [f"Latest attempt: **{format_seconds(current)} runner time**. "
                     f"Earlier attempts: **{format_seconds(prior)}**. "
                     "The runner badge includes all attempts; merge-ready describes the latest attempt.", ""]
-    return "\n".join([*_header(report), *attempts, *impact, *body, "", *_footer(report, marker)])
+    body = [*sections, render_avoided_work(report), render_sharding(report),
+            f"<details><summary>{_latency_summary(report)}</summary>", "",
+            *attempts, *impact, *_latency_lines(report), "", "</details>"]
+    return "\n".join([*_header(report), *body, "", *_footer(report, marker)])
 
 
 def _footer(report: CiObservabilityReportV1, marker: str = STICKY_MARKER) -> list[str]:
@@ -799,7 +798,7 @@ def _latency_lines(report: CiObservabilityReportV1) -> list[str]:
     signals = [
         signal
         for signal in report.repository_signals
-        if report.test_selection is None or signal.key != PYTEST_TIMING_SIGNAL
+        if signal.key not in {PYTEST_TIMING_SIGNAL, "mean_docker_cache_hit"}
     ]
     if report.collection_status == CollectionStatus.UNAVAILABLE:
         return [
