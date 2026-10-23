@@ -16,7 +16,7 @@ jobs:
       shards: ${{ steps.inventory.outputs.shards }}
     steps:
       - uses: actions/checkout@v7
-      - uses: gigaverse-app/ci-esta/setup-cached-uv@main
+      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@main
         with:
           python-version: '3.12'
       - uses: actions/cache/restore@v5
@@ -40,7 +40,7 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
               output.write(f'shards={len(groups)}\n')
           PY
-      - uses: gigaverse-app/ci-esta/plan-runner-pools@main
+      - uses: gigaverse-app/ci-esta/actions/plan-runner-pools@main
         id: pools
         with:
           shards: ${{ steps.inventory.outputs.shards }}
@@ -60,7 +60,7 @@ jobs:
         pool: ${{ fromJSON(needs.plan.outputs.pools) }}
     steps:
       - uses: actions/checkout@v7
-      - uses: gigaverse-app/ci-esta/setup-cached-uv@main
+      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@main
         with:
           python-version: '3.12'
       - uses: actions/download-artifact@v8
@@ -76,7 +76,7 @@ jobs:
           uv run ci-esta-pytest run-local --shards "$COUNT"
           --first-shard "$FIRST" --last-shard "$LAST" --log-dir shard-logs --
           uv run python .github/scripts/run_shard.py
-      - uses: gigaverse-app/ci-esta/verify-pytest-completion@main
+      - uses: gigaverse-app/ci-esta/actions/verify-pytest-completion@main
         env:
           PLAN_SHARD_COUNT: ${{ matrix.pool.shard_count }}
           PLAN_FIRST_SHARD: ${{ matrix.pool.first_shard }}
@@ -97,19 +97,19 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
-      - uses: gigaverse-app/ci-esta/validation-gate@main
+      - uses: gigaverse-app/ci-esta/actions/validation-gate@main
         with:
           needs: ${{ toJSON(needs) }}
           required: '{"plan":true,"tests":true}'
       - uses: actions/checkout@v7
-      - uses: gigaverse-app/ci-esta/setup-cached-uv@main
+      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@main
         with:
           python-version: '3.12'
       - uses: actions/download-artifact@v8
         with:
           pattern: pytest-pool-*
           merge-multiple: true
-      - uses: gigaverse-app/ci-esta/verify-pytest-completion@main
+      - uses: gigaverse-app/ci-esta/actions/verify-pytest-completion@main
         env:
           PLAN_SHARD_COUNT: ${{ needs.plan.outputs.shards }}
           PLAN_MODE: full

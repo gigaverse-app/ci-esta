@@ -29,7 +29,7 @@ setup, uv setup and dependency installation with:
 
 ```yaml
 - uses: actions/checkout@v7
-- uses: gigaverse-app/ci-esta/setup-cached-uv@main
+- uses: gigaverse-app/ci-esta/actions/setup-cached-uv@main
   with:
     python-version: '3.12'
     sync-args: '--group test'
@@ -37,8 +37,8 @@ setup, uv setup and dependency installation with:
 ```
 
 Use your project's interpreter and dependency groups. The root action,
-`gigaverse-app/ci-esta@main`, produces the report; named actions use short paths
-such as `/setup-cached-uv` and `/plan-runner-pools`.
+`gigaverse-app/ci-esta@main`, produces the report; individual actions share the
+`actions/` directory, such as `/actions/setup-cached-uv` and `/actions/plan-runner-pools`.
 
 **Public-path availability:** these entry points are new on `main`. Existing
 releases through `v0.3.0` predate them. Until the next release publishes them,

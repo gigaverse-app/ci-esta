@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: ./setup-cached-uv
+      - uses: ./actions/setup-cached-uv
         with:
           python-version: '3.12'
-      - uses: ./plan-runner-pools
+      - uses: ./actions/plan-runner-pools
         id: pools
         with:
           shards: '5'

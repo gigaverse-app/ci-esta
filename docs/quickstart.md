@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: gigaverse-app/ci-esta/setup-cached-uv@main
+      - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@main
         with:
           python-version: '3.12'
           sync-args: '--group test'
