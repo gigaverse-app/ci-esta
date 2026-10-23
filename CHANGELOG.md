@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 (2026-10-23)
+
+- Adopt pytest-selective 0.1.1 and preserve prior-failure canary plans when native local selection is enabled. Canary collection and execution explicitly disable re-selection, including when pytest plugin autoload is disabled.
+
 ## 0.1.1 (2026-10-23)
 
 - Match PostgreSQL client tools to the service image so cached test databases restore across runner image updates.

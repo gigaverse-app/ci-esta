@@ -1,3 +1,4 @@
+import subprocess
 from collections.abc import Callable
 from pathlib import Path
 
@@ -13,6 +14,7 @@ from ci_esta.testing.canary_run import (
     run_canary,
     stage_canary_files,
 )
+from tests.testing.git_repo import commit, write
 
 DESELECT_QUARANTINE_ARGS = ["-m", "not quarantine", "-p", "no:cacheprovider"]
 SHORT_COLLECT_TIMEOUT_SECONDS = 8.0
@@ -83,6 +85,25 @@ def test_runnable_prior_failure_still_fails_the_canary(tmp_path: Path, monkeypat
     )
 
     assert result == 1
+
+
+@pytest.mark.parametrize("autoload", [True, False])
+def test_planned_canary_does_not_reselect_unchanged_failures(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, autoload: bool
+) -> None:
+    """A saved failure plan remains authoritative even with local selective defaults."""
+    monkeypatch.chdir(tmp_path)
+    if autoload:
+        monkeypatch.delenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", raising=False)
+    else:
+        monkeypatch.setenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    canary_file = _write_project(tmp_path, [FAILING_FILE])
+    write(tmp_path, "pytest.ini", "[pytest]\nselective = true\n")
+    write(tmp_path, ".gitignore", "__pycache__/\n.pytest_cache/\n")
+    commit(tmp_path)
+    # Explicit activation also covers a caller forwarding --selective by mistake.
+    assert run_canary(canary_file, ["-p", "selective", "--selective", "-q"]) == 1
 
 
 def test_mixed_canary_drops_unrunnable_files_and_runs_the_rest(

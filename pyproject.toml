@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ci-esta"
-version = "0.1.1"
+version = "0.1.2"
 description = "GitHub Actions observability and evidence-based CI reuse"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{name = "Gigaverse"}]
-dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7", "pytest-selective>=0.1.0,<0.2.0"]
+dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7", "pytest-selective>=0.1.1,<0.2.0"]
 keywords = ["github-actions", "ci-observability", "ci-optimization", "continuous-integration", "prometheus"]
 classifiers = ["Intended Audience :: Developers", "Topic :: Software Development :: Build Tools", "Programming Language :: Python :: 3", "Typing :: Typed"]
 

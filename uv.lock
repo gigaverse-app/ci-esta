@@ -49,7 +49,7 @@ wheels = [
 
 [[package]]
 name = "ci-esta"
-version = "0.1.1"
+version = "0.1.2"
 source = { editable = "." }
 dependencies = [
     { name = "defusedxml" },
@@ -85,7 +85,7 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.2,<4" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "pytest", marker = "extra == 'pytest'", specifier = ">=8" },
-    { name = "pytest-selective", specifier = ">=0.1.0,<0.2.0" },
+    { name = "pytest-selective", specifier = ">=0.1.1,<0.2.0" },
     { name = "pyyaml", specifier = ">=6,<7" },
 ]
 provides-extras = ["pytest", "postgres"]
@@ -615,15 +615,16 @@ wheels = [
 
 [[package]]
 name = "pytest-selective"
-version = "0.1.0"
+version = "0.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
+    { name = "pytest" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/58/7c952fd90f0f2f61ef7b8725e403d1652a3099facf87d452844518bcd9f2/pytest_selective-0.1.0.tar.gz", hash = "sha256:b0d88e88d7c1fc71a214ae7ceaf9fa7252b078b8bc6e533433038269a08f472e", size = 260574, upload-time = "2026-10-23T07:28:41.173Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/98/6ffd8273245bcd28acfa843d02aa685b33479263f7b138989f4f42dff08f/pytest_selective-0.1.1.tar.gz", hash = "sha256:516d0c3e2f1eab936b679c97e73a14a2280d9b021e3fed5d4c56b9a149416c36", size = 350838, upload-time = "2026-10-23T08:13:12.887Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/73/4a/8efdfb8f5f746d2f4347251c7070a281171fffffd70e212dd44dd759f034/pytest_selective-0.1.0-py3-none-any.whl", hash = "sha256:f21fe122b3a7c566e0bebbf6b78d5f2640269a3011aee026ed04f9767a108432", size = 90202, upload-time = "2026-10-23T07:28:39.684Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/93/7c2555cd040e57232fcafb3adb9ce90af4c42ee44692cfb68a1b43e0c447/pytest_selective-0.1.1-py3-none-any.whl", hash = "sha256:519a5f02b55148bb738bd354dbe631f8b4980f73a47366f60ed6a55c8ddca670", size = 93643, upload-time = "2026-10-23T08:13:11.447Z" },
 ]
 
 [[package]]
