@@ -23,7 +23,7 @@ The selector also supports local edits with `pytest-selective run --config CONFI
 selection happens before pytest collection. Common dependency environment files
 invalidate tests and lanes by default. CI-esta's import-boundary guards share the
 selector's warning-stable source parser instead of maintaining another policy.
-See the [pytest-impacted comparison](https://github.com/gigaverse-app/pytest-selective/blob/codex/impacted-improvements/docs/comparison-pytest-impacted.md)
+See the [pytest-impacted comparison](https://pytest-selective.readthedocs.io/en/latest/docs/comparison-pytest-impacted/)
 for adopted ideas, measured parser improvements and limits.
 
 CI-esta imports pytest-selective's models (`SelectionExplanation`, `LanePlan`) directly; it does not fork the selector. pytest-selective decides what runs; CI-esta measures what that decision cost and saved, keeps required checks honest when work is skipped, and explains both on the pull request. CI-esta never changes a selection decision while rendering it.
