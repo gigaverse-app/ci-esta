@@ -58,6 +58,21 @@ def validate(root: Path) -> bool:
     return False
 
 
+def sync_environment() -> dict[str, str]:
+    """Scope optional private Git authentication to uv and its children only."""
+    env = os.environ.copy()
+    if env.get("CI_ESTA_GIT_TOKEN"):
+        index = int(env.get("GIT_CONFIG_COUNT", "0"))
+        # Reset inherited helpers so neither checkout credentials nor a persistent
+        # credential store can override or retain this dependency-only token.
+        for helper in ("", '!f() { echo username=x-access-token; echo "password=$CI_ESTA_GIT_TOKEN"; }; f'):
+            env[f"GIT_CONFIG_KEY_{index}"] = "credential.https://github.com.helper"
+            env[f"GIT_CONFIG_VALUE_{index}"] = helper
+            index += 1
+        env["GIT_CONFIG_COUNT"] = str(index)
+    return env
+
+
 def main() -> None:
     root = Path(os.environ.get("CACHE_WORKING_DIRECTORY", ".")).resolve()
     args = os.environ.get("CACHE_SYNC_ARGS", "")
@@ -71,7 +86,7 @@ def main() -> None:
         print(f"Restored environment usable: {usable}; verifying locked dependencies")
         # Always synchronize: restored environments are acceleration, never validation receipts.
         subprocess.run(["uv", "sync", "--locked", "--python", sys.executable, *sync_arguments(args)],
-                       cwd=root, check=True)
+                       cwd=root, check=True, env=sync_environment())
 
 
 if __name__ == "__main__":

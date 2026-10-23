@@ -79,6 +79,50 @@ def test_workflow_topology_reads_only_the_reported_commit_as_data():
         client.close()
 
 
+@pytest.mark.parametrize("reference,recorded", [("main", True), ("b" * 40, False)])
+def test_nested_sources_use_recorded_immutable_refs(reference, recorded):
+    child_sha = "b" * 40
+    uses = f"other/project/.github/workflows/child.yml@{reference}"
+    sources = {
+        (REPOSITORY, ".github/workflows/ci.yml", HEAD_SHA):
+            f"jobs:\n  plan: {{}}\n  call:\n    needs: plan\n    uses: {uses}\n  gate:\n    needs: call\n",
+        ("other/project", ".github/workflows/child.yml", child_sha):
+            "jobs:\n  checks:\n    uses: ./.github/workflows/inner.yml\n",
+        ("other/project", ".github/workflows/inner.yml", child_sha):
+            "jobs:\n  tests: {}\n",
+    }
+
+    def respond(request):
+        repo, path = request.url.path.removeprefix("/repos/").split("/contents/")
+        source = sources[(repo, path, request.url.params["ref"])].encode()
+        return httpx.Response(200, json={"encoding": "base64", "size": len(source),
+                                        "content": base64.b64encode(source).decode()})
+
+    client = GitHubActionsClient(REPOSITORY, TOKEN, API_URL, transport=httpx.MockTransport(respond))
+    run = GitHubRunV1(id=RUN_ID, name="CI", run_attempt=1, status="completed", created_at=NOW,
+                     head_sha=HEAD_SHA, path=".github/workflows/ci.yml",
+                     referenced_workflows=[{"path": uses, "sha": child_sha}] if recorded else [])
+    try:
+        assert client.workflow_dependencies(run) == {
+            "plan": [], "call / checks / tests": ["plan"], "gate": ["call / checks / tests"]}
+    finally:
+        client.close()
+
+
+def test_mutable_reusable_reference_without_run_identity_is_not_guessed():
+    source = b"jobs:\n  call:\n    uses: other/project/.github/workflows/child.yml@main\n"
+    client = GitHubActionsClient(REPOSITORY, TOKEN, API_URL, transport=httpx.MockTransport(
+        lambda _: httpx.Response(200, json={"encoding": "base64", "size": len(source),
+                                          "content": base64.b64encode(source).decode()})))
+    run = GitHubRunV1(id=RUN_ID, name="CI", run_attempt=1, status="completed", created_at=NOW,
+                     head_sha=HEAD_SHA, path=".github/workflows/ci.yml")
+    try:
+        with pytest.raises(ValueError, match="No immutable source identity"):
+            client.workflow_dependencies(run)
+    finally:
+        client.close()
+
+
 def _snapshot(
     *,
     completed_gates: int,

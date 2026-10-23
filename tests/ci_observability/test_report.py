@@ -115,6 +115,19 @@ def test_rerun_excludes_wait_before_attempt_from_critical_path_and_timeline(atte
         assert "122m" not in render_markdown(report)
 
 
+def test_commit_status_remains_reported_without_becoming_a_fictitious_dag_job() -> None:
+    jobs = [_job(job_id=FIRST_JOB_ID, name="Validation gate", attempt=RUN_ATTEMPT,
+                 started_at=FIRST_START, completed_at=FIRST_END)]
+    selectors = [ActionsJobGateSelectorV1(kind="actions_job", job_name="Validation gate"),
+                 CommitStatusGateSelectorV1(kind="commit_status", context="external/status")]
+    report = build_report(repository=REPOSITORY, pull_request_number=None, run=_run(), latest_jobs=jobs,
+                          billing_jobs=jobs, commit_statuses=[], gate_selectors=selectors, observed_at=OBSERVED_AT,
+                          job_dependencies={"Validation gate": []})
+    assert len(report.required_gates) == 2
+    assert report.critical_path.status == "complete"
+    assert report.critical_path.execution_path == ["Validation gate"]
+
+
 def test_rerun_missing_attempt_start_does_not_substitute_original_creation_time() -> None:
     run = _run().model_copy(update={"run_started_at": None})
     jobs = [_job(job_id=FIRST_JOB_ID, name="Validation gate", attempt=2,

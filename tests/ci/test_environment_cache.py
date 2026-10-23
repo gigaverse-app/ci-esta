@@ -57,3 +57,22 @@ def test_missing_manifests_and_unlocked_install_modes_are_rejected(cache, tmp_pa
     for args in ("--no-editable", "--frozen", "--project elsewhere", "--directory elsewhere"):
         with pytest.raises(ValueError):
             cache.sync_arguments(args)
+
+
+def test_private_sync_credentials_use_process_memory_and_preserve_existing_git_config(cache, monkeypatch, tmp_path):
+    import subprocess
+    monkeypatch.setenv("CI_ESTA_GIT_TOKEN", "test-only-not-a-real-token")
+    monkeypatch.setenv("GIT_CONFIG_COUNT", "1")
+    monkeypatch.setenv("GIT_CONFIG_KEY_0", "core.autocrlf")
+    monkeypatch.setenv("GIT_CONFIG_VALUE_0", "false")
+    env = cache.sync_environment()
+    assert env['GIT_CONFIG_KEY_0'] == 'core.autocrlf'
+    assert env['GIT_CONFIG_COUNT'] == '3'
+    # Exercise Git's real credential protocol; no network request is made.
+    credential = subprocess.run(['git', 'credential', 'fill'],
+        input='protocol=https\nhost=github.com\n\n', env=env, cwd=tmp_path,
+        text=True, capture_output=True, check=True)
+    assert 'password=test-only-not-a-real-token' in credential.stdout
+    assert all('test-only-not-a-real-token' not in value for key, value in env.items()
+               if key.startswith('GIT_CONFIG_'))
+    assert list(tmp_path.iterdir()) == []

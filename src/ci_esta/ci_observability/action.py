@@ -326,11 +326,6 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         ):
             raise ValueError("source run attempt/head does not match the requested report identity")
         job_dependencies = config.job_dependencies
-        if config.analyze_critical_path and not job_dependencies:
-            try:
-                job_dependencies = client.workflow_dependencies(run_metadata)
-            except Exception as error:
-                errors.append(f"critical-path graph unavailable: {error}")
         try:
             latest_jobs = client.list_jobs(config.run_id, include_all_attempts=False)
             if older_attempt or any(job.run_attempt != config.run_attempt for job in latest_jobs):
@@ -342,6 +337,11 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         except Exception as error:
             latest_jobs = []
             errors.append(f"latest-attempt jobs unavailable: {error}")
+        if config.analyze_critical_path and not job_dependencies:
+            try:
+                job_dependencies = client.workflow_dependencies(run_metadata, latest_jobs)
+            except Exception as error:
+                errors.append(f"critical-path graph unavailable: {error}")
         try:
             billing_jobs = client.list_jobs(config.run_id, include_all_attempts=True)
         except Exception as error:

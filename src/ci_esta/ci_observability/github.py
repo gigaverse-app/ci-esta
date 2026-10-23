@@ -116,11 +116,43 @@ class GitHubActionsClient:
         response.raise_for_status()
         return GitHubRunV1.model_validate_json(response.content)
 
-    def workflow_dependencies(self, run: GitHubRunV1) -> dict[str, list[str]]:
+    def workflow_dependencies(self, run: GitHubRunV1,
+                              jobs: list[GitHubJobV1] | None = None) -> dict[str, list[str]]:
         if not run.path or not re.fullmatch(r"\.github/workflows/[\w.-]+\.ya?ml", run.path):
             raise ValueError("Missing or unsupported source workflow path")
-        response = self._client.get(f"/repos/{self._repository}/contents/{run.path}",
-                                    params={"ref": run.head_sha})
+        skipped = {j.name for j in jobs or [] if j.conclusion == "skipped"}
+        sources = {}
+
+        def expand(repository: str, ref: str, path: str, prefix: str,
+                   stack: tuple[str, ...]) -> dict[str, list[str]]:
+            identity = f"{repository}/{path}@{ref}"
+            if identity in stack or len(stack) >= 10:
+                raise ValueError("Recursive or excessively nested reusable workflow")
+            if identity not in sources:
+                sources[identity] = self._workflow_source(repository, ref, path)
+
+            def resolve(uses: str, child_prefix: str) -> dict[str, list[str]]:
+                if uses.startswith("./"):
+                    return expand(repository, ref, uses[2:], child_prefix, (*stack, identity))
+                match = re.fullmatch(r"([\w.-]+/[\w.-]+)/(\.github/workflows/[\w.-]+\.ya?ml)@(.+)", uses)
+                if match is None:
+                    raise ValueError(f"Unsupported reusable workflow reference: {uses}")
+                child_repo, child_path, child_ref = match.groups()
+                recorded = {w.sha for w in run.referenced_workflows if w.path == uses}
+                if len(recorded) == 1:
+                    child_ref = recorded.pop()
+                if not re.fullmatch(r"[0-9a-f]{40}", child_ref):
+                    raise ValueError(f"No immutable source identity for reusable workflow: {uses}")
+                return expand(child_repo, child_ref, child_path, child_prefix, (*stack, identity))
+
+            return dependencies(sources[identity], resolve=resolve, skipped_calls=skipped, prefix=prefix)
+
+        return expand(self._repository, run.head_sha, run.path, "", ())
+
+    def _workflow_source(self, repository: str, ref: str, path: str) -> dict:
+        if not re.fullmatch(r"\.github/workflows/[\w.-]+\.ya?ml", path):
+            raise ValueError("Unsupported reusable workflow path")
+        response = self._client.get(f"/repos/{repository}/contents/{path}", params={"ref": ref})
         response.raise_for_status()
         data = response.json()
         if data.get("encoding") != "base64" or data.get("size", 0) > 1_000_000:
@@ -128,7 +160,7 @@ class GitHubActionsClient:
         content = base64.b64decode(data["content"])
         if len(content) > 1_000_000:
             raise ValueError("Workflow content is too large")
-        return dependencies(yaml.safe_load(content))
+        return yaml.safe_load(content)
 
     def list_jobs(
         self, run_id: int, *, include_all_attempts: bool, run_attempt: int | None = None
