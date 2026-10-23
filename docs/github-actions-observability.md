@@ -70,21 +70,39 @@ critical-path diagnostics are always collapsed, including reports with no tests.
 ```text
 [CI-esta banner: dark or light, following the reader's GitHub theme]
 [merge-ready 2m 9s] [selected 93 / 1,293 files] [reused 2 lanes] [runner 17 min]
-CI · `17f3325` · attempt 1 · complete snapshot
-
-🎯 Test selection                         (closed: reasons, paths, startup floor and reference runs)
-♻️ What else avoided work?                (closed: receipt sources, cache outcomes, image digests)
-⚡ Sharding & runner efficiency            (closed: pool geometry, intervals, occupancy and tail)
-⏱️ CI time and cost                        (closed: historical benchmarks, timing and costs)
+[Required checks passed] CI · `17f3325` · attempt 1 · complete snapshot
+--------------------------------------------------------------------
+> Test selection
+  93 / 1,293 files selected
+  Plan before evidence reuse
+--------------------------------------------------------------------
+> What else avoided work?
+  2 proven lanes reused · about 1m 33s runner time avoided (estimated)
+  Environment cache hits and verified image reuse, when measured
+--------------------------------------------------------------------
+> Sharding & runner efficiency
+  Measured shards / pools · visible CPUs per pool
+  Observed pool wall time · slot occupancy
+--------------------------------------------------------------------
+> CI time and cost
+  merge-ready in 2m 9s · 17 rounded runner-min
    closed Timeline and critical path: one row per job labeled with its run and ⏳ wait, orange
    for the critical path, a green bar from merge-ready on
-[mark] Powered by CI-esta · run · schema
+--------------------------------------------------------------------
+Savings across selection, reuse, and caching are not additive.
+[mark] CI-esta · Let proven work rest. Measure the rest.
+Reading this report · run · schema
 ```
 
 The example above is illustrative. The badge line answers "can I merge, what was selected,
 what evidence was reused, what did it cost" before any
 detail, colored with GitHub's status palette; each badge's alt text carries its
-figure. Readiness appears only when required gates are configured. Enable `analyze-critical-path` to read the source workflow topology at its
+figure. Each closed section keeps a bold title and separate metric lines visible;
+opening it reveals the existing explanations and diagnostic tables. The status
+pill describes observed required gates, independently of snapshot completeness:
+a complete snapshot can still contain failed or running checks. Missing gates
+never earn a passed status. Readiness appears only when required gates are configured.
+Enable `analyze-critical-path` to read the source workflow topology at its
 verified revision and compute dependency paths and execution slack. Timing
 adjacency alone is not a dependency edge; unsupported topology stays unavailable. A pull request keeps one sticky per `sticky-key`; each
 new run updates it in place, and an older run never overwrites a newer one.

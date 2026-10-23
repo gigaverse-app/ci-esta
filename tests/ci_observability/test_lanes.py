@@ -114,7 +114,8 @@ def test_the_section_says_what_ran_why_and_what_skipping_saved() -> None:
 
     section = render_lane_section(LaneSelectionSectionV1(plan=MONGODB_ONLY, reference=reference), REPOSITORY)
 
-    assert section.startswith("<details><summary>🧪 Test lanes · 1 / 3 selected</summary>")
+    assert section.startswith("<details>\n<summary><strong>Test lanes</strong>")
+    assert "1 / 3 lanes selected" in section.split("</summary>", 1)[0]
     assert "Historical cost of skipped jobs: ≈25 runner-min" in section
     assert "The 1 changed file reaches `mongodb`; the other lanes were not selected." in section
     # Lanes that ran come first, with the path that selected them.

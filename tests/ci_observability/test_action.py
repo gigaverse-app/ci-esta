@@ -520,10 +520,10 @@ def test_sticky_leads_with_the_selection_measured_against_comparable_runs_of_oth
     sticky = github["upsert"].call_args.args[2]
     assert sticky.startswith('<a href="https://github.com/gigaverse-app/ci-esta"><picture>')
     assert sticky.index("![selected: ") < sticky.index("#### 🎯 Test selection")
-    assert f"Test selection · {SELECTED} / 1,087 files · 81% less summed test time" in sticky
+    assert f"{SELECTED} / 1,087 files selected · 81% less summed test time" in sticky
     assert "1m 18s longest-shard wall, 4m 53s summed test time" in sticky
     # The latency report folds into one closed expander after the section; the footer stays visible.
-    latency = sticky.index("<details><summary>⏱️ CI time and cost: ")
+    latency = sticky.index("<details>\n<summary><strong>CI time and cost</strong>")
     assert sticky.index("#### 🎯 Test selection") < latency < sticky.index("| Merge-ready |")
     assert sticky.rstrip().endswith("· schema `ci-observability/v1`</sub>")
     assert sticky.index("</details>", sticky.index("| Merge-ready |")) < sticky.index(STICKY_MARKER)
@@ -633,7 +633,7 @@ def test_a_run_without_an_explanation_keeps_the_rest_of_the_sticky(
     with github_with_artifacts(FakeArtifacts(explanation), _selection_run()) as github:
         assert run(config, LATER) == 0
 
-    assert "<details><summary>⏱️ CI time and cost" in github["upsert"].call_args.args[2]
+    assert "<details>\n<summary><strong>CI time and cost" in github["upsert"].call_args.args[2]
     assert _report(config).collection_status == "complete"
     # A fallback plan is an expected outcome, not a failure to read.
     assert "::warning::" not in capsys.readouterr().out
@@ -668,7 +668,7 @@ def test_unavailable_references_leave_the_saving_unknown(tmp_path: Path, capsys:
         assert run(config, LATER) == 0
 
     sticky = github["upsert"].call_args.args[2]
-    assert f"Test selection · {SELECTED} / 1,087 files</summary>" in sticky
+    assert f"<strong>{SELECTED} / 1,087 files selected</strong>" in sticky
     assert "1m 18s longest-shard wall, 4m 53s summed test time" in sticky
     assert "less summed test time" not in sticky
     assert "::warning::Full-suite references unavailable" in capsys.readouterr().out

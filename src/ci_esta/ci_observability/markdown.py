@@ -9,6 +9,7 @@ or add markup.
 from __future__ import annotations
 
 import re
+from html import escape
 
 LONGEST_BACKTICK_RUN = re.compile(r"`+")
 
@@ -44,3 +45,17 @@ def html_code(value: str) -> str:
     """Inline code inside an HTML block such as <summary>, where GitHub renders no Markdown."""
     escaped = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     return f"<code>{escaped}</code>"
+
+
+def report_section(title: str, facts: list[str], body: list[str], *, note: str = "") -> str:
+    """Keep titles and key figures visible while diagnostics stay closed.
+
+    GitHub strips custom CSS and does not parse Markdown inside summary. Explicit
+    HTML line breaks and emphasis preserve the approved hierarchy in real comments.
+    Facts are escaped plain text; only the diagnostic body accepts Markdown.
+    """
+    summary = [f"<summary><strong>{escape(title)}</strong><br>"]
+    summary += ["<br>\n".join(f"&emsp;<strong>{escape(fact)}</strong>" for fact in facts)]
+    if note:
+        summary.append(f"<br>\n&emsp;<sub>{escape(note)}</sub>")
+    return "\n".join(["<details>", *summary, "</summary>", "", *body, "", "</details>", ""])

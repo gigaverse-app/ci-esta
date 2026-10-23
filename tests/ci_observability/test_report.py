@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
@@ -796,6 +797,73 @@ def _sticky_with_selection(**report_changes: object) -> str:
     return render_markdown(report.model_copy(update=changes))
 
 
+def test_collapsed_sections_keep_titles_separate_from_visible_metrics_and_details() -> None:
+    sticky = _sticky_with_selection()
+    summaries = re.findall(r"<summary>(.*?)</summary>", sticky, re.DOTALL)
+    for title in ("Test selection", "What else avoided work?", "Sharding &amp; runner efficiency", "CI time and cost"):
+        summary = next(value for value in summaries if f"<strong>{title}</strong>" in value)
+        assert "<br>" in summary
+        assert summary.count("<strong>") >= 2
+    assert sticky.count("\n---\n") >= 5
+    assert "<details open" not in sticky
+    assert "Timeline and critical path" in sticky
+    assert "Runner minutes and cost by runner and job" in sticky
+    assert "Savings across selection, reuse, and caching are not additive." in sticky
+
+
+@pytest.mark.parametrize("conclusion,expected", [
+    ("success", "Required checks passed"),
+    ("failure", "Required checks failed"),
+    (None, "Required checks running"),
+])
+def test_status_line_reports_gate_results_independently_of_snapshot_completeness(conclusion, expected) -> None:
+    gate = _job(job_id=FIRST_JOB_ID, name="Validation gate", attempt=RUN_ATTEMPT,
+                started_at=FIRST_START, completed_at=FIRST_END if conclusion else None,
+                status="completed" if conclusion else "in_progress", conclusion=conclusion)
+    report = build_report(repository=REPOSITORY, pull_request_number=PR_NUMBER, run=_run(),
+                          latest_jobs=[gate], billing_jobs=[gate], commit_statuses=[],
+                          gate_selectors=[ActionsJobGateSelectorV1(kind="actions_job", job_name="Validation gate")],
+                          observed_at=OBSERVED_AT)
+    header = render_markdown(report).split("<details>", 1)[0]
+    assert expected in header
+    if conclusion != "success":
+        assert "Required checks passed" not in header
+
+
+def test_no_configured_gate_never_shows_a_passed_status() -> None:
+    header = _sticky_with_selection().split("<details>", 1)[0]
+    assert "Required checks unreported" in header
+    assert "Required checks passed" not in header
+
+
+@pytest.mark.parametrize("conclusion,expected", [
+    ("success", "Required checks unavailable"),
+    ("failure", "Required checks failed"),
+])
+def test_an_unobserved_gate_cannot_hide_a_failure_or_prove_success(conclusion, expected) -> None:
+    job = _job(job_id=FIRST_JOB_ID, name="Tests", attempt=RUN_ATTEMPT,
+               started_at=FIRST_START, completed_at=FIRST_END, conclusion=conclusion)
+    report = build_report(repository=REPOSITORY, pull_request_number=PR_NUMBER, run=_run(),
+                          latest_jobs=[job], billing_jobs=[job], commit_statuses=[],
+                          gate_selectors=[ActionsJobGateSelectorV1(kind="actions_job", job_name=name)
+                                          for name in ("Tests", "Missing gate")], observed_at=OBSERVED_AT)
+    header = render_markdown(report).split("<details>", 1)[0]
+    assert expected in header
+    assert "Required checks passed" not in header
+
+
+def test_visible_summary_text_cannot_inject_markup_or_expand_its_details() -> None:
+    from ci_esta.ci_observability.markdown import report_section
+
+    hostile = '</summary></details><details open><summary>injected'
+    section = report_section(hostile, [hostile], ["Original diagnostics"], note=hostile)
+    assert section.count("<details>") == section.count("</details>") == 1
+    assert section.count("<summary>") == section.count("</summary>") == 1
+    assert "<details open>" not in section
+    assert section.count("&lt;details open&gt;") == 3
+    assert "Original diagnostics" in section
+
+
 @pytest.mark.parametrize(
     ("changes", "summary"),
     [
@@ -810,18 +878,20 @@ def _sticky_with_selection(**report_changes: object) -> str:
                     estimated_cost_usd=COST,
                 ),
             },
-            "⏱️ CI time and cost: merge-ready in 5m 56s · 16 runner-min · $0.18",
+            "merge-ready in 5m 56s · 16 rounded runner-min · $0.18",
         ),
-        ({}, "⏱️ CI time and cost: gates running · 0 runner-min"),
+        ({}, "gates running · 0 rounded runner-min"),
     ],
     ids=["complete-and-priced", "running-and-unpriced"],
 )
-def test_the_selection_sticky_folds_latency_and_cost_behind_one_line(changes: dict[str, object], summary: str) -> None:
+def test_the_selection_sticky_keeps_cost_figures_visible_above_folded_details(
+    changes: dict[str, object], summary: str,
+) -> None:
     sticky = _sticky_with_selection(**changes)
 
     assert sticky.startswith('<a href="https://github.com/gigaverse-app/ci-esta"><picture>')
     assert "#### 🎯 Test selection" in sticky
-    assert f"<details><summary>{summary}</summary>" in sticky
+    assert f"<strong>{summary}</strong>" in sticky
     # The summary line stands in for the heading; the footer that identifies the sticky stays outside.
     assert "#### ⏱️ CI time and cost" not in sticky
     latency = sticky.index(summary)
@@ -839,7 +909,7 @@ def test_a_report_without_a_selection_still_collapses_latency_and_cost() -> None
         error="GitHub API unavailable",
     )
 
-    assert "<details><summary>⏱️ CI time and cost" in render_markdown(report)
+    assert "<details>\n<summary><strong>CI time and cost</strong>" in render_markdown(report)
 
 
 def test_the_pytest_timing_signal_is_preserved_once_in_sharding_even_with_selection() -> None:
@@ -859,7 +929,7 @@ def test_the_pytest_timing_signal_is_preserved_once_in_sharding_even_with_select
 
     assert "_Coverage: 81%._" in sticky
     assert sticky.count("pytest: 4 shards · 1m 18s wall.") == 1
-    assert sticky.index("Sharding &amp; runner efficiency") < sticky.index("pytest: 4 shards") < sticky.index("⏱️ CI time")
+    assert sticky.index("Sharding &amp; runner efficiency") < sticky.index("pytest: 4 shards") < sticky.index("CI time and cost")
     assert "pytest: 4 shards · 1m 18s wall." in render_markdown(report)
 
 
@@ -868,9 +938,6 @@ def test_the_sticky_marker_stays_out_of_the_visible_footer() -> None:
 
     assert footer == [
         STICKY_MARKER,
-        '<sub><img src="https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/ci-esta-mark.svg" '
-        'alt="" width="14" height="14"> Powered by [CI-esta](https://github.com/gigaverse-app/ci-esta): '
-        "Let proven work rest. Measure the rest. "
-        "· [Reading this report](https://github.com/gigaverse-app/ci-esta/blob/main/docs/github-actions-observability.md) "
+        "<sub>[Reading this report](https://github.com/gigaverse-app/ci-esta/blob/main/docs/github-actions-observability.md) "
         f"· [run {RUN_ID}](https://github.com/{REPOSITORY}/actions/runs/{RUN_ID}) · schema `ci-observability/v1`</sub>",
     ]

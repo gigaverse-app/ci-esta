@@ -1,5 +1,24 @@
 # Measured sticky report
 
+## Design fidelity correction
+
+The first release retained the data but compressed the approved design into
+single-line disclosure labels. The user-visible contract is now explicit:
+separate bold titles and metric lines, section dividers, an honest required-check
+status, retained topline badges, and all existing diagnostics behind closed details.
+
+- [x] Baseline: 104 report/selection/lane/efficiency tests passed on 1.1.2.
+- [x] Five fail-first regressions exposed missing structure and check status.
+- [x] Production rendering preserves missing, pending and failed check states;
+  untrusted summary text cannot inject HTML or open details.
+- [x] Render the exact saved AI run `39969394276`, attempt 1, head `e60d04e`;
+  every diagnostic table row and the Gantt definition match the original sticky.
+- [x] Inspect real GitHub Markdown preview with the measured report, not a styled
+  local mockup; the collapsed titles, metric lines and dividers render correctly.
+- [ ] Complete full frozen Linux tests, hosted CI, packaging and exact-release install.
+- [ ] Publish the compatible v1 patch and refresh the existing live sticky in place;
+  visually inspect collapsed layout and expanded Gantt, preserving source identity.
+
 ## Invariants and verification
 
 - [x] Baseline on `91d2975`: 247 report, timing-action and local-shard tests pass.

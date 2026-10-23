@@ -479,7 +479,7 @@ def sticky_marker(key: str = "") -> str:
 def _cost(report: CiObservabilityReportV1) -> list[str]:
     if report.collection_status == CollectionStatus.UNAVAILABLE:
         return ["runner usage unavailable"]
-    parts = [f"{report.runner_cost.estimated_rounded_runner_minutes} runner-min"]
+    parts = [f"{report.runner_cost.estimated_rounded_runner_minutes} rounded runner-min"]
     if report.runner_cost.estimated_cost_usd is not None:
         parts.append(f"${report.runner_cost.estimated_cost_usd:.2f}")
     return parts
@@ -510,7 +510,23 @@ def _latency_summary(report: CiObservabilityReportV1) -> str:
     """One line standing in for the latency and cost report when it is collapsed."""
     gates = report.attempt_elapsed_seconds
     parts = [f"merge-ready in {format_seconds(gates)}" if gates is not None else _readiness_label(report)]
-    return "⏱️ CI time and cost: " + " · ".join([*parts, *_cost(report)])
+    return " · ".join([*parts, *_cost(report)])
+
+
+def _check_status(report: CiObservabilityReportV1) -> str:
+    """Only matched, successful required gates earn the green status pill."""
+    gates = report.required_gates
+    if any(gate.conclusion not in (None, "success") for gate in gates):
+        label, color = "Required checks failed", brand.RED
+    elif not gates:
+        label, color = "Required checks unreported", brand.AMBER
+    elif not all(gate.matched for gate in gates):
+        label, color = "Required checks unavailable", brand.AMBER
+    elif all(gate.conclusion == "success" for gate in gates):
+        label, color = "✓ Required checks passed", brand.GREEN
+    else:
+        label, color = "Required checks running", brand.AMBER
+    return brand.status_badge(label, color)
 
 
 def _header(report: CiObservabilityReportV1) -> list[str]:
@@ -530,8 +546,10 @@ def _header(report: CiObservabilityReportV1) -> list[str]:
         "",
         " ".join(brand.badge(item) for item in verdict),
         "",
-        f"{workflow}{markdown.code(provenance.head_sha[:7])} · attempt {provenance.run_attempt} · "
+        f"{_check_status(report)} {workflow}{markdown.code(provenance.head_sha[:7])} · attempt {provenance.run_attempt} · "
         f"{report.collection_status.value} snapshot",
+        "",
+        "---",
         "",
     ]
 
@@ -545,7 +563,11 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
     """
     sections = []
     if report.work_selection is not None:
-        sections.append("\n".join(_details("🎯 Work selection and execution", [render_work_selection(report.work_selection)])))
+        plan = report.work_selection
+        requested = sum(item.decision == "run" for item in plan.decisions)
+        sections.append(markdown.report_section("Work selection and execution",
+                        [f"{requested} / {len(plan.decisions)} work units requested"], [render_work_selection(plan)],
+                        note="Admission plan; execution outcomes in details"))
     if report.test_selection is not None:
         sections.append(optional_selection.render(report.test_selection, report.provenance.repository))
     if report.lane_selection is not None:
@@ -559,19 +581,23 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
         attempts = [f"Latest attempt: **{format_seconds(current)} runner time**. "
                     f"Earlier attempts: **{format_seconds(prior)}**. "
                     "The runner badge includes all attempts; merge-ready describes the latest attempt.", ""]
-    body = [*sections, render_avoided_work(report), render_sharding(report),
-            f"<details><summary>{_latency_summary(report)}</summary>", "",
-            *attempts, *impact, *_latency_lines(report), "", "</details>"]
-    return "\n".join([*_header(report), *body, "", *_footer(report, marker)])
+    sections += [render_avoided_work(report), render_sharding(report),
+                 markdown.report_section("CI time and cost", [_latency_summary(report)],
+                                         [*attempts, *impact, *_latency_lines(report)],
+                                         note=("Latest attempt; runner usage includes all attempts" if attempts else
+                                               "This attempt · timeline, bottlenecks, and billing detail"))]
+    body = "\n---\n\n".join(sections)
+    return "\n".join([*_header(report), body, "", "---", "", *_footer(report, marker)])
 
 
 def _footer(report: CiObservabilityReportV1, marker: str = STICKY_MARKER) -> list[str]:
     run = report.provenance.run_id
     return [
+        "<sub>Savings across selection, reuse, and caching are not additive.</sub><br>",
+        f"<sub>{brand.mark()} [{brand.CI_ESTA}]({brand.CI_ESTA_URL}) · {brand.TAGLINE}</sub><br>",
         f"{SNAPSHOT_MARKER_PREFIX}{sticky_snapshot(report).model_dump_json()} -->",
         marker,
-        f"<sub>{brand.mark()} Powered by [{brand.CI_ESTA}]({brand.CI_ESTA_URL}): {brand.TAGLINE} "
-        f"· [Reading this report]({brand.CI_ESTA_DOCS_URL}) "
+        f"<sub>[Reading this report]({brand.CI_ESTA_DOCS_URL}) "
         f"· [run {run}](https://github.com/{report.provenance.repository}/actions/runs/{run}) "
         f"· schema `{report.schema_version}`</sub>",
     ]
