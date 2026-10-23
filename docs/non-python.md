@@ -70,3 +70,29 @@ revision and contract. Keep explicit reruns and manual/full checkpoints executin
 and verify changed inputs and missing proof execute too. Report elapsed time and
 summed runner-seconds separately, including observer overhead separately. A single
 pair is an observation, not a universal speedup or a billing claim.
+
+## Measured Bun adoption
+
+Gigaverse's TypeScript web app adopted base-only reporting and reused its local
+Bun unit/integration suite while retaining lint, typechecking, build, boot smoke
+and tooling checks. On head `009a692d09aa47a09d249333b94bb1eb3fabb1ec`, both runs
+used tested merge `831a9718184c151351d906b012230026e4a9863d`, attempt 1, and the
+same required gates:
+
+| Run | Gate elapsed (seconds, lower is better) | Runner-seconds (lower is better) |
+| --- | ---: | ---: |
+| [Full 39920461926](https://github.com/gigaverse-app/gigaverse-web-app/actions/runs/39920461926) | 477 | 462 |
+| [Reuse 39921494547](https://github.com/gigaverse-app/gigaverse-web-app/actions/runs/39921494547) | 227 | 219 |
+
+This pair saved 243 runner-seconds (52.6%). The 242-second Bun step was skipped
+on the repeat; the other checks executed and both gates passed. Reuse did not
+renew the completion receipt. Reports were collected from the installed base
+wheel without pytest or pytest-selective, and both collections were complete.
+
+This is one rollout pair, not a general average. Run links require repository
+access. It precedes the consumer's artifact-naming repair and final pin update;
+[the adoption PR](https://github.com/gigaverse-app/gigaverse-web-app/pull/4255)
+records final validation. These figures cover App Checks only, exclude Egress
+Build Check and local report collection, and exclude superseded cancelled runs.
+The report records overlapping cancelled-run cost separately. The hosted observer
+runs outside validation and its overhead is reported separately in the adoption PR.
