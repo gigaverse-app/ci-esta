@@ -107,3 +107,26 @@ def test_large_work_inventory_keeps_sticky_bounded_and_preserves_json():
     assert len(render_work_selection(plan)) < 12000
     assert "80 additional work decisions" in render_work_selection(plan)
     assert len(WorkSelectionV1.model_validate_json(plan.model_dump_json()).decisions) == 100
+
+
+def test_bun_execution_reports_counts_without_inventing_time_savings():
+    plan = WorkSelectionV1(provider="bun", run_id=1, run_attempt=1, head_sha="a"*40,
+        input_identity="b"*40, decisions=[dict(name="Bun tests", decision="run", reason="Native affected tests",
+        execution=dict(mode="scoped", status="passed", total_files=657, executed_files=["src/value.test.ts"],
+                       duration_seconds=22, tested_sha="b"*40, runtime="Bun 1.4.2"))])
+    rendered = render_work_selection(plan)
+    assert "1 / 657" in rendered
+    assert "656 test files avoided" in rendered
+    assert "not a measured time saving" in rendered
+    assert "src/value.test.ts" in rendered
+    assert "22s" in rendered
+
+
+@pytest.mark.parametrize("changes", [dict(executed_files=None), dict(executed_files=["x", "x"]),
+                                    dict(total_files=0), dict(mode="reused")])
+def test_invalid_execution_inventory_cannot_claim_success(changes):
+    from ci_esta.ci_observability.work_selection import WorkExecutionV1
+
+    with pytest.raises(ValidationError):
+        WorkExecutionV1.model_validate(dict(mode="scoped", status="passed", total_files=1,
+            executed_files=["x"], tested_sha="a"*40, runtime="Bun 1.4.2") | changes)
