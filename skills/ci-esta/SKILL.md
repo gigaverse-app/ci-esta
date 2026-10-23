@@ -83,6 +83,19 @@ useful reporting/routing improvements and leave reuse disabled with the reason.
 
 ## Deliver measured work
 
+Use the [measured-impact recipe](https://github.com/gigaverse-app/ci-esta/blob/main/docs/measured-impact.md)
+when publishing savings or tuning caches. Lead the sticky with what ran, what was
+avoided and verified before/after evidence; keep Gantt/critical-path diagnostics
+collapsed. Separate historical benchmarks from the current run. For Bun, retain
+structured inventory, wall time, fallback and runtime evidence; never translate
+file-count reduction into measured time savings.
+
+Measure cache-key evaluation and save/restore overhead. Compute recursive input
+hashes once before installing dependencies, verify the actual installed-tool
+directory, and still execute locked synchronization/compiler checks. Audit broad
+label triggers while preserving intentional label-driven workflows and explicit
+full reruns. Check the exact branch-required job also fails when planning fails.
+
 Follow the task's existing PR/merge scope. Provide the changed config, regression
 evidence and a concise table of elapsed time, summed runner-seconds, job counts,
 run/attempt/head identities and preserved checks. For a causal selection claim,

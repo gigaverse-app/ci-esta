@@ -3,6 +3,7 @@ import { appendFileSync, lstatSync, mkdirSync, readFileSync, writeFileSync } fro
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { planAffectedTests, readTestSelection, safePath } from "./selection.mjs";
+import { workSelectionReport } from "./work-report.mjs";
 
 export function readInventory(path, cwd) {
   const inventory = JSON.parse(readFileSync(path, "utf8"));
@@ -60,7 +61,14 @@ export function runBunTests({ cwd = process.cwd(), inventoryFile, policyFile, ba
       const status = result.status ?? 1;
       if (status !== 0) exitCode = status;
       let executedFiles = null;
-      try { executedFiles = Object.keys(JSON.parse(readFileSync(timings, "utf8")).files).sort(); } catch {}
+      try {
+        const values = JSON.parse(readFileSync(timings, "utf8")).files;
+        if (!values || typeof values !== "object" || Array.isArray(values) ||
+            Object.entries(values).some(([file, duration]) => !group.files.includes(file) ||
+              typeof duration !== "number" || !Number.isFinite(duration) || duration < 0))
+          throw new Error("Invalid Bun execution timings");
+        executedFiles = Object.keys(values).sort();
+      } catch {}
       executions.push({ shard: index + 1, affected: group.changed, exitCode: status,
         durationMs: performance.now() - before, executedFiles, error: result.error?.message ?? result.signal ?? null });
     }
@@ -71,15 +79,11 @@ export function runBunTests({ cwd = process.cwd(), inventoryFile, policyFile, ba
     totalFiles: files.length, alwaysRunFiles, executedFiles, executions, durationMs: performance.now() - started, exitCode };
   write("execution-selection.json", result);
   if (process.env.GITHUB_RUN_ID) {
-    const reason = `${plan.reason}; ${executedFiles === null ? "execution inventory unavailable" : `executed ${executedFiles.length}/${files.length} files`}`;
-    write("ci-work-selection.json", {
-      schema_version: "ci-esta/work-selection/v1", provider: "Bun", run_id: Number(process.env.GITHUB_RUN_ID),
-      run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT), head_sha: process.env.GITHUB_SHA,
-      input_identity: plan.testedSha, fallback: Boolean(plan.fallback), decisions: [
-        { name: "Bun affected tests", decision: plan.mode === "none" ? "unaffected" : "run", reason: reason.slice(0, 1000) },
-        ...(alwaysRunFiles.length ? [{ name: "Repository contracts", decision: "run", reason: `${alwaysRunFiles.length} explicitly always-run files; never filtered by imports` }] : []),
-      ],
-    });
+    const event = process.env.GITHUB_EVENT_PATH ? JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8")) : {};
+    write("ci-work-selection.json", workSelectionReport(result, {
+      runId: process.env.GITHUB_RUN_ID, attempt: process.env.GITHUB_RUN_ATTEMPT,
+      headSha: event.pull_request?.head.sha || process.env.GITHUB_SHA,
+    }));
   }
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
     `mode=${plan.mode}\nfallback=${plan.fallback}\nexit-code=${exitCode}\n`);

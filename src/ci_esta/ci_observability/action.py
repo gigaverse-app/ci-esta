@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 
 from ci_esta.ci_observability.enrichment.profiles import pytest_timings
 from ci_esta.ci_observability.github import GitHubActionsClient
+from ci_esta.ci_observability.impact import ImpactComparison, collect_impact
 from ci_esta.ci_observability.models import (
     CiObservabilityReportV1,
     CommitStatusGateSelectorV1,
@@ -78,6 +79,7 @@ class ActionConfig(BaseModel):
     #: Keys the sticky, so several observed workflows each keep their own comment.
     sticky_key: str = ""
     work_selection_artifact: str = ""
+    impact_comparisons: list[ImpactComparison] = Field(default_factory=list, max_length=12)
     job_dependencies: dict[str, list[str]] = Field(default_factory=dict)
     analyze_critical_path: bool = False
 
@@ -118,6 +120,8 @@ class ActionConfig(BaseModel):
             ),
             lane_selection_artifact=os.environ.get("INPUT_LANE_SELECTION_ARTIFACT", "").strip(),
             work_selection_artifact=os.environ.get("INPUT_WORK_SELECTION_ARTIFACT", "").strip(),
+            impact_comparisons=TypeAdapter(list[ImpactComparison]).validate_json(
+                os.environ.get("INPUT_IMPACT_COMPARISONS_JSON", "[]")),
             sticky_key=os.environ.get("INPUT_STICKY_KEY", "").strip(),
             job_dependencies=TypeAdapter(dict[str, list[str]]).validate_json(
                 os.environ.get("INPUT_JOB_DEPENDENCIES_JSON", "{}")),
@@ -396,7 +400,8 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
             lane_selection=lane_selection,
             job_dependencies=job_dependencies,
         )
-        report = report.model_copy(update={"work_selection": _work_selection(client, config, run_metadata)})
+        report = report.model_copy(update={"work_selection": _work_selection(client, config, run_metadata),
+                                           "measured_impact": collect_impact(client, config.impact_comparisons)})
         reference_to_record = _own_reference(report, config, run_metadata, observed_at)
     except Exception as error:
         report = build_unavailable_report(

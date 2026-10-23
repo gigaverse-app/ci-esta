@@ -14,6 +14,7 @@ from pydantic import BaseModel, JsonValue
 from ci_esta.ci_observability import brand, markdown, optional_selection
 from ci_esta.ci_observability.critical_path import analyze
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
+from ci_esta.ci_observability.impact import render_impact
 from ci_esta.ci_observability.models import (
     PYTEST_TIMING_SIGNAL,
     ActionsJobGateSelectorV1,
@@ -553,7 +554,16 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
             "",
             "</details>",
         ]
-    return "\n".join([*_header(report), *body, "", *_footer(report, marker)])
+    impact = [render_impact(report.measured_impact, report.provenance.repository)] if report.measured_impact else []
+    attempts = []
+    if len(report.runner_cost.billed_attempts) > 1:
+        current = sum(job.wall_seconds or 0 for job in report.billing_jobs
+                      if job.run_attempt == report.provenance.run_attempt)
+        prior = report.runner_cost.raw_runner_seconds - current
+        attempts = [f"Latest attempt: **{format_seconds(current)} runner time**. "
+                    f"Earlier attempts: **{format_seconds(prior)}**. "
+                    "The runner badge includes all attempts; merge-ready describes the latest attempt.", ""]
+    return "\n".join([*_header(report), *attempts, *impact, *body, "", *_footer(report, marker)])
 
 
 def _footer(report: CiObservabilityReportV1, marker: str = STICKY_MARKER) -> list[str]:
@@ -802,8 +812,7 @@ def _latency_lines(report: CiObservabilityReportV1) -> list[str]:
     lines = [
         *_latency_table(report),
         *_overlap(report),
-        *render_timeline(report),
-        *_critical_path(report),
+        *_details("Timeline and critical path", [*render_timeline(report), *_critical_path(report)]),
         *_cost_details(report),
         *_step_details(report),
         *_prerequisites(report),

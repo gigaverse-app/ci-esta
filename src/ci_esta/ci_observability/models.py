@@ -12,6 +12,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, SerializeAsAny, field_validator, model_validator
 
 from ci_esta.ci_observability.critical_path import CriticalPathResult
+from ci_esta.ci_observability.impact import ImpactResult
 from ci_esta.ci_observability.work_selection import WorkSelectionV1
 
 
@@ -393,6 +394,7 @@ class CiObservabilityReportV1(BaseModel):
     #: Only when the run uploaded a pytest-selective lane plan.
     lane_selection: SerializeAsAny[BaseModel] | dict[str, JsonValue] | None = None
     work_selection: WorkSelectionV1 | None = None
+    measured_impact: list[ImpactResult] = Field(default_factory=list, max_length=12)
     critical_path: CriticalPathResult | None = None
 
     @property

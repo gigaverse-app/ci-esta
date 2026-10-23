@@ -115,6 +115,11 @@ Unsupported runtime versions and missing inventory fail visibly.
 
 ## Evidence and reports
 
+The sticky now includes structured executed/full file counts, test wall time,
+runtime, mode/result, and a collapsed inventory. See
+[measured impact](measured-impact.md) to add verified full/selected benchmark pairs
+without mistaking file-count reduction for a measured time saving.
+
 Upload `execution-selection.json` and `test-selection.json` even on failure.
 The execution report records tested SHA/base, mode/reason/fallback, Bun version,
 complete/always-run/actual file inventories, batch statuses and wall milliseconds.
