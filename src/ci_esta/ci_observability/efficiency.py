@@ -177,7 +177,7 @@ def render_sharding(report: CiObservabilityReportV1) -> str:
         complete = len(configured) == 1 and sorted(indices) == list(range(1, next(iter(configured)) + 1))
         capacity = sum(pool.capacity_seconds for pool in pools)
         active = sum(pool.active_seconds for pool in pools)
-        summary += [f"{len(indices)} measured shards / {len(pools)} pools"]
+        summary += [f"{len(indices)} measured shards / {len(pools)} pool{'s' if len(pools) != 1 else ''}"]
         if complete and capacity > 0:
             summary += [f"{active / capacity:.0%} slot occupancy"]
         else:

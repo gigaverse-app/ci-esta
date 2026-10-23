@@ -125,7 +125,7 @@ after all children exit, including on test failure. Publish it from each pool:
 ```yaml
 - name: Publish shard execution intervals
   if: always()
-  uses: gigaverse-app/ci-esta/.github/actions/publish-shard-measurements@<reviewed-commit>
+  uses: gigaverse-app/ci-esta/actions/publish-shard-measurements@<reviewed-commit>
   with:
     path: pytest-logs/ci-esta-shards.json
     pool: ${{ matrix.first }}-${{ matrix.last }}

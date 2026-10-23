@@ -5,7 +5,7 @@
 - [x] Baseline on `91d2975`: 247 report, timing-action and local-shard tests pass.
 - [x] Preserve banner, selection explanations, startup floor, Gantt, gates, costs,
   slow steps, overlap, benchmark and Bun details behind their owning sections.
-- [ ] A selection plan never claims execution or receipt reuse. Unknown savings
+- [x] A selection plan never claims execution or receipt reuse. Unknown savings
   remain unknown; historical comparisons remain estimates with their sources.
 - [x] Successful cache records follow locked validation; cache hits do not imply
   a measured time saving. Failed validation cannot publish a successful record.
@@ -18,7 +18,7 @@
   local process tests exercise the actual shard runner. Missing telemetry preserves
   the rest of the report.
 - [ ] Full local checks and hosted CI pass on the published revision.
-- [ ] Real GitHub report includes measured cache/reuse and shard artifacts; inspect
+- [x] Real GitHub report includes measured cache/reuse and shard artifacts; inspect
   the actual sticky and JSON. Exercise positive execution and reuse controls.
 - [ ] Release through Release Please, verify exact PyPI installation, update all
   consumers, and inspect their resulting reports and validation gates.
@@ -53,3 +53,19 @@ from main; adding its generated wrapper fixed the only test failure.
 Hosted run `39941029166` on `9f6261a` is green, including both Python versions,
 quality, packaging and the validation gate. This documentation-only ledger update
 is the positive same-input receipt-reuse control for that successful execution.
+
+Hosted unchanged-input control `39941332933` skipped both Python lanes using
+successful source run `39941029166`; the report resolved both source jobs through
+GitHub and displayed 44s + 49s = approximately 1m33s runner time avoided. The gate
+passed; no new test execution or wall-time savings were claimed.
+
+Main's action implementation move (`df41034`) was merged into `fdd4267`; all
+measurement additions moved to the canonical `actions/` owners. Full frozen Linux
+suite: **1,236 passed**, wheel and sdist built. Hosted public action smoke
+`39942526740` executed actual pytest files with `run-local`, uploaded intervals
+through `actions/publish-shard-measurements`, and produced a complete live report:
+2 shards, 4 visible CPUs, 72% observed slot occupancy, 1.10s / 2.50s child
+intervals. This small smoke proves measurement plumbing, not production savings.
+The source API cache outcome was one validated miss. Banner, Gantt and per-shard
+raw details survived rendering. A fail-first partial-proof regression now keeps
+valid reused lanes when another source job is unreadable.
