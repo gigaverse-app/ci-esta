@@ -1,5 +1,6 @@
-"""One implementation per action; the root default forwards its complete contract."""
+"""Every public action has one implementation under actions/NAME."""
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -13,19 +14,14 @@ SOURCES = sorted((ROOT / "actions").glob("*/action.yml"))
 def test_named_action_is_the_implementation_without_duplicate_aliases(source):
     action = yaml.safe_load(source.read_text())
     assert not (ROOT / source.parent.name / "action.yml").exists()
-    assert not (ROOT / ".github/actions").exists()
+    assert not list((ROOT / ".github/actions").rglob("action.y*ml"))
     assert not any(step.get("uses", "").startswith("$/") for step in action["runs"]["steps"])
 
 
-def test_root_action_forwards_the_complete_contract_at_the_same_revision():
-    original = yaml.safe_load((ROOT / "actions" / "ci-observability" / "action.yml").read_text())
-    public = yaml.safe_load((ROOT / "action.yml").read_text())
-    assert public.get("inputs", {}) == original.get("inputs", {})
-    assert public["runs"]["using"] == "composite"
-    (step,) = public["runs"]["steps"]
-    assert step["uses"] == "$/actions/ci-observability"
-    assert step.get("with", {}) == {key: "${{ inputs." + key + " }}" for key in original.get("inputs", {})}
-    assert public.get("outputs", {}) == {
-        key: {"description": value["description"], "value": "${{ steps.action.outputs." + key + " }}"}
-        for key, value in original.get("outputs", {}).items()
-    }
+def test_all_action_entry_points_use_the_canonical_namespace():
+    tracked = subprocess.check_output(
+        ["git", "ls-files", "*action.yml", "*action.yaml"], cwd=ROOT, text=True
+    ).splitlines()
+    manifests = [Path(path) for path in tracked if (ROOT / path).is_file()]
+    assert manifests
+    assert all(len(path.parts) == 3 and path.parts[0] == "actions" for path in manifests), manifests

@@ -1,7 +1,7 @@
 # Public GitHub Actions
 
-Use `gigaverse-app/ci-esta@v1` for ci-observability. Specialized actions use
-`gigaverse-app/ci-esta/actions/ACTION@v1`. Your workflow does not need a checkout of
+Use `gigaverse-app/ci-esta/actions/ci-observability@v1` for reports. All actions use
+`gigaverse-app/ci-esta/actions/NAME@v1`. Your workflow does not need a checkout of
 this toolkit or a Python package installation to load an action. Actions that
 analyze your project still need your project's checkout.
 
@@ -9,7 +9,7 @@ analyze your project still need your project's checkout.
 
 Use `actions/NAME@v1` for the current Actions API. Its moving major tag is
 independent of the Python package version and advances only after the exact
-release passes validation and publishes. Python dependency ranges and installed
+commit passes main CI and the public action smoke. Python dependency ranges and installed
 agent skills are separate. Use an immutable full release tag or commit when a
 fixed revision is required. Prereleases do not advance `v1`.
 
@@ -19,14 +19,9 @@ removed from main. Update the path and revision together when migrating:
 `gigaverse-app/ci-esta/actions/NAME@REVISION`. Old immutable releases keep their
 original layouts; a new path cannot be used with a release that predates it.
 
-The root default action delegates to its implementation at the **same pinned
-revision**. Only this root entry point is generated; after changing the primary
-action's inputs or outputs, run `uv run python scripts/public_actions.py`.
-
-The root convenience action uses GitHub's self-repository reference (`$/`),
-supported on GitHub.com with runner 2.336.0 or newer. Individual `actions/NAME`
-entry points call the implementations directly and do not require that syntax.
-[GitHub reference documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax).
+The former root action is also removed. Replace `gigaverse-app/ci-esta@REVISION`
+with `gigaverse-app/ci-esta/actions/ci-observability@v1`. Every entry point runs its
+implementation directly; there are no generated aliases.
 
 ## Action reference
 
@@ -34,7 +29,6 @@ Each link below is the public action's complete input/output contract.
 
 | Entry point | Contract |
 | --- | --- |
-| `gigaverse-app/ci-esta@v1` | [Root action](../action.yml) |
 | `gigaverse-app/ci-esta/actions/cancel-obsolete-pr-runs@v1` | [cancel-obsolete-pr-runs](../actions/cancel-obsolete-pr-runs/action.yml) |
 | `gigaverse-app/ci-esta/actions/ci-observability@v1` | [ci-observability](../actions/ci-observability/action.yml) |
 | `gigaverse-app/ci-esta/actions/ci-observability-enrichment@v1` | [ci-observability-enrichment](../actions/ci-observability-enrichment/action.yml) |
@@ -74,5 +68,4 @@ Each link below is the public action's complete input/output contract.
 
 Reusable workflows are a different interface: GitHub requires them to live under
 `.github/workflows/` and callers use `jobs.<job>.uses`. Actions use
-`jobs.<job>.steps[].uses`. The root action is for a step, not a replacement for a
-reusable workflow at job level.
+`jobs.<job>.steps[].uses`.

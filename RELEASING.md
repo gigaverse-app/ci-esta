@@ -19,8 +19,8 @@ workflow `release.yml`, and GitHub environment `pypi`. No API token is needed.
 
 After successful publication, the workflow advances `v1`, the explicitly declared
 Actions API major in `release.yml`. It is independent of the Python package's
-version. Consumers use `gigaverse-app/ci-esta/actions/NAME@v1`; the root default
-action remains available. Python consumers declare their own compatible package
+version. Consumers use `gigaverse-app/ci-esta/actions/NAME@v1`.
+Python consumers declare their own compatible package
 range and keep exact artifacts in lockfiles.
 
 Only canonical `actions/NAME` paths are supported by this Actions API. When
@@ -30,7 +30,10 @@ upgrading older callers, migrate `.github/actions/NAME` or top-level `NAME` to
 major; Python package version changes alone never change that alias.
 
 Full package release tags remain immutable. Prereleases do not advance the Actions
-alias. Fixes require a new package release and successful validation/publication.
+alias. Python package fixes require a new package release and successful
+validation/publication. For an Actions-only change, advance `v1` to the merged
+commit after its main CI and public action smoke pass. This does not require a
+GitHub release, Python version change, or PyPI publication.
 
 ## Conventional Commits to PyPI
 

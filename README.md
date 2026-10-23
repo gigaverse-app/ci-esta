@@ -36,9 +36,8 @@ setup, uv setup and dependency installation with:
 - run: uv run --no-sync pytest
 ```
 
-Use your project's interpreter and dependency groups. The root action,
-`gigaverse-app/ci-esta@v1`, produces the report; individual actions share the
-`actions/` directory, such as `/actions/setup-cached-uv` and `/actions/plan-runner-pools`.
+Use your project's interpreter and dependency groups. Every action lives under
+`actions/NAME`. Use `gigaverse-app/ci-esta/actions/ci-observability@v1` for reports.
 
 Use `actions/NAME@v1` for automatic Actions API upgrades. That alias is
 independent of Python package versions. Older `.github/actions/NAME` and top-level

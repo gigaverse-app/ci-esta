@@ -1,7 +1,7 @@
 # Move action implementations
 
 Move implementations and helpers into actions/ and remove both generated named
-wrapper layouts. Keep the root default entry point only. Older immutable releases
+wrapper layouts, including the root default entry point. Older immutable releases
 retain their original paths; callers upgrading must migrate path and revision together.
 
 Validation covers complete input/output contracts, helper-file inventory, relative
