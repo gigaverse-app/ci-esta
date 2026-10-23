@@ -85,13 +85,13 @@ def render(
 
 def summaries(markdown: str) -> list[str]:
     """Nested diagnostics within the new selection container."""
-    return re.findall(r"<summary>(.*?)</summary>", markdown)[1:]
+    return re.findall(r"<summary>(.*?)</summary>", markdown, re.DOTALL)[1:]
 
 
 def test_a_narrowed_selection_leads_with_time_saved_and_its_funnel() -> None:
     markdown = render(explanation(), AI_TIMINGS, REFERENCES)
 
-    assert f"Test selection · {SELECTED} / 1,087 files · {SAVED_PERCENT} less summed test time" in markdown
+    assert f"{SELECTED} / 1,087 files selected · {SAVED_PERCENT} less summed test time" in markdown
     assert "| Ran | Wall |" not in markdown
     assert f"{APP_FACTORY_TESTS} of these come through `{APP_FACTORY}`." in markdown
     # The floor doesn't touch, change or inflate this PR's selection, so it isn't shown.

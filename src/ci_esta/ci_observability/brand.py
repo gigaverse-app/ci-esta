@@ -53,6 +53,11 @@ def badge(item: Badge) -> str:
     )
 
 
+def status_badge(label: str, color: str) -> str:
+    """A rounded status pill with readable alt text when images are unavailable."""
+    return f"![{label}](https://img.shields.io/badge/{_shields(label)}-{color}?style=flat)"
+
+
 def mark(size: int = 14) -> str:
     """The CI-esta mark, sized to sit in a line of text."""
     return f'<img src="{MARK_URL}" alt="" width="{size}" height="{size}">'

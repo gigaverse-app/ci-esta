@@ -154,10 +154,8 @@ def render_lane_section(section: LaneSelectionSectionV1, repository: str | None 
     """The sticky's lane section, as GitHub-flavored Markdown; `repository` links runs."""
     plan = section.plan
     ran = len(ran_lanes(plan))
-    summary = f"🧪 Test lanes · {ran} / {len(plan.lanes)} selected"
+    summary = f"{ran} / {len(plan.lanes)} lanes selected"
     lines = [
-        f"<details><summary>{summary}</summary>",
-        "",
         f"#### 🧪 Test lanes · by [pytest-selective]({SELECTIVE_URL})",
         "",
         f"{strip(plan)} · {len(plan.changed)} changed files. These are planning decisions; "
@@ -174,7 +172,5 @@ def render_lane_section(section: LaneSelectionSectionV1, repository: str | None 
         *_reference_note(section, repository),
         *( ["", f"Historical cost of skipped jobs: ≈{_minutes(section.reference.runner_seconds)}. "
              "This comparison can overlap receipt reuse and must not be added to it."] if section.reference else []),
-        "",
-        "</details>",
     ]
-    return "\n".join(lines).rstrip() + "\n"
+    return markdown.report_section("Test lanes", [summary], lines, note="Plan before evidence reuse")

@@ -464,14 +464,12 @@ def _reference_note(section: SelectionSectionV1, repository: str | None) -> list
 def render_selection_section(section: SelectionSectionV1, repository: str | None = None) -> str:
     """The sticky's test-selection section, as GitHub-flavored Markdown; `repository` links runs."""
     explanation = section.explanation
-    summary = f"🎯 Test selection · {_count(explanation.selected)} / {_count(explanation.total)} files"
+    summary = f"{_count(explanation.selected)} / {_count(explanation.total)} files selected"
     saved = _saved(_test_share(section))
     if saved is not None and not explanation.full_suite:
-        summary += f" · {saved} less summed test time vs full-suite reference"
+        summary += f" · {saved} less summed test time"
     graph = "wider" if explanation.graph_widened else "narrower" if explanation.graph_narrowed else "unchanged"
     lines = [
-        f"<details><summary>{summary}</summary>",
-        "",
         f"#### 🎯 Test selection · by [pytest-selective]({SELECTIVE_URL})",
         "",
         f"Graph: **{graph}**. Selection counts describe the plan; shard measurements describe execution.",
@@ -483,7 +481,8 @@ def render_selection_section(section: SelectionSectionV1, repository: str | None
         *_reference_note(section, repository),
         "Historical time comparisons include every reason work was avoided, including reused evidence. "
         "They do not isolate the effect of selection and must not be added to other savings estimates.",
-        "",
-        "</details>",
     ]
-    return "\n".join(lines).rstrip() + "\n"
+    note = "Plan before evidence reuse"
+    if saved is not None and not explanation.full_suite:
+        note += " · time compared with full-suite reference"
+    return markdown.report_section("Test selection", [summary], lines, note=note)

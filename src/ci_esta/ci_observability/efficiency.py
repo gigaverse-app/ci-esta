@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections import Counter
-from html import escape
 from statistics import median
 from typing import TYPE_CHECKING
 
@@ -104,10 +103,6 @@ def reused_lane_count(report: CiObservabilityReportV1) -> int:
     return len({(lane.lane, job_family(lane.job)) for lane in reused_lanes(report)})
 
 
-def _details(summary: str, body: list[str]) -> str:
-    return "\n".join([f"<details><summary>{summary}</summary>", "", *body, "", "</details>", ""])
-
-
 def render_avoided_work(report: CiObservabilityReportV1) -> str:
     lanes = reused_lanes(report)
     lane_count = reused_lane_count(report)
@@ -117,7 +112,7 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
     summary = [f"{lane_count} proven lane{'s' if lane_count != 1 else ''} reused" if known_reuse else "reuse unmeasured"]
     timed = [lane.source_seconds for lane in lanes if lane.source_seconds is not None]
     if timed:
-        summary.append(f"≈{format_seconds(sum(timed))} runner time avoided")
+        summary[0] += f" · ≈{format_seconds(sum(timed))} runner time avoided (estimated)"
     lookups = sum(counts[key] for key in ("hit", "miss", "repaired"))
     summary.append(f"{counts['hit']}/{lookups} environment cache hits" if lookups else "no measured cache lookups")
     body = ["#### Reused validation evidence", ""]
@@ -151,7 +146,7 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
     body += ["Cache time saved is unavailable without a comparable cold run."]
     images = [item for item in report.measurements if isinstance(item, ImageReuseMeasurement)]
     if images:
-        summary.append(f"{len(images)} verified image reuse{'s' if len(images) != 1 else ''}")
+        summary[-1] += f" · {len(images)} verified image reuse{'s' if len(images) != 1 else ''}"
         body += ["", "#### Image reuse", "", "| Job | Verified image digest |", "|:--|:--|",
                  *(f"| {markdown.cell(markdown.code(item.job))} | {markdown.code(item.digest)} |" for item in images),
                  "", "The source and target image digests matched. Build time avoided is unknown without a comparable build; "
@@ -161,7 +156,7 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
     body += ["", "Incremental test evidence is not inferred from skipped jobs or added to whole-lane reuse totals."]
     if report.measurement_errors:
         body += ["", "Measurement gaps:", *(f"- {markdown.inline(error)}" for error in report.measurement_errors)]
-    return _details("♻️ What else avoided work? · " + escape(" · ".join(summary)), body)
+    return markdown.report_section("What else avoided work?", summary, body)
 
 
 def render_sharding(report: CiObservabilityReportV1) -> str:
@@ -178,8 +173,12 @@ def render_sharding(report: CiObservabilityReportV1) -> str:
         capacity = sum(pool.capacity_seconds for pool in pools)
         active = sum(pool.active_seconds for pool in pools)
         summary += [f"{len(indices)} measured shards / {len(pools)} pool{'s' if len(pools) != 1 else ''}"]
+        cpus = {pool.cpu_count for pool in pools}
+        if len(cpus) == 1 and None not in cpus:
+            summary[0] += f" · {next(iter(cpus))} visible CPUs per pool"
+        wall = (f"{format_seconds(pools[0].wall_seconds)} test pool wall · " if len(pools) == 1 else "")
         if complete and capacity > 0:
-            summary += [f"{active / capacity:.0%} slot occupancy"]
+            summary += [f"{wall}{active / capacity:.0%} slot occupancy"]
         else:
             summary += ["overall occupancy unavailable (incomplete or overlapping pools)"]
         body += ["| Pool | Slots | Visible logical CPUs | Observed wall | Slot occupancy | Idle slot-time | Tail / median |",
@@ -214,4 +213,4 @@ def render_sharding(report: CiObservabilityReportV1) -> str:
         # the same numbers when available; keep the signal in the raw report.
         body += ["", *(f"{markdown.inline(signal.label)}: {markdown.inline(signal.value)}." for signal in signals)]
     body += ["", "CPU quota, throttling and predicted-duration error are unavailable unless separately measured."]
-    return _details("⚡ Sharding &amp; runner efficiency · " + escape(" · ".join(summary)), body)
+    return markdown.report_section("Sharding & runner efficiency", summary, body)
