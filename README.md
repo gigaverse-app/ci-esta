@@ -106,5 +106,9 @@ selection, timing feedback, execution and measurement in order.
 
 Install the standalone CLI with `pip install ci-esta`.
 Base reporting needs Python 3.11+ and neither pytest nor pytest-selective.
+For fixtures, schemas, source scanners, and subprocess helpers, follow the
+[pytest-selective sidecar tutorial](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/tutorials/sidecar-dependencies.md).
+Declare inputs at their readers so unrelated documentation does not select tests.
+
 Use `ci-esta[selection]` for Python selection reports or `ci-esta[pytest]` for
 pytest execution tools. Before 1.0, review each minor release's migration notes.

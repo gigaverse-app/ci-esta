@@ -6,6 +6,21 @@ fix. CI-esta's [completed-run report](github-actions-observability.md) keeps the
 measurement outside the validation workflow and separates admission delay from
 runner time. Use pytest's `--durations=20` to see setup, call and teardown costs.
 
+## Declare the inputs that imports miss
+
+A fixture read, an AST scan, or a subprocess can affect a test without creating
+a normal Python import edge. Use pytest-selective's
+[sidecar tutorial](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/tutorials/sidecar-dependencies.md)
+to declare those inputs beside the reader. It walks through a fixture regression,
+an unrelated README that selects no tests, directory manifests, dependency
+comments, and the difference between reading Python text and executing it.
+
+These are upstream pytest-selective declarations. CI-esta uses the selector's
+result and reports its evidence; no extra application wrapper is required.
+Replace unconditional scanner lists with their actual source inputs, and keep
+full-run controls and conservative fallbacks.
+
+
 ## Check the measurement runtime itself
 
 pytest-selective's [Windows 3.11 run](https://github.com/gigaverse-app/pytest-selective/actions/runs/39848431314)
