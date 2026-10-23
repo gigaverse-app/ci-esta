@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.4](https://github.com/gigaverse-app/ci-esta/compare/v1.1.3...v1.1.4) (2026-10-23)
+
+
+### Bug fixes
+
+* **docs:** refresh cached artwork when branding changes ([49ffd45](https://github.com/gigaverse-app/ci-esta/commit/49ffd45bcea1498f904c5a39d38a088e4bc15d72))
+* **report:** unify Python and Bun headlines and publication ([360e170](https://github.com/gigaverse-app/ci-esta/commit/360e17064c777ad75678dbd0d96472d1ce9ae4e1))
+
 ## [1.1.3](https://github.com/gigaverse-app/ci-esta/compare/v1.1.2...v1.1.3) (2026-10-23)
 
 
