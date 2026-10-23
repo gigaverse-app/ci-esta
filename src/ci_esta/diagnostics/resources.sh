@@ -69,7 +69,9 @@ trap 'exit 143' TERM
 trap 'exit 130' INT
 
 set +e
-setsid /usr/bin/time -v "$@" &
+# Bash ignores INT/QUIT in asynchronous jobs. Restore the payload defaults
+# before exec so observation cannot disable KeyboardInterrupt or SIGQUIT.
+setsid /usr/bin/env --default-signal=INT,QUIT /usr/bin/time -v "$@" &
 command_pid=$!
 wait "$command_pid"
 command_status=$?

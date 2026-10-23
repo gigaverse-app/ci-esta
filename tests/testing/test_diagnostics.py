@@ -140,3 +140,21 @@ def test_watchdog_preserves_late_session_failure(tmp_path: Path, failure: str) -
     )
     assert result.returncode == 3, result.stdout + result.stderr
     assert "forcing exit" in result.stderr
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux resource observation")
+@pytest.mark.parametrize("enabled", ["false", "true"])
+def test_resource_diagnostics_preserve_real_keyboard_interrupt(tmp_path: Path, enabled: str) -> None:
+    """Background observation must not turn the payload's SIGINT into SIG_IGN."""
+    result = subprocess.run(
+        [sys.executable, "-m", "ci_esta.diagnostics", sys.executable, "-c",
+         "import os, signal, sys\n"
+         "try:\n    os.kill(os.getpid(), signal.SIGINT)\n"
+         "except KeyboardInterrupt:\n    print('interrupted'); sys.exit(42)\n"
+         "sys.exit(99)\n"],
+        cwd=tmp_path,
+        env={**os.environ, "CI_TEST_RESOURCE_OBSERVABILITY": enabled},
+        capture_output=True, text=True, timeout=10,
+    )
+    assert result.returncode == 42, result.stdout + result.stderr
+    assert "interrupted" in result.stdout
