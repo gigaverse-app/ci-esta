@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 import subprocess
+from collections.abc import Sequence
 from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -116,7 +117,7 @@ def write_history(state: TimingHistory, path: Path) -> None:
 def learn_with_history(
     reports: list[Path], *, history: Path, key: str, output: Path,
     complete_files: bool, observed_at: datetime, working_directory: Path = Path("."),
-    inventory: Path | None = None, snapshots: list[TimingHistory] = (),
+    inventory: Path | None = None, snapshots: Sequence[TimingHistory] = (),
     run_id: int = 0, attempt: int = 0,
 ) -> LearnedTimings:
     """Validate before mutation; retain untouched files and reject stale observations.

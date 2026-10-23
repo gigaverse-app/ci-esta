@@ -124,16 +124,22 @@ def test_download_budget_never_silently_discards_an_uncovered_writer():
 
 @pytest.mark.parametrize("event,branch,publish", [("push", "main", True), ("pull_request", "main", False),
                                                 ("push", "feature", False)])
-def test_action_learns_partial_run_and_gates_publication(tmp_path, monkeypatch, event, branch, publish):
+@pytest.mark.parametrize("replay", [False, True])
+def test_action_learns_partial_run_and_gates_publication(tmp_path, monkeypatch, event, branch, publish, replay):
     monkeypatch.chdir(tmp_path)
     import subprocess
     subprocess.run(["git", "init", "-q"], check=True)
     Path("test_a.py").write_text("def test_ok(): pass\n")
     Path("test_b.py").write_text("def test_ok(): pass\n")
     subprocess.run(["git", "add", "*.py"], check=True)
-    Path("junit.xml").write_text('<testsuite><testcase file="test_b.py" time="20"/></testsuite>')
+    file = "test_a.py" if replay else "test_b.py"
+    Path("junit.xml").write_text(f'<testsuite><testcase file="{file}" time="20"/></testsuite>')
     server = ArtifactServer({10: checkpoint(1, "test_a.py", 10)})
     server.runs[2] = {**server.runs[1], "id": 2, "event": event, "head_branch": branch, "status": "in_progress"}
+    if replay:
+        # Re-running reporting for an old checkout must not give its reports a
+        # fresh position after a newer main workflow's observations.
+        server.runs[2].update(created_at="2026-10-20T00:00:00Z", run_started_at="2026-10-24T00:00:00Z")
     monkeypatch.setattr(timing_feedback, "github_client", server.client)
     for key, value in {
         "INPUT_JUNIT_PATTERN": "junit.xml", "INPUT_TIMING_OUTPUT": "costs.json",
@@ -143,7 +149,9 @@ def test_action_learns_partial_run_and_gates_publication(tmp_path, monkeypatch, 
     }.items():
         monkeypatch.setenv(key, value)
     timing_feedback.main()
-    assert json.loads(Path("costs.json").read_text()) == {"test_a.py": 10, "test_b.py": 20}
+    assert json.loads(Path("costs.json").read_text()) == (
+        {"test_a.py": 10} if replay else {"test_a.py": 10, "test_b.py": 20}
+    )
     assert f"publish={str(publish).lower()}" in Path("output").read_text()
 
 

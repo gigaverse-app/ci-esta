@@ -104,6 +104,9 @@ can authorize omitting a test or satisfy a completion gate.
 
 Each run publishes its own checkpoint artifact. A subsequent reader reconciles
 every uncovered checkpoint by source observation time, not finish/download time.
+The GitHub adapter orders observations by original workflow creation time, run
+ID and attempt. Re-running an old checkout, including its reporting job alone,
+therefore cannot make old reports supersede a newer workflow's measurements.
 If A and B start from the same history and observe different files, both updates
 survive even if they finish in reverse order. A new checkpoint records the artifact
 IDs it incorporated, so later readers skip those ancestors. Normally one checkpoint

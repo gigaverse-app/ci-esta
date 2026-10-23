@@ -7,6 +7,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from zipfile import BadZipFile
 
 import httpx
 
@@ -92,7 +93,7 @@ def restore() -> None:
         if states or not output.exists():
             state.export(output)
         print(f"Restored {len(state.observations)} timing observations from {len(states)} checkpoints")
-    except (ValueError, OSError, httpx.HTTPError) as exc:
+    except (ValueError, OSError, BadZipFile, httpx.HTTPError) as exc:
         if os.environ.get("INPUT_HISTORY_STRICT", "false") == "true":
             raise
         print(f"::warning::Timing history unavailable ({type(exc).__name__}); retaining seed or inventory fallback")

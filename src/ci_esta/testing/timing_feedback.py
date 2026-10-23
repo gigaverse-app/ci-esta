@@ -22,7 +22,9 @@ def main() -> None:
             learned = learn_with_history(
                 reports, history=history, key=key, output=output,
                 complete_files=os.environ.get("INPUT_COMPLETE_FILES") == "true",
-                observed_at=run.run_started_at or run.created_at,
+                # Keep reruns of an old checkout before newer source workflows,
+                # including reporting-only reruns that download earlier reports.
+                observed_at=run.created_at,
                 snapshots=action_histories(client, key), run_id=run.id, attempt=run.run_attempt,
             )
             publish = (
