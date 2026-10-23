@@ -8,14 +8,17 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pytest_selective.impact_models import SelectionExplanation
+
+    from ci_esta.ci_observability.python_selection_models import LaneSelectionSectionV1, SelectionSectionV1
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
-from pytest_selective.ci import LanePlan
-from pytest_selective.impact_models import ExplanationUnavailable, SelectionExplanation
 
 from ci_esta.ci_observability.enrichment.profiles import pytest_timings
 from ci_esta.ci_observability.github import GitHubActionsClient
-from ci_esta.ci_observability.lanes import skipped_reference
 from ci_esta.ci_observability.models import (
     CiObservabilityReportV1,
     CommitStatusGateSelectorV1,
@@ -24,10 +27,8 @@ from ci_esta.ci_observability.models import (
     GitHubJobV1,
     GitHubRunJobsV1,
     GitHubRunV1,
-    LaneSelectionSectionV1,
     RepositorySignalV1,
     RunnerSkuRateV1,
-    SelectionSectionV1,
 )
 from ci_esta.ci_observability.report import (
     build_report,
@@ -37,12 +38,12 @@ from ci_esta.ci_observability.report import (
     sticky_marker,
     sticky_snapshot,
 )
+from ci_esta.ci_observability.work_selection import WorkSelectionV1
 
 GATE_SELECTORS_ADAPTER = TypeAdapter(list[GateSelectorV1])
 EXTENSIONS_ADAPTER = TypeAdapter(dict[str, JsonValue])
 REPOSITORY_SIGNALS_ADAPTER = TypeAdapter(list[RepositorySignalV1])
 RUNNER_SKU_RATES_ADAPTER = TypeAdapter(list[RunnerSkuRateV1])
-EXPLANATION_ADAPTER = TypeAdapter(SelectionExplanation | ExplanationUnavailable)
 #: Recent comparable full-suite runs the saving takes the median of, so one odd run cannot set it.
 REFERENCE_SAMPLE = 5
 #: A reference counts only while its suite has about the size of this run's.
@@ -76,6 +77,7 @@ class ActionConfig(BaseModel):
     lane_selection_artifact: str = ""
     #: Keys the sticky, so several observed workflows each keep their own comment.
     sticky_key: str = ""
+    work_selection_artifact: str = ""
     job_dependencies: dict[str, list[str]] = Field(default_factory=dict)
     analyze_critical_path: bool = False
 
@@ -115,6 +117,7 @@ class ActionConfig(BaseModel):
                 os.environ.get("INPUT_FULL_SUITE_REFERENCE_OUTPUT", "ci-full-suite-reference.json")
             ),
             lane_selection_artifact=os.environ.get("INPUT_LANE_SELECTION_ARTIFACT", "").strip(),
+            work_selection_artifact=os.environ.get("INPUT_WORK_SELECTION_ARTIFACT", "").strip(),
             sticky_key=os.environ.get("INPUT_STICKY_KEY", "").strip(),
             job_dependencies=TypeAdapter(dict[str, list[str]]).validate_json(
                 os.environ.get("INPUT_JOB_DEPENDENCIES_JSON", "{}")),
@@ -158,7 +161,8 @@ def _explanation(client: GitHubActionsClient, name: str, run: GitHubRunV1) -> Se
     """This run's newest explanation, or None when there is none or its plan fell back."""
     for artifact in client.list_artifacts(name, run_id=run.id):
         if artifact.from_same_repository:
-            explanation = EXPLANATION_ADAPTER.validate_json(client.read_single_file_artifact(artifact.id))
+            from pytest_selective.impact_models import ExplanationUnavailable, SelectionExplanation
+            explanation = TypeAdapter(SelectionExplanation | ExplanationUnavailable).validate_json(client.read_single_file_artifact(artifact.id))
             return explanation if isinstance(explanation, SelectionExplanation) else None
     return None
 
@@ -211,6 +215,7 @@ def _test_selection(client: GitHubActionsClient, config: ActionConfig, run: GitH
             references = _references(client, config.full_suite_reference_artifact, run, explanation.total)
         except Exception as error:
             print(f"::warning::Full-suite references unavailable; the saving is unknown: {error}")
+    from ci_esta.ci_observability.python_selection_models import SelectionSectionV1
     return SelectionSectionV1(explanation=explanation, pytest=pytest_timings(config.extensions), references=references)
 
 
@@ -237,6 +242,10 @@ def _lane_selection(
         )
         if artifact is None:
             return None
+        from pytest_selective.ci import LanePlan
+
+        from ci_esta.ci_observability.lanes import skipped_reference
+        from ci_esta.ci_observability.python_selection_models import LaneSelectionSectionV1
         plan = LanePlan.model_validate_json(client.read_single_file_artifact(artifact.id))
     except Exception as error:
         print(f"::warning::Lane selection section unavailable: {error}")
@@ -254,6 +263,23 @@ def _lane_selection(
         print(f"::warning::Skipped-lane cost unavailable: {error}")
         reference = None
     return LaneSelectionSectionV1(plan=plan, reference=reference)
+
+
+def _work_selection(client: GitHubActionsClient, config: ActionConfig, run: GitHubRunV1) -> WorkSelectionV1 | None:
+    if not config.work_selection_artifact:
+        return None
+    try:
+        for artifact in client.list_artifacts(config.work_selection_artifact, run_id=run.id):
+            if not artifact.from_same_repository:
+                continue
+            plan = WorkSelectionV1.model_validate_json(client.read_single_file_artifact(artifact.id))
+            # Artifacts from an earlier attempt or another revision cannot explain this run.
+            if (plan.run_id, plan.run_attempt, plan.head_sha) != (run.id, run.run_attempt, run.head_sha):
+                raise ValueError("work selection does not match source run/attempt/head")
+            return plan
+    except Exception as error:
+        print(f"::warning::Work selection section unavailable: {error}")
+    return None
 
 
 def _own_reference(
@@ -370,6 +396,7 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
             lane_selection=lane_selection,
             job_dependencies=job_dependencies,
         )
+        report = report.model_copy(update={"work_selection": _work_selection(client, config, run_metadata)})
         reference_to_record = _own_reference(report, config, run_metadata, observed_at)
     except Exception as error:
         report = build_unavailable_report(

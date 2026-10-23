@@ -55,7 +55,6 @@ dependencies = [
     { name = "defusedxml" },
     { name = "httpx" },
     { name = "pydantic" },
-    { name = "pytest-selective" },
     { name = "pyyaml" },
 ]
 
@@ -65,6 +64,10 @@ postgres = [
 ]
 pytest = [
     { name = "pytest" },
+    { name = "pytest-selective" },
+]
+selection = [
+    { name = "pytest-selective" },
 ]
 
 [package.dev-dependencies]
@@ -73,6 +76,7 @@ dev = [
     { name = "import-linter" },
     { name = "psycopg", extra = ["binary"] },
     { name = "pytest" },
+    { name = "pytest-selective" },
     { name = "pytest-xdist" },
     { name = "pyyaml" },
     { name = "ruff" },
@@ -85,10 +89,11 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.2,<4" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "pytest", marker = "extra == 'pytest'", specifier = ">=8" },
-    { name = "pytest-selective", specifier = ">=0.1.1,<0.2.0" },
+    { name = "pytest-selective", marker = "extra == 'pytest'", specifier = ">=0.1.1,<0.2.0" },
+    { name = "pytest-selective", marker = "extra == 'selection'", specifier = ">=0.1.1,<0.2.0" },
     { name = "pyyaml", specifier = ">=6,<7" },
 ]
-provides-extras = ["pytest", "postgres"]
+provides-extras = ["selection", "pytest", "postgres"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -96,6 +101,7 @@ dev = [
     { name = "import-linter", specifier = ">=2.5,<3" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
     { name = "pytest", specifier = ">=8" },
+    { name = "pytest-selective", specifier = ">=0.1.1,<0.2.0" },
     { name = "pytest-xdist", specifier = ">=3.6" },
     { name = "pyyaml", specifier = ">=6" },
     { name = "ruff", specifier = ">=0.14" },

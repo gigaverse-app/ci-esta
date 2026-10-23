@@ -37,10 +37,12 @@ class CriticalPathResult(BaseModel):
     nodes: list[PathNode] = Field(default_factory=list)
 
 
-def analyze(created_at: datetime, jobs: list[GitHubJobV1],
+def analyze(created_at: datetime | None, jobs: list[GitHubJobV1],
             dependencies: dict[str, list[str]], gates: list[str]) -> CriticalPathResult:
     """Reject ambiguous/incomplete evidence while leaving the ordinary report useful."""
     try:
+        if created_at is None:
+            raise ValueError("Run attempt start timestamp is unavailable")
         return _analyze(created_at, jobs, dependencies, gates)
     except (ValueError, CycleError) as error:
         return CriticalPathResult(status="unavailable", reason=str(error))

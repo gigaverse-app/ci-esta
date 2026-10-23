@@ -1,102 +1,8 @@
 {
   "$defs": {
-    "BlastRadiusChange": {
-      "additionalProperties": false,
-      "description": "A file whose change now selects many more test files than before this PR.",
-      "properties": {
-        "path": {
-          "title": "Path",
-          "type": "string"
-        },
-        "before": {
-          "title": "Before",
-          "type": "integer"
-        },
-        "after": {
-          "title": "After",
-          "type": "integer"
-        },
-        "cause": {
-          "items": {
-            "$ref": "#/$defs/PathStep"
-          },
-          "title": "Cause",
-          "type": "array"
-        }
-      },
-      "required": [
-        "path",
-        "before",
-        "after"
-      ],
-      "title": "BlastRadiusChange",
-      "type": "object"
-    },
-    "ChangedFileReach": {
-      "additionalProperties": false,
-      "description": "One changed file's share of the selection: who loads it, and through what.\n\n`own` separates what the startup floor adds: the selected tests that would still load this\nfile if the floor's entries (root conftest, startup modules, package initializers every test\nloads) imported nothing. Outside the floor, the hub is the file most of the remaining indirect\nloaders depend on directly on their way to the change, such as a directory conftest or a URL\nconfiguration a policy attaches to every HTTP test. Tests that import the change directly are\nits real users.",
-      "properties": {
-        "path": {
-          "title": "Path",
-          "type": "string"
-        },
-        "tests": {
-          "title": "Tests",
-          "type": "integer"
-        },
-        "direct": {
-          "title": "Direct",
-          "type": "integer"
-        },
-        "own": {
-          "title": "Own",
-          "type": "integer"
-        },
-        "hub": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Hub"
-        },
-        "hub_tests": {
-          "default": 0,
-          "title": "Hub Tests",
-          "type": "integer"
-        },
-        "hub_kind": {
-          "anyOf": [
-            {
-              "enum": [
-                "conftest",
-                "hooks",
-                "startup",
-                "package",
-                "import",
-                "declared"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Hub Kind"
-        }
-      },
-      "required": [
-        "path",
-        "tests",
-        "direct",
-        "own"
-      ],
-      "title": "ChangedFileReach",
+    "BaseModel": {
+      "properties": {},
+      "title": "BaseModel",
       "type": "object"
     },
     "CollectionStatus": {
@@ -207,173 +113,6 @@
       "title": "DirectPrerequisiteV1",
       "type": "object"
     },
-    "FloorChange": {
-      "additionalProperties": false,
-      "description": "The startup floor: non-test Python files that at least `share` of test files depend on.",
-      "properties": {
-        "share": {
-          "exclusiveMinimum": 0,
-          "maximum": 1,
-          "title": "Share",
-          "type": "number"
-        },
-        "before": {
-          "title": "Before",
-          "type": "integer"
-        },
-        "after": {
-          "title": "After",
-          "type": "integer"
-        },
-        "added": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Added",
-          "type": "array"
-        },
-        "removed": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Removed",
-          "type": "array"
-        },
-        "path": {
-          "items": {
-            "$ref": "#/$defs/PathStep"
-          },
-          "title": "Path",
-          "type": "array"
-        },
-        "files": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Files",
-          "type": "array"
-        },
-        "entries": {
-          "items": {
-            "$ref": "#/$defs/FloorEntry"
-          },
-          "title": "Entries",
-          "type": "array"
-        },
-        "cycle": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/FloorCycle"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        }
-      },
-      "required": [
-        "share",
-        "before",
-        "after"
-      ],
-      "title": "FloorChange",
-      "type": "object"
-    },
-    "FloorCycle": {
-      "additionalProperties": false,
-      "description": "The floor's largest import cycle: every member reaches every other.\n\nWhile the cycle holds, a startup file that loads one member loads all of them, so trimming\nwhat startup loads leaves the whole cycle in the floor as long as any route into it remains.",
-      "properties": {
-        "size": {
-          "title": "Size",
-          "type": "integer"
-        },
-        "hub": {
-          "title": "Hub",
-          "type": "string"
-        },
-        "hub_readers": {
-          "title": "Hub Readers",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "size",
-        "hub",
-        "hub_readers"
-      ],
-      "title": "FloorCycle",
-      "type": "object"
-    },
-    "FloorEntry": {
-      "additionalProperties": false,
-      "description": "A file most test files depend on directly: the floor is whatever the entries load.",
-      "properties": {
-        "path": {
-          "title": "Path",
-          "type": "string"
-        },
-        "kind": {
-          "enum": [
-            "conftest",
-            "hooks",
-            "startup",
-            "package",
-            "import",
-            "declared"
-          ],
-          "title": "Kind",
-          "type": "string"
-        },
-        "floor_files": {
-          "title": "Floor Files",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "path",
-        "kind",
-        "floor_files"
-      ],
-      "title": "FloorEntry",
-      "type": "object"
-    },
-    "FullSuiteReferenceV1": {
-      "additionalProperties": false,
-      "description": "A measured run of the complete default gate, the baseline a narrowed run's saving is against.\n\nRecorded by the reporter of a green same-repository run whose change reached every test file,\nso nothing forced the full suite (coverage, a schedule, a label). Read back as the median of\nthe newest few whose suite size matches.",
-      "properties": {
-        "timings": {
-          "$ref": "#/$defs/PytestTimingMetadata"
-        },
-        "total_files": {
-          "minimum": 1,
-          "title": "Total Files",
-          "type": "integer"
-        },
-        "run_id": {
-          "title": "Run Id",
-          "type": "integer"
-        },
-        "head_branch": {
-          "title": "Head Branch",
-          "type": "string"
-        },
-        "recorded_at": {
-          "format": "date-time",
-          "title": "Recorded At",
-          "type": "string"
-        }
-      },
-      "required": [
-        "timings",
-        "total_files",
-        "run_id",
-        "head_branch",
-        "recorded_at"
-      ],
-      "title": "FullSuiteReferenceV1",
-      "type": "object"
-    },
     "GateKind": {
       "enum": [
         "actions_job",
@@ -383,77 +122,6 @@
       "type": "string"
     },
     "JsonValue": {},
-    "LanePlan": {
-      "additionalProperties": false,
-      "properties": {
-        "lanes": {
-          "additionalProperties": {
-            "type": "boolean"
-          },
-          "title": "Lanes",
-          "type": "object"
-        },
-        "selected": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Selected",
-          "type": "array"
-        },
-        "changed": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Changed",
-          "type": "array"
-        },
-        "reason": {
-          "title": "Reason",
-          "type": "string"
-        },
-        "lane_reasons": {
-          "additionalProperties": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
-          "title": "Lane Reasons",
-          "type": "object"
-        }
-      },
-      "required": [
-        "lanes",
-        "reason"
-      ],
-      "title": "LanePlan",
-      "type": "object"
-    },
-    "LaneSelectionSectionV1": {
-      "additionalProperties": false,
-      "description": "What the sticky's lane section is rendered from: a pytest-selective lane plan.",
-      "properties": {
-        "plan": {
-          "$ref": "#/$defs/LanePlan"
-        },
-        "reference": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/SkippedLaneReferenceV1"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        }
-      },
-      "required": [
-        "plan"
-      ],
-      "title": "LaneSelectionSectionV1",
-      "type": "object"
-    },
     "ObservedGateV1": {
       "additionalProperties": false,
       "properties": {
@@ -963,95 +631,6 @@
       "title": "PathNode",
       "type": "object"
     },
-    "PathStep": {
-      "additionalProperties": false,
-      "description": "One file on an import path, and how it depends on the next step.",
-      "properties": {
-        "path": {
-          "title": "Path",
-          "type": "string"
-        },
-        "kind": {
-          "anyOf": [
-            {
-              "enum": [
-                "import",
-                "string",
-                "package",
-                "conftest",
-                "startup",
-                "declared"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Kind"
-        },
-        "line": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Line"
-        }
-      },
-      "required": [
-        "path"
-      ],
-      "title": "PathStep",
-      "type": "object"
-    },
-    "PytestTimingMetadata": {
-      "additionalProperties": false,
-      "description": "Shard count plus wall/summed pytest seconds, as captured post-run.\n\ngigaverse-backend called this ``PytestTimingMetadata`` and gigaverse-ai\ncalled it ``PytestSnapshot``; the fields (and therefore the JSON) were\nidentical.",
-      "properties": {
-        "shard_count": {
-          "minimum": 1,
-          "title": "Shard Count",
-          "type": "integer"
-        },
-        "wall_seconds": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Wall Seconds"
-        },
-        "total_test_seconds": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Total Test Seconds"
-        }
-      },
-      "required": [
-        "shard_count"
-      ],
-      "title": "PytestTimingMetadata",
-      "type": "object"
-    },
     "RepositorySignalV1": {
       "additionalProperties": false,
       "properties": {
@@ -1284,203 +863,6 @@
       "title": "RunnerSkuCostV1",
       "type": "object"
     },
-    "SelectionExplanation": {
-      "additionalProperties": false,
-      "description": "Why a selection is as large as it is, and whether the change widened the graph.",
-      "properties": {
-        "base": {
-          "title": "Base",
-          "type": "string"
-        },
-        "head": {
-          "title": "Head",
-          "type": "string"
-        },
-        "selected": {
-          "title": "Selected",
-          "type": "integer"
-        },
-        "total": {
-          "title": "Total",
-          "type": "integer"
-        },
-        "forced_full": {
-          "default": false,
-          "title": "Forced Full",
-          "type": "boolean"
-        },
-        "graph_base": {
-          "title": "Graph Base",
-          "type": "string"
-        },
-        "floor_seeds": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Floor Seeds",
-          "type": "array"
-        },
-        "routes": {
-          "items": {
-            "$ref": "#/$defs/SelectionRoute"
-          },
-          "title": "Routes",
-          "type": "array"
-        },
-        "path": {
-          "items": {
-            "$ref": "#/$defs/PathStep"
-          },
-          "title": "Path",
-          "type": "array"
-        },
-        "floor": {
-          "$ref": "#/$defs/FloorChange"
-        },
-        "changes": {
-          "items": {
-            "$ref": "#/$defs/ChangedFileReach"
-          },
-          "title": "Changes",
-          "type": "array"
-        },
-        "widened": {
-          "items": {
-            "$ref": "#/$defs/BlastRadiusChange"
-          },
-          "title": "Widened",
-          "type": "array"
-        }
-      },
-      "required": [
-        "base",
-        "head",
-        "selected",
-        "total",
-        "graph_base",
-        "floor"
-      ],
-      "title": "SelectionExplanation",
-      "type": "object"
-    },
-    "SelectionRoute": {
-      "additionalProperties": false,
-      "description": "A group of selected tests that reach the change the same way.",
-      "properties": {
-        "kind": {
-          "enum": [
-            "floor",
-            "changed",
-            "funnel",
-            "other",
-            "unreached"
-          ],
-          "title": "Kind",
-          "type": "string"
-        },
-        "tests": {
-          "title": "Tests",
-          "type": "integer"
-        },
-        "via": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Via"
-        },
-        "parent": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Parent"
-        }
-      },
-      "required": [
-        "kind",
-        "tests"
-      ],
-      "title": "SelectionRoute",
-      "type": "object"
-    },
-    "SelectionSectionV1": {
-      "additionalProperties": false,
-      "description": "What the sticky's test-selection section is rendered from.",
-      "properties": {
-        "explanation": {
-          "$ref": "#/$defs/SelectionExplanation"
-        },
-        "pytest": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PytestTimingMetadata"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "references": {
-          "items": {
-            "$ref": "#/$defs/FullSuiteReferenceV1"
-          },
-          "title": "References",
-          "type": "array"
-        }
-      },
-      "required": [
-        "explanation"
-      ],
-      "title": "SelectionSectionV1",
-      "type": "object"
-    },
-    "SkippedLaneReferenceV1": {
-      "additionalProperties": false,
-      "description": "What the jobs a run skipped took on the default branch's last run that executed them all.",
-      "properties": {
-        "run_id": {
-          "title": "Run Id",
-          "type": "integer"
-        },
-        "head_branch": {
-          "title": "Head Branch",
-          "type": "string"
-        },
-        "jobs": {
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1,
-          "title": "Jobs",
-          "type": "array"
-        },
-        "runner_seconds": {
-          "minimum": 0,
-          "title": "Runner Seconds",
-          "type": "number"
-        }
-      },
-      "required": [
-        "run_id",
-        "head_branch",
-        "jobs",
-        "runner_seconds"
-      ],
-      "title": "SkippedLaneReferenceV1",
-      "type": "object"
-    },
     "TimingStatus": {
       "enum": [
         "complete",
@@ -1489,6 +871,114 @@
       ],
       "title": "TimingStatus",
       "type": "string"
+    },
+    "WorkDecisionV1": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "run",
+            "unaffected",
+            "reused"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "receipt": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Receipt"
+        }
+      },
+      "required": [
+        "name",
+        "decision",
+        "reason"
+      ],
+      "title": "WorkDecisionV1",
+      "type": "object"
+    },
+    "WorkSelectionV1": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "ci-esta/work-selection/v1",
+          "default": "ci-esta/work-selection/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "provider": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "run_id": {
+          "exclusiveMinimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "run_attempt": {
+          "exclusiveMinimum": 0,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "input_identity": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Input Identity",
+          "type": "string"
+        },
+        "fallback": {
+          "default": false,
+          "title": "Fallback",
+          "type": "boolean"
+        },
+        "decisions": {
+          "items": {
+            "$ref": "#/$defs/WorkDecisionV1"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Decisions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "provider",
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "input_identity",
+        "decisions"
+      ],
+      "title": "WorkSelectionV1",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -1636,18 +1126,43 @@
     "test_selection": {
       "anyOf": [
         {
-          "$ref": "#/$defs/SelectionSectionV1"
+          "$ref": "#/$defs/BaseModel"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
         },
         {
           "type": "null"
         }
       ],
-      "default": null
+      "default": null,
+      "title": "Test Selection"
     },
     "lane_selection": {
       "anyOf": [
         {
-          "$ref": "#/$defs/LaneSelectionSectionV1"
+          "$ref": "#/$defs/BaseModel"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lane Selection"
+    },
+    "work_selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkSelectionV1"
         },
         {
           "type": "null"

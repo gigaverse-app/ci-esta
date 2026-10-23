@@ -7,14 +7,12 @@ from __future__ import annotations
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
-from statistics import median
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
-from pytest_selective.ci import LanePlan
-from pytest_selective.impact_models import SelectionExplanation
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, SerializeAsAny, field_validator, model_validator
 
 from ci_esta.ci_observability.critical_path import CriticalPathResult
+from ci_esta.ci_observability.work_selection import WorkSelectionV1
 
 
 class CollectionStatus(StrEnum):
@@ -313,25 +311,6 @@ class FullSuiteReferenceV1(BaseModel):
         return self.timings.wall_seconds
 
 
-class SelectionSectionV1(BaseModel):
-    """What the sticky's test-selection section is rendered from."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    explanation: SelectionExplanation
-    pytest: PytestTimingMetadata | None = None
-    #: Recent comparable full-suite runs, newest first; the saving is against their median.
-    references: list[FullSuiteReferenceV1] = Field(default_factory=list)
-
-    @property
-    def baseline_test_seconds(self) -> float | None:
-        return median(reference.test_seconds for reference in self.references) if self.references else None
-
-    @property
-    def baseline_wall_seconds(self) -> float | None:
-        return median(reference.wall_seconds for reference in self.references) if self.references else None
-
-
 class SkippedLaneReferenceV1(BaseModel):
     """What the jobs a run skipped took on the default branch's last run that executed them all."""
 
@@ -342,16 +321,6 @@ class SkippedLaneReferenceV1(BaseModel):
     #: Reference job names whose family this run skipped, as GitHub names them.
     jobs: list[str] = Field(min_length=1)
     runner_seconds: float = Field(ge=0)
-
-
-class LaneSelectionSectionV1(BaseModel):
-    """What the sticky's lane section is rendered from: a pytest-selective lane plan."""
-
-    model_config = ConfigDict(frozen=True, extra="forbid")
-
-    plan: LanePlan
-    #: An estimate of the work skipping avoided; None when no comparable run is available.
-    reference: SkippedLaneReferenceV1 | None = None
 
 
 class RunProvenanceV1(BaseModel):
@@ -412,10 +381,26 @@ class CiObservabilityReportV1(BaseModel):
     repository_signals: list[RepositorySignalV1] = Field(default_factory=list, max_length=32)
     extensions: dict[str, JsonValue] = Field(default_factory=dict)
     #: Only on reports that post the sticky, and only when the run uploaded a selection explanation.
-    test_selection: SelectionSectionV1 | None = None
+    test_selection: SerializeAsAny[BaseModel] | dict[str, JsonValue] | None = None
     #: Only when the run uploaded a pytest-selective lane plan.
-    lane_selection: LaneSelectionSectionV1 | None = None
+    lane_selection: SerializeAsAny[BaseModel] | dict[str, JsonValue] | None = None
+    work_selection: WorkSelectionV1 | None = None
     critical_path: CriticalPathResult | None = None
+
+    @property
+    def attempt_elapsed_seconds(self) -> float | None:
+        """Gate latency for this attempt; retain literal creation metrics separately."""
+        if self.provenance.run_attempt > 1:
+            return self.merge_ready_from_run_start_seconds
+        return self.merge_ready_from_creation_seconds
+
+    @field_validator("test_selection", "lane_selection", mode="before")
+    @classmethod
+    def validate_optional_selection(cls, value, info):
+        if value is None:
+            return None
+        from ci_esta.ci_observability.optional_selection import validate_legacy_section
+        return validate_legacy_section(info.field_name, value)
 
     @model_validator(mode="after")
     def validate_status_errors(self) -> "CiObservabilityReportV1":
@@ -423,7 +408,19 @@ class CiObservabilityReportV1(BaseModel):
             raise ValueError("complete reports cannot contain collection errors")
         if self.collection_status != CollectionStatus.COMPLETE and not self.collection_errors:
             raise ValueError("partial or unavailable reports require a collection error")
+        if self.work_selection is not None:
+            plan, source = self.work_selection, self.provenance
+            if (plan.run_id, plan.run_attempt, plan.head_sha) != (source.run_id, source.run_attempt, source.head_sha):
+                raise ValueError("work selection does not match report provenance")
         signal_keys = [signal.key for signal in self.repository_signals]
         if len(signal_keys) != len(set(signal_keys)):
             raise ValueError("repository signal keys must be unique")
         return self
+
+
+def __getattr__(name: str):
+    # Preserve existing Python consumers without importing their provider for base reporting.
+    if name in {"SelectionSectionV1", "LaneSelectionSectionV1"}:
+        from ci_esta.ci_observability import python_selection_models
+        return getattr(python_selection_models, name)
+    raise AttributeError(name)

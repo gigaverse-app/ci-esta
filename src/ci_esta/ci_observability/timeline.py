@@ -20,7 +20,7 @@ import math
 from datetime import datetime, timedelta
 
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
-from ci_esta.ci_observability.lanes import job_family
+from ci_esta.ci_observability.job_names import job_family
 from ci_esta.ci_observability.models import CiObservabilityReportV1, ObservedJobV1, TimingStatus
 
 #: A predecessor finished at most this long before its successor was created...
@@ -174,12 +174,12 @@ def _chain(report: CiObservabilityReportV1, jobs: list[ObservedJobV1]) -> tuple[
     if path is not None and path.status == "complete":
         names = set(path.observed_path)
         return {job.job_id for job in jobs if job.name in names}, True
-    return {job.job_id for job in critical_chain(jobs, report.merge_ready_from_creation_seconds)}, False
+    return {job.job_id for job in critical_chain(jobs, report.attempt_elapsed_seconds)}, False
 
 
 def render_timeline(report: CiObservabilityReportV1) -> list[str]:
     jobs = _timed(report)
-    merge_ready = report.merge_ready_from_creation_seconds
+    merge_ready = report.attempt_elapsed_seconds
     if not jobs and merge_ready is None:
         return []
     chain, from_graph = _chain(report, jobs)

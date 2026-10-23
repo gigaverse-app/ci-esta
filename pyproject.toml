@@ -11,12 +11,13 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{name = "Gigaverse"}]
-dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7", "pytest-selective>=0.1.1,<0.2.0"]
+dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7"]
 keywords = ["github-actions", "ci-observability", "ci-optimization", "continuous-integration", "prometheus"]
 classifiers = ["Intended Audience :: Developers", "Topic :: Software Development :: Build Tools", "Programming Language :: Python :: 3", "Typing :: Typed"]
 
 [project.optional-dependencies]
-pytest = ["pytest>=8"]
+selection = ["pytest-selective>=0.1.1,<0.2.0"]
+pytest = ["pytest>=8", "pytest-selective>=0.1.1,<0.2.0"]
 postgres = ["psycopg[binary]>=3.2,<4"]
 
 [project.scripts]
@@ -35,7 +36,7 @@ Repository = "https://github.com/gigaverse-app/ci-esta"
 Issues = "https://github.com/gigaverse-app/ci-esta/issues"
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3", "psycopg[binary]>=3.2,<4"]
+dev = ["pytest-selective>=0.1.1,<0.2.0", "pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3", "psycopg[binary]>=3.2,<4"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ci_esta"]
