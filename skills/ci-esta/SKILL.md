@@ -68,12 +68,14 @@ or committed reports.
 - For a repository whose actual test command uses Bun, use the
   [Bun adapter](https://github.com/gigaverse-app/ci-esta/blob/main/docs/bun-test-selection.md) and native `--changed=<base>`.
   TypeScript does not imply Bun: inspect the runner first. Keep repository
-  discovery authoritative, declare always-run contracts and non-import inputs,
+  discovery authoritative, declare contract-test dependencies and non-import inputs,
   retain isolation/batching and full checkpoints, and compare actual inventories
   and elapsed times on the same revision. Do not install pytest-selective into
   a JavaScript project or copy a consumer's import graph/allowlist into CI-esta.
-- For broad workflow triggers in any language, map job inputs and preserve
-  always-running docs/package checks. Add real change-based routing controls,
+- For broad workflow triggers in any language, map every test command to its inputs,
+  including routing contracts, package runtime smoke and separate action workflows.
+  Unreferenced documentation must execute zero tests. Keep metadata/documentation
+  validation separate from runtime tests. Add real change-based routing controls,
   including relevant code/lock/workflow changes and unknown-input fallbacks.
 - For redundant PR revisions, check existing concurrency before adding it.
   Scope supersession to the same PR/workflow; preserve deliberate full runs.

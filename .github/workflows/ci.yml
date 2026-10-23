@@ -111,6 +111,8 @@ jobs:
             {"plan":true,"quality":true,"tests":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').tests) }},"compat":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').compat) }}}
 
   quality:
+    needs: plan
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -123,12 +125,15 @@ jobs:
         with:
           bun-version: '1.4.2'
       - name: Exercise native Bun selection and fallback controls
+        if: ${{ needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
         run: node --test tests/github_actions/bun-selection.test.mjs tests/github_actions/bun-work-report.test.mjs
-      - name: Always exercise routing and gate contracts
+      - name: Exercise selected routing and gate contracts
+        if: ${{ needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
         run: uv run pytest -q tests/ci/test_repository_routing.py tests/ci/test_validation_gate.py tests/testing/test_workflow_adoption.py
       - run: uv build
       - run: uvx --from twine==7.0.0 twine check --strict dist/*
       - name: Verify installed wheel
+        if: ${{ needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
         run: |
           uv venv "$RUNNER_TEMP/wheel-test" --python 3.11
           uv pip install --python "$RUNNER_TEMP/wheel-test/bin/python" dist/*.whl
@@ -139,6 +144,7 @@ jobs:
           CI_TEST_RESOURCE_OBSERVABILITY=true "$RUNNER_TEMP/wheel-test/bin/ci-esta-resources" \
             "$RUNNER_TEMP/wheel-test/bin/ci-esta-pytest" pools --shards 13 --shards-per-runner 12
       - name: Verify source distribution
+        if: ${{ needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
         run: |
           uv venv "$RUNNER_TEMP/sdist-test" --python 3.14
           uv pip install --python "$RUNNER_TEMP/sdist-test/bin/python" "$(find dist -name '*.tar.gz' -print -quit)[pytest]"
