@@ -11,9 +11,9 @@ from decimal import Decimal
 
 from pydantic import BaseModel, JsonValue
 
-from ci_esta.ci_observability import brand, markdown, optional_selection
+from ci_esta.ci_observability import brand, markdown, optional_selection, work_selection
 from ci_esta.ci_observability.critical_path import analyze
-from ci_esta.ci_observability.efficiency import render_avoided_work, render_sharding, reused_lane_count
+from ci_esta.ci_observability.efficiency import render_avoided_work, render_sharding, reuse_badge
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.impact import render_impact
 from ci_esta.ci_observability.models import (
@@ -43,8 +43,6 @@ from ci_esta.ci_observability.models import (
     TimingStatus,
 )
 from ci_esta.ci_observability.timeline import render_timeline
-from ci_esta.ci_observability.work_selection import render_work_selection
-from ci_esta.measurements import ReuseMeasurement
 
 STICKY_MARKER = "<!-- ci-observability-v1 -->"
 #: The keyed sticky marker's prefix. A bare marker is never a substring of a keyed one.
@@ -476,15 +474,6 @@ def sticky_marker(key: str = "") -> str:
     return f"{STICKY_KEY_MARKER_PREFIX}{slug} -->" if slug else STICKY_MARKER
 
 
-def _cost(report: CiObservabilityReportV1) -> list[str]:
-    if report.collection_status == CollectionStatus.UNAVAILABLE:
-        return ["runner usage unavailable"]
-    parts = [f"{report.runner_cost.estimated_rounded_runner_minutes} rounded runner-min"]
-    if report.runner_cost.estimated_cost_usd is not None:
-        parts.append(f"${report.runner_cost.estimated_cost_usd:.2f}")
-    return parts
-
-
 def _readiness(report: CiObservabilityReportV1) -> brand.Badge | None:
     """Merge readiness, colored by status; None when no required gate is configured."""
     if not report.required_gates:
@@ -498,19 +487,25 @@ def _readiness(report: CiObservabilityReportV1) -> brand.Badge | None:
 
 def _cost_badges(report: CiObservabilityReportV1) -> list[brand.Badge]:
     if report.collection_status == CollectionStatus.UNAVAILABLE:
-        return [brand.Badge("runner", "unavailable", brand.AMBER)]
+        return [brand.unavailable("runner"), brand.unavailable("est. cost")]
     cost = report.runner_cost
     badges = [brand.Badge("runner", f"{cost.estimated_rounded_runner_minutes} min", brand.GREY)]
-    if cost.estimated_cost_usd is not None:
-        badges.append(brand.Badge("cost", f"${cost.estimated_cost_usd:.2f}", brand.GREY))
+    badges.append(brand.Badge("est. cost", f"${cost.estimated_cost_usd:.2f}", brand.GREY)
+                  if cost.estimated_cost_usd is not None else brand.unavailable("est. cost"))
     return badges
 
 
-def _latency_summary(report: CiObservabilityReportV1) -> str:
-    """One line standing in for the latency and cost report when it is collapsed."""
-    gates = report.attempt_elapsed_seconds
-    parts = [f"merge-ready in {format_seconds(gates)}" if gates is not None else _readiness_label(report)]
-    return " · ".join([*parts, *_cost(report)])
+def _work_badges(report: CiObservabilityReportV1) -> list[brand.Badge]:
+    """One ordered vocabulary for every provider; missing evidence stays unknown."""
+    selected, executed = (brand.unavailable(label) for label in ("selected", "executed"))
+    if report.work_selection is not None:
+        selected, executed = work_selection.badges(report.work_selection)
+    if report.test_selection is not None or report.lane_selection is not None:
+        section = report.test_selection if report.test_selection is not None else report.lane_selection
+        figures = optional_selection.badges(section, lanes=report.test_selection is None)
+        if figures:
+            selected = figures[0]
+    return [selected, executed, reuse_badge(report)]
 
 
 def _check_status(report: CiObservabilityReportV1) -> str:
@@ -533,18 +528,13 @@ def _header(report: CiObservabilityReportV1) -> list[str]:
     """The banner, then one line of badges: readiness, what ran and saved, and what it cost."""
     provenance = report.provenance
     verdict = [item for item in [_readiness(report)] if item is not None]
-    if report.test_selection is not None:
-        verdict.extend(optional_selection.badges(report.test_selection))
-    elif report.lane_selection is not None:
-        verdict.extend(optional_selection.badges(report.lane_selection, lanes=True))
-    if any(isinstance(item, ReuseMeasurement) for item in report.measurements):
-        verdict.append(brand.Badge("reused", f"{reused_lane_count(report)} lanes", brand.BLUE))
-    verdict.extend(_cost_badges(report))
+    verdict.extend(_work_badges(report))
     workflow = f"{markdown.inline(provenance.workflow_name)} · " if provenance.workflow_name else ""
     return [
         brand.banner(),
         "",
-        " ".join(brand.badge(item) for item in verdict),
+        " ".join(brand.badge(item) for item in verdict) + "<br>\n" +
+        " ".join(brand.badge(item) for item in _cost_badges(report)),
         "",
         f"{_check_status(report)} {workflow}{markdown.code(provenance.head_sha[:7])} · attempt {provenance.run_attempt} · "
         f"{report.collection_status.value} snapshot",
@@ -561,17 +551,18 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
     With a selection section the latency report folds into one closed expander, so the sticky
     reads as the section an author acts on, with timings and cost one click away.
     """
-    sections = []
+    selection_details = []
     if report.work_selection is not None:
-        plan = report.work_selection
-        requested = sum(item.decision == "run" for item in plan.decisions)
-        sections.append(markdown.report_section("Work selection and execution",
-                        [f"{requested} / {len(plan.decisions)} work units requested"], [render_work_selection(plan)],
-                        note="Admission plan; execution outcomes in details"))
+        selection_details.append(work_selection.render_work_selection(report.work_selection))
     if report.test_selection is not None:
-        sections.append(optional_selection.render(report.test_selection, report.provenance.repository))
+        selection_details.append(optional_selection.render(report.test_selection, report.provenance.repository))
     if report.lane_selection is not None:
-        sections.append(optional_selection.render(report.lane_selection, report.provenance.repository, lanes=True))
+        selection_details.append(optional_selection.render(report.lane_selection, report.provenance.repository, lanes=True))
+    sections = [markdown.report_section("Selection and execution",
+                [],
+                ["Selected is the plan; executed is observed; reused requires a receipt. Units can differ.", "",
+                 *(selection_details or ["Selection and execution evidence was not recorded."])],
+                metrics=_work_badges(report))]
     impact = [render_impact(report.measured_impact, report.provenance.repository)] if report.measured_impact else []
     attempts = []
     if len(report.runner_cost.billed_attempts) > 1:
@@ -582,10 +573,11 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
                     f"Earlier attempts: **{format_seconds(prior)}**. "
                     "The runner badge includes all attempts; merge-ready describes the latest attempt.", ""]
     sections += [render_avoided_work(report), render_sharding(report),
-                 markdown.report_section("CI time and cost", [_latency_summary(report)],
-                                         [*attempts, *impact, *_latency_lines(report)],
-                                         note=("Latest attempt; runner usage includes all attempts" if attempts else
-                                               "This attempt · timeline, bottlenecks, and billing detail"))]
+                 markdown.report_section("CI time and cost", [],
+                                         ["Runner minutes use per-job rounding; cost is an estimate.", "",
+                                          *attempts, *impact, *_latency_lines(report)],
+                                         metrics=[_readiness(report) or brand.unavailable("merge-ready"),
+                                                  *_cost_badges(report)])]
     body = "\n---\n\n".join(sections)
     return "\n".join([*_header(report), body, "", "---", "", *_footer(report, marker)])
 

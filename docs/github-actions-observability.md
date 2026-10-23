@@ -26,7 +26,7 @@ permissions:
   pull-requests: write # Only to post the sticky; use read to keep the report in the job summary.
 jobs:
   report:
-    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@<reviewed-commit>
+    uses: gigaverse-app/ci-esta/.github/workflows/report.yml@v1
     with:
       run-id: ${{ github.event.workflow_run.id }}
       run-attempt: ${{ github.event.workflow_run.run_attempt }}
@@ -34,8 +34,7 @@ jobs:
       required-gates-json: '[{"kind":"actions_job","job_name":"Validation gate"}]'
       pull-request-number: ${{ format('{0}', github.event.workflow_run.pull_requests[0].number || '') }}
       post-sticky: true
-      # When `workflows:` lists several workflows, give each its own sticky:
-      # sticky-key: ${{ github.event.workflow_run.name }}
+      sticky-workflow: CI
 ```
 
 The observer must land on the default branch before `workflow_run` triggers it.
@@ -105,7 +104,58 @@ never earn a passed status. Readiness appears only when required gates are confi
 Enable `analyze-critical-path` to read the source workflow topology at its
 verified revision and compute dependency paths and execution slack. Timing
 adjacency alone is not a dependency edge; unsupported topology stays unavailable. A pull request keeps one sticky per `sticky-key`; each
-new run updates it in place, and an older run never overwrites a newer one.
+new run updates it in place. The publisher compares source run, attempt, completed
+gates and observation time before replacing a report.
+
+### Shared headlines and publication ownership
+
+Python and Bun use the same headline fields, in the same order: readiness,
+selected, executed, reused, runner minutes, and estimated cost. Both lead with
+the same **Selection and execution** section; provider-specific explanations
+stay inside it. Missing evidence is explicitly `unavailable`, never omitted or
+converted to zero.
+
+Python's `selected` count describes the plan before evidence reuse, not the
+files that actually ran. Bun's full/none modes establish selected-file counts
+(all files for full, always-run contracts for none);
+native scoped selection does not expose a separate plan inventory and remains
+unavailable. `executed` comes only from an observed file inventory. A failed
+full run can select every file while executing only some. A reused plan without
+an execution inventory does not invent one. Multiple work inventories are not
+summed because they can overlap. Reuse retains its evidence's units (lanes or
+work units), never file counts inferred from skipped jobs. None of these counts
+implies time saved or passing checks.
+
+The reusable workflow forwards `runner-sku-rates-json` to the same accounting
+code as direct action callers. Supply rates for the runner labels actually used:
+
+```yaml
+runner-sku-rates-json: '[{"sku":"actions_linux","runner_label":"ubuntu-latest","usd_per_minute":"0.006"}]'
+```
+
+This example uses the [standard Linux list rate](https://docs.github.com/en/billing/reference/actions-runner-pricing).
+Maintain the rates for your account. Cost is a per-job rounded-minute estimate
+before allowances and discounts, not an invoice. Missing or unmatched rates
+keep the total unavailable; a partially priced run is not presented as fully priced.
+
+Set `sticky-workflow` to the exact source workflow name that owns the PR comment.
+Other observed workflows still produce summaries and artifacts. Keep `sticky-key`
+stable across upgrades: distinct keys deliberately create distinct comments, and
+sharing a key does not combine unrelated reports.
+
+The reusable workflow serializes report jobs per PR without cancelling an active
+publisher. Consumers do not need to copy its concurrency block. Direct action
+callers use the same publication code; they should serialize overlapping jobs
+if they need strict ordering, since GitHub's comment API has no atomic upsert.
+The publisher also repairs matching owned duplicates, including a concurrent first
+create: it keeps the oldest permalink, saves the newest snapshot there, then
+removes redundant comments from the same bot or authenticated user. Other people's comments, other keys and
+malformed duplicate snapshots are preserved. A failed save never deletes the
+other report. This recovery is not a cross-workflow lock.
+
+Install these inputs only after the release containing them is available at
+`@v1`. Automatic `workflow_run` observers load their definition from the default
+branch; changing a PR branch does not update that observer until merge.
 
 The banner and mark live in [`docs/assets`](assets/). Change both banners
 through [`scripts/render_sticky_banners.py`](../scripts/render_sticky_banners.py)

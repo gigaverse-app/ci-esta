@@ -111,6 +111,9 @@ inputs:
       on one pull request; each key keeps its own comment. Empty keeps one.
     required: false
     default: ""
+  sticky-workflow:
+    description: Only this observed workflow may publish the sticky; other reports keep summaries and artifacts. Empty allows any workflow.
+    default: ""
   full-suite-reference-output:
     description: Where this run's own full-suite reference is written before upload.
     required: false
@@ -174,6 +177,7 @@ runs:
         INPUT_WORK_SELECTION_ARTIFACT: ${{ inputs.work-selection-artifact }}
         INPUT_IMPACT_COMPARISONS_JSON: ${{ inputs.impact-comparisons-json }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
+        INPUT_STICKY_WORKFLOW: ${{ inputs.sticky-workflow }}
         REPORTER_PYTHON: ${{ steps.runtime.outputs.python }}
       run: '"$REPORTER_PYTHON" -m ci_esta.ci_observability.action'
 

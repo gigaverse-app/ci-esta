@@ -15,7 +15,7 @@ from __future__ import annotations
 from pytest_selective.ci import LanePlan
 
 from ci_esta.ci_observability import markdown
-from ci_esta.ci_observability.brand import BLUE, SELECTIVE_URL, Badge
+from ci_esta.ci_observability.brand import SELECTIVE_URL, Badge, quantity
 from ci_esta.ci_observability.job_names import job_family
 from ci_esta.ci_observability.models import GitHubJobV1, GitHubRunV1, LaneSelectionSectionV1, SkippedLaneReferenceV1
 
@@ -74,7 +74,7 @@ def ran_lanes(plan: LanePlan) -> list[str]:
 def badges(section: LaneSelectionSectionV1) -> list[Badge]:
     """The sticky's badges for the lane plan: what ran, and what skipping saved."""
     plan = section.plan
-    return [Badge("selected", f"{len(ran_lanes(plan))} / {len(plan.lanes)} lanes", BLUE)]
+    return [quantity("selected", len(ran_lanes(plan)), len(plan.lanes), "lanes")]
 
 
 def strip(plan: LanePlan) -> str:
@@ -153,8 +153,7 @@ def _reference_note(section: LaneSelectionSectionV1, repository: str | None) -> 
 def render_lane_section(section: LaneSelectionSectionV1, repository: str | None = None) -> str:
     """The sticky's lane section, as GitHub-flavored Markdown; `repository` links runs."""
     plan = section.plan
-    ran = len(ran_lanes(plan))
-    summary = f"{ran} / {len(plan.lanes)} lanes selected"
+    summary = badges(section)[0].summary
     lines = [
         f"#### 🧪 Test lanes · by [pytest-selective]({SELECTIVE_URL})",
         "",
