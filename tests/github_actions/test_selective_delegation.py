@@ -8,7 +8,7 @@ import yaml
 
 def test_test_impact_delegates_every_input_and_output_to_the_pinned_selector() -> None:
     root = Path(__file__).resolve().parents[2]
-    requirement = next(item for item in tomllib.loads((root / "pyproject.toml").read_text())["project"]["dependencies"]
+    requirement = next(item for item in tomllib.loads((root / "pyproject.toml").read_text())["project"]["optional-dependencies"]["selection"]
                        if item.startswith("pytest-selective @ "))
     revision = requirement.rsplit("/", 1)[1].removesuffix(".tar.gz")
     action = yaml.safe_load((root / ".github/actions/test-impact/action.yml").read_text())

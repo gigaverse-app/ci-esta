@@ -11,12 +11,13 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{name = "Gigaverse"}]
-dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7", "pytest-selective @ https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz"]
+dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7"]
 keywords = ["github-actions", "ci-observability", "ci-optimization", "continuous-integration", "prometheus"]
 classifiers = ["Development Status :: 3 - Alpha", "Intended Audience :: Developers", "Topic :: Software Development :: Build Tools", "Programming Language :: Python :: 3", "Typing :: Typed"]
 
 [project.optional-dependencies]
-pytest = ["pytest>=8"]
+selection = ["pytest-selective @ https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz"]
+pytest = ["pytest>=8", "pytest-selective @ https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz"]
 postgres = ["psycopg[binary]>=3.2,<4"]
 
 [project.scripts]
@@ -35,7 +36,7 @@ Repository = "https://github.com/gigaverse-app/ci-esta"
 Issues = "https://github.com/gigaverse-app/ci-esta/issues"
 
 [dependency-groups]
-dev = ["pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3", "psycopg[binary]>=3.2,<4"]
+dev = ["pytest-selective @ https://github.com/gigaverse-app/pytest-selective/archive/6c65e923adf9e4283ba64c0db994304b3d426031.tar.gz", "pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3", "psycopg[binary]>=3.2,<4"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ci_esta"]

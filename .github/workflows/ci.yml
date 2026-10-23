@@ -128,5 +128,7 @@ jobs:
           uv pip install --python "$RUNNER_TEMP/wheel-test/bin/python" dist/*.whl
           cd "$RUNNER_TEMP"
           "$RUNNER_TEMP/wheel-test/bin/ci-esta" --help
+          "$RUNNER_TEMP/wheel-test/bin/python" -c "import importlib.util; assert importlib.util.find_spec('pytest_selective') is None; assert importlib.util.find_spec('pytest') is None"
+          uv pip install --python "$RUNNER_TEMP/wheel-test/bin/python" "$(find '${{ github.workspace }}/dist' -name '*.whl' -print -quit)[pytest]"
           CI_TEST_RESOURCE_OBSERVABILITY=true "$RUNNER_TEMP/wheel-test/bin/ci-esta-resources" \
             "$RUNNER_TEMP/wheel-test/bin/ci-esta-pytest" pools --shards 13 --shards-per-runner 12
