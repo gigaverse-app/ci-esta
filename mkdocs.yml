@@ -97,18 +97,18 @@ nav:
   - Agents: docs/agents.md
   - Alternatives: docs/alternatives.md
   - Bun test selection: docs/bun-test-selection.md
-  - Ci optimization: docs/ci-optimization.md
+  - CI optimization: docs/ci-optimization.md
   - Critical path optimizations: docs/critical-path-optimizations.md
   - Critical path: docs/critical-path.md
   - Environment cache: docs/environment-cache.md
   - Evidence reuse: docs/evidence-reuse.md
-  - Github actions observability: docs/github-actions-observability.md
+  - GitHub Actions observability: docs/github-actions-observability.md
   - Integrations: docs/integrations.md
   - Learned test timings: docs/learned-test-timings.md
   - Measured impact: docs/measured-impact.md
-  - Non python: docs/non-python.md
-  - Postgres client: docs/postgres-client.md
-  - Python ci tuning: docs/python-ci-tuning.md
+  - Non-Python projects: docs/non-python.md
+  - PostgreSQL client: docs/postgres-client.md
+  - Python CI tuning: docs/python-ci-tuning.md
   - Runners and diagnostics: docs/runners-and-diagnostics.md
   - Selected gates: docs/selected-gates.md
   - Validation: docs/validation.md

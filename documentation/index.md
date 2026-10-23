@@ -15,12 +15,18 @@ Measure GitHub Actions critical paths, cache Python environments, and verify CI 
 [Measure the actual critical path](../docs/tutorials/measure-critical-path.md). Apply the steps to your own
 repository, and inspect the original runs, retained checks, and measurement limits.
 
-## Apply it to your project
+## Measure first, then optimize the work that matters
 
-Start with the quickstart, then use the guides to adapt the examples to your
-own dependencies and failure modes. Keep the documented safety checks enabled.
-The navigation includes configuration, practical examples, and the limits of
-what a successful result proves.
+Use CI-esta to explain where GitHub Actions time goes. Start with a report of a
+completed run. Then choose caching, selection, evidence reuse, or parallelism
+based on the measured bottleneck and the checks your workflow must preserve.
+
+- [Add a completed-run report](../docs/quickstart.md#report-a-completed-workflow): collect job and step timings without adding work to the validation gate.
+- [Read the critical path](../docs/critical-path.md): distinguish execution time from waiting and inspect the Gantt chart.
+- [Cache a Python environment](../docs/environment-cache.md): retain locked synchronization and repair invalid restores.
+- [Reuse completed evidence](../docs/evidence-reuse.md): skip equivalent work only when its complete inputs and successful result match.
+- [Preserve required gates](../docs/validation.md): reject missing or incomplete validation.
+- [Compare measured outcomes](../docs/measured-impact.md): inspect the original runs and attribution limits.
 
 ## Use the tools together
 
