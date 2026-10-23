@@ -72,6 +72,13 @@ def _tail(text: str) -> str:
     return text[-PROBE_DETAIL_MAX_CHARS:]
 
 
+def _pytest_command(*args: str) -> list[str]:
+    # The prior-failure file plan is authoritative. Native local selection must
+    # not turn an unchanged, still-failing canary into a successful empty run.
+    # Explicit loading also supports consumers that disable plugin autoload.
+    return [sys.executable, "-m", "pytest", "-p", "selective", "--no-selective", *args]
+
+
 def probe_collection(
     file: str,
     pytest_args: list[str],
@@ -80,7 +87,7 @@ def probe_collection(
     """
     Check with the exact run arguments whether pytest can still collect a file.
     """
-    command = [sys.executable, "-m", "pytest", "--collect-only", "-q", *pytest_args, "--", file]
+    command = _pytest_command("--collect-only", "-q", *pytest_args, "--", file)
     try:
         completed = subprocess.run(
             command,
@@ -121,7 +128,7 @@ def _probe_all_files_together(
     A single pytest startup covers the common cases — every file collects (exit 0) or every file deselects (exit 5) — so
     the expensive per-file probes only run when the combined result cannot attribute a failure.
     """
-    command = [sys.executable, "-m", "pytest", "--collect-only", "-q", *pytest_args, "--", *files]
+    command = _pytest_command("--collect-only", "-q", *pytest_args, "--", *files)
     try:
         completed = subprocess.run(
             command,
@@ -262,7 +269,7 @@ def run_canary(
     if not plan.runnable_files:
         print("canary-run: no runnable prior-failure files remain; falling through to the full matrix")
         return 0
-    completed = subprocess.run([sys.executable, "-m", "pytest", *pytest_args, "--", *plan.runnable_files])
+    completed = subprocess.run(_pytest_command(*pytest_args, "--", *plan.runnable_files))
     if completed.returncode == PYTEST_EXIT_NO_TESTS_COLLECTED:
         print("canary-run: pytest collected no tests from staged files; falling through to the full matrix")
         return 0
