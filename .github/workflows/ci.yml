@@ -5,6 +5,15 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
+    inputs:
+      timing-example:
+        description: Optional retained timing example; run alpha and beta independently, then verify.
+        type: choice
+        options: ['off', alpha, beta, verify]
+        default: 'off'
+      timing-history-key:
+        description: Isolated history scope for the example; use the same key for all three runs.
+        default: manual-timing-example
   workflow_call:
 
 permissions:
@@ -18,6 +27,12 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' && github.run_attempt == 1 }}
 
 jobs:
+  timing-example:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.timing-example != 'off' }}
+    uses: ./.github/workflows/timing-history-example.yml
+    with:
+      mode: ${{ inputs.timing-example }}
+      history-key: ${{ inputs.timing-history-key }}
   plan:
     name: Evidence plan
     runs-on: ubuntu-latest

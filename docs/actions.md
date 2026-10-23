@@ -38,6 +38,9 @@ Each link below is the public action's complete input/output contract.
 | `gigaverse-app/ci-esta/actions/coverage-policy@v1` | [coverage-policy](../actions/coverage-policy/action.yml) |
 | `gigaverse-app/ci-esta/actions/current-pr-head@v1` | [current-pr-head](../actions/current-pr-head/action.yml) |
 | `gigaverse-app/ci-esta/actions/learn-test-timings@v1` | [learn-test-timings](../actions/learn-test-timings/action.yml) |
+
+Opt in to partial-run retention with the matching `restore-test-timings` action and
+a stable `history-key`. See the [executable retention tutorial](learned-test-timings.md#retain-history-across-partial-runs).
 | `gigaverse-app/ci-esta/actions/lint-ci-code@v1` | [lint-ci-code](../actions/lint-ci-code/action.yml) |
 | `gigaverse-app/ci-esta/actions/native-windows-git@v1` | [native-windows-git](../actions/native-windows-git/action.yml) |
 | `gigaverse-app/ci-esta/actions/plan-pytest-shards@v1` | [plan-pytest-shards](../actions/plan-pytest-shards/action.yml) |

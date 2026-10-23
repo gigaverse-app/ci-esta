@@ -69,3 +69,12 @@ unavailable. When auditing upstreaming, distinguish shipped, configured and
 live-verified states; the
 [closure ledger](https://github.com/gigaverse-app/ci-esta/blob/main/docs/upstream-closure.md)
 links implementations, caller PRs and live evidence.
+
+## Retain partial-run timing costs
+
+Follow the [timing tutorial](https://github.com/gigaverse-app/ci-esta/blob/main/docs/learned-test-timings.md#retain-history-across-partial-runs).
+Use the existing CLI/actions, not a per-repository retention script. The minimal
+opt-in is one environment key plus an explicit complete-file declaration.
+Restore before planning, freeze the planner input for all workers, aggregate all
+required reports, and publish only after completion checks. Verify the executable
+tutorial before adapting paths. Retention is advisory and opt-out preserves state.

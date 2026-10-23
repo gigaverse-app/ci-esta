@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 import subprocess
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -17,7 +18,7 @@ from filelock import FileLock
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 from ci_esta.testing.junit import LearnedTimings, learn_junit_timings, write_learned_timings
-from ci_esta.testing.timing_history import REMOVED_FILE_RETENTION, Observation, merge_observations
+from ci_esta.testing.timing_history import Observation, load_observations, merge_observations
 
 
 def observation_stamp(observed_at: datetime, run_id: int = 0, attempt: int = 0) -> str:
@@ -57,11 +58,11 @@ class TimingHistory(BaseModel):
                 self.removed_files.pop(file, None)
             else:
                 self.removed_files.setdefault(file, self.inventory_at)
-        self.observations = {
-            node: value for node, value in self.observations.items()
-            if (since := self.removed_files.get(node.split("::", 1)[0])) is None
-            or now - since <= REMOVED_FILE_RETENTION
-        }
+        self.observations, _ = load_observations(
+            {"observations": {node: asdict(value) for node, value in self.observations.items()},
+             "removed_files": {file: since.isoformat() for file, since in self.removed_files.items()}},
+            self.tracked_files, now,
+        )
 
     def export(self, output: Path) -> None:
         durations: dict[str, float] = {}

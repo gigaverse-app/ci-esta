@@ -11,8 +11,8 @@ from pathlib import Path
 import httpx
 
 from ci_esta.ci_observability.github import GitHubActionsClient
-from ci_esta.testing.timing_store import TimingHistory, combine_histories
 from ci_esta.testing.timing_history import Observation
+from ci_esta.testing.timing_store import TimingHistory, combine_histories
 
 
 def artifact_name(key: str) -> str:

@@ -5,6 +5,7 @@ on:
     branches: [main]
 permissions:
   contents: read
+  actions: read
 env:
   SHARDS: '4'
   SHARDS_PER_RUNNER: '4'
@@ -19,11 +20,9 @@ jobs:
       - uses: gigaverse-app/ci-esta/actions/setup-cached-uv@main
         with:
           python-version: '3.12'
-      - uses: actions/cache/restore@v5
+      - uses: gigaverse-app/ci-esta/actions/restore-test-timings@v1
         with:
-          path: .test_durations
-          key: pytest-costs-linux-py312-${{ github.sha }}
-          restore-keys: pytest-costs-linux-py312-
+          history-key: pytest-linux-py312
       - name: Plan the complete inventory
         id: inventory
         shell: bash
@@ -113,9 +112,10 @@ jobs:
         env:
           PLAN_SHARD_COUNT: ${{ needs.plan.outputs.shards }}
           PLAN_MODE: full
-      - run: uv run ci-esta-pytest learn junit-group-*.xml --output .test_durations
-      - uses: actions/cache/save@v5
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - uses: gigaverse-app/ci-esta/actions/learn-test-timings@v1
         with:
-          path: .test_durations
-          key: pytest-costs-linux-py312-${{ github.sha }}
+          junit-pattern: junit-group-*.xml
+          artifact-name: pytest-file-costs
+          output: .test_durations
+          history-key: pytest-linux-py312
+          complete-files: 'true'

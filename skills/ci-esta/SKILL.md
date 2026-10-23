@@ -94,6 +94,15 @@ or committed reports.
   [timing feedback tutorial](https://github.com/gigaverse-app/ci-esta/blob/main/docs/learned-test-timings.md).
   Benchmark whole-file pools against existing xdist before adding runners.
   Preserve service isolation, coverage and domain conformance checks.
+  For partial whole-file runs, opt in to retained history with a stable
+  OS/Python/lane `history-key` on `restore-test-timings` and `learn-test-timings`.
+  Confirm complete files and every planned shard before declaring `complete-files`.
+  Restore once before planning and pass that exact duration snapshot to matrix
+  workers; never independently refresh assignments in each worker. Keep default
+  trusted-branch publication and inventory fallback. Do not copy cache merging
+  into consumer scripts. Run the executable timing tutorial and verify partial,
+  stale and concurrent observations when adopting; explain opt-out by removing
+  history configuration, and use a new key for intentional resets.
 - Reuse completed lanes only when repeating the same declared work is the actual
   bottleneck. A prior green workflow is not sufficient proof. A passing lane from
   a partly failed workflow may be reusable when its own receipt and freshness
