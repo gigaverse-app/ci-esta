@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/gigaverse-app/ci-esta/compare/v1.3.0...v1.3.1) (2026-10-23)
+
+
+### Bug fixes
+
+* **actions:** derive planner runtimes from package metadata ([#88](https://github.com/gigaverse-app/ci-esta/issues/88)) ([1a93b6c](https://github.com/gigaverse-app/ci-esta/commit/1a93b6ca48b78a93e6c15d0bffda52f023d391e1))
+
 ## [1.3.0](https://github.com/gigaverse-app/ci-esta/compare/v1.2.0...v1.3.0) (2026-10-23)
 
 
