@@ -20,16 +20,19 @@ def body(run):
 
 class Comments:
     """Mutable REST boundary; the production publisher owns every publication decision."""
-    def __init__(self, *comments, rival=None, fail_patch=False):
+    def __init__(self, *comments, rival=None, fail_patch=False, author=AUTHOR):
         self.comments = {comment["id"]: comment for comment in comments}
         self.rival = rival
         self.fail_patch = fail_patch
+        self.author = author
 
     def request(self, request):
+        if request.url.path == "/user":
+            return httpx.Response(200, json=self.author)
         if request.method == "GET":
             return httpx.Response(200, json=list(self.comments.values()))
         if request.method == "POST":
-            created = {"id": 10, "user": AUTHOR, **json.loads(request.content)}
+            created = {"id": 10, "user": self.author, **json.loads(request.content)}
             self.comments[10] = created
             if self.rival is not None:
                 self.comments[self.rival["id"]] = self.rival
@@ -87,3 +90,14 @@ def test_failed_repair_preserves_both_original_reports():
         api.publish(200)
     assert len(api.comments) == 2
     assert api.comments[2]["body"] == body(300)[0]
+
+
+def test_user_token_updates_its_own_sticky_without_editing_another_humans_quote():
+    author = {"id": 123, "type": "User"}
+    quote = comment(1, 100, user={"id": 999, "type": "User"})
+    api = Comments(quote, author=author)
+    identifier = api.publish(200)
+    assert api.publish(300) == identifier
+    assert len(api.comments) == 2
+    assert api.comments[1] == quote
+    assert api.comments[identifier]["body"] == body(300)[0]

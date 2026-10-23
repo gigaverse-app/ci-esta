@@ -9,6 +9,7 @@ import io
 import re
 import zipfile
 from datetime import datetime
+from functools import cached_property
 
 import httpx
 import yaml
@@ -330,7 +331,8 @@ class GitHubActionsClient:
         def matching(comments):
             return [comment for comment in comments
                     if marker in (comment.body or "").splitlines()
-                    and (comment.user is None or comment.user.type == "Bot")]
+                    and (comment.user is None or comment.user.type == "Bot"
+                         or comment.user.id == self._authenticated_user_id)]
 
         comments = matching(self._list_comments(pull_request_number))
         if not comments:
@@ -364,6 +366,15 @@ class GitHubActionsClient:
                 if response.status_code != 404:
                     response.raise_for_status()
         return keeper.id
+
+    @cached_property
+    def _authenticated_user_id(self) -> int | None:
+        response = self._client.get("/user")
+        # Installation tokens publish as a bot and cannot access the user endpoint.
+        if response.status_code == 403:
+            return None
+        response.raise_for_status()
+        return GitHubCommentAuthorV1.model_validate_json(response.content).id
 
     @staticmethod
     def _comment_snapshot(comment: GitHubCommentV1) -> StickySnapshotV1 | None:

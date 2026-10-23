@@ -164,6 +164,7 @@ def test_action_config_reads_typed_environment_and_extension(
     monkeypatch.setenv("INPUT_MARKDOWN_OUTPUT", str(markdown_path))
     monkeypatch.setenv("INPUT_PROMETHEUS_OUTPUT", str(prometheus_path))
     monkeypatch.setenv("INPUT_POST_STICKY", "false")
+    monkeypatch.setenv("INPUT_STICKY_WORKFLOW", "Primary CI")
     monkeypatch.setenv("INPUT_APPEND_SUMMARY", "false")
     monkeypatch.setenv(
         "INPUT_RUNNER_SKU_RATES_JSON",
@@ -184,6 +185,7 @@ def test_action_config_reads_typed_environment_and_extension(
     ]
     assert config.report_output == report_path
     assert config.post_sticky is False
+    assert config.sticky_workflow == "Primary CI"
     assert config.append_summary is False
     assert config.runner_sku_rates == [
         RunnerSkuRateV1(

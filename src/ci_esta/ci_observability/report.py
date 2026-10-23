@@ -565,10 +565,12 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
     sections = []
     if report.work_selection is not None:
         plan = report.work_selection
+        headlines = work_selection.badges(plan)
         sections.append(markdown.report_section("Work selection and execution",
-                        [item.summary for item in work_selection.badges(plan)],
+                        [item.summary for item in headlines],
                         [work_selection.render_work_selection(plan)],
-                        note="Admission plan; execution outcomes in details"))
+                        note=("Observed inventory; admission decisions in details" if headlines[0].label == "executed"
+                              else "Admission plan; execution outcomes in details")))
     if report.test_selection is not None:
         sections.append(optional_selection.render(report.test_selection, report.provenance.repository))
     if report.lane_selection is not None:

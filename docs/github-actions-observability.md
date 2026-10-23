@@ -125,9 +125,9 @@ The reusable workflow serializes report jobs per PR without cancelling an active
 publisher. Consumers do not need to copy its concurrency block. Direct action
 callers use the same publication code; they should serialize overlapping jobs
 if they need strict ordering, since GitHub's comment API has no atomic upsert.
-The publisher also repairs matching bot duplicates, including a concurrent first
+The publisher also repairs matching owned duplicates, including a concurrent first
 create: it keeps the oldest permalink, saves the newest snapshot there, then
-removes redundant comments from the same bot. Human comments, other keys and
+removes redundant comments from the same bot or authenticated user. Other people's comments, other keys and
 malformed duplicate snapshots are preserved. A failed save never deletes the
 other report. This recovery is not a cross-workflow lock.
 
