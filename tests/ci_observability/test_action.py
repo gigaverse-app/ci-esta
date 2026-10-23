@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
+import yaml
 from pydantic import BaseModel, JsonValue, ValidationError
 from pytest_selective.impact_models import ExplanationUnavailable, SelectionExplanation, SelectionRoute
 
@@ -741,3 +742,48 @@ def test_generic_work_artifact_matches_observed_source(tmp_path, identity):
     client.read_single_file_artifact.return_value = json.dumps(data).encode()
     result = action_module._work_selection(client, config, _run_metadata())
     assert (result is not None) == (identity == "valid")
+
+
+def test_action_default_uses_source_head_instead_of_pull_request_merge_sha(tmp_path):
+    definition = yaml.safe_load((Path(__file__).parents[2] / ".github/actions/ci-observability/action.yml").read_text())
+    default = definition["inputs"]["commit-sha"]["default"]
+    # In a pull_request job github.sha is the synthetic merge commit, while the
+    # Actions run API identifies the source branch head.
+    configured_sha = "b" * 40 if default == "${{ github.sha }}" else default
+    config = _config(tmp_path, post_sticky=False).model_copy(update={"commit_sha": configured_sha})
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=_run_metadata()),
+        patch.object(GitHubActionsClient, "list_jobs", return_value=[_job()]),
+        patch.object(GitHubActionsClient, "list_commit_statuses", return_value=[_status()]) as statuses,
+    ):
+        assert run(config, LATER) == 0
+    report = json.loads(config.report_output.read_text())
+    assert report["collection_status"] == "complete"
+    assert report["provenance"]["head_sha"] == HEAD_SHA
+    statuses.assert_called_once_with(HEAD_SHA)
+
+
+def test_unavailable_comment_preserves_test_results_without_zero_usage(tmp_path):
+    config = _config(tmp_path, post_sticky=False)
+    with patch.object(GitHubActionsClient, "get_run", side_effect=RuntimeError("identity unavailable")):
+        assert run(config, LATER) == 0
+    markdown = config.markdown_output.read_text()
+    assert "42 passed, 0 failed" in markdown
+    assert "identity unavailable" in markdown
+    assert "0 min" not in markdown
+    assert "0 rounded min" not in markdown
+    assert "gates running" not in markdown
+    assert "unavailable" in markdown
+
+
+def test_explicit_wrong_source_head_still_rejects_collection(tmp_path):
+    config = _config(tmp_path, post_sticky=False).model_copy(update={"commit_sha": "b" * 40})
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=_run_metadata()),
+        patch.object(GitHubActionsClient, "list_jobs") as jobs,
+    ):
+        assert run(config, LATER) == 0
+    jobs.assert_not_called()
+    report = json.loads(config.report_output.read_text())
+    assert report["collection_status"] == "unavailable"
+    assert "does not match" in report["collection_errors"][0]

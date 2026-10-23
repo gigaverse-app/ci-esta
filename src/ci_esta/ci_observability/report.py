@@ -474,6 +474,8 @@ def sticky_marker(key: str = "") -> str:
 
 
 def _cost(report: CiObservabilityReportV1) -> list[str]:
+    if report.collection_status == CollectionStatus.UNAVAILABLE:
+        return ["runner usage unavailable"]
     parts = [f"{report.runner_cost.estimated_rounded_runner_minutes} runner-min"]
     if report.runner_cost.estimated_cost_usd is not None:
         parts.append(f"${report.runner_cost.estimated_cost_usd:.2f}")
@@ -492,6 +494,8 @@ def _readiness(report: CiObservabilityReportV1) -> brand.Badge | None:
 
 
 def _cost_badges(report: CiObservabilityReportV1) -> list[brand.Badge]:
+    if report.collection_status == CollectionStatus.UNAVAILABLE:
+        return [brand.Badge("runner", "unavailable", brand.AMBER)]
     cost = report.runner_cost
     badges = [brand.Badge("runner", f"{cost.estimated_rounded_runner_minutes} min", brand.GREY)]
     if cost.estimated_cost_usd is not None:
@@ -565,6 +569,8 @@ def _footer(report: CiObservabilityReportV1, marker: str = STICKY_MARKER) -> lis
 
 
 def _readiness_label(report: CiObservabilityReportV1) -> str:
+    if report.collection_status == CollectionStatus.UNAVAILABLE:
+        return "timing unavailable"
     return (
         "blocked"
         if any(gate.conclusion not in (None, "success") for gate in report.required_gates)
@@ -785,6 +791,14 @@ def _latency_lines(report: CiObservabilityReportV1) -> list[str]:
         for signal in report.repository_signals
         if report.test_selection is None or signal.key != PYTEST_TIMING_SIGNAL
     ]
+    if report.collection_status == CollectionStatus.UNAVAILABLE:
+        return [
+            "CI timing and cost are unavailable; no runner usage estimate is shown.",
+            "",
+            *(f"_{markdown.inline(signal.label)}: {markdown.inline(signal.value)}._" for signal in signals),
+            "",
+            "> Collection unavailable: " + "; ".join(markdown.inline(error) for error in report.collection_errors),
+        ]
     lines = [
         *_latency_table(report),
         *_overlap(report),
