@@ -10,7 +10,26 @@ permissions:
   checks: read
   pull-requests: read
 jobs:
+  select-tests:
+    runs-on: ubuntu-latest
+    outputs:
+      lanes: ${{ steps.select.outputs.lanes }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: select
+        uses: gigaverse-app/pytest-selective/actions/plan-lanes@v1
+        with:
+          config: .github/test-lanes.json
+          base: ${{ github.event.pull_request.base.sha || github.event.before }}
+          full: ${{ github.run_attempt > 1 || github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'test:full') }}
+          artifact-name: public-action-selection
   public-actions:
+    needs: select-tests
+    if: >-
+      ${{ !cancelled() && (needs.select-tests.result != 'success' ||
+          fromJSON(needs.select-tests.outputs.lanes).tests) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -78,3 +97,6 @@ jobs:
           report = json.load(open(os.environ['REPORT']))
           assert report['collection_status'] == 'complete', report.get('collection_errors')
           PY
+      - name: Require successful planning after fallback execution
+        if: ${{ !cancelled() && needs.select-tests.result != 'success' }}
+        run: exit 1

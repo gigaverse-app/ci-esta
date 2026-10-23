@@ -40,7 +40,10 @@ efficiency even when successful-pair benchmarks exclude it.
 
 For Python tests, hand the input model to
 [pytest-selective's skill](https://github.com/gigaverse-app/pytest-selective/blob/main/skills/pytest-selective/SKILL.md).
-Keep docs/package checks and required statuses when runtime lanes are skipped.
+Keep required statuses and relevant docs/package metadata validation when runtime
+lanes are skipped. Select package runtime smoke and CI contract tests by their
+declared dependencies too; documentation-only changes must execute zero tests
+unless a test explicitly consumes that documentation.
 For whole-lane reuse, follow the
 [full admission/receipt/gate example](https://github.com/gigaverse-app/ci-esta/blob/main/.github/workflows/ci.yml)
 and [policy guide](https://github.com/gigaverse-app/ci-esta/blob/main/docs/evidence-reuse.md);
