@@ -18,7 +18,8 @@ other runners as well.
 Use the [quickstart](https://github.com/gigaverse-app/ci-esta/blob/main/docs/quickstart.md)
 and [public action API](https://github.com/gigaverse-app/ci-esta/blob/main/docs/actions.md).
 Prefer `gigaverse-app/ci-esta@REF` for reporting and `/setup-cached-uv@REF` or
-other named public actions for setup/execution. Check that the selected release
+other named public actions under `gigaverse-app/ci-esta/actions/NAME@REF`
+for setup/execution. Check that the selected release
 contains the entry point. Retain old paths for existing pinned consumers until
 upgrading; never present an unreleased path as available at an old tag.
 Actions install their own support tools. Add the Python package to the test

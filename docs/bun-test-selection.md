@@ -80,7 +80,7 @@ full/conformance policy of their own.
 
 ```yaml
 - run: bun run test --inventory > "$RUNNER_TEMP/bun-inventory.json"
-- uses: gigaverse-app/ci-esta/run-bun-tests@main
+- uses: gigaverse-app/ci-esta/actions/run-bun-tests@main
   with:
     inventory: ${{ runner.temp }}/bun-inventory.json
     policy: .github/test-selection.json

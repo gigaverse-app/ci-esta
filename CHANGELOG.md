@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0](https://github.com/gigaverse-app/ci-esta/compare/v0.4.0...v1.0.0) (2026-10-23)
+
+
+### Features
+
+* publish stable major action aliases ([29d10d4](https://github.com/gigaverse-app/ci-esta/commit/29d10d42f1e364ab4cac10441558129b08c87cac))
+
 ## [0.4.0](https://github.com/gigaverse-app/ci-esta/compare/v0.3.0...v0.4.0) (2026-10-23)
 
 
