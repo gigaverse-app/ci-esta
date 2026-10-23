@@ -82,3 +82,12 @@ A newer hosted `pg_restore` can emit server settings an older database does not
 support. Version the snapshot key and record cold migration separately from
 warm restore so a cache hit does not get credited to a test optimization.
 
+
+## Compare environment restore with locked recreation
+
+For a large expanded environment, archive transfer and extraction can cost more
+than a fresh `uv sync` using the download cache. Measure both on the same runner
+and dependency lock. Use `cache-environment: false` on `setup-cached-uv` to disable
+only the `.venv` restore/save. The uv download cache and mandatory locked sync
+remain enabled. Keep the default when restoring the environment wins, and record
+cold versus warm download-cache conditions separately.

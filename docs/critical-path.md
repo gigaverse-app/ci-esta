@@ -61,8 +61,15 @@ attempts and unfinished relevant jobs make the path unavailable. Basic timing
 and cost reporting remain useful. Conditional matrix cells are expanded from
 observed names, including GitHub's skipped matrix representation.
 
-Reusable workflow calls cannot be reconstructed from their outer `needs` alone.
-For those, supply a complete expanded `job-dependencies-json` map. Keys are
+Reusable workflows are expanded recursively, preserving both the caller's
+barrier and every callee's internal `needs`. Same-repository calls use the
+parent source commit. External calls use the immutable SHA recorded in the
+source run's `referenced_workflows` (or an explicit commit pin). The reporter
+never resolves a historical mutable tag against its current value. Skipped
+calls retain a zero-cost barrier; inaccessible sources, recursion, ambiguous
+names or missing immutable identities leave analysis unavailable.
+
+For unsupported topology, supply a complete expanded `job-dependencies-json` map. Keys are
 observed job-name patterns and values are prerequisite patterns:
 
 ```yaml

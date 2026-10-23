@@ -16,6 +16,9 @@ inputs:
   cache-salt:
     description: Optional isolated cache namespace for cold/warm experiments.
     default: ''
+  cache-environment:
+    description: Restore/save the expanded .venv. Disable when recreating from uv's download cache is faster; locked sync always runs.
+    default: 'true'
 outputs:
   cache-hit:
     description: Exact cache entry found; locked synchronization still verifies it.
@@ -41,6 +44,7 @@ runs:
         CACHE_MANIFESTS: ${{ hashFiles('**/uv.lock', '**/pyproject.toml', '**/uv.toml', '**/.python-version') }}
       run: python "$CACHE_SCRIPT" identity
     - id: restore
+      if: inputs.cache-environment == 'true'
       uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
       continue-on-error: true
       with:
@@ -52,7 +56,7 @@ runs:
         CACHE_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         CACHE_SYNC_ARGS: ${{ inputs.sync-args }}
       run: python "$CACHE_SCRIPT" sync
-    - if: ${{ success() && steps.restore.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    - if: ${{ success() && inputs.cache-environment == 'true' && steps.restore.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
       uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
       continue-on-error: true
       with:

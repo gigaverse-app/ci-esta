@@ -100,6 +100,13 @@ class GitHubJobV1(BaseModel):
     steps: list[GitHubStepV1] = Field(default_factory=list)
 
 
+class GitHubReferencedWorkflowV1(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    path: str
+    sha: str
+
+
 class GitHubRunV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
@@ -116,6 +123,7 @@ class GitHubRunV1(BaseModel):
     head_branch: str | None = None
     head_sha: str
     path: str | None = None
+    referenced_workflows: list[GitHubReferencedWorkflowV1] = Field(default_factory=list)
     pull_requests: list["GitHubPullRequestV1"] = Field(default_factory=list)
 
 
