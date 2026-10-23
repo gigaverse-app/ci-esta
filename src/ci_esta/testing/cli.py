@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from pytest_selective.pytest_sharding import load_durations, merge_duration_files, plan_shards, write_shard_files
@@ -31,6 +32,7 @@ from ci_esta.testing.junit import (
 )
 from ci_esta.testing.local_shards import LocalShardRunConfig, run_local_shards
 from ci_esta.testing.runner_pools import plan_runner_pools
+from ci_esta.testing.timing_store import TimingHistory, combine_histories, learn_with_history
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -75,6 +77,16 @@ def _parser() -> argparse.ArgumentParser:
     learn.add_argument("junit_files", nargs="+", type=Path)
     learn.add_argument("--output", "-o", type=Path, default=Path(".test_durations"))
     learn.add_argument("--working-directory", type=Path, default=Path("."))
+    learn.add_argument("--history", type=Path, help="Opt in to retained history at this JSON path")
+    learn.add_argument("--history-key", default="default", help="Execution environment identity")
+    learn.add_argument("--complete-files", action="store_true", help="Declare complete observed files within this lane")
+    learn.add_argument("--observed-at", type=datetime.fromisoformat, help="Source run time with timezone; defaults to now")
+    learn.add_argument("--tracked-files", type=Path, help="Complete checkout inventory, one path per line; defaults to Git")
+
+    history = commands.add_parser("history", help="Merge immutable history snapshots and export scheduling costs")
+    history.add_argument("snapshots", nargs="*", type=Path)
+    history.add_argument("--history-key", default="default")
+    history.add_argument("--output", "-o", type=Path, default=Path(".test_durations"))
 
     canary = commands.add_parser("canary", help="Select whole files with terminal failures from prior JUnit reports")
     canary.add_argument("junit_files", nargs="+", type=Path)
@@ -111,10 +123,28 @@ def main(argv: list[str] | None = None) -> int:
         raw_args, pytest_args = raw_args[:separator], raw_args[separator + 1 :]
     parser = _parser()
     args = parser.parse_args(raw_args)
+    if args.command == "history":
+        try:
+            state = combine_histories(
+                [TimingHistory.model_validate_json(path.read_bytes()) for path in args.snapshots],
+                args.history_key, datetime.now(timezone.utc),
+            )
+            state.export(args.output)
+        except (ValueError, OSError) as exc:
+            parser.error(str(exc))
+        return 0
     if args.command == "learn":
         try:
-            learned = learn_junit_timings(args.junit_files, args.working_directory)
-            write_learned_timings(learned, args.output)
+            if args.history:
+                learned = learn_with_history(
+                    args.junit_files, history=args.history, key=args.history_key, output=args.output,
+                    complete_files=args.complete_files,
+                    observed_at=args.observed_at or datetime.now(timezone.utc),
+                    working_directory=args.working_directory, inventory=args.tracked_files,
+                )
+            else:
+                learned = learn_junit_timings(args.junit_files, args.working_directory)
+                write_learned_timings(learned, args.output)
         except (ValueError, OSError) as exc:
             parser.error(str(exc))
         print(

@@ -1,0 +1,53 @@
+name: Timing history example
+on:
+  workflow_call:
+    inputs:
+      mode:
+        type: string
+        required: true
+      history-key:
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: false
+      - name: Run one complete file
+        if: inputs.mode != 'verify'
+        env:
+          MODE: ${{ inputs.mode }}
+        run: |
+          case "$MODE" in alpha|beta) ;; *) exit 1 ;; esac
+          uv run --no-project --with pytest python -m pytest "examples/timing-history/tests/test_${MODE}.py" --junitxml=junit.xml -o junit_family=legacy
+      - uses: ./actions/learn-test-timings
+        if: inputs.mode != 'verify'
+        with:
+          junit-pattern: junit.xml
+          artifact-name: example-junit
+          history-key: ${{ inputs.history-key }}
+          complete-files: 'true'
+          # Demonstration override: isolate the experiment from real main history.
+          history-branch: ${{ github.ref_name }}
+      - uses: ./actions/restore-test-timings
+        if: inputs.mode == 'verify'
+        with:
+          history-key: ${{ inputs.history-key }}
+          history-branch: ${{ github.ref_name }}
+          strict: 'true'
+      - name: Verify both independent writers survived
+        if: inputs.mode == 'verify'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          costs = json.loads(Path('.test_durations').read_text())
+          assert set(costs) == {'examples/timing-history/tests/test_alpha.py', 'examples/timing-history/tests/test_beta.py'}, costs
+          print('Both concurrent complete-file updates survived:', costs)
+          PY

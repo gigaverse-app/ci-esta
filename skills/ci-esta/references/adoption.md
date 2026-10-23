@@ -1,5 +1,9 @@
 # Measure one workflow, then change admission
 
+The [adoption tutorial and checklist](https://github.com/gigaverse-app/ci-esta/blob/main/docs/tutorials/adoption-checklist.md)
+maps every action and command to a measured problem, with acceptance controls
+and rollback choices. Use it to keep the adopter's rollout reviewable.
+
 For a first read-only measurement, install the released CI-esta package
 in a separate tool environment (Python 3.11+). Use a token already authorized for
 the target repository in `GH_TOKEN` or `GITHUB_TOKEN`; the report command accepts
@@ -69,3 +73,12 @@ unavailable. When auditing upstreaming, distinguish shipped, configured and
 live-verified states; the
 [closure ledger](https://github.com/gigaverse-app/ci-esta/blob/main/docs/upstream-closure.md)
 links implementations, caller PRs and live evidence.
+
+## Retain partial-run timing costs
+
+Follow the [timing tutorial](https://github.com/gigaverse-app/ci-esta/blob/main/docs/learned-test-timings.md#retain-history-across-partial-runs).
+Use the existing CLI/actions, not a per-repository retention script. The minimal
+opt-in is one environment key plus an explicit complete-file declaration.
+Restore before planning, freeze the planner input for all workers, aggregate all
+required reports, and publish only after completion checks. Verify the executable
+tutorial before adapting paths. Retention is advisory and opt-out preserves state.

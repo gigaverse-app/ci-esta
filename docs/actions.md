@@ -27,6 +27,10 @@ implementation directly; there are no generated aliases.
 
 Each link below is the public action's complete input/output contract.
 
+Opt in to partial-run retention with the matching `restore-test-timings` action and
+a stable `history-key`. See the [executable retention tutorial](learned-test-timings.md#retain-history-across-partial-runs).
+
+
 | Entry point | Contract |
 | --- | --- |
 | `gigaverse-app/ci-esta/actions/cancel-obsolete-pr-runs@v1` | [cancel-obsolete-pr-runs](../actions/cancel-obsolete-pr-runs/action.yml) |
@@ -44,6 +48,7 @@ Each link below is the public action's complete input/output contract.
 | `gigaverse-app/ci-esta/actions/plan-runner-pools@v1` | [plan-runner-pools](../actions/plan-runner-pools/action.yml) |
 | `gigaverse-app/ci-esta/actions/postgres-client@v1` | [postgres-client](../actions/postgres-client/action.yml) |
 | `gigaverse-app/ci-esta/actions/publish-prometheus-snapshot@v1` | [publish-prometheus-snapshot](../actions/publish-prometheus-snapshot/action.yml) |
+| `gigaverse-app/ci-esta/actions/publish-shard-measurements@v1` | [publish-shard-measurements](../actions/publish-shard-measurements/action.yml) |
 | `gigaverse-app/ci-esta/actions/pytest-canary-pr-state@v1` | [pytest-canary-pr-state](../actions/pytest-canary-pr-state/action.yml) |
 | `gigaverse-app/ci-esta/actions/pytest-expansion@v1` | [pytest-expansion](../actions/pytest-expansion/action.yml) |
 | `gigaverse-app/ci-esta/actions/pytest-failure-canary@v1` | [pytest-failure-canary](../actions/pytest-failure-canary/action.yml) |
@@ -52,6 +57,7 @@ Each link below is the public action's complete input/output contract.
 | `gigaverse-app/ci-esta/actions/resolve-lane-evidence@v1` | [resolve-lane-evidence](../actions/resolve-lane-evidence/action.yml) |
 | `gigaverse-app/ci-esta/actions/resolve-pytest-evidence@v1` | [resolve-pytest-evidence](../actions/resolve-pytest-evidence/action.yml) |
 | `gigaverse-app/ci-esta/actions/resolve-security-trigger@v1` | [resolve-security-trigger](../actions/resolve-security-trigger/action.yml) |
+| `gigaverse-app/ci-esta/actions/restore-test-timings@v1` | [restore-test-timings](../actions/restore-test-timings/action.yml) |
 | `gigaverse-app/ci-esta/actions/reuse-ecr-image@v1` | [reuse-ecr-image](../actions/reuse-ecr-image/action.yml) |
 | `gigaverse-app/ci-esta/actions/report-bun-tests@v1` | [report-bun-tests](../actions/report-bun-tests/action.yml) |
 | `gigaverse-app/ci-esta/actions/run-bun-tests@v1` | [run-bun-tests](../actions/run-bun-tests/action.yml) |

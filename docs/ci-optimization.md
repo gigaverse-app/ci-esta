@@ -1,5 +1,8 @@
 # Make CI faster without weakening its result
 
+Use the [adoption checklist](tutorials/adoption-checklist.md) to track acceptance
+checks, opt-outs and the actions or commands appropriate to each stage.
+
 Start with one completed workflow and the checks required to merge. Add the
 [completed-run observer](github-actions-observability.md), retain its JSON, and
 record the source run ID, attempt, head SHA and exact gate names. Fix one measured

@@ -31,6 +31,135 @@ For a partial selected run, the learned costs cover only the observed files.
 
 ## Retain history across partial runs
 
+Enable retention when affected-test selection runs only some files. It keeps
+the last observation for untouched files, replaces observed files only with a
+newer observation, and gives removed files the existing 14-day grace period.
+No retention is enabled merely by upgrading CI-esta.
+
+### GitHub Actions: opt in with one environment key
+
+Use the same `history-key` before planning and after successful tests. Choose a
+different key for each OS, Python version, service and fixed marker lane. These
+actions install their own tool environment; your application needs no new dependency.
+Pin a reviewed CI-esta commit containing these actions until this feature is
+released on `v1`.
+
+```yaml
+permissions:
+  contents: read
+  actions: read
+steps:
+  - uses: actions/checkout@v7
+  - uses: gigaverse-app/ci-esta/actions/restore-test-timings@v1
+    with:
+      history-key: unit-linux-py314
+  # Plan using .test_durations, then run every selected file completely.
+  - run: uv run pytest tests --junitxml=junit.xml
+  - uses: gigaverse-app/ci-esta/actions/learn-test-timings@v1
+    with:
+      junit-pattern: junit.xml
+      artifact-name: unit-timings
+      output: .test_durations
+      history-key: unit-linux-py314
+      complete-files: 'true'
+```
+
+`complete-files` declares that the reports include every case belonging to each
+observed file **within this fixed lane**. Whole-file affected-test selection is
+supported. Ad hoc `-k`, changing marker filters, node-level subsets, fail-fast
+reports and missing shards cannot satisfy this contract. Validate completion
+before learning; JUnit cannot establish which cases were omitted. Aggregate
+all disjoint shard reports into one publisher per history key per run.
+
+For separate planning and matrix jobs, restore once in the planner and pass that
+exact duration file to every worker as an artifact. Independently restoring the
+latest history in each worker can yield different shard assignments while
+another run publishes an update. The
+[sharding workflow](../examples/pytest-shards/workflow.yml) shows the producer side;
+gigaverse-ai also freezes the planner's input for all pools.
+
+Publication is limited to push, schedule and manual runs on the trusted branch,
+which defaults to the repository's default branch. Readers require the producing
+run to have completed successfully. PRs can read and compute costs but cannot
+publish shared history, including same-repository PRs. Keep the learning action
+after test/completion checks; `continue-on-error: true` is appropriate when
+history publication should not block validation.
+
+| Override | Default | Use |
+| --- | --- | --- |
+| `history-key` | Empty on learning | Explicit opt-in; change the key for a fresh history |
+| `history-publish` | `true` | Set `false` for a read/compute-only rollout |
+| `history-branch` | Repository default branch | Isolate a trusted branch experiment |
+| `history-max-downloads` | `20` | Raise for many concurrent uncovered writers |
+| `history-retention-days` | `90` | Artifact lifetime, within repository limits |
+| Restore `strict` | `false` | Fail instead of falling back when diagnosing history access |
+
+Remove the history key and restore step to opt out. Existing artifacts remain
+available until GitHub expires them. A missing or unavailable history keeps a
+committed seed, or writes `{}` so inventory fallback still plans every file.
+Seed values for files never observed in history remain usable. No timing history
+can authorize omitting a test or satisfy a completion gate.
+
+### Concurrent publication
+
+Each run publishes its own checkpoint artifact. A subsequent reader reconciles
+every uncovered checkpoint by source observation time, not finish/download time.
+The GitHub adapter orders observations by original workflow creation time, run
+ID and attempt. Re-running an old checkout, including its reporting job alone,
+therefore cannot make old reports supersede a newer workflow's measurements.
+If A and B start from the same history and observe different files, both updates
+survive even if they finish in reverse order. A new checkpoint records the artifact
+IDs it incorporated, so later readers skip those ancestors. Normally one checkpoint
+download is sufficient. The 20-download budget fails visibly rather than publishing
+truncated history; restore falls back unless strict mode is enabled.
+
+Deletion clocks are reconciled across all checkpoints too. A newer independent
+writer cannot reset an expired file's grace period by omitting its old tombstone.
+A later tracked-file restoration resets that clock, including restorations not
+measured by a partial run.
+
+Reruns replace only their own run's checkpoint, with producer attempt validation.
+No workflow-wide concurrency lock is required. This avoids GitHub concurrency
+queues dropping pending publishers. If all checkpoints expire after a long idle
+period, the seed/unknown-cost fallback applies and history starts accumulating again.
+
+### CLI and runnable tutorial
+
+Install `ci-esta[pytest]`, or use the repository's `uv sync --locked` environment:
+
+```bash
+ci-esta-pytest learn junit.xml --history .ci/timing-history.json \
+  --history-key unit-linux-py314 --complete-files --output .test_durations
+```
+
+The CLI inventories tracked Python files with Git, independently of selected
+files. For a non-Git checkout, pass `--tracked-files inventory.txt` containing the
+complete checkout's paths, one per line. Use `--working-directory` when report
+paths are relative to another directory. For delayed ingestion, pass the source
+run's timezone-aware `--observed-at`, never the download time. The default is now
+for immediate local ingestion. Keep each key in its own history file.
+
+Local updates lock the history file across read/merge/write and atomically replace
+both outputs. An interrupted output write can be recovered without rerunning tests:
+
+```bash
+ci-esta-pytest history .ci/timing-history.json --history-key unit-linux-py314 \
+  --output .test_durations
+uv run python examples/timing-history/run.py
+```
+
+The executable tutorial runs real pytest reports in a temporary Git checkout,
+learns two partial runs, replays a stale report, and verifies the complete shard
+inventory. It also runs in CI. To exercise real GitHub artifacts, dispatch the
+CI workflow with `timing-example: alpha` and `timing-example: beta` independently,
+using the same fresh `timing-history-key`. After **both workflows succeed**,
+dispatch `timing-example: verify`. The
+[example workflow](../.github/workflows/timing-history-example.yml) checks that both
+updates survived. Its explicit branch override keeps experiments separate from
+production history.
+
+### Low-level Python API
+
 `ci_esta.testing.timing_history` provides the backend's existing incremental
 history contract for consumers that maintain a persistent timing cache:
 

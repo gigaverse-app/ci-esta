@@ -17,6 +17,9 @@ hosted service or application-language change is required.
 
 ## Choose your first improvement
 
+Use the [adoption tutorial and checklist](docs/tutorials/adoption-checklist.md)
+to choose an order, verify each improvement and find every action/CLI capability.
+
 | Your problem | What you gain | Start here |
 | --- | --- | --- |
 | You need to show whether an optimization helped | Verified before/after gate, runner and step comparisons tied to exact source runs | [Measured impact](docs/measured-impact.md) |
