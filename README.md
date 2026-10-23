@@ -108,3 +108,5 @@ Install the standalone CLI with `pip install ci-esta`.
 Base reporting needs Python 3.11+ and neither pytest nor pytest-selective.
 Use `ci-esta[selection]` for Python selection reports or `ci-esta[pytest]` for
 pytest execution tools. Before 1.0, review each minor release's migration notes.
+
+<!-- Temporary documentation-only CI verification; this branch is not for merge. -->
