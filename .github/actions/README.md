@@ -60,7 +60,7 @@ artifact, sticky/summary Markdown, and bounded Prometheus exposition. Workflow
 job names, matrix size, and step ordering are never accounting keys.
 
 ```yaml
-- uses: gigaverse-app/ci-esta@main
+- uses: gigaverse-app/ci-esta@v1
   with:
     github-token: ${{ github.token }}
     commit-sha: ${{ github.event.pull_request.head.sha }}
@@ -88,7 +88,7 @@ proves that the source and target ECR references resolve to the same digest.
 
 ```yaml
 - id: image-reuse
-  uses: gigaverse-app/ci-esta/reuse-ecr-image@main
+  uses: gigaverse-app/ci-esta/reuse-ecr-image@v1
   with:
     source-image: ${{ env.REPOSITORY }}:verified-${{ steps.identity.outputs.key }}
     target-image: ${{ env.REPOSITORY }}:${{ github.sha }}
@@ -105,7 +105,7 @@ handles `/` in grouping values with Pushgateway's required URL-safe base64
 encoding.
 
 ```yaml
-- uses: gigaverse-app/ci-esta/publish-prometheus-snapshot@main
+- uses: gigaverse-app/ci-esta/publish-prometheus-snapshot@v1
   with:
     metrics-file: build-metrics.prom
     pushgateway-url: ${{ secrets.PUSHGW_URL }}
@@ -167,7 +167,7 @@ fail-open.
 
 ```yaml
 - id: gate
-  uses: gigaverse-app/ci-esta/resolve-security-trigger@main
+  uses: gigaverse-app/ci-esta/resolve-security-trigger@v1
   with:
     require-same-repo: "true"   # set for image-building scans (Trivy); needs same-repo secrets
     automatic-same-repo-pull-requests: "true"  # optional; default false
@@ -197,14 +197,14 @@ scanner. Callers should similarly narrow `vuln-type` when they deliberately
 split package inventories.
 
 ```yaml
-- uses: gigaverse-app/ci-esta/trivy-scan-image@main
+- uses: gigaverse-app/ci-esta/trivy-scan-image@v1
   with:
     image-ref: "trivy-scan:my_service"
 ```
 
 ```yaml
 - run: uv sync --frozen --all-groups --no-install-project
-- uses: gigaverse-app/ci-esta/trivy-scan-image@main
+- uses: gigaverse-app/ci-esta/trivy-scan-image@v1
   with:
     # rootfs inventories installed .dist-info packages; fs is for manifests.
     scan-type: rootfs
@@ -232,7 +232,7 @@ and does not depend on Poetry's global cache layout.
 - run: poetry install --all-groups --no-root
   env:
     POETRY_VIRTUALENVS_IN_PROJECT: "true"
-- uses: gigaverse-app/ci-esta/trivy-scan-image@main
+- uses: gigaverse-app/ci-esta/trivy-scan-image@v1
   with:
     scan-type: rootfs
     scan-ref: .venv

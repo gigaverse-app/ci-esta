@@ -2,8 +2,8 @@
 
 Start with a report if you do not know the bottleneck. If repeated dependency
 installation is already the problem, replace those setup steps directly. Use
-[the public action version policy](actions.md#availability-and-pinning): the new
-root/short paths below use `@main` until a release containing them is published.
+[the public action version policy](actions.md#availability-and-pinning): the
+root/short paths below use `@v1` for automatic compatible 1.x upgrades.
 Pin a reviewed commit when adopting them in production.
 
 ## Report a completed workflow
@@ -27,7 +27,7 @@ jobs:
   report:
     runs-on: ubuntu-latest
     steps:
-      - uses: gigaverse-app/ci-esta@main
+      - uses: gigaverse-app/ci-esta@v1
         with:
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
@@ -74,7 +74,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: gigaverse-app/ci-esta/setup-cached-uv@main
+      - uses: gigaverse-app/ci-esta/setup-cached-uv@v1
         with:
           python-version: '3.12'
           sync-args: '--group test'
