@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/gigaverse-app/ci-esta/compare/v1.0.0...v2.0.0) (2026-10-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* **actions:** named action callers upgrading from older layouts must replace `.github/actions/NAME` or `NAME` with `actions/NAME` and select a revision containing that path.
+
+### Features
+
+* **actions:** group public entry points under actions directory ([#56](https://github.com/gigaverse-app/ci-esta/issues/56)) ([29c2008](https://github.com/gigaverse-app/ci-esta/commit/29c2008efb36d17bd4ddcc688f86e365f937152d))
+
+
+### Refactoring
+
+* **actions:** move implementations into the public actions directory ([#59](https://github.com/gigaverse-app/ci-esta/issues/59)) ([df41034](https://github.com/gigaverse-app/ci-esta/commit/df410342aa4bf53fd743b8c5d82e951cffb29492))
+
 ## [1.0.0](https://github.com/gigaverse-app/ci-esta/compare/v0.4.0...v1.0.0) (2026-10-23)
 
 
