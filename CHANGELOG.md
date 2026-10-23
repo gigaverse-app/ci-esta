@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0](https://github.com/gigaverse-app/ci-esta/compare/v1.1.4...v1.2.0) (2026-10-23)
+
+
+### Features
+
+* **timings:** share retained observation history ([#81](https://github.com/gigaverse-app/ci-esta/issues/81)) ([2615def](https://github.com/gigaverse-app/ci-esta/commit/2615def18d09f38e7377549286d770c78bb474a5))
+
+
+### Bug fixes
+
+* **branding:** restore CI-esta's Gantt banner ([b012d44](https://github.com/gigaverse-app/ci-esta/commit/b012d440303fe09ab932085fdddc6a9235f8c289))
+* **ci:** preserve documentation skips after merge ([c376316](https://github.com/gigaverse-app/ci-esta/commit/c3763160b0a1a8e956b87bda86896a2e0e49caed))
+* **ci:** select all runtime tests by declared dependencies ([9454e80](https://github.com/gigaverse-app/ci-esta/commit/9454e808977b7add231417fc687cb793eda8cc28))
+
 ## [1.1.4](https://github.com/gigaverse-app/ci-esta/compare/v1.1.3...v1.1.4) (2026-10-23)
 
 
