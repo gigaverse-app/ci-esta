@@ -22,6 +22,8 @@ export function readInventory(path, cwd) {
 
 export function runBunTests({ cwd = process.cwd(), inventoryFile, policyFile, base, full = false,
   planFile, outputDirectory, args = ["--isolate", "--parallel"], shards = 1, bun = "bun" }) {
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
+    `selection-module=${fileURLToPath(new URL("./selection.mjs", import.meta.url))}\n`);
   const { files, alwaysRunFiles } = readInventory(inventoryFile, cwd);
   if (!Number.isSafeInteger(shards) || shards < 1) throw new Error("shards must be a positive integer");
   if (!Array.isArray(args) || args.some(arg => typeof arg !== "string" ||

@@ -313,3 +313,14 @@ test("an unchanged extensionless symlink in a runtime root forces full execution
   assert.equal(f.plan({ base }).mode, "full");
   assert.equal(f.plan({ base }).fallback, true);
 });
+
+test("the action exports its real planner path for subsequent consumer controls", t => {
+  const f = fixture(t);
+  const output = join(f.reports, "github-output");
+  const previous = process.env.GITHUB_OUTPUT;
+  process.env.GITHUB_OUTPUT = output;
+  try { execute(f, f.plan({ full: true })); }
+  finally { if (previous === undefined) delete process.env.GITHUB_OUTPUT; else process.env.GITHUB_OUTPUT = previous; }
+  const values = Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").map(line => line.split("=")));
+  assert.equal(values["selection-module"], new URL("../../.github/actions/run-bun-tests/selection.mjs", import.meta.url).pathname);
+});
