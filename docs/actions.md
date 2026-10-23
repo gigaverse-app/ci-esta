@@ -56,6 +56,7 @@ Each link below is the public action's complete input/output contract.
 | `gigaverse-app/ci-esta/resolve-pytest-evidence@main` | [resolve-pytest-evidence](../resolve-pytest-evidence/action.yml) |
 | `gigaverse-app/ci-esta/resolve-security-trigger@main` | [resolve-security-trigger](../resolve-security-trigger/action.yml) |
 | `gigaverse-app/ci-esta/reuse-ecr-image@main` | [reuse-ecr-image](../reuse-ecr-image/action.yml) |
+| `gigaverse-app/ci-esta/report-bun-tests@main` | [report-bun-tests](../report-bun-tests/action.yml) |
 | `gigaverse-app/ci-esta/run-bun-tests@main` | [run-bun-tests](../run-bun-tests/action.yml) |
 | `gigaverse-app/ci-esta/semgrep-scan@main` | [semgrep-scan](../semgrep-scan/action.yml) |
 | `gigaverse-app/ci-esta/semgrep-scan-ci-code@main` | [semgrep-scan-ci-code](../semgrep-scan-ci-code/action.yml) |

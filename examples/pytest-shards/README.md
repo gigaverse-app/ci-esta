@@ -4,7 +4,7 @@ This complete recipe plans the current file inventory once, runs each file in
 one shard, checks every shard's completion, and learns the next plan's timings.
 It is for ordinary independent pytest files in `tests/` in a uv project.
 
-1. Run `uv add --dev 'ci-esta[pytest]>=0.2.2,<0.3.0'` and commit the lockfile.
+1. Run `uv add --dev 'ci-esta[pytest]'` and commit the lockfile.
 2. Copy [workflow.yml](workflow.yml) to `.github/workflows/tests.yml` and
    [run_shard.py](run_shard.py) to `.github/scripts/run_shard.py` in your project.
 3. Use your Python version, dependency groups, test roots and default branch.

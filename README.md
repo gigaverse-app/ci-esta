@@ -13,6 +13,7 @@ hosted service or application-language change is required.
 
 | Your problem | What you gain | Start here |
 | --- | --- | --- |
+| You need to show whether an optimization helped | Verified before/after gate, runner and step comparisons tied to exact source runs | [Measured impact](docs/measured-impact.md) |
 | You cannot tell what keeps a PR waiting | A sticky report with gate latency, dependency critical path, step timings and runner usage | [Report one workflow](docs/quickstart.md#report-a-completed-workflow) |
 | Jobs reinstall the same dependencies | A validated environment restore that repairs broken caches and always synchronizes the lock | [Replace your setup steps](docs/quickstart.md#cache-your-python-environment) |
 | Unaffected tests start expensive services | Python file or whole-job selection before setup, with explanations | [Add pytest-selective](https://github.com/gigaverse-app/pytest-selective) |
@@ -40,7 +41,7 @@ Use your project's interpreter and dependency groups. The root action,
 such as `/setup-cached-uv` and `/plan-runner-pools`.
 
 **Public-path availability:** these entry points are new on `main`. Existing
-`v0.1` and `v0.2` releases predate them. Until the next release publishes them,
+releases through `v0.3.0` predate them. Until the next release publishes them,
 pin a reviewed commit containing `action.yml`, or use `@main` to evaluate them.
 Then use that release's compatible tag or immutable SHA. Existing
 `.github/actions/...` entry points remain compatible. [Action API and versioning](docs/actions.md).
@@ -99,7 +100,7 @@ selection, timing feedback, execution and measurement in order.
 - [Integrations](docs/integrations.md), [alternatives](docs/alternatives.md), and [revision-bound adoption audit](docs/adoption-audit.md)
 - [Contributing](CONTRIBUTING.md), [releases](RELEASING.md), and [source provenance](PROVENANCE.md)
 
-Install the standalone CLI with `pip install "ci-esta>=0.2.2,<0.3.0"`.
+Install the standalone CLI with `pip install ci-esta`.
 Base reporting needs Python 3.11+ and neither pytest nor pytest-selective.
 Use `ci-esta[selection]` for Python selection reports or `ci-esta[pytest]` for
 pytest execution tools. Before 1.0, review each minor release's migration notes.

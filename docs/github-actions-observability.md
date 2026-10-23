@@ -143,7 +143,7 @@ time and are never added to runner usage. Older v1 reports without steps still l
 ## Local reports and offline rendering
 
 ```bash
-pip install "ci-esta>=0.2.2,<0.3.0"
+pip install "ci-esta"
 # Set GITHUB_TOKEN or GH_TOKEN in your environment; do not put it in command history.
 ci-esta report --repository owner/repo --run-id 123456 --gate 'Validation gate'
 ci-esta render ci-esta-report/ci-observability.json \

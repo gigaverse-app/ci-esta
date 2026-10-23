@@ -105,6 +105,10 @@ inputs:
   work-selection-artifact:
     description: Optional provider-neutral ci-esta/work-selection/v1 artifact from the observed run.
     default: ''
+  impact-comparisons-json:
+    description: Optional benchmark pairs with exact run/attempt/head and gate, runner or step selectors. Values are collected
+      from GitHub.
+    default: '[]'
   sticky-key:
     description: 'Keys the sticky comment, for a repository that reports several workflows on one pull request; each key keeps
       its own comment. Empty keeps one.
@@ -153,5 +157,6 @@ runs:
       full-suite-reference-artifact: ${{ inputs.full-suite-reference-artifact }}
       lane-selection-artifact: ${{ inputs.lane-selection-artifact }}
       work-selection-artifact: ${{ inputs.work-selection-artifact }}
+      impact-comparisons-json: ${{ inputs.impact-comparisons-json }}
       sticky-key: ${{ inputs.sticky-key }}
       full-suite-reference-output: ${{ inputs.full-suite-reference-output }}
