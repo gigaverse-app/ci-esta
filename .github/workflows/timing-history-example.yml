@@ -25,7 +25,7 @@ jobs:
           MODE: ${{ inputs.mode }}
         run: |
           case "$MODE" in alpha|beta) ;; *) exit 1 ;; esac
-          uv run --no-project --with pytest python -m pytest "examples/timing-history/tests/test_${MODE}.py" --junitxml=junit.xml
+          uv run --no-project --with pytest python -m pytest "examples/timing-history/tests/test_${MODE}.py" --junitxml=junit.xml -o junit_family=legacy
       - uses: ./actions/learn-test-timings
         if: inputs.mode != 'verify'
         with:

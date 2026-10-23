@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import pytest
 
 from ci_esta.testing.cli import main
+from ci_esta.testing.timing_history import Observation
 from ci_esta.testing.timing_store import TimingHistory, combine_histories, observation_stamp
 
 
@@ -70,3 +71,37 @@ def test_stamps_normalize_timezones():
     assert observation_stamp(datetime.fromisoformat("2026-10-20T03:00:00+03:00")) == observation_stamp(
         datetime.fromisoformat("2026-10-20T00:00:00+00:00")
     )
+
+
+def test_expired_deletion_survives_late_checkpoint_and_restoration():
+    removed_at = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    old = TimingHistory(
+        key="unit", observations={"test_a.py": Observation(10, observation_stamp(removed_at))},
+        tracked_files={"test_a.py"}, inventory_at=removed_at, inventory_stamp=observation_stamp(removed_at),
+    )
+    deletion = TimingHistory(
+        key="unit", observations={}, tracked_files=set(), removed_files={"test_a.py": removed_at},
+        inventory_at=removed_at, inventory_stamp=observation_stamp(removed_at, 1),
+    )
+    expired = combine_histories([deletion, old], "unit", removed_at.replace(day=16))
+    assert expired.observations == {}
+    assert expired.removed_files == {"test_a.py": removed_at}
+    assert combine_histories([expired, old], "unit", removed_at.replace(day=20)).observations == {}
+    restored = old.model_copy(deep=True)
+    restored.inventory_at = removed_at.replace(day=21)
+    restored.inventory_stamp = observation_stamp(restored.inventory_at)
+    restored.observations["test_a.py"] = Observation(20, restored.inventory_stamp)
+    result = combine_histories([restored, expired, old], "unit", removed_at.replace(day=22))
+    assert result.observations["test_a.py"].seconds == 20
+    assert result.removed_files == {}
+
+
+@pytest.mark.parametrize("invalid", ["broken", '{"version":2,"key":"unit"}'])
+def test_invalid_history_preserves_history_and_output(tmp_path, invalid):
+    (tmp_path / "history.json").write_text(invalid)
+    output = tmp_path / "costs-test_a.py.json"
+    output.write_text('{"test_a.py":42}')
+    with pytest.raises(SystemExit):
+        learn(tmp_path, "test_a.py", 10, 20)
+    assert (tmp_path / "history.json").read_text() == invalid
+    assert output.read_text() == '{"test_a.py":42}'

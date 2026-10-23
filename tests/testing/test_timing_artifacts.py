@@ -157,3 +157,18 @@ def test_restore_keeps_unobserved_seed_and_replaces_observed_nodes(tmp_path, mon
         monkeypatch.setenv(key, value)
     timing_artifacts.restore()
     assert json.loads(Path("costs.json").read_text()) == {"test_a.py": 10, "test_b.py": 20}
+
+
+@pytest.mark.parametrize("seed", [True, False])
+def test_unavailable_history_preserves_seed_or_unknown_cost_fallback(tmp_path, monkeypatch, seed):
+    monkeypatch.chdir(tmp_path)
+    if seed:
+        Path("costs.json").write_text('{"test_a.py":42}')
+    monkeypatch.setattr(timing_artifacts, "github_client", lambda: GitHubActionsClient(
+        "org/repo", "fake", transport=httpx.MockTransport(lambda request: httpx.Response(403)),
+    ))
+    for key, value in {"INPUT_TIMING_OUTPUT": "costs.json", "INPUT_HISTORY_KEY": "unit",
+                       "INPUT_HISTORY_BRANCH": "main"}.items():
+        monkeypatch.setenv(key, value)
+    timing_artifacts.restore()
+    assert json.loads(Path("costs.json").read_text()) == ({"test_a.py": 42} if seed else {})
