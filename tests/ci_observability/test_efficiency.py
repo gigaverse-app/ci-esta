@@ -16,7 +16,7 @@ def test_observed_intervals_define_occupancy_and_all_the_detail_sections_survive
     measured = report().model_copy(update={"measurements": [pool()]})
     sticky = render_markdown(measured)
     assert "Sharding &amp; runner efficiency" in sticky
-    assert "75%</strong> <sub>slot occupancy</sub>" in sticky
+    assert "75%</strong> slot occupancy" in sticky
     assert "16" in sticky
     assert "5s idle slot-time" in sticky
     assert "CPU utilization" in sticky
@@ -32,7 +32,7 @@ def test_junit_aggregate_cannot_claim_pool_occupancy():
         "pytest": {"shard_count": 4, "wall_seconds": 10, "total_test_seconds": 30}}})
     sticky = render_markdown(measured)
     assert "4 shards" in sticky
-    assert "unavailable</strong> <sub>slot occupancy</sub>" in sticky
+    assert "unavailable</strong> slot occupancy" in sticky
     assert "75%" not in sticky
 
 
@@ -78,7 +78,7 @@ def test_a_step_name_does_not_substitute_for_a_cache_measurement():
                           conclusion="success", timing_status="not_timed", wall_seconds=None)
     job = original.latest_attempt_jobs[0].model_copy(update={"steps": [step]})
     sticky = render_markdown(original.model_copy(update={"latest_attempt_jobs": [job]}))
-    assert "not recorded</strong> <sub>environment caches</sub>" in sticky
+    assert "not recorded</strong> environment caches" in sticky
     assert "Cache time saved is unavailable" in sticky
 
 
@@ -140,4 +140,4 @@ def test_overlapping_pool_indices_withhold_global_occupancy():
     second = pool().model_copy(update={"pool": "second"})
     sticky = render_markdown(report().model_copy(update={"measurements": [pool(), second]}))
     assert "Overall occupancy unavailable (incomplete or overlapping pools)" in sticky
-    assert "75%</strong> <sub>slot occupancy</sub>" not in sticky
+    assert "75%</strong> slot occupancy" not in sticky

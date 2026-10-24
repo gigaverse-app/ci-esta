@@ -62,9 +62,9 @@ def report_section(title: str, facts: list[str], body: list[str], *, note: str =
     summary = [f"<summary><strong>{escape(title)}</strong><br>"]
     if metrics is not None:
         # Inline HTML survives GitHub's sanitizer and wraps naturally on narrow
-        # screens. Emphasize values, keep labels quiet, and avoid custom CSS.
-        summary.append("&emsp;" + " &ensp;│&ensp; ".join(
-            f"<strong>{escape(item.value)}</strong> <sub>{escape(item.label)}</sub>" for item in metrics))
+        # screens. Keep labels on the values' baseline; subscript lowers them.
+        summary.append("&emsp;" + " · ".join(
+            f"<strong>{escape(item.value)}</strong> {escape(item.label)}" for item in metrics))
     else:
         summary += ["<br>\n".join(f"&emsp;<strong>{escape(fact)}</strong>" for fact in facts)]
     if note:

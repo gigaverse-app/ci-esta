@@ -137,7 +137,7 @@ def test_admission_without_file_inventory_preserves_observed_execution():
     measured = report().model_copy(update={"work_selection": WorkSelectionV1(
         provider="Example", run_id=431, run_attempt=2, head_sha="a" * 40, input_identity="tree",
         decisions=[WorkDecisionV1(name="tests", decision="run", reason="affected input")])})
-    assert "![executed: 1 jobs]" in render_markdown(measured)
+    assert "![executed: 1 job]" in render_markdown(measured)
 
 
 def test_partial_pricing_keeps_the_known_breakdown_and_identifies_the_gap():
@@ -160,7 +160,7 @@ def test_execution_falls_back_to_started_jobs_with_an_explicit_unit_and_scope():
     old = job.model_copy(update={"job_id": 14, "run_attempt": 1})
     measured = measured.model_copy(update={"latest_attempt_jobs": [job, skipped, queued, old]})
     sticky = render_markdown(measured)
-    assert "![executed: 1 jobs]" in sticky
+    assert "![executed: 1 job]" in sticky
     assert "includes setup, checks and reporting" in sticky
     assert "Sharding &amp; runner efficiency" not in sticky
     assert "publish-shard-measurements" in sticky
@@ -173,5 +173,5 @@ def test_disabled_caches_are_known_outcomes():
         run_id=431, run_attempt=2, head_sha="a" * 40, job="tests", scope="env",
         outcome="disabled", sync_seconds=1)]})
     sticky = render_markdown(measured)
-    assert "1 disabled</strong> <sub>environment caches</sub>" in sticky
-    assert "unavailable</strong> <sub>environment cache hits</sub>" not in sticky
+    assert "1 disabled</strong> environment caches" in sticky
+    assert "unavailable</strong> environment cache hits" not in sticky
