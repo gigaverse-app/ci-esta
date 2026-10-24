@@ -36,7 +36,8 @@ def write_outputs(result: ExecutionPlan, output: str) -> None:
     if output:
         with Path(output).open("a", encoding="utf-8") as stream:
             for key, value in values.items():
-                stream.write(f"{key}={json.dumps(value, separators=(',', ':'))}\n")
+                encoded = value if isinstance(value, str) else json.dumps(value, separators=(",", ":"))
+                stream.write(f"{key}={encoded}\n")
 
 
 def main(argv: list[str] | None = None) -> int:

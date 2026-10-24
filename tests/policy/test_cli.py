@@ -41,6 +41,7 @@ def test_cli_consumes_complete_lane_selection_and_roundtrips_plan(tmp_path):
     assert main([*args, "--affected", '{"python": true, "browser": false}']) == 0
     output = dict(line.split("=", 1) for line in (tmp_path / "outputs").read_text().splitlines())
     assert json.loads(output["admitted"]) == {"python": True, "browser": False}
+    assert output["profile"] == "legacy"
     assert json.loads(output["plan"]) == json.loads((tmp_path / "plan.json").read_text())
 
 
