@@ -1,0 +1,75 @@
+name: Plan test execution policy
+description: Admit test work for an occasion before provisioning services; consume the existing selector's scope.
+inputs:
+  policy:
+    description: Project-owned policy YAML or JSON.
+    required: true
+  profile:
+    description: Explicit profile; legacy preserves the project's existing scope.
+    default: legacy
+  occasion:
+    description: Normalized pr, push, schedule, deployment or manual occasion.
+    required: true
+  revision:
+    description: Immutable revision under test.
+    default: ${{ github.sha }}
+  affected:
+    description: JSON IDs or complete ID-to-boolean map; null means unknown impact.
+    default: 'null'
+  requested:
+    description: Explicit JSON work IDs, or null to use profile scope.
+    default: 'null'
+  environment:
+    description: Target environment; does not grant environment access.
+    default: ''
+  deployed-revision:
+    description: Revision observed by the existing deployment readiness check.
+    default: ''
+  inventory:
+    description: Optional runner-generated inventory JSON file instead of policy work declarations.
+    default: ''
+  output:
+    description: Destination for the authoritative plan artifact.
+    default: test-policy-plan.json
+outputs:
+  admitted:
+    description: Complete work ID-to-boolean map for executor conditions.
+    value: ${{ steps.plan.outputs.admitted }}
+  fresh:
+    description: Work ID-to-boolean map forbidding reuse for fresh probes.
+    value: ${{ steps.plan.outputs.fresh }}
+  count:
+    description: Number of admitted work units.
+    value: ${{ steps.plan.outputs.count }}
+  plan:
+    description: Complete versioned plan including deferral reasons.
+    value: ${{ steps.plan.outputs.plan }}
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
+    - id: plan
+      shell: bash
+      env:
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+        POLICY: ${{ inputs.policy }}
+        PROFILE: ${{ inputs.profile }}
+        OCCASION: ${{ inputs.occasion }}
+        REVISION: ${{ inputs.revision }}
+        AFFECTED: ${{ inputs.affected }}
+        REQUESTED: ${{ inputs.requested }}
+        TARGET_ENVIRONMENT: ${{ inputs.environment }}
+        DEPLOYED_REVISION: ${{ inputs.deployed-revision }}
+        INVENTORY: ${{ inputs.inventory }}
+        PLAN_OUTPUT: ${{ inputs.output }}
+      run: |
+        args=()
+        if [ -n "$INVENTORY" ]; then args+=(--inventory "$INVENTORY"); fi
+        uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../.." \
+          python -m ci_esta.policy.cli --policy "$POLICY" --profile "$PROFILE" \
+          --occasion "$OCCASION" --revision "$REVISION" --affected "$AFFECTED" \
+          --requested "$REQUESTED" --environment "$TARGET_ENVIRONMENT" \
+          --deployed-revision "$DEPLOYED_REVISION" --output "$PLAN_OUTPUT" \
+          --github-output "$GITHUB_OUTPUT" "${args[@]}"
