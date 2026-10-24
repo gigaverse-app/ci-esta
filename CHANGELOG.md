@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.4.2](https://github.com/gigaverse-app/ci-esta/compare/v1.4.1...v1.4.2) (2026-10-24)
+
+
+### Bug fixes
+
+* **actions:** resolve reporting interpreters across platforms ([8fbbbfa](https://github.com/gigaverse-app/ci-esta/commit/8fbbbfa8c2b75d00c1c4ab7a2094822694ffdeec))
+* **report:** align sticky metrics and compact header badges ([#100](https://github.com/gigaverse-app/ci-esta/issues/100)) ([a80ee5d](https://github.com/gigaverse-app/ci-esta/commit/a80ee5d695fe7fd3c3b44bfd47f3ee002f0a4173))
+* **report:** centralize GitHub runner SKU prices ([#99](https://github.com/gigaverse-app/ci-esta/issues/99)) ([f53a36e](https://github.com/gigaverse-app/ci-esta/commit/f53a36e0461211d73f273a3913db2dcb182a12cc))
+* **report:** recover observed sticky metrics and runner prices ([#96](https://github.com/gigaverse-app/ci-esta/issues/96)) ([5b8fb5a](https://github.com/gigaverse-app/ci-esta/commit/5b8fb5ae20b5bf465eb6b930047efebf2b6db2ee))
+* **report:** show the actual test selection reason ([5486501](https://github.com/gigaverse-app/ci-esta/commit/5486501f9961b53d1f6b336f5f90b446c23994f7))
+
 ## [1.4.1](https://github.com/gigaverse-app/ci-esta/compare/v1.4.0...v1.4.1) (2026-10-24)
 
 
