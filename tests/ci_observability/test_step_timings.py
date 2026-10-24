@@ -121,3 +121,14 @@ def test_old_report_without_steps_still_loads() -> None:
         data[key][0].pop("steps", None)
     restored = CiObservabilityReportV1.model_validate(data)
     assert restored.latest_attempt_jobs[0].steps == []
+
+
+def test_skipped_job_timings_are_not_applicable() -> None:
+    report = report_with_steps([])
+    job = report.latest_attempt_jobs[0].model_copy(update={
+        "conclusion": "skipped", "wall_seconds": None,
+    })
+    report = report.model_copy(update={"latest_attempt_jobs": [job]})
+    markdown = render_markdown(report)
+    assert "| skipped | not run | not run | not run |" in markdown
+    assert "| skipped | unavailable |" not in markdown

@@ -779,6 +779,8 @@ def _step_details(report: CiObservabilityReportV1) -> list[str]:
         step_name = markdown.cell(markdown.code(slowest.name)) if slowest else "unavailable"
         wall = f"{job.wall_seconds:.0f}s ({job.timing_status.value})" if job.wall_seconds is not None else "unavailable"
         step_wall = f"{slowest.wall_seconds:.0f}s ({slowest.timing_status.value})" if slowest else "unavailable"
+        if job.conclusion == "skipped":
+            wall = step_name = step_wall = "not run"
         rows.append(f"| [{job_name}]({url}) | {markdown.cell(job.conclusion or job.status)} | {wall} | {step_name} | {step_wall} |")
     return _details("Slowest step in each job", [
         "| job | result | job time | slowest timed step | step time |",
