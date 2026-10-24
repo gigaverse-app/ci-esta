@@ -96,3 +96,19 @@ access to those source repositories. Keep `github-token: ${{ github.token }}`
 for run collection and comments. The source token is used only on external
 workflow Contents requests, never for status or comment writes.
 
+Prepare report inputs as soon as their producers finish. Application inventory
+can run alongside validation; JUnit aggregation only needs completed test
+artifacts. Pass exact artifact IDs into the final publisher, which can wait for
+the aggregate gate without making reports prerequisites of that gate. Preserve
+failure/no-test publication and keep timing-history admission tied to the
+successful validation policy. Moving work earlier reduces the reporting tail;
+it does not by itself reduce runner work or make the merge gate faster.
+
+The timing, enrichment and observability actions share a locked runtime in the
+runner's temporary directory. Each invocation synchronizes dependencies and
+executes its own checked-out source without installing the consumer project.
+Independent reference and measurement downloads use at most four concurrent
+requests; validation and result ordering remain deterministic. Action logs
+include artifact batch durations and collection/render/publication durations
+to distinguish setup, GitHub API waits and rendering costs.
+
