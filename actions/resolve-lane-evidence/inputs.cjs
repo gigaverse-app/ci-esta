@@ -153,7 +153,7 @@ async function inventoryIdentity(github, shared, repo, ref, paths) {
   return `inventory-v1 ${digest(lines)}`;
 }
 
-function validationReceipt(actionPath, testedIdentity, executionContext = '') {
+function validationReceipt(actionPath, testedIdentity, executionContext = '', manifestOverrides = {}) {
   const root = path.resolve(actionPath, '../..');
   const hash = crypto.createHash('sha256').update(testedIdentity);
   if (executionContext !== '') {
@@ -173,7 +173,7 @@ function validationReceipt(actionPath, testedIdentity, executionContext = '') {
   }
   for (const manifest of ['pyproject.toml', 'uv.lock']) {
     const full = path.join(root, manifest);
-    if (fs.existsSync(full)) hash.update(manifest).update('\0').update(fs.readFileSync(full)).update('\0');
+    if (fs.existsSync(full)) hash.update(manifest).update('\0').update(manifestOverrides[manifest] ?? fs.readFileSync(full)).update('\0');
   }
   return `Validated inputs ${hash.digest('hex')}`;
 }

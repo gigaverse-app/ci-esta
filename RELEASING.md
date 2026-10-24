@@ -89,3 +89,16 @@ proposes normal SemVer releases.
 To deliberately graduate to a major release, retain a `Release-As: 1.0.0`
 footer in the merged commit body. Release Please prepares the version, lockfile
 and changelog together; no permanent version override is needed in its config.
+
+## Avoiding duplicate validation
+
+Ordinary main pushes can reuse the merged PR's successful test and public-action
+receipts when the complete declared inputs match. A strict version-only release
+PR can reuse the same runtime proof from its validated base. Dependency, source,
+test, workflow or inconsistent version changes retain full validation; so do
+missing proof, newer failures, API uncertainty and explicit full reruns.
+
+Release PRs still build and validate package metadata and install both wheel and
+source distribution. The Publish workflow continues to validate the exact tag
+and run full CI before uploading its distributions. See the opt-in contracts in
+[the evidence reuse guide](docs/evidence-reuse.md).

@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       lanes: ${{ steps.select.outputs.lanes }}
+      reused: ${{ steps.evidence.outputs.reused }}
+      receipt: ${{ steps.evidence.outputs.receipt }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -23,11 +25,19 @@ jobs:
         with:
           config: .github/test-lanes.json
           artifact-name: public-action-selection
+      - uses: ./actions/resolve-lane-evidence
+        id: evidence
+        if: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(github.event.pull_request.labels.*.name, 'test:full') }}
+        with:
+          lanes: '{"bun":"bun-cache","linux":"reporting-runtime (ubuntu-latest)","windows":"reporting-runtime (windows-latest)","mac":"reporting-runtime (macos-latest)","typecheck":"cold-typecheck-scope","public":"public-actions"}'
+          reuse-after-merge: 'true'
+          reuse-version-only-release: 'true'
+          input-paths: '["actions","action.yml","examples",".github","src","tests","scripts","pyproject.toml","uv.lock","importlinter.toml","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
   bun-cache:
     needs: select-tests
     if: >-
       ${{ !cancelled() && (needs.select-tests.result != 'success' ||
-          fromJSON(needs.select-tests.outputs.lanes).tests) }}
+          (fromJSON(needs.select-tests.outputs.lanes).tests && !fromJSON(needs.select-tests.outputs.reused || '{}').bun)) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -121,11 +131,13 @@ jobs:
       - name: Require successful planning after fallback execution
         if: ${{ !cancelled() && needs.select-tests.result != 'success' }}
         run: exit 1
+      - name: ${{ needs.select-tests.outputs.receipt || 'Uncached validation completed' }}
+        run: 'true'
   reporting-runtime:
     needs: select-tests
     if: >-
       ${{ !cancelled() && (needs.select-tests.result != 'success' ||
-          fromJSON(needs.select-tests.outputs.lanes).tests) }}
+          (fromJSON(needs.select-tests.outputs.lanes).tests && !(fromJSON(needs.select-tests.outputs.reused || '{}').linux && fromJSON(needs.select-tests.outputs.reused || '{}').windows && fromJSON(needs.select-tests.outputs.reused || '{}').mac))) }}
     strategy:
       fail-fast: false
       matrix:
@@ -138,11 +150,13 @@ jobs:
           enable-cache: false
       - name: Verify cold setup, warm reuse and consumer isolation
         run: uv run --locked pytest -q tests/github_actions/test_reporting_runtime.py
+      - name: ${{ needs.select-tests.outputs.receipt || 'Uncached validation completed' }}
+        run: 'true'
   cold-typecheck-scope:
     needs: select-tests
     if: >-
       ${{ !cancelled() && (needs.select-tests.result != 'success' ||
-          fromJSON(needs.select-tests.outputs.lanes).tests) }}
+          (fromJSON(needs.select-tests.outputs.lanes).tests && !fromJSON(needs.select-tests.outputs.reused || '{}').typecheck)) }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -174,11 +188,13 @@ jobs:
         run: |
           echo "$REASON"
           test "$MODE" = none
+      - name: ${{ needs.select-tests.outputs.receipt || 'Uncached validation completed' }}
+        run: 'true'
   public-actions:
     needs: select-tests
     if: >-
       ${{ !cancelled() && (needs.select-tests.result != 'success' ||
-          fromJSON(needs.select-tests.outputs.lanes).tests) }}
+          (fromJSON(needs.select-tests.outputs.lanes).tests && !fromJSON(needs.select-tests.outputs.reused || '{}').public)) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -398,3 +414,5 @@ jobs:
       - name: Require successful planning after fallback execution
         if: ${{ !cancelled() && needs.select-tests.result != 'success' }}
         run: exit 1
+      - name: ${{ needs.select-tests.outputs.receipt || 'Uncached validation completed' }}
+        run: 'true'

@@ -1,5 +1,5 @@
 name: Resolve independent validation evidence
-description: Reuse successful first-attempt lanes for the identical tested PR merge tree.
+description: Reuse successful first-attempt lanes with matching validation inputs and completion receipts.
 inputs:
   lanes:
     description: JSON object mapping output keys to exact job names.
@@ -32,6 +32,12 @@ inputs:
       tree. Include workflow, setup scripts, dependency locks and upstream revision pins.
       Unchanged inputs still require a proven passing lane; a path match alone never skips.
     default: '[]'
+  reuse-after-merge:
+    description: Reuse matching PR receipts on first-attempt branch pushes; requires complete input-paths.
+    default: 'false'
+  reuse-version-only-release:
+    description: Reuse a validated base for strict root Python Release Please version changes; requires input-paths, full Git history and Python 3.11+.
+    default: 'false'
   dependency-token:
     description: >-
       Read access to backend-common. With it, a backend-common pin counts as the tree it
@@ -39,6 +45,9 @@ inputs:
       Without it pins are compared exactly.
     default: ''
 outputs:
+  release-only:
+    description: Whether strict version-only classification found a merged validation source. Packaging checks must still run.
+    value: ${{ steps.resolve.outputs.release-only }}
   selection:
     description: Normalized execution scope for selection-keys; unknown lanes run.
     value: ${{ steps.resolve.outputs.selection }}
@@ -71,6 +80,8 @@ runs:
         EVIDENCE_LANES: ${{ inputs.lanes }}
         EVIDENCE_EXECUTION_CONTEXT: ${{ inputs.execution-context }}
         EVIDENCE_INPUT_PATHS: ${{ inputs.input-paths }}
+        REUSE_AFTER_MERGE: ${{ inputs.reuse-after-merge }}
+        REUSE_VERSION_ONLY_RELEASE: ${{ inputs.reuse-version-only-release }}
         TESTED_MERGE_SHA: ${{ github.sha }}
         DEPENDENCY_TOKEN: ${{ inputs.dependency-token }}
       with:
@@ -106,9 +117,16 @@ runs:
           const shared = process.env.DEPENDENCY_TOKEN ? getOctokit(process.env.DEPENDENCY_TOKEN) : null;
           let tested;
           const paths = JSON.parse(process.env.EVIDENCE_INPUT_PATHS || '[]');
+          const {proofTarget} = require(`${process.env.GITHUB_ACTION_PATH}/merged.cjs`);
+          const target = await proofTarget({github,context,core,paths,actionPath:process.env.GITHUB_ACTION_PATH,
+            sha:process.env.TESTED_MERGE_SHA,attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
+            afterMerge:process.env.REUSE_AFTER_MERGE === 'true',
+            releaseVersion:process.env.REUSE_VERSION_ONLY_RELEASE === 'true'});
+          core.setOutput('release-only', target.releaseOnly);
+
           try {
             tested = paths.length
-              ? await inventoryIdentity(github, shared, context.repo, process.env.TESTED_MERGE_SHA, paths)
+              ? await inventoryIdentity(github, shared, context.repo, target.sha, paths)
               : await testedIdentity(github, shared, context.repo, process.env.TESTED_MERGE_SHA, core);
           } catch (error) {
             // The SHA still pins the tree and parents exactly, so it stays sound; it only
@@ -116,11 +134,10 @@ runs:
             core.warning(`Could not read tested merge ${process.env.TESTED_MERGE_SHA} (${error.message}); only runs of this exact merge commit can be reused.`);
             tested = `commit ${process.env.TESTED_MERGE_SHA}`;
           }
-          const receipt = validationReceipt(process.env.GITHUB_ACTION_PATH, tested, executionContext);
+          const receipt = validationReceipt(process.env.GITHUB_ACTION_PATH, tested, executionContext, target.manifests);
           core.setOutput('receipt', receipt);
-          const pr = context.payload.pull_request;
-          // Manual reruns reproduce work; only automatic same-repo PR events reuse.
-          if (context.eventName === 'pull_request' && Number(process.env.GITHUB_RUN_ATTEMPT) === 1 &&
+          const pr = target.pr;
+          if ((context.eventName === 'pull_request' || (context.eventName === 'push' && process.env.REUSE_AFTER_MERGE === 'true')) && Number(process.env.GITHUB_RUN_ATTEMPT) === 1 &&
               pr?.head.repo.full_name === `${context.repo.owner}/${context.repo.repo}`) {
             const { resolveIncrementalPrBase } = require(`${process.env.GITHUB_ACTION_PATH}/../resolve-incremental-pr-base/resolve.cjs`);
             const evidenceCache = new Map();
@@ -154,12 +171,16 @@ runs:
             const file = path.join(process.env.RUNNER_TEMP, `${name}.json`);
             fs.writeFileSync(file, JSON.stringify({schema_version: 'ci-esta/reuse/v1',
               run_id: context.runId, run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT),
-              head_sha: pr?.head.sha || context.sha, receipt, execution_context: executionContext, lanes: measuredLanes}));
+              head_sha: context.payload.pull_request?.head.sha || context.sha, receipt, execution_context: executionContext, lanes: measuredLanes}));
             core.setOutput('measurement-path', file);
             core.setOutput('measurement-name', name);
           } catch (error) {
             core.warning(`Reuse measurements unavailable: ${error.message}`);
           }
+    - name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
+      if: github.event_name == 'pull_request'
+      shell: bash
+      run: 'true'
     - name: Publish reuse measurements
       if: steps.resolve.outputs.measurement-path != ''
       continue-on-error: true
