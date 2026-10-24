@@ -23,6 +23,42 @@ jobs:
         with:
           config: .github/test-lanes.json
           artifact-name: public-action-selection
+  cold-typecheck-scope:
+    needs: select-tests
+    if: >-
+      ${{ !cancelled() && (needs.select-tests.result != 'success' ||
+          fromJSON(needs.select-tests.outputs.lanes).tests) }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Prepare isolated checker configuration without installing tools
+        run: |
+          command -v uv || echo 'Cold runner: uv is absent before the action'
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          graph = json.loads(Path('.github/test-lanes.json').read_text())['graph']
+          Path('cold-impact.json').write_text(json.dumps(graph))
+          Path('cold-pyright.json').write_text(json.dumps({'include': ['src']}))
+          PY
+      - uses: ./actions/typecheck-scope
+        id: scope
+        with:
+          config: cold-impact.json
+          checker-config: cold-pyright.json
+          # Compare a known passing base to itself. This smoke exercises action
+          # setup; real consumers still require their type checker's own result.
+          base: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          head: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
+          clean-base-checks: Validation gate
+          global-inputs: pyproject.toml uv.lock
+      - name: Require real scope computation on the cold runner
+        env:
+          MODE: ${{ steps.scope.outputs.mode }}
+          REASON: ${{ steps.scope.outputs.reason }}
+        run: |
+          echo "$REASON"
+          test "$MODE" = none
   public-actions:
     needs: select-tests
     if: >-

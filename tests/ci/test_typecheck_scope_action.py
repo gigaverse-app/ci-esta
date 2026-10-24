@@ -7,10 +7,22 @@ import subprocess
 from pathlib import Path
 
 import pytest
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 ACTION = ROOT / "actions/typecheck-scope"
 BASE = "b" * 40
+
+
+def test_action_owns_toolchain_before_scope_computation() -> None:
+    steps = yaml.safe_load((ACTION / "action.yml").read_text())["runs"]["steps"]
+    setup = next(step for step in steps if step.get("uses", "").startswith("astral-sh/setup-uv@"))
+    scope = next(step for step in steps if step.get("id") == "scope")
+    assert steps.index(setup) < steps.index(scope)
+    assert setup["if"] == "steps.base.outputs.proven == 'true'"
+    # A tool download failure must retain the script's conservative full check.
+    assert setup["continue-on-error"] is True
+    assert setup["with"]["enable-cache"] is False
 
 
 def proven(check_runs: list[dict[str, str]], names: list[str]) -> bool:
