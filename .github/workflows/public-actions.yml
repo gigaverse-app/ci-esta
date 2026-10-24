@@ -36,7 +36,8 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          Path('public-impact.json').write_text(json.dumps({'module_roots': ['.'], 'test_roots': ['examples/timing-history/tests']}))
+          graph = json.loads(Path('.github/test-lanes.json').read_text())['graph']
+          Path('public-impact.json').write_text(json.dumps(graph))
           PY
       - uses: ./actions/test-impact
         id: impact
@@ -44,7 +45,7 @@ jobs:
           config: public-impact.json
           base: ${{ github.sha }}
           full: 'true'
-          full-roots: examples/timing-history/tests
+          full-roots: tests
           explanation-artifact: ''
       - name: Verify forwarded JSON paths
         env:
@@ -53,7 +54,7 @@ jobs:
         run: |
           python - <<'PY'
           import json, os
-          assert json.loads(os.environ['ROOTS']) == ['examples/timing-history/tests']
+          assert json.loads(os.environ['ROOTS']) == ['tests']
           assert 'proof unavailable' not in os.environ['REASON'].lower()
           PY
       # Exercise isolated planning before an application environment can mask
