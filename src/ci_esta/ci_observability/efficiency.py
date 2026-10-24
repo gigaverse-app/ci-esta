@@ -105,12 +105,13 @@ def execution_badge(report: CiObservabilityReportV1) -> brand.Badge:
     """Observed execution only: never turn a selected lane/file into a completed test."""
     pools = [item for item in report.measurements if isinstance(item, ShardPoolMeasurement)]
     if pools:
-        return brand.Badge("executed", f"{sum(len(pool.shards) for pool in pools)} shards", brand.BLUE)
+        count = sum(len(pool.shards) for pool in pools)
+        return brand.Badge("executed", f"{count} {'shard' if count == 1 else 'shards'}", brand.BLUE)
     jobs = [job for job in report.latest_attempt_jobs if job.run_attempt == report.provenance.run_attempt]
     started = [job for job in jobs if job.started_at is not None and job.conclusion != "skipped"
                and job.status in ("in_progress", "completed")]
     if started or (jobs and all(job.conclusion == "skipped" for job in jobs)):
-        return brand.Badge("executed", f"{len(started)} jobs", brand.BLUE)
+        return brand.Badge("executed", f"{len(started)} {'job' if len(started) == 1 else 'jobs'}", brand.BLUE)
     return brand.unavailable("executed")
 
 
@@ -217,7 +218,7 @@ def render_sharding(report: CiObservabilityReportV1) -> str:
         complete = len(configured) == 1 and sorted(indices) == list(range(1, next(iter(configured)) + 1))
         capacity = sum(pool.capacity_seconds for pool in pools)
         active = sum(pool.active_seconds for pool in pools)
-        metrics += [brand.Badge("measured shards", str(len(indices)), brand.BLUE),
+        metrics += [brand.Badge("measured shard" if len(indices) == 1 else "measured shards", str(len(indices)), brand.BLUE),
                     brand.Badge("pool" if len(pools) == 1 else "pools", str(len(pools)), brand.BLUE)]
         cpus = {pool.cpu_count for pool in pools}
         if len(cpus) == 1 and None not in cpus:

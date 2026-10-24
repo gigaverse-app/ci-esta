@@ -878,9 +878,9 @@ def test_visible_summary_text_cannot_inject_markup_or_expand_its_details() -> No
                     estimated_cost_usd=COST,
                 ),
             },
-            "<strong>16 min</strong> <sub>runner</sub> &ensp;│&ensp; <strong>$0.18</strong> <sub>est. cost</sub>",
+            "<strong>16 min</strong> runner · <strong>$0.18</strong> est. cost",
         ),
-        ({}, "<strong>0 min</strong> <sub>runner</sub> &ensp;│&ensp; <strong>unavailable</strong> <sub>est. cost</sub>"),
+        ({}, "<strong>0 min</strong> runner · <strong>unavailable</strong> est. cost"),
     ],
     ids=["complete-and-priced", "running-and-unpriced"],
 )

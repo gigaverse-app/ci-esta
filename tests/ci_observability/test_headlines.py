@@ -26,7 +26,7 @@ def test_bun_headline_uses_observed_inventory_without_claiming_selection_or_succ
     header = rendered.split("\n---\n", 1)[0]
     assert "![executed: 2 / 10 files]" in header
     assert "![selected: unavailable]" in header
-    assert "2 / 10 files</strong> <sub>executed</sub>" in rendered.split("</summary>", 1)[0]
+    assert "2 / 10 files</strong> executed" in rendered.split("</summary>", 1)[0]
     assert "Required checks passed" not in header
 
 
@@ -53,7 +53,7 @@ def test_reuse_plan_does_not_claim_new_execution():
     assert "![reused: 1 / 1 work units]" in header
     sticky = render_markdown(report_with_work(item))
     assert "reuse unmeasured" not in sticky
-    assert "1 / 1 work units</strong> <sub>reused</sub>" in sticky.split("What else avoided work?")[1]
+    assert "1 / 1 work units</strong> reused" in sticky.split("What else avoided work?")[1]
     assert "receipt `proof`" in sticky
 
 
