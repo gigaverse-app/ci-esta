@@ -84,6 +84,93 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./actions/check-test-policy
+        with:
+          policy: examples/test-policy/policy.json
+          cases: examples/test-policy/cases.json
+      - uses: ./actions/plan-test-policy
+        id: policy-smoke
+        with:
+          policy: examples/test-policy/policy.json
+          profile: pr
+          occasion: pr
+          affected: '["unit","provider-eval"]'
+      - name: Verify public policy action routing
+        env:
+          ADMITTED: ${{ steps.policy-smoke.outputs.admitted }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          assert json.loads(os.environ['ADMITTED']) == {
+              'unit': True, 'conformance': False, 'provider-eval': False, 'publish-smoke': False}
+          PY
+      - uses: ./actions/plan-test-policy
+        id: defaults-smoke
+        with:
+          work: '["unit", {"id":"benchmark", "tags":["expensive"]}]'
+          occasion: pull_request
+          affected: '["unit", "benchmark"]'
+      - name: Verify opinionated defaults without a policy file
+        env:
+          ADMITTED: ${{ steps.defaults-smoke.outputs.admitted }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          assert json.loads(os.environ['ADMITTED']) == {'unit': True, 'benchmark': False}
+          PY
+      - name: Create native selector report for scope smoke
+        run: >-
+          echo '{"lanes":{"api":true,"browser":false},"reason":"affected source"}' > scope-smoke.json
+      - uses: ./actions/resolve-lane-evidence
+        id: scope-smoke
+        with:
+          lanes: '{"linux":"Linux tests","mac":"Mac tests"}'
+          selection-keys: '["api","browser"]'
+          selection: '{"api":true,"browser":false}'
+          selection-report: scope-smoke.json
+          allow-reuse: 'false'
+      - name: Verify scope and fresh execution without evidence calls
+        env:
+          SELECTED: ${{ steps.scope-smoke.outputs.selection }}
+          MATRIX: ${{ steps.scope-smoke.outputs.matrix }}
+          RECEIPT: ${{ steps.scope-smoke.outputs.receipt }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          assert json.loads(os.environ['SELECTED']) == {'api': True, 'browser': False}
+          assert json.loads(os.environ['MATRIX']) == ['linux', 'mac']
+          assert os.environ['RECEIPT'] == ''
+          PY
+      - name: Start a single-request local revision endpoint
+        run: |
+          node -e 'const s=require("node:http").createServer((req,res)=>{res.end(JSON.stringify({sha:"a".repeat(40)}));s.close();});s.listen(18766,"127.0.0.1");setTimeout(()=>s.close(),20000).unref();' &
+      - uses: ./actions/observe-deployment
+        id: deployment-smoke
+        with:
+          url: http://127.0.0.1:18766
+          expected-sha: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          timeout-seconds: '10'
+          poll-seconds: '0.1'
+      - name: Verify local deployment identity
+        env:
+          STATE: ${{ steps.deployment-smoke.outputs.state }}
+          SHA: ${{ steps.deployment-smoke.outputs.sha }}
+        run: |
+          test "$STATE" = ready
+          test "$SHA" = aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      - name: Record budget start
+        run: echo "POLICY_BUDGET_START=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: ./actions/test-budget
+        id: budget-smoke
+        with:
+          total-seconds: '600'
+          started-at: ${{ env.POLICY_BUDGET_START }}
+          reserve-seconds: '60'
+          requested-seconds: '30'
+      - name: Require a positive bounded execution budget
+        env:
+          POLICY_SECONDS: ${{ steps.budget-smoke.outputs.seconds }}
+        run: test "$POLICY_SECONDS" -gt 0 && test "$POLICY_SECONDS" -le 30
       - uses: ./actions/service-container
         with:
           phase: warm

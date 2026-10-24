@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Decision": {
+      "additionalProperties": false,
+      "properties": {
+        "work": {
+          "$ref": "#/$defs/Work"
+        },
+        "status": {
+          "enum": [
+            "run",
+            "unaffected",
+            "deferred",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "fresh": {
+          "title": "Fresh",
+          "type": "boolean"
+        },
+        "timeout_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout Seconds"
+        }
+      },
+      "required": [
+        "work",
+        "status",
+        "reason",
+        "fresh"
+      ],
+      "title": "Decision",
+      "type": "object"
+    },
+    "Request": {
+      "additionalProperties": false,
+      "description": "Trusted context. None affected means unknown and conservatively broadens scope.",
+      "properties": {
+        "schema_version": {
+          "const": "ci-esta/test-request/v1",
+          "default": "ci-esta/test-request/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "profile": {
+          "maxLength": 300,
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "title": "Profile",
+          "type": "string"
+        },
+        "occasion": {
+          "enum": [
+            "pr",
+            "push",
+            "schedule",
+            "deployment",
+            "manual"
+          ],
+          "title": "Occasion",
+          "type": "string"
+        },
+        "revision": {
+          "maxLength": 300,
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "title": "Revision",
+          "type": "string"
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "deployed_revision": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deployed Revision"
+        },
+        "affected": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 300,
+                "minLength": 1,
+                "pattern": "^[^\\r\\n]+$",
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Affected"
+        },
+        "requested": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 300,
+                "minLength": 1,
+                "pattern": "^[^\\r\\n]+$",
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requested"
+        }
+      },
+      "required": [
+        "profile",
+        "occasion",
+        "revision"
+      ],
+      "title": "Request",
+      "type": "object"
+    },
+    "Work": {
+      "additionalProperties": false,
+      "description": "An atomic suite or individual test. The adapter chooses the granularity.\n\nA conformance suite is one unit: admission must never split its validators\nfrom its tests. IDs and tags are data, never executable command strings.",
+      "properties": {
+        "id": {
+          "maxLength": 300,
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "tags": {
+          "default": [],
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]+$",
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "effects": {
+          "default": [],
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]+$",
+            "type": "string"
+          },
+          "title": "Effects",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "fresh": {
+          "default": false,
+          "title": "Fresh",
+          "type": "boolean"
+        },
+        "timeout_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout Seconds"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "Work",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "ci-esta/test-plan/v1",
+      "default": "ci-esta/test-plan/v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request": {
+      "$ref": "#/$defs/Request"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/Decision"
+      },
+      "title": "Decisions",
+      "type": "array"
+    },
+    "fallback": {
+      "title": "Fallback",
+      "type": "boolean"
+    },
+    "budget_seconds": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Budget Seconds"
+    },
+    "reserve_seconds": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Reserve Seconds",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "request",
+    "decisions",
+    "fallback"
+  ],
+  "title": "ExecutionPlan",
+  "type": "object"
+}

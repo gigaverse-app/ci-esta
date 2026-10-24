@@ -4,6 +4,21 @@ inputs:
   lanes:
     description: JSON object mapping output keys to exact job names.
     required: true
+  selection-keys:
+    description: Optional JSON list of selector lane keys that define this execution's coverage.
+    default: '[]'
+  selection:
+    description: Selected lane booleans. Unknown values execute the lane and forbid evidence reuse.
+    default: '{}'
+  selection-outcome:
+    description: Outcome of the selector step; only success can establish deterministic coverage.
+    default: success
+  selection-report:
+    description: Native selector report with lanes and a non-fallback reason; required with selection-keys.
+    default: ''
+  allow-reuse:
+    description: Whether this occasion may consume or issue evidence; false preserves fresh execution.
+    default: 'true'
   execution-context:
     description: >-
       Optional deterministic description of runtime-selected work, such as the selected
@@ -24,6 +39,18 @@ inputs:
       Without it pins are compared exactly.
     default: ''
 outputs:
+  selection:
+    description: Normalized execution scope for selection-keys; unknown lanes run.
+    value: ${{ steps.resolve.outputs.selection }}
+  context:
+    description: Exact execution scope bound into the completion receipt.
+    value: ${{ steps.resolve.outputs.context }}
+  reusable:
+    description: Whether the selector report proves this exact deterministic scope.
+    value: ${{ steps.resolve.outputs.reusable }}
+  matrix:
+    description: Lane keys lacking literal successful proof; all keys when all are proven (gate the job separately).
+    value: ${{ steps.resolve.outputs.matrix }}
   receipt:
     description: Completion step name binding consumer merge tree and downloaded shared tooling.
     value: ${{ steps.resolve.outputs.receipt }}
@@ -36,6 +63,11 @@ runs:
     - id: resolve
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
       env:
+        SELECTION_KEYS: ${{ inputs.selection-keys }}
+        SELECTION: ${{ inputs.selection }}
+        SELECTION_OUTCOME: ${{ inputs.selection-outcome }}
+        SELECTION_REPORT: ${{ inputs.selection-report }}
+        ALLOW_REUSE: ${{ inputs.allow-reuse }}
         EVIDENCE_LANES: ${{ inputs.lanes }}
         EVIDENCE_EXECUTION_CONTEXT: ${{ inputs.execution-context }}
         EVIDENCE_INPUT_PATHS: ${{ inputs.input-paths }}
@@ -49,6 +81,27 @@ runs:
         script: |
           const reused = {};
           const measuredLanes = [];
+          const { executionScope, pendingMatrix } = require(`${process.env.GITHUB_ACTION_PATH}/selection.cjs`);
+          const lanes = JSON.parse(process.env.EVIDENCE_LANES);
+          const keys = JSON.parse(process.env.SELECTION_KEYS || '[]');
+          let executionContext = process.env.EVIDENCE_EXECUTION_CONTEXT || '';
+          core.setOutput('reused', '{}');
+          core.setOutput('matrix', JSON.stringify(pendingMatrix(Object.keys(lanes), {})));
+          let scope;
+          if (keys.length) {
+            if (executionContext) throw new Error('Use selection-keys or execution-context, not both');
+            let report;
+            try { report = require('fs').readFileSync(process.env.SELECTION_REPORT, 'utf8'); } catch { /* Missing evidence executes fresh. */ }
+            scope = executionScope(keys, process.env.SELECTION, process.env.SELECTION_OUTCOME, report);
+            executionContext = scope.context;
+            core.setOutput('selection', JSON.stringify(scope.selected));
+            core.setOutput('reusable', scope.reusable);
+          }
+          core.setOutput('context', executionContext);
+          if (process.env.ALLOW_REUSE === 'false' || (scope && (!scope.reusable || !Object.values(scope.selected).some(Boolean)))) {
+            core.setOutput('receipt', '');
+            return;
+          }
           const { testedIdentity, inventoryIdentity, validationReceipt } = require(`${process.env.GITHUB_ACTION_PATH}/inputs.cjs`);
           const shared = process.env.DEPENDENCY_TOKEN ? getOctokit(process.env.DEPENDENCY_TOKEN) : null;
           let tested;
@@ -63,7 +116,6 @@ runs:
             core.warning(`Could not read tested merge ${process.env.TESTED_MERGE_SHA} (${error.message}); only runs of this exact merge commit can be reused.`);
             tested = `commit ${process.env.TESTED_MERGE_SHA}`;
           }
-          const executionContext = process.env.EVIDENCE_EXECUTION_CONTEXT || '';
           const receipt = validationReceipt(process.env.GITHUB_ACTION_PATH, tested, executionContext);
           core.setOutput('receipt', receipt);
           const pr = context.payload.pull_request;
@@ -72,7 +124,7 @@ runs:
               pr?.head.repo.full_name === `${context.repo.owner}/${context.repo.repo}`) {
             const { resolveIncrementalPrBase } = require(`${process.env.GITHUB_ACTION_PATH}/../resolve-incremental-pr-base/resolve.cjs`);
             const evidenceCache = new Map();
-            for (const [key, jobName] of Object.entries(JSON.parse(process.env.EVIDENCE_LANES))) {
+            for (const [key, jobName] of Object.entries(lanes)) {
               const result = await resolveIncrementalPrBase({
                 github, context, core, evidenceCache, fallbackBaseSha: pr.base.sha, headSha: pr.head.sha,
                 headRef: pr.head.ref, pullRequestNumber: pr.number,
@@ -93,6 +145,7 @@ runs:
             }
           }
           core.setOutput('reused', JSON.stringify(reused));
+          core.setOutput('matrix', JSON.stringify(pendingMatrix(Object.keys(lanes), reused)));
           try {
             const fs = require('fs');
             const path = require('path');

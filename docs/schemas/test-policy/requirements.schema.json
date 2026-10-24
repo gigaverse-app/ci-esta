@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Requirement": {
+      "additionalProperties": false,
+      "properties": {
+        "resource": {
+          "maxLength": 300,
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "title": "Resource",
+          "type": "string"
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider"
+        },
+        "capabilities": {
+          "default": [],
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]+$",
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "resource"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    }
+  },
+  "additionalProperties": {
+    "items": {
+      "$ref": "#/$defs/Requirement"
+    },
+    "type": "array"
+  },
+  "type": "object"
+}

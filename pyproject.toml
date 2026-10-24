@@ -21,6 +21,7 @@ pytest = ["pytest>=8", "pytest-selective>=0.4.1,<0.5.0"]
 postgres = ["psycopg[binary]>=3.2,<4"]
 
 [project.scripts]
+ci-esta-test-policy = "ci_esta.policy.cli:main"
 ci-esta-postgres-clone = "ci_esta.testing.postgres:main"
 ci-esta-resources = "ci_esta.diagnostics:main"
 ci-esta = "ci_esta.cli:main"
