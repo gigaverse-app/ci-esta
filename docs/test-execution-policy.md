@@ -15,9 +15,9 @@ The implementation is Python, but its JSON contracts and Actions work with any t
 | Source, inspected base | Useful behavior | Generalized boundary | Project ownership retained |
 |---|---|---|---|
 | AI, `d9814b9a3` | Test-owned requirements, ordered providers, exact pins, runner/Kubernetes placement, per-node filtering | Resource models/resolution; boolean marker metadata adapter; explicit lane profiles | Registry, settings discovery, pytest collection hooks, image/job lifecycle, slash-command authorization |
-| Due, `262a6d3` | Whole-suite selection, validators after tests, large benchmark/profile matrix | Atomic work IDs and complete suite admission | Django variants, conformance reports and validators, baseline/candidate benchmark comparison |
-| Backend, `262e5ce36` | Independent service lanes, manual probes, immutable deployed-image checks | Occasion and environment constraints, fresh manual/deployment work | Image provenance, deployment readiness, production confirmation, namespace and database lifecycle |
-| Web, `5efbceea3` | Native Bun impact selection, mock/live separation, elapsed-time budgets, serialized shared accounts, deployed build identity | Language-neutral inventory, effect permissions, freshness, remaining-budget helper/action | Bun selector, Playwright execution, distributed serialization, account ownership, readiness polling |
+| Due, `262a6d3` | Whole-suite selection, validators after tests, large benchmark/profile matrix | Atomic work IDs, complete suite admission, shared execution-scope and matrix evidence | Django variants, conformance reports and validators, baseline/candidate benchmark comparison |
+| Backend, `262e5ce36` | Independent service lanes, manual probes, immutable deployed-image checks | Occasion constraints, workflow execution-input projection and complete-range selector proof | Image provenance, deployment readiness, production confirmation, namespace and database lifecycle |
+| Web, `5efbceea3` | Native Bun impact selection, mock/live separation, elapsed-time budgets, serialized shared accounts, deployed build identity | Language-neutral inventory, effect permissions, freshness, remaining-budget helper/action, deployed-revision observation | Bun selector, Playwright execution, distributed serialization, account ownership, build-marker format |
 | CI-esta, `5b8fb5a` | Conservative reuse, execution receipts after validation, mandatory gates, work reports | Policy composes with existing evidence and gate actions | Evidence identity, expiry and terminal-result checks remain in their existing APIs |
 
 The source map is about behavior, not exporting every source file. A repository-specific image launcher or account provisioner would be a poor shared default. In particular, AI's old YAML fields `blocking_initially`, `requires_manual_request` and `requires_isolated_destinations` were declarations without general enforcement. They are not advertised here as an existing security mechanism.
@@ -138,7 +138,9 @@ Policy admission is not successful execution. A provider being resolvable is not
 | **Resource Python API / `python -m ci_esta.policy.resource_cli`** | Provider registry, requirements, available credential names, target environment | Per-work placement or unavailable reasons; no credential values required |
 | Existing `service-container`, `setup-cached-uv`, image and project setup actions | Admitted work and project-owned configuration | Provisioning; policy does not duplicate these implementations |
 | **`actions/test-budget`** | Job start, total/requested seconds, cleanup reserve | Positive remaining seconds for the native runner timeout; fails when exhausted |
-| Existing `resolve-lane-evidence` / `resolve-pytest-evidence` | Admitted scope and evidence identity | Reuse only when freshness permits and all existing proof requirements pass |
+| **`python -m ci_esta.workflow_inputs`** | Complete Git range, workflow path, lane/job mapping and existing selector report | Changed workflow-input booleans and complete-tree dependency/test proof; no application graph |
+| **Extended `resolve-lane-evidence`** / existing `resolve-pytest-evidence` | Admitted scope and evidence identity; optional native lane report | Normalize actual execution, bind scope once into receipts, derive remaining matrix; reuse only when freshness permits |
+| **`actions/observe-deployment`** | HTTP endpoint, revision representation, optional expected SHA and repository | Exact ready/superseded state with observed SHA; bounded polling and ancestry retries, never test-success evidence |
 | Existing `validation-gate` | Mandatory planner/executor outcomes and admitted requirements | Missing, failed, cancelled or unexpectedly skipped work cannot pass |
 | Existing reporting actions | Actual plan, execution and timing evidence | Explain work and outcomes without making reporting a prerequisite of validation |
 
@@ -150,6 +152,182 @@ impact ------> policy ------> reusable? ------> matching prior proof
 ```
 
 For Due, a work ID such as `integration` covers its tests **and** application validators. The profile does not split out a validator as an optional unit. For web, the mock harness remains a separate workflow from live-account tests. Backend's required unit-plan artifact retains its existing lifecycle.
+
+## Replacing durable local implementations
+
+The extraction also removes algorithms from the consumers. These are independent
+public mechanisms with repository data supplied at their boundaries:
+
+```text
+Backend: complete PR base + head
+                 |
+    workflow_inputs CLI <----- lane -> job IDs, test-group -> exact test IDs
+                 |             (repository-owned data)
+        +--------+---------+
+        |                  |
+ semantic job diff    existing selector report
+        |            bound to COMPLETE tree pair
+        +--------+---------+
+                 |
+      existing source/path admission ---> service jobs
+
+Due: native selection ---> policy ---> resolve-lane-evidence
+                                            |
+                          normalize scope + verify native report
+                                            |
+                          +-----------------+------------------+
+                          |                                    |
+                    exact receipt context               unknown/fresh
+                          |                                    |
+                  existing evidence lookup              execute all unknowns
+                          |
+                 remaining matrix + selection
+                          |
+                  suites AND validators ---> completion receipt
+
+Web: HTTP response ---> revision reader (JSON / header / regex capture)
+                              |
+                      waitForRevision lifecycle
+                        /                 \
+                exact expected SHA     different SHA
+                    ready                 |
+                                  bounded Git comparison
+                                    /             \
+                             descendant          stale/diverged
+                             superseded           keep polling
+                             NO TESTS             or fail deadline
+```
+
+### Backend: workflow inputs and complete-range proof
+
+Backend deletes `.github/actions/plan-test-paths/workflow_inputs.py`. Its existing
+composite supplies five lane/job pairs and one exact test group to
+`python -m ci_esta.workflow_inputs`. The local path filters remain authoritative
+for source admission. The shared CLI does not infer dependencies or suppress a
+source change merely because a workflow is unchanged.
+
+```sh
+python -m ci_esta.workflow_inputs \
+  --workflow .github/workflows/check.yml --base "$PR_BASE" --head HEAD \
+  --merge-base "$CAPTURED_COMPLETE_PR_BASE" \
+  --lanes '{"browser":"browser-tests","api":"api-tests"}' \
+  --tests '{"api":["tests/test_api.py","tests/test_auth.py"]}' \
+  --report test-impact-report.json
+```
+
+Inputs are a nonempty JSON map of output keys to job IDs and an optional JSON map
+of test groups to exact selector IDs. Output keys cannot collide. Outputs are
+`browser=true|false`, `api=true|false`, `dependencies-unchanged=true|false`, and
+`api-unaffected=true|false`. A test group is unaffected only when it is nonempty
+and every listed test is absent from a valid selected-test list.
+
+Workflow-level settings and the full chosen job always participate. A job that
+uses `needs` in execution data includes its declared prerequisites transitively.
+Admission-only conditions and display names do not pull a prerequisite into the
+comparison. Changing the chosen job's own condition still invalidates it. This
+is deliberately conservative for indirect/bracket/toJSON expressions. The
+existing reporting topology graph has a different purpose: it includes all
+scheduling edges and display names for timing analysis.
+
+Dependency/test proof consumes pytest-selective's existing report shape:
+`{base: treeSHA, head: treeSHA, mode: "scoped"|"none", selected: string[],
+dependencies_unchanged?: boolean}`. Full reports, malformed reports, or a tree
+pair from an incremental prior push establish no proof. Preserve the complete
+merge base before a shallow incremental fetch. Missing history or malformed
+workflow input runs every configured lane. Malformed caller mappings fail so
+the existing required planner gate cannot silently accept an incomplete plan.
+
+### Due: extend the existing evidence owner
+
+Due removes both inline JavaScript steps, `scope` and `matrix`. The existing
+`resolve-lane-evidence` action now optionally owns their complete relationship:
+
+```yaml
+- id: evidence
+  uses: gigaverse-app/ci-esta/actions/resolve-lane-evidence@<reviewed-commit>
+  with:
+    lanes: '{"locked":"Execute tests (locked)","minimum":"Execute tests (minimum)"}'
+    selection-keys: '["library","integration"]'
+    selection: ${{ steps.policy.outputs.admitted }}
+    selection-outcome: ${{ steps.select.outcome }}
+    selection-report: test-lanes.json
+    allow-reuse: ${{ (inputs.profile == '' || inputs.profile == 'legacy') && github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'test:full') }}
+```
+
+The optional input contract is `selection-keys: string[]`, `selection: object`,
+`selection-outcome: string`, `selection-report: path`, and `allow-reuse: boolean`
+(all serialized as Actions strings). The native report must contain a nonempty
+`reason` and exact boolean `lanes` matching execution. Missing values, non-booleans,
+selector failures, fallback reasons and explicit full checkpoints cannot create
+reusable scope. Unknown lanes execute. This preserves Due's existing reason
+adapter, including its conservative fallback/checkpoint text check; it is not a
+promise to understand every selector's report. Other selectors can continue
+supplying an explicit deterministic `execution-context`. Combining that input
+with `selection-keys` is rejected to avoid two competing coverage identities.
+
+Outputs are `selection: {id:boolean}`, `context: JSON string`, `reusable: boolean`,
+`receipt: string`, `reused: {variant:true}`, and `matrix: string[]`. The same
+normalized scope produces both executor outputs and receipt context. A fresh or
+unverifiable scope returns no receipt and performs no evidence API calls. A
+matrix excludes only literal `true` proof. When every variant is proven, it
+retains the original nonempty matrix, while the existing job condition skips
+execution before service provisioning. Reruns, forks, later failures, freshness
+and ancestry continue using the existing evidence checks. Default inputs retain
+the existing action behavior for other callers.
+
+### Web: deployed identity has one lifecycle owner
+
+Web deletes `.github/scripts/read-deployed-build.mjs`. All four production calls
+use `observe-deployment`. Web supplies only its HTML marker; another application
+can expose `{"sha":"<40 hex characters>"}` and use the JSON default.
+
+```yaml
+- id: deployed
+  uses: gigaverse-app/ci-esta/actions/observe-deployment@<reviewed-commit>
+  with:
+    url: ${{ vars.APP_URL }}
+    revision-source: pattern
+    revision-key: 'Build Info: Version ([0-9a-f]{40}),'
+    expected-sha: ${{ github.sha }}
+- if: steps.deployed.outputs.state == 'ready'
+  run: npm run smoke
+```
+
+The action's YAML defines all inputs/defaults: HTTP URL, `revision-source`
+(`json`, `header`, `pattern`), `revision-key` (dotted field/header/first regex
+capture), optional `expected-sha`, timeout/poll seconds (600/10), cache query key,
+comparison repository and read-only token. JSON and header variants are exercised
+against real local HTTP servers as well as web's original HTML format. All
+representations must yield a full Git SHA, preventing response content from
+injecting workflow outputs.
+
+An empty expected SHA makes a single observation. Otherwise the observer shares
+one deadline across HTTP, bounded ancestry comparison and polling. Successful
+comparisons are cached per observed SHA within that invocation; failed comparisons
+are retried. A verified descendant returns `superseded`, with a summary explicitly
+stating no smoke tests ran. Behind/diverged/identical comparison results keep
+waiting for the exact SHA; unknown comparison statuses fail. Deadline errors
+retain the last meaningful observation. The public Node API separates the
+revision reader from the polling lifecycle, allowing other signal-aware observers.
+The Actions wrapper uses the runner's Node and `gh`; it does not require Python
+or an application package dependency.
+
+### Preservation evidence and intentional boundaries
+
+Backend retains its real-workflow, source-filter and shallow-history tests against
+the shared implementation. Due retains its scope/matrix scenarios and runs the
+actual shared evidence script for normalization; CI-esta exercises eligible reuse,
+changed scope, later-failure revocation and reruns. Web's polling/HTTP/CLI regression
+tests move to CI-esta; web additionally runs the installed shared CLI with inputs
+read from all four production workflow calls. Linux CI covers the CLI's executable
+`gh` shim cases, which are not runnable as POSIX scripts on native Windows.
+
+The resource resolver remains optional and does not own deployment observation,
+workflow differences, evidence or CPU sizing. Project-owned behavior stays local:
+source patterns, test inventories, native selectors, build-marker format, Django
+variants, benchmark business measurements, conformance validators, live-account
+locks and provisioning. This avoids converting application-specific scripts into
+an unmaintainable universal CI runner.
 
 ## Public schemas
 
@@ -328,4 +506,4 @@ Tests exercise the public CLI, the actual composite-action shell, admission and 
 
 CI-esta's Python 3.11/3.14 suites and installed-wheel smoke protect portability. The public-action smoke must exercise the new action from the PR checkout. Consumer contract actions install the same immutable source revision as their planners. No live operational probe needs to be dispatched merely to prove routing.
 
-No CI savings are claimed by this extraction. Additional planner startup has a cost; static consumers gain consistent policy and auditable special-occasion execution, while AI removes duplicated resolver code. Measure cost separately before claiming optimization.
+No CI savings are claimed by this extraction. Additional planner startup has a cost; static consumers gain consistent policy and auditable special-occasion execution, while the consumers remove their resolver, workflow-input, execution-scope and deployment-observer implementations. Measure cost separately before claiming optimization.

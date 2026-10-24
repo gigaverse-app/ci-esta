@@ -44,6 +44,7 @@ a stable `history-key`. See the [executable retention tutorial](learned-test-tim
 | `gigaverse-app/ci-esta/actions/learn-test-timings@v1` | [learn-test-timings](../actions/learn-test-timings/action.yml) |
 | `gigaverse-app/ci-esta/actions/lint-ci-code@v1` | [lint-ci-code](../actions/lint-ci-code/action.yml) |
 | `gigaverse-app/ci-esta/actions/native-windows-git@v1` | [native-windows-git](../actions/native-windows-git/action.yml) |
+| `gigaverse-app/ci-esta/actions/observe-deployment@v1` | [observe-deployment](../actions/observe-deployment/action.yml) |
 | `gigaverse-app/ci-esta/actions/plan-pytest-shards@v1` | [plan-pytest-shards](../actions/plan-pytest-shards/action.yml) |
 | `gigaverse-app/ci-esta/actions/plan-runner-pools@v1` | [plan-runner-pools](../actions/plan-runner-pools/action.yml) |
 | `gigaverse-app/ci-esta/actions/postgres-client@v1` | [postgres-client](../actions/postgres-client/action.yml) |

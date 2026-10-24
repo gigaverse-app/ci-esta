@@ -101,6 +101,46 @@ jobs:
           import json, os
           assert json.loads(os.environ['ADMITTED']) == {'unit': True, 'benchmark': False}
           PY
+      - name: Create native selector report for scope smoke
+        run: >-
+          echo '{"lanes":{"api":true,"browser":false},"reason":"affected source"}' > scope-smoke.json
+      - uses: ./actions/resolve-lane-evidence
+        id: scope-smoke
+        with:
+          lanes: '{"linux":"Linux tests","mac":"Mac tests"}'
+          selection-keys: '["api","browser"]'
+          selection: '{"api":true,"browser":false}'
+          selection-report: scope-smoke.json
+          allow-reuse: 'false'
+      - name: Verify scope and fresh execution without evidence calls
+        env:
+          SELECTED: ${{ steps.scope-smoke.outputs.selection }}
+          MATRIX: ${{ steps.scope-smoke.outputs.matrix }}
+          RECEIPT: ${{ steps.scope-smoke.outputs.receipt }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          assert json.loads(os.environ['SELECTED']) == {'api': True, 'browser': False}
+          assert json.loads(os.environ['MATRIX']) == ['linux', 'mac']
+          assert os.environ['RECEIPT'] == ''
+          PY
+      - name: Start a single-request local revision endpoint
+        run: |
+          node -e 'const s=require("node:http").createServer((req,res)=>{res.end(JSON.stringify({sha:"a".repeat(40)}));s.close();});s.listen(18766,"127.0.0.1");setTimeout(()=>s.close(),20000).unref();' &
+      - uses: ./actions/observe-deployment
+        id: deployment-smoke
+        with:
+          url: http://127.0.0.1:18766
+          expected-sha: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          timeout-seconds: '10'
+          poll-seconds: '0.1'
+      - name: Verify local deployment identity
+        env:
+          STATE: ${{ steps.deployment-smoke.outputs.state }}
+          SHA: ${{ steps.deployment-smoke.outputs.sha }}
+        run: |
+          test "$STATE" = ready
+          test "$SHA" = aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
       - name: Record budget start
         run: echo "POLICY_BUDGET_START=$(date +%s)" >> "$GITHUB_ENV"
       - uses: ./actions/test-budget

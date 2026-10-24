@@ -1,0 +1,54 @@
+name: Observe deployed revision
+description: Read or await an exact Git revision, reporting verified descendants as superseded without running tests.
+inputs:
+  url:
+    description: HTTP endpoint exposing the deployed Git SHA.
+    required: true
+  revision-source:
+    description: json (default), header, or pattern (first regex capture).
+    default: json
+  revision-key:
+    description: Dotted JSON field, header name, or regular expression containing one SHA capture.
+    default: sha
+  expected-sha:
+    description: Exact SHA to await; empty performs a single observation.
+    default: ''
+  timeout-seconds:
+    description: Total polling budget, including bounded HTTP and comparison requests.
+    default: '600'
+  poll-seconds:
+    description: Maximum delay between observations.
+    default: '10'
+  cache-key:
+    description: Cache-busting query parameter; empty disables query mutation.
+    default: deployment_check
+  compare-repository:
+    description: GitHub owner/repo for ancestry comparison; empty waits only for exact equality.
+    default: ${{ github.repository }}
+  token:
+    description: Read-only GitHub token for ancestry lookup.
+    default: ${{ github.token }}
+outputs:
+  state:
+    description: ready or superseded. Neither means tests have passed.
+    value: ${{ steps.observe.outputs.state }}
+  sha:
+    description: Observed full Git SHA.
+    value: ${{ steps.observe.outputs.sha }}
+runs:
+  using: composite
+  steps:
+    - id: observe
+      shell: bash
+      env:
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+        DEPLOYMENT_URL: ${{ inputs.url }}
+        REVISION_SOURCE: ${{ inputs.revision-source }}
+        REVISION_KEY: ${{ inputs.revision-key }}
+        EXPECTED_SHA: ${{ inputs.expected-sha }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+        POLL_SECONDS: ${{ inputs.poll-seconds }}
+        CACHE_KEY: ${{ inputs.cache-key }}
+        COMPARE_REPOSITORY: ${{ inputs.compare-repository }}
+        GH_TOKEN: ${{ inputs.token }}
+      run: node "$SHARED_ACTION_PATH/run.mjs"

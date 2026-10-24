@@ -13,7 +13,9 @@ ROOT = Path(__file__).resolve().parents[2]
 ACTION = ROOT / "actions/resolve-lane-evidence"
 
 
-def admission(context: str, prior_context: str, *, later_failure: bool = False, attempt: int = 1) -> dict:
+def admission(
+    context: str, prior_context: str, *, later_failure: bool = False, attempt: int = 1, selected: dict | None = None
+) -> dict:
     script = yaml.safe_load((ACTION / "action.yml").read_text())["runs"]["steps"][0]["with"]["script"]
     harness = r"""
 const input = JSON.parse(process.env.CONTEXT_CASE);
@@ -52,6 +54,8 @@ new AsyncFunction('github','context','core','require','process','getOctokit',inp
 ).then(()=>console.log(JSON.stringify({outputs,warnings}))).catch(error=>{console.error(error);process.exit(1);});
 """
     with tempfile.TemporaryDirectory() as directory:
+        plan = Path(directory) / "selection.json"
+        plan.write_text(json.dumps({"lanes": selected, "reason": "affected source"}))
         result = subprocess.run(
             ["node", "-e", harness],
             env={
@@ -63,7 +67,11 @@ new AsyncFunction('github','context','core','require','process','getOctokit',inp
                 "GITHUB_JOB": "plan",
                 "RUNNER_TEMP": directory,
                 "TESTED_MERGE_SHA": "a" * 40,
-                "EVIDENCE_EXECUTION_CONTEXT": context,
+                "EVIDENCE_EXECUTION_CONTEXT": context if selected is None else "",
+                "SELECTION_KEYS": json.dumps(list(selected) if selected else []),
+                "SELECTION": json.dumps(selected),
+                "SELECTION_OUTCOME": "success",
+                "SELECTION_REPORT": str(plan),
                 "EVIDENCE_LANES": '{"tests":"Validation"}',
                 "EVIDENCE_INPUT_PATHS": "[]",
                 "DEPENDENCY_TOKEN": "",
@@ -74,6 +82,7 @@ new AsyncFunction('github','context','core','require','process','getOctokit',inp
         )
         parsed = json.loads(result.stdout)
         from ci_esta.measurements import ReuseMeasurement
+
         measurement = ReuseMeasurement.model_validate_json(Path(parsed["outputs"]["measurement-path"]).read_bytes())
         assert (measurement.run_id, measurement.run_attempt, measurement.head_sha) == (9999, attempt, "f" * 40)
         assert bool(measurement.lanes) is bool(json.loads(parsed["outputs"]["reused"]))
@@ -99,3 +108,17 @@ def test_failure_in_another_context_and_head_revokes_older_success() -> None:
 
 def test_explicit_rerun_executes_even_with_matching_context() -> None:
     assert json.loads(admission("library", "library", attempt=2)["reused"]) == {}
+
+
+def test_selected_scope_is_bound_into_the_actual_receipt():
+    selected = {"api": True, "browser": False}
+    context = json.dumps(selected, separators=(",", ":"))
+    outputs = admission(context, context, selected=selected)
+    assert json.loads(outputs["selection"]) == selected
+    assert outputs["context"] == context
+    assert outputs["reusable"] is True
+    assert json.loads(outputs["reused"]) == {"tests": True}
+    assert json.loads(outputs["matrix"]) == ["tests"]
+    assert json.loads(admission(context, "broader old coverage", selected=selected)["reused"]) == {}
+    assert json.loads(admission(context, context, selected=selected, later_failure=True)["reused"]) == {}
+    assert json.loads(admission(context, context, selected=selected, attempt=2)["reused"]) == {}

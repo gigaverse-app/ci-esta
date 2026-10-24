@@ -139,7 +139,7 @@ jobs:
           bun-version: '1.4.2'
       - name: Exercise native Bun selection and fallback controls
         if: ${{ needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
-        run: node --test tests/github_actions/bun-selection.test.mjs tests/github_actions/bun-work-report.test.mjs
+        run: node --test tests/github_actions/bun-selection.test.mjs tests/github_actions/bun-work-report.test.mjs tests/github_actions/deployment-observer.test.mjs
       - name: Exercise selected routing and gate contracts
         if: ${{ needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
         run: uv run pytest -q tests/ci/test_repository_routing.py tests/ci/test_validation_gate.py tests/testing/test_workflow_adoption.py
