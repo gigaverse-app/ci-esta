@@ -528,8 +528,7 @@ def _header(report: CiObservabilityReportV1) -> list[str]:
     return [
         brand.banner(),
         "",
-        " ".join(brand.badge(item) for item in verdict) + "<br>\n" +
-        " ".join(brand.badge(item) for item in _cost_badges(report)),
+        " ".join(brand.badge(item) for item in [*verdict, *_cost_badges(report)]),
         "",
         f"{_check_status(report)} {workflow}{markdown.code(provenance.head_sha[:7])} · attempt {provenance.run_attempt} · "
         f"{report.collection_status.value} snapshot",
