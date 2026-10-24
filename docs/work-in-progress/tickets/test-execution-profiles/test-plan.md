@@ -18,4 +18,6 @@ See [the design](../../../test-execution-policy.md) for source provenance and in
 - [x] Partial overrides, inheritance, empty permission replacement, unknown fields/parents, cycles and defaults:none.
 - [x] Selector-owned inventories, unknown metadata rejection and missing-inventory failure.
 - [x] Existing consumer parity fixtures and actual workflow-input contracts, with no planner mocks.
-- [ ] Installed-wheel and real public-action smoke at the final revision.
+- [x] Installed-wheel and real public-action smoke at implementation revision `f529ac3a0621870d836ec0c7ec7f3b13d46f4df4`.
+
+Validation: 1,436 tests passed on Python 3.11; Python 3.14 and public-action smoke also passed at `f529ac3`. Consumer routing contracts passed at their corresponding pinned adoption heads.
