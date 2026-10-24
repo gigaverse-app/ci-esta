@@ -82,6 +82,24 @@ def test_multiple_aliases_can_share_a_sku_without_duplicating_prices():
     assert {row.runner_label for row in cost.by_sku} == {"build", "test"}
 
 
+def test_same_sku_aliases_keep_their_individual_price_overrides():
+    aliases = [RunnerSkuRateV1(sku="linux_8_core", runner_label=label, usd_per_minute=price)
+               for label, price in (("build", Decimal("0.01")), ("test", Decimal("0.02")))]
+    measured = priced_report(["build"], rates=aliases)
+    other = measured.billing_jobs[0].model_copy(update={"job_id": 2, "runner_labels": ["test"]})
+    cost = _runner_cost([*measured.billing_jobs, other], aliases)
+    assert cost.estimated_cost_usd == Decimal("0.09")
+    assert {row.runner_label: row.usd_per_minute for row in cost.by_sku} == {
+        "build": Decimal("0.01"), "test": Decimal("0.02"),
+    }
+
+
+def test_multiple_matching_aliases_do_not_silently_choose_a_price():
+    aliases = [RunnerSkuRateV1(sku="linux_8_core", runner_label=label) for label in ("build", "test")]
+    with pytest.raises(ValueError, match="multiple configured SKUs"):
+        priced_report(["build", "test"], rates=aliases)
+
+
 @pytest.mark.parametrize("sku", ["linux_8_core", "private-hardware"])
 @pytest.mark.parametrize("price", ["0", "0.03"])
 def test_explicit_prices_remain_an_escape_hatch_for_known_and_custom_skus(sku, price):
