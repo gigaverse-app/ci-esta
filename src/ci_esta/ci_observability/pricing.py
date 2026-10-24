@@ -25,17 +25,20 @@ STANDARD_PRICES = {
 }
 
 
-def matching_rate(job: ObservedJobV1, rates: list[RunnerSkuRateV1], repository_private: bool | None):
+def matching_rate(job: ObservedJobV1, rates: list[RunnerSkuRateV1],
+                  repository_private: bool | None) -> RunnerSkuRateV1 | None:
     matches = [rate for rate in rates if rate.runner_label in job.runner_labels]
     if len(matches) > 1:
         raise ValueError(f"runner labels match multiple configured SKUs: {job.runner_labels}")
     if matches:
-        return matches[0], "configured"
+        return matches[0]
     # Never infer hardware from an OS label in a self-hosted/custom label set.
     if len(job.runner_labels) != 1 or job.runner_labels[0] not in STANDARD_PRICES:
-        return None, None
+        return None
     label = job.runner_labels[0]
     sku, price = STANDARD_PRICES[label]
     public = repository_private is False
-    return RunnerSkuRateV1(sku=sku, runner_label=label, usd_per_minute=Decimal(0 if public else price)), (
-        "github-public" if public else "github-list-price")
+    # Versioned SKU names preserve provenance within the existing v1 contract;
+    # strict older report readers reject additional fields on SKU entries.
+    prefix = "github_public_" if public else "github_20261024_"
+    return RunnerSkuRateV1(sku=prefix + sku, runner_label=label, usd_per_minute=Decimal(0 if public else price))

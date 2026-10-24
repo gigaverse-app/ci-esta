@@ -32,14 +32,14 @@ def test_standard_hosted_jobs_have_traceable_list_price_estimates(labels, rate):
     measured = priced_report(labels)
     cost = measured.runner_cost
     assert cost.estimated_cost_usd == cost.estimated_rounded_runner_minutes * Decimal(rate)
-    assert cost.by_sku[0].rate_source == "github-list-price"
+    assert cost.by_sku[0].sku.startswith("github_20261024_")
     assert "before included minutes" in render_markdown(measured)
 
 
 def test_public_standard_runners_are_free_when_repository_visibility_is_known():
     measured = priced_report(["ubuntu-latest"], public=True)
     assert measured.runner_cost.estimated_cost_usd == 0
-    assert measured.runner_cost.by_sku[0].rate_source == "github-public"
+    assert measured.runner_cost.by_sku[0].sku.startswith("github_public_")
 
 
 @pytest.mark.parametrize("labels", [["self-hosted", "ubuntu-latest"], ["16vcpu-runner"], [],
@@ -55,7 +55,7 @@ def test_explicit_rate_overrides_defaults_and_custom_hardware_is_preserved():
     rate = RunnerSkuRateV1(sku="custom", runner_label="ubuntu-latest", usd_per_minute=Decimal("0.02"))
     measured = priced_report(["ubuntu-latest"], rates=[rate], public=True)
     assert measured.runner_cost.by_sku[0].usd_per_minute == Decimal("0.02")
-    assert measured.runner_cost.by_sku[0].rate_source == "configured"
+    assert measured.runner_cost.by_sku[0].sku == "custom"
 
 
 def test_python_execution_uses_measured_shards_before_workflow_jobs():

@@ -144,8 +144,10 @@ configuration; known public repositories use their free standard-runner rate.
 When visibility is absent, the rate is explicitly a list-price estimate.
 Custom, larger and self-hosted runners require explicit label-to-rate mappings.
 Maintain those overrides for your account. Cost is a per-job rounded-minute
-estimate before allowances and discounts, not an invoice. Each SKU records its
-rate source. Unmatched timed jobs withhold the total, while the known subtotal
+estimate before allowances and discounts, not an invoice. Automatic SKU names
+record the source: `github_20261024_*` for list rates and `github_public_*` for
+free public standard runners. The existing JSON shape remains compatible with
+older v1 readers. Unmatched timed jobs withhold the total, while the known subtotal
 breakdown and count of unpriced runner minutes remain visible.
 
 Set `sticky-workflow` to the exact source workflow name that owns the PR comment.

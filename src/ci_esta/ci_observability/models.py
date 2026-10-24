@@ -229,7 +229,6 @@ class RunnerSkuCostV1(BaseModel):
     estimated_rounded_runner_minutes: int
     rounding_waste_seconds: float
     estimated_cost_usd: Decimal
-    rate_source: Literal["configured", "github-list-price", "github-public"] = "configured"
 
 
 class RunnerCostV1(BaseModel):

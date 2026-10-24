@@ -210,21 +210,21 @@ def _runner_cost(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1],
     rates_by_sku = {rate.sku: rate for rate in rates}
     if len(rates_by_sku) != len(rates):
         raise ValueError("runner SKU rates must use distinct SKU names")
-    jobs_by_sku: dict[tuple[str, str, str], list[ObservedJobV1]] = {}
+    jobs_by_sku: dict[tuple[str, str], list[ObservedJobV1]] = {}
     unpriced_minutes = 0
     unpriced_jobs = 0
     for job in costed:
-        rate, source = matching_rate(job, rates, repository_private)
+        rate = matching_rate(job, rates, repository_private)
         if rate is None:
             unpriced_minutes += job.rounded_minutes or 0
             unpriced_jobs += 1
             continue
-        jobs_by_sku.setdefault((rate.sku, rate.runner_label, source), []).append(job)
+        jobs_by_sku.setdefault((rate.sku, rate.runner_label), []).append(job)
 
     by_sku: list[RunnerSkuCostV1] = []
     for sku in sorted(jobs_by_sku):
         sku_jobs = jobs_by_sku[sku]
-        rate, source = matching_rate(sku_jobs[0], rates, repository_private)
+        rate = matching_rate(sku_jobs[0], rates, repository_private)
         assert rate is not None, "grouped SKU jobs must retain their matching rate"
         rounded_minutes = sum(job.rounded_minutes or 0 for job in sku_jobs)
         by_sku.append(
@@ -236,7 +236,6 @@ def _runner_cost(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1],
                 estimated_rounded_runner_minutes=rounded_minutes,
                 rounding_waste_seconds=round(sum(job.rounding_waste_seconds or 0.0 for job in sku_jobs), 1),
                 estimated_cost_usd=rate.usd_per_minute * rounded_minutes,
-                rate_source=source,
             )
         )
     priced_total = sum((item.estimated_cost_usd for item in by_sku), start=Decimal(0))
@@ -718,17 +717,17 @@ def _cost_details(report: CiObservabilityReportV1) -> list[str]:
         "",
     ]
     if cost.by_sku:
-        configured = all(item.rate_source == "configured" for item in cost.by_sku)
+        configured = not any(item.sku.startswith(("github_20261024_", "github_public_")) for item in cost.by_sku)
         body += [
             (f"Estimated runner cost at {'configured' if configured else 'recorded'} rates: "
              f"**${_format_usd(cost.estimated_cost_usd)}**." if cost.estimated_cost_usd is not None else
              "Priced runner usage below is a partial estimate; the total is withheld until every timed job is priced."),
             "",
-            "| runner SKU | rounded min | USD/min | estimated cost | Rate source |",
-            "|---|--:|--:|--:|:--|",
+            "| runner SKU | rounded min | USD/min | estimated cost |",
+            "|---|--:|--:|--:|",
             *(
                 f"| {markdown.cell(item.sku)} | {item.estimated_rounded_runner_minutes} | "
-                f"${_format_usd(item.usd_per_minute)} | ${_format_usd(item.estimated_cost_usd)} | {item.rate_source} |"
+                f"${_format_usd(item.usd_per_minute)} | ${_format_usd(item.estimated_cost_usd)} |"
                 for item in cost.by_sku
             ),
             "",
