@@ -28,9 +28,9 @@ def test_action_contract_is_fail_open_and_future_compatible() -> None:
     assert action["inputs"]["runner-sku-rates-json"]["default"] == "[]"
     assert action["inputs"]["post-sticky"]["default"] == "true"
     assert report_step["continue-on-error"] is True
-    assert report_step["run"] == '"$REPORTER_PYTHON" -m ci_esta.ci_observability.action'
-    assert report_step["env"]["REPORTER_PYTHON"] == "${{ steps.runtime.outputs.python }}"
-    assert "python3 -m venv" in action["runs"]["steps"][0]["run"]
+    assert "reporting-runtime.sh" in report_step["run"]
+    assert "ci_esta.ci_observability.action" in report_step["run"]
+    assert action["runs"]["steps"][0]["uses"].startswith("astral-sh/setup-uv@")
     assert "sleep" not in ACTION_PATH.read_text()
 
 

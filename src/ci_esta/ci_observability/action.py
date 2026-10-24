@@ -8,6 +8,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from time import perf_counter
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -185,19 +186,22 @@ def _references(
     ones behind it, and so is one whose suite size no longer matches this run's.
     """
     references: list[FullSuiteReferenceV1] = []
-    for artifact in client.list_artifacts(name):
-        workflow_run = artifact.workflow_run
-        if not artifact.from_same_repository or workflow_run is None or workflow_run.id == run.id:
-            continue
-        try:
-            reference = FullSuiteReferenceV1.model_validate_json(client.read_single_file_artifact(artifact.id))
-        except Exception as error:
-            print(f"::warning::Skipped unreadable full-suite reference {artifact.id}: {error}")
-            continue
-        if abs(reference.total_files - total_files) <= REFERENCE_SIZE_TOLERANCE * total_files:
-            references.append(reference)
-        if len(references) == REFERENCE_SAMPLE:
-            break
+    candidates = [artifact for artifact in client.list_artifacts(name)
+                  if artifact.from_same_repository and artifact.workflow_run is not None
+                  and artifact.workflow_run.id != run.id]
+    while candidates and len(references) < REFERENCE_SAMPLE:
+        count = REFERENCE_SAMPLE - len(references)
+        batch, candidates = candidates[:count], candidates[count:]
+        for artifact, content in zip(batch, client.read_artifacts([item.id for item in batch]), strict=True):
+            try:
+                if isinstance(content, Exception):
+                    raise content
+                reference = FullSuiteReferenceV1.model_validate_json(content)
+            except Exception as error:
+                print(f"::warning::Skipped unreadable full-suite reference {artifact.id}: {error}")
+                continue
+            if abs(reference.total_files - total_files) <= REFERENCE_SIZE_TOLERANCE * total_files:
+                references.append(reference)
     return references
 
 
@@ -321,6 +325,7 @@ def _own_reference(
 
 
 def run(config: ActionConfig, observed_at: datetime) -> int:
+    started = perf_counter()
     client = GitHubActionsClient(config.repository, config.github_token, config.api_url,
                                 workflow_source_token=config.workflow_source_token)
     errors: list[str] = []
@@ -423,6 +428,7 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
             repository_signals=config.repository_signals,
         )
 
+    collected = perf_counter()
     report_json = report.model_dump_json(indent=2) + "\n"
     marker = sticky_marker(config.sticky_key)
     markdown = render_markdown(report, marker)
@@ -431,6 +437,7 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
     if reference_to_record is not None:
         _write_reference(config, reference_to_record)
 
+    rendered = perf_counter()
     if (config.post_sticky and config.pull_request_number is not None
             and (not config.sticky_workflow or report.provenance.workflow_name == config.sticky_workflow)):
         try:
@@ -443,6 +450,9 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         except Exception as error:
             print(f"::warning::CI observability sticky unavailable: {error}")
     client.close()
+    print(json.dumps({"reporter_seconds": {"collect": round(collected - started, 3),
+                                           "render": round(rendered - collected, 3),
+                                           "publish": round(perf_counter() - rendered, 3)}}))
     print(
         json.dumps(
             {

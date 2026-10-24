@@ -133,20 +133,11 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Ensure reporter runtime
-      id: runtime
+    - name: Install reporting toolchain
       continue-on-error: true
-      shell: bash
-      env:
-        PYTEST_SELECTION: ${{ inputs.test-selection-artifact != '' || inputs.lane-selection-artifact != '' }}
-        REPORTER_SOURCE: ${{ github.action_path }}/../..
-      run: |
-        runtime="$(mktemp -d "$RUNNER_TEMP/ci-esta.XXXXXX")"
-        python3 -m venv "$runtime"
-        extra=""
-        if [ "$PYTEST_SELECTION" = "true" ]; then extra="[selection]"; fi
-        "$runtime/bin/python" -m pip install --disable-pip-version-check "$REPORTER_SOURCE$extra"
-        echo "python=$runtime/bin/python" >> "$GITHUB_OUTPUT"
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
 
     - name: Render CI observability report
       id: report
@@ -178,8 +169,8 @@ runs:
         INPUT_IMPACT_COMPARISONS_JSON: ${{ inputs.impact-comparisons-json }}
         INPUT_STICKY_KEY: ${{ inputs.sticky-key }}
         INPUT_STICKY_WORKFLOW: ${{ inputs.sticky-workflow }}
-        REPORTER_PYTHON: ${{ steps.runtime.outputs.python }}
-      run: '"$REPORTER_PYTHON" -m ci_esta.ci_observability.action'
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+      run: bash "$SHARED_ACTION_PATH/../../scripts/ci/reporting-runtime.sh" ci_esta.ci_observability.action
 
     # The report step sets the output only for a comparable full-suite run; other runs read it.
     - name: Upload full-suite reference

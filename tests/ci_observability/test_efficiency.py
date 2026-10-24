@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from pydantic import ValidationError
 
+from ci_esta.ci_observability.github import GitHubActionsClient
 from ci_esta.ci_observability.models import GitHubJobV1, GitHubRunV1
 from ci_esta.ci_observability.report import build_report, render_markdown
 from ci_esta.measurements import ShardInterval, ShardPoolMeasurement
@@ -118,7 +119,10 @@ def test_collector_binds_reuse_to_this_attempt_and_reads_actual_source_duration(
         reused.lanes.append(reused.lanes[0].model_copy(update={"source_job_id": 999}))
     upload = artifact(123, 431, fork=variant == "foreign").model_copy(update={"name": "ci-esta-reuse-plan-2"})
 
-    class API:
+    class API(GitHubActionsClient):
+        def __init__(self):
+            pass  # Remote boundaries below are in-memory; retain the production batch reader.
+
         def list_artifacts(self, name, run_id):
             assert name is None and run_id == 431
             return [upload]
