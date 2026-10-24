@@ -22,8 +22,6 @@ jobs:
         uses: gigaverse-app/pytest-selective/actions/plan-lanes@v1
         with:
           config: .github/test-lanes.json
-          base: ${{ github.event.pull_request.base.sha || github.event.before }}
-          full: ${{ github.run_attempt > 1 || contains(fromJSON('["workflow_dispatch","workflow_call","schedule","release"]'), github.event_name) || contains(github.event.pull_request.labels.*.name, 'test:full') }}
           artifact-name: public-action-selection
   public-actions:
     needs: select-tests
@@ -33,6 +31,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Prepare the public selector graph
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          Path('public-impact.json').write_text(json.dumps({'module_roots': ['.'], 'test_roots': ['examples/timing-history/tests']}))
+          PY
+      - uses: ./actions/test-impact
+        id: impact
+        with:
+          config: public-impact.json
+          base: ${{ github.sha }}
+          full: 'true'
+          full-roots: examples/timing-history/tests
+          explanation-artifact: ''
+      - name: Verify forwarded JSON paths
+        env:
+          ROOTS: ${{ steps.impact.outputs.test_roots_json }}
+          REASON: ${{ steps.impact.outputs.reason }}
+        run: |
+          python - <<'PY'
+          import json, os
+          assert json.loads(os.environ['ROOTS']) == ['examples/timing-history/tests']
+          assert 'proof unavailable' not in os.environ['REASON'].lower()
+          PY
       # Exercise isolated planning before an application environment can mask
       # missing action dependencies (the 1.3.0 filelock regression).
       - uses: ./actions/plan-runner-pools

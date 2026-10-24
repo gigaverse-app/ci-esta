@@ -9,7 +9,7 @@ inputs:
     required: true
   base:
     description: Complete change-set base (a validated ancestor, PR base, or push before SHA).
-    required: true
+    default: ${{ github.event.pull_request.base.sha || github.event.before }}
   head:
     description: Exact checked-out commit.
     default: HEAD
@@ -17,8 +17,8 @@ inputs:
     description: Space-separated complete test roots used if planning cannot prove a narrower scope.
     required: true
   full:
-    description: Force the complete suite for schedules, explicit labels, or coverage checkpoints.
-    default: 'false'
+    description: 'auto selects on PRs/pushes and runs full on reruns, manual/scheduled/release events or test:full. Override with true or false.'
+    default: auto
   extra-files:
     description: Optional newline file containing prior failure canaries or additional changed paths.
     default: ''
@@ -67,6 +67,9 @@ outputs:
   test_roots:
     value: ${{ steps.upstream.outputs.test_roots }}
     description: Exact selected files, or complete roots on fallback.
+  test_roots_json:
+    value: ${{ steps.upstream.outputs.test_roots_json }}
+    description: JSON array of selected files or fallback roots; preserves spaces in paths. Empty array for none.
   shard_count:
     value: ${{ steps.upstream.outputs.shard_count }}
     description: Number of shards.
