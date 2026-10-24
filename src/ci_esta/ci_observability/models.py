@@ -98,6 +98,7 @@ class GitHubJobV1(BaseModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
     runner_name: str | None = None
+    runner_group_name: str | None = None
     labels: list[str] = Field(default_factory=list)
     steps: list[GitHubStepV1] = Field(default_factory=list)
 
@@ -188,6 +189,8 @@ class ObservedJobV1(BaseModel):
     seconds_to_save_minute: float | None
     seconds_until_next_minute: float | None
     runner_labels: list[str] = Field(default_factory=list)
+    runner_name: str | None = None
+    runner_group_name: str | None = None
     steps: list[ObservedStepV1] = Field(default_factory=list)
 
 

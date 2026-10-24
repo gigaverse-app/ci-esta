@@ -116,6 +116,8 @@ def _observe_job(job: GitHubJobV1, timeline_start: datetime | None, observed_at:
             round(upper_boundary - wall_seconds, 1) if upper_boundary is not None and wall_seconds is not None else None
         ),
         runner_labels=job.labels,
+        runner_name=job.runner_name,
+        runner_group_name=job.runner_group_name,
         steps=[_observe_step(step, observed_at) for step in job.steps],
     )
 
@@ -741,15 +743,19 @@ def _cost_details(report: CiObservabilityReportV1) -> list[str]:
         ]
     if len(cost.billed_attempts) > 1:
         body += [f"_Includes workflow attempts: {', '.join(str(item) for item in cost.billed_attempts)}._", ""]
-    body += ["| job | attempt | wall | rounded min | save 1 min | headroom |", "|---|--:|--:|--:|--:|--:|"]
+    body += ["| job | runner labels | runner / group | attempt | wall | rounded min | save 1 min | headroom |",
+             "|---|---|---|--:|--:|--:|--:|--:|"]
     for job in sorted(
         (item for item in report.billing_jobs if item.rounded_minutes is not None),
         key=lambda item: (item.rounded_minutes or 0, item.wall_seconds or 0.0, item.name),
         reverse=True,
     ):
         save = "remove/consolidate" if job.rounded_minutes == 1 else f"{job.seconds_to_save_minute or 0.0:.0f}s"
+        labels = ", ".join(markdown.cell(markdown.code(label)) for label in job.runner_labels) or "unavailable"
+        runner = " / ".join(markdown.cell(markdown.code(value)) for value in
+                            (job.runner_name, job.runner_group_name) if value) or "unavailable"
         body.append(
-            f"| {markdown.cell(job.name)} | {job.run_attempt} | {job.wall_seconds or 0.0:.0f}s | "
+            f"| {markdown.cell(job.name)} | {labels} | {runner} | {job.run_attempt} | {job.wall_seconds or 0.0:.0f}s | "
             f"{job.rounded_minutes} | {save} | {job.seconds_until_next_minute or 0.0:.0f}s |"
         )
     body += [

@@ -1,0 +1,55 @@
+name: Report a download, build or tool cache
+description: Publish actions/cache/restore evidence; the observer obtains restore/save durations from completed job steps.
+inputs:
+  name:
+    description: Distinct cache name within this job.
+    required: true
+  kind:
+    description: download, build, or tool; complete Python environments use setup-cached-uv.
+    required: true
+  job-name:
+    description: Exact displayed Actions job name, including matrix values if present.
+    default: ${{ github.job }}
+  restore-outcome:
+    description: Outcome of the actions/cache/restore step, including skipped or failure.
+    required: true
+  cache-hit:
+    description: Unmodified cache-hit output from actions/cache/restore.
+    default: ''
+  primary-key:
+    description: cache-primary-key output from actions/cache/restore.
+    default: ''
+  matched-key:
+    description: cache-matched-key output from actions/cache/restore.
+    default: ''
+  restore-step:
+    description: Exact displayed restore step name for API timing attribution.
+    required: true
+  save-step:
+    description: Exact displayed save step name for API timing attribution.
+    required: true
+runs:
+  using: composite
+  steps:
+    - id: measurement
+      continue-on-error: true
+      shell: bash
+      env:
+        MEASUREMENT_SCRIPT: ${{ github.action_path }}/../../scripts/ci/record_measurement.py
+        MEASUREMENT_JOB: ${{ inputs.job-name }}
+        MEASUREMENT_SCOPE: ${{ inputs.name }}
+        CACHE_KIND: ${{ inputs.kind }}
+        CACHE_RESTORE_OUTCOME: ${{ inputs.restore-outcome }}
+        CACHE_HIT: ${{ inputs.cache-hit }}
+        CACHE_PRIMARY_KEY: ${{ inputs.primary-key }}
+        CACHE_MATCHED_KEY: ${{ inputs.matched-key }}
+        CACHE_RESTORE_STEP: ${{ inputs.restore-step }}
+        CACHE_SAVE_STEP: ${{ inputs.save-step }}
+      run: python3 "$MEASUREMENT_SCRIPT" cache-operation
+    - if: ${{ always() && steps.measurement.outputs.measurement-path != '' }}
+      continue-on-error: true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+      with:
+        name: ${{ steps.measurement.outputs.measurement-name }}
+        path: ${{ steps.measurement.outputs.measurement-path }}
+        retention-days: 7

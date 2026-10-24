@@ -64,3 +64,34 @@ def test_cache_producer_and_report_use_verified_artifact_outcomes(tmp_path, enab
         label = "disabled" if expected == "disabled" else "unmeasured"
         assert f"1 {label}</strong> environment caches" in sticky
     assert "Cache time saved is unavailable" in sticky
+
+
+@pytest.mark.parametrize("restore,hit,matched,expected", [
+    ("success", "true", "primary", "exact-hit"),
+    ("success", "false", "older", "fallback-hit"),
+    ("success", "", "", "miss"),
+    ("success", "false", "", "unavailable"),
+    ("failure", "true", "primary", "unavailable"),
+    ("skipped", "", "", "skipped"),
+])
+def test_download_cache_outcomes_require_restore_evidence(tmp_path, restore, hit, matched, expected):
+    event = tmp_path / "event.json"
+    event.write_text(json.dumps({"pull_request": {"head": {"sha": "a" * 40}}}))
+    output = tmp_path / "outputs"
+    subprocess.run([sys.executable, "scripts/ci/record_measurement.py", "cache-operation"], check=True, env={
+        **os.environ, "GITHUB_EVENT_PATH": str(event), "GITHUB_SHA": "b" * 40,
+        "GITHUB_RUN_ID": "431", "GITHUB_RUN_ATTEMPT": "2", "GITHUB_JOB": "Tests",
+        "RUNNER_TEMP": str(tmp_path), "GITHUB_OUTPUT": str(output), "MEASUREMENT_SCOPE": "Bun dependencies",
+        "CACHE_KIND": "download", "CACHE_RESTORE_OUTCOME": restore, "CACHE_HIT": hit,
+        "CACHE_MATCHED_KEY": matched, "CACHE_PRIMARY_KEY": "primary", "CACHE_RESTORE_SECONDS": "1.25",
+        "CACHE_SAVE_SECONDS": "", "CACHE_SYNC_SECONDS": "2.5", "CACHE_SYNC_OUTCOME": "success",
+    })
+    outputs = dict(line.split("=", 1) for line in output.read_text().splitlines())
+    measured = MEASUREMENT.validate_json(Path(outputs["measurement-path"]).read_bytes())
+    assert measured.head_sha == "a" * 40
+    assert measured.outcome == expected
+    sticky = render_markdown(report().model_copy(update={"measurements": [measured]}))
+    assert f"| `Tests` | `Bun dependencies` | download | {expected} |" in sticky
+    assert "unavailable" in sticky
+    assert "Every recorded environment passed locked synchronization" not in sticky
+    assert "Cache time saved is unavailable" in sticky

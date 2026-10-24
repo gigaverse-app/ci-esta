@@ -14,6 +14,7 @@ from ci_esta.ci_observability.enrichment.profiles import pytest_timings
 from ci_esta.ci_observability.job_names import job_family
 from ci_esta.measurements import (
     CacheMeasurement,
+    CacheOperationMeasurement,
     ExecutionMeasurement,
     ImageReuseMeasurement,
     ReuseMeasurement,
@@ -91,10 +92,31 @@ def collect_measurements(client: GitHubActionsClient, run: GitHubRunV1, jobs: li
                 if identity in identities:
                     raise ValueError("duplicate action measurement")
                 identities.add(identity)
+                if isinstance(item, CacheOperationMeasurement):
+                    item = cache_step_timings(item, jobs)
                 measurements.append(item)
         except Exception as error:
             errors.append(f"{artifact.name}: {error}")
     return measurements, errors
+
+
+def cache_step_timings(item: CacheOperationMeasurement, jobs: list[GitHubJobV1]) -> CacheOperationMeasurement:
+    candidates = [job for job in jobs if job.name == item.job and job.run_attempt == item.run_attempt]
+    updates = {}
+    for phase in ("restore", "save"):
+        name = getattr(item, f"{phase}_step")
+        if not name:
+            continue
+        updates[f"{phase}_seconds"] = None
+        if len(candidates) != 1:
+            continue
+        steps = [step for step in candidates[0].steps if step.name == name]
+        if (len(steps) == 1 and steps[0].status == "completed" and steps[0].conclusion != "skipped"
+                and steps[0].started_at is not None and steps[0].completed_at is not None):
+            seconds = (steps[0].completed_at - steps[0].started_at).total_seconds()
+            if seconds >= 0:
+                updates[f"{phase}_seconds"] = seconds
+    return item.model_copy(update=updates)
 
 
 def reused_lanes(report: CiObservabilityReportV1):
@@ -133,6 +155,7 @@ def reuse_badge(report: CiObservabilityReportV1) -> brand.Badge:
 def render_avoided_work(report: CiObservabilityReportV1) -> str:
     lanes = reused_lanes(report)
     caches = [item for item in report.measurements if isinstance(item, CacheMeasurement)]
+    operations = [item for item in report.measurements if isinstance(item, CacheOperationMeasurement)]
     counts = Counter(item.outcome for item in caches)
     known_reuse = any(isinstance(item, ReuseMeasurement) for item in report.measurements)
     metrics = [reuse_badge(report)]
@@ -146,8 +169,17 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
         metrics.append(brand.Badge("environment caches", f"{counts['disabled']} disabled", brand.GREY))
     if counts["unavailable"]:
         metrics.append(brand.Badge("environment caches", f"{counts['unavailable']} unmeasured", brand.GREY))
-    if not caches:
+    if not caches and not operations:
         metrics.append(brand.Badge("environment caches", "not recorded", brand.GREY))
+    if operations:
+        hits = sum(item.outcome in {"exact-hit", "fallback-hit"} for item in operations)
+        lookups = sum(item.outcome in {"exact-hit", "fallback-hit", "miss"} for item in operations)
+        if lookups:
+            metrics.append(brand.Badge("cache restores", f"{hits}/{lookups}", brand.BLUE))
+        for outcome in ("skipped", "unavailable"):
+            count = sum(item.outcome == outcome for item in operations)
+            if count:
+                metrics.append(brand.Badge("caches", f"{count} {outcome}", brand.GREY))
     body = ["#### Reused validation evidence", ""]
     if lanes:
         body += ["| Lane | Successful source | Source job duration |", "|:--|:--|--:|"]
@@ -172,16 +204,32 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
         if isinstance(item, ReuseMeasurement) and item.lanes:
             body += [f"Receipt: {markdown.code(item.receipt)}.",
                      f"Execution context: {markdown.code(item.execution_context or 'default')}.", ""]
-    body += ["#### Environment caching", ""]
+    if caches or not operations:
+        body += ["#### Environment caching", ""]
     if caches:
         body += ["| Job | Observed outcome after locked sync | Validation / sync |", "|:--|:--|--:|",
                  *(f"| {markdown.cell(markdown.code(item.job))} | {item.outcome} | {format_seconds(item.sync_seconds)} |"
                    for item in caches), "",
                  "Every recorded environment passed locked synchronization. A restored but unusable environment "
                  "is recorded as repaired. Download caches are separate and are not included in these counts.", ""]
-    else:
+    elif not operations:
         body += ["No validated environment cache outcomes were recorded.", ""]
-    if not any(isinstance(item, ShardPoolMeasurement) for item in report.measurements):
+    if operations:
+        body += ["#### Download, build and tool caches", "",
+                 "| Job | Cache | Kind | Restore outcome | Restore | Save | Locked install |",
+                 "|:--|:--|:--|:--|--:|--:|:--|"]
+        for item in operations:
+            durations = [format_seconds(value) if value is not None else "unavailable"
+                         for value in (item.restore_seconds, item.save_seconds, item.sync_seconds)]
+            sync = f"{item.sync_outcome} ({durations[2]})" if item.sync_outcome else "not recorded"
+            body.append(f"| {markdown.cell(markdown.code(item.job))} | {markdown.cell(markdown.code(item.scope))} | "
+                        f"{item.cache_kind} | {item.outcome} | {durations[0]} | {durations[1]} | {sync} |")
+        body += ["", "A fallback hit restores an older compatible key. Cache restores do not establish test reuse. "
+                 "Restore/save durations are overhead already included in job time; missing or skipped timings stay unavailable. "
+                 "GitHub step timings have one-second resolution.", ""]
+    has_pytest = (pytest_timings(report.extensions) is not None or report.test_selection is not None
+                  or any(signal.key == "pytest_parallelism" for signal in report.repository_signals))
+    if has_pytest and not any(isinstance(item, ShardPoolMeasurement) for item in report.measurements):
         body += ["Shard process intervals were not recorded. For pytest slot occupancy, run tests through "
                  "`ci-esta-pytest run-local` and upload its intervals with `publish-shard-measurements`. "
                  "Ordinary pytest/xdist and JUnit timings alone do not measure slot occupancy.", ""]

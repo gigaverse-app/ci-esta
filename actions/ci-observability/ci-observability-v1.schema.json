@@ -70,6 +70,144 @@
       "title": "CacheMeasurement",
       "type": "object"
     },
+    "CacheOperationMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "head_sha": {
+          "pattern": "^(?:[0-9a-f]{40})?$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "ci-esta/cache-operation/v1",
+          "default": "ci-esta/cache-operation/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "job": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Job",
+          "type": "string"
+        },
+        "scope": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Scope",
+          "type": "string"
+        },
+        "cache_kind": {
+          "enum": [
+            "download",
+            "build",
+            "tool"
+          ],
+          "title": "Cache Kind",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "exact-hit",
+            "fallback-hit",
+            "miss",
+            "skipped",
+            "unavailable"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "restore_step": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Restore Step",
+          "type": "string"
+        },
+        "save_step": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Save Step",
+          "type": "string"
+        },
+        "restore_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Restore Seconds"
+        },
+        "save_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Save Seconds"
+        },
+        "sync_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sync Seconds"
+        },
+        "sync_outcome": {
+          "anyOf": [
+            {
+              "enum": [
+                "success",
+                "failure",
+                "cancelled",
+                "skipped"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sync Outcome"
+        }
+      },
+      "required": [
+        "run_id",
+        "run_attempt",
+        "head_sha",
+        "job",
+        "scope",
+        "cache_kind",
+        "outcome"
+      ],
+      "title": "CacheOperationMeasurement",
+      "type": "object"
+    },
     "CollectionStatus": {
       "enum": [
         "complete",
@@ -616,6 +754,30 @@
           },
           "title": "Runner Labels",
           "type": "array"
+        },
+        "runner_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runner Name"
+        },
+        "runner_group_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runner Group Name"
         },
         "steps": {
           "items": {
@@ -1784,6 +1946,9 @@
           },
           {
             "$ref": "#/$defs/ImageReuseMeasurement"
+          },
+          {
+            "$ref": "#/$defs/CacheOperationMeasurement"
           }
         ]
       },

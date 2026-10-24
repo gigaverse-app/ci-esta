@@ -1,4 +1,82 @@
-# Cache Python environments and recover safely
+# Measured dependency, build and tool caches
+
+## Bun dependency downloads
+
+`setup-cached-bun` installs the version in `.bun-version`, restores Bun's package
+download cache, and always runs `bun install --frozen-lockfile`. Configure private
+registry credentials and SSH in the caller before invoking it. It uses the cache
+directory returned by `bun pm cache`, including `BUN_INSTALL_CACHE_DIR` overrides.
+
+```yaml
+- uses: actions/checkout@v7
+- uses: gigaverse-app/ci-esta/actions/setup-cached-bun@v1
+- run: bun test
+```
+
+The key includes OS, architecture, resolved Bun version, patch files, lockfiles
+and package manifests. `node_modules` is excluded from manifest hashing. Older
+keys with the same platform, runtime, patches and optional `cache-salt` can supply
+downloads; the locked install remains mandatory. Successful installation saves
+new download entries immediately, even if a later test fails. Cache service
+failures fall back to installation; failed installation still fails the job.
+
+Each setup publishes a `ci-esta/cache-operation/v1` artifact with the source
+run/attempt/head, exact or fallback hit, miss, skipped or unavailable outcome,
+restore/save elapsed times and locked-install result/time. These are package
+downloads, not a validated complete environment or evidence of passing tests.
+The separate cache of the Bun executable maintained by `setup-bun` is outside
+these dependency-cache measurements. Timings bracket action boundaries and include
+small step-transition overhead. A skipped save remains unavailable, not zero.
+
+Use `working-directory` for another lockfile location and `bun-version-file` for
+another version file. Multiple calls in one job need distinct `measurement-name`
+values. Matrix jobs should set `job-name` to their exact displayed Actions name.
+`cache-salt` provides an isolated namespace for cold/warm experiments.
+
+## Other download, build and tool caches
+
+For caches outside dependency setup, keep the caller's validation and save policy
+and publish the native restore outputs with `report-cache`:
+
+```yaml
+- name: Restore compiler state
+  id: compiler
+  uses: actions/cache/restore@v5
+  with:
+    path: build
+    key: compiler-${{ runner.os }}-${{ github.sha }}
+    restore-keys: compiler-${{ runner.os }}-
+- run: bun run typecheck
+- name: Save compiler state
+  if: ${{ success() && steps.compiler.outputs.cache-hit != 'true' }}
+  uses: actions/cache/save@v5
+  with:
+    path: build
+    key: ${{ steps.compiler.outputs.cache-primary-key }}
+- uses: gigaverse-app/ci-esta/actions/report-cache@v1
+  if: always()
+  continue-on-error: true
+  with:
+    name: Compiler state
+    kind: build
+    restore-outcome: ${{ steps.compiler.outcome }}
+    cache-hit: ${{ steps.compiler.outputs.cache-hit }}
+    primary-key: ${{ steps.compiler.outputs.cache-primary-key }}
+    matched-key: ${{ steps.compiler.outputs.cache-matched-key }}
+    restore-step: Restore compiler state
+    save-step: Save compiler state
+```
+
+Use `kind: download`, `build` or `tool`. A fallback hit requires a matched key;
+`cache-hit: false` alone cannot establish one. The observer matches exact job
+and step names in the same run attempt to obtain restore/save timings, including
+saves after publication. Missing, ambiguous and skipped steps stay unmeasured.
+Cache keys are consumed to classify the restore but are not retained in reports.
+
+Reporting failures do not gate validation. Cache overhead is already included in
+job time. Hits do not establish time saved; that requires a comparable cold run.
+
+## Python environments
 
 The `setup-cached-uv` composite extracts the useful environment-restore pattern
 from Backend and AI without their private authentication or service policy.
