@@ -92,7 +92,7 @@ if both labels exist. Explicit profile inputs take precedence over labels.
 `test:deep` remains a compatibility label. Unlike the initial extraction, `deep`
 no longer expands unchanged work. Use `full` or `weekly` for complete validation.
 
-AI permits paid effects only for affected-deep, full/weekly and explicit probe
+AI permits paid effects only for affected-deep, full/weekly, explicit smoke and probe
 profiles. Backend marks real OpenSearch expensive; migrations and OpenAPI stay
 ordinary. Due marks widget comparison expensive. Web retains its live-environment
 exceptions separately from ordinary mock journeys. Work classification and effect
