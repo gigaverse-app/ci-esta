@@ -59,7 +59,8 @@ These two inputs default to empty to preserve existing callers. The current
 reporter loads file explanations only with `post-sticky: true`; a missing
 reference leaves savings unmeasured. This configures observation, not test execution.
 
-`actions/test-impact@v1` requests the selector's reason-bearing explanation format.
+`actions/test-impact@v1` defaults to the selector's reason-bearing explanation format;
+override `explanation-format: '1'` when sending its artifact to a legacy reader.
 The sticky shows the recorded selection reason beside its file counters and inside
 the collapsed details. An older full-suite artifact without a reason explicitly
 says its trigger was not recorded. The reporter never infers a trigger from the
