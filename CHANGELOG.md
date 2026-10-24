@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/gigaverse-app/ci-esta/compare/v1.4.2...v1.5.0) (2026-10-24)
+
+
+### Features
+
+* **ci:** centralize test policy and reusable execution mechanisms ([#98](https://github.com/gigaverse-app/ci-esta/issues/98)) ([3c476cd](https://github.com/gigaverse-app/ci-esta/commit/3c476cda3bc7d70c959ee6f52321b24e3aa942c0))
+* **policy:** distinguish affected and affected-deep test profiles ([#104](https://github.com/gigaverse-app/ci-esta/issues/104)) ([7e0d65f](https://github.com/gigaverse-app/ci-esta/commit/7e0d65f81582046cd566f9615db50ddea85cc50e))
+
 ## [1.4.2](https://github.com/gigaverse-app/ci-esta/compare/v1.4.1...v1.4.2) (2026-10-24)
 
 
