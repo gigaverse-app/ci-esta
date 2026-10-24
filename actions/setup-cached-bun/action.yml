@@ -10,6 +10,9 @@ inputs:
   cache-salt:
     description: Optional namespace for cold/warm experiments.
     default: ''
+  cache-downloads:
+    description: Restore/save package downloads. Disable when a fresh install is faster; frozen installation and measurements still run.
+    default: 'true'
   measurement-name:
     description: Cache identity in the report; make this distinct for multiple setups in one job.
     default: Bun dependencies
@@ -42,6 +45,7 @@ runs:
         BUN_CACHE_INPUTS: ${{ hashFiles('**/bun.lock', '**/package.json', '!**/node_modules/**') }}
       run: python3 "$BUN_CACHE_SCRIPT" identity
     - id: restore
+      if: inputs.cache-downloads == 'true'
       uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
       continue-on-error: true
       with:
@@ -49,6 +53,7 @@ runs:
         key: ${{ steps.identity.outputs.key }}
         restore-keys: ${{ steps.identity.outputs.prefix }}
     - id: restore-time
+      if: steps.restore.outcome != 'skipped'
       shell: bash
       env:
         BUN_CACHE_SCRIPT: ${{ github.action_path }}/../../scripts/ci/bun_cache.py
@@ -61,7 +66,7 @@ runs:
         BUN_WORKING_DIRECTORY: ${{ inputs.working-directory }}
       run: python3 "$BUN_CACHE_SCRIPT" sync
     - id: save
-      if: ${{ success() && steps.restore.outputs.cache-hit != 'true' }}
+      if: ${{ success() && inputs.cache-downloads == 'true' && steps.restore.outputs.cache-hit != 'true' }}
       uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
       continue-on-error: true
       with:

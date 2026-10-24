@@ -80,11 +80,22 @@ jobs:
           bun-version-file: examples/bun-cache/.bun-version
           cache-salt: smoke-${{ github.run_id }}-${{ github.run_attempt }}
           measurement-name: Bun fallback
-      - name: Verify cold, warm and fallback measurements
+      - name: Bun setup without a download cache
+        id: disabled
+        uses: ./actions/setup-cached-bun
+        env:
+          BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/ci-esta-bun-disabled
+        with:
+          working-directory: examples/bun-cache
+          bun-version-file: examples/bun-cache/.bun-version
+          cache-downloads: 'false'
+          measurement-name: Bun disabled
+      - name: Verify cold, warm, fallback and disabled measurements
         env:
           COLD: ${{ steps.cold.outputs.measurement-path }}
           WARM: ${{ steps.warm.outputs.measurement-path }}
           FALLBACK: ${{ steps.fallback.outputs.measurement-path }}
+          DISABLED: ${{ steps.disabled.outputs.measurement-path }}
         run: |
           python3 - <<'PY'
           import json, os
@@ -100,6 +111,12 @@ jobs:
               assert record['restore_seconds'] >= 0, record
           assert cold['save_seconds'] >= 0, cold
           assert warm['save_seconds'] is None, warm
+          disabled = json.load(open(os.environ['DISABLED']))
+          assert disabled['outcome'] == 'skipped', disabled
+          assert disabled['restore_seconds'] is None, disabled
+          assert disabled['save_seconds'] is None, disabled
+          assert disabled['sync_outcome'] == 'success', disabled
+          assert disabled['sync_seconds'] >= 0, disabled
           PY
       - name: Require successful planning after fallback execution
         if: ${{ !cancelled() && needs.select-tests.result != 'success' }}

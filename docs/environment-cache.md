@@ -32,6 +32,18 @@ Use `working-directory` for another lockfile location and `bun-version-file` for
 another version file. Multiple calls in one job need distinct `measurement-name`
 values. Matrix jobs should set `job-name` to their exact displayed Actions name.
 `cache-salt` provides an isolated namespace for cold/warm experiments.
+Set `cache-downloads: 'false'` when fresh downloads beat archive transfer and
+extraction, or when a runner already supplies a persistent package cache. The
+locked install and its measurements still run; restore/save are reported as
+skipped. This switch does not delete a runner's existing local cache.
+
+Download caching is the portable default. Expanded `node_modules` trees can be
+larger, contain native build output, and depend on lifecycle scripts and the
+runner's system libraries. Measure both paths before adding an installed-tree
+cache through `report-cache`; include mandatory installation and archive costs.
+For custom installation flags or cache policies, compose `setup-bun`, your own
+locked installation and `report-cache` instead of weakening the shared action's
+frozen-install contract.
 
 ## Other download, build and tool caches
 
