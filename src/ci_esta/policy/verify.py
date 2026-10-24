@@ -6,10 +6,15 @@ This is a contract-test helper, never a substitute for test execution evidence.
 """
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+import yaml
+
+from ci_esta.testing.gha_expressions import evaluate_value
 
 
 def verify(policy: Path, cases: Path) -> None:
@@ -53,5 +58,48 @@ def verify(policy: Path, cases: Path) -> None:
             print(f"PASS {case['name']}")
 
 
+def verify_workflows(cases: Path) -> None:
+    """Evaluate actual action inputs, then execute the same CLI as the action.
+
+    Uses CI-esta's existing limited expression evaluator. Unsupported expression
+    syntax fails the contract instead of simulating a successful workflow.
+    Remote event/selector outputs are fixture boundaries, never admission results.
+    """
+    for case in json.loads(cases.read_text()):
+        workflow = yaml.safe_load(Path(case["workflow"]).read_text())
+        step = next(step for step in workflow["jobs"][case["job"]]["steps"] if step.get("id") == case["step"])
+        if "/plan-test-policy@" not in step.get("uses", ""):
+            raise AssertionError(f"{case['name']}: expected the public policy action")
+
+        def render(value: str) -> str:
+            def replace(match: re.Match[str]) -> str:
+                resolved = evaluate_value(match[0], case["context"])
+                if resolved is None:
+                    return ""
+                return resolved if isinstance(resolved, str) else json.dumps(resolved)
+
+            return re.sub(r"\$\{\{.*?\}\}", replace, value, flags=re.DOTALL)
+
+        inputs = {key: render(str(value)) for key, value in step["with"].items()}
+        policy = inputs.pop("policy")
+        request = {
+            key.replace("-", "_"): json.loads(value) if key in {"affected", "requested"} else value
+            for key, value in inputs.items()
+            if key != "output"
+        }
+        normalized = {
+            "name": case["name"],
+            "request": request,
+            "expected": case.get("expected", []),
+            "exit": case.get("exit", 0),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            fixture = Path(directory) / "case.json"
+            fixture.write_text(json.dumps([normalized]))
+            verify(Path(policy), fixture)
+
+
 if __name__ == "__main__":
     verify(Path(sys.argv[1]), Path(sys.argv[2]))
+    if len(sys.argv) > 3 and sys.argv[3]:
+        verify_workflows(Path(sys.argv[3]))

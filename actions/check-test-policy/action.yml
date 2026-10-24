@@ -7,6 +7,9 @@ inputs:
   cases:
     description: JSON routing cases with explicit expected work IDs or failure codes.
     required: true
+  workflow-cases:
+    description: Optional event/selector scenarios evaluated through actual workflow action inputs.
+    default: ''
 runs:
   using: composite
   steps:
@@ -18,6 +21,7 @@ runs:
         SHARED_ACTION_PATH: ${{ github.action_path }}
         POLICY: ${{ inputs.policy }}
         CASES: ${{ inputs.cases }}
+        WORKFLOW_CASES: ${{ inputs.workflow-cases }}
       run: |
         uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../.." \
-          python -m ci_esta.policy.verify "$POLICY" "$CASES"
+          python -m ci_esta.policy.verify "$POLICY" "$CASES" "$WORKFLOW_CASES"
