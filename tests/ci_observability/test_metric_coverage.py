@@ -163,7 +163,7 @@ def test_execution_falls_back_to_started_jobs_with_an_explicit_unit_and_scope():
     assert "![executed: 1 job]" in sticky
     assert "includes setup, checks and reporting" in sticky
     assert "Sharding &amp; runner efficiency" not in sticky
-    assert "publish-shard-measurements" in sticky
+    assert "publish-shard-measurements" not in sticky
 
 
 def test_disabled_caches_are_known_outcomes():

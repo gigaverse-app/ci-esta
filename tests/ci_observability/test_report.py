@@ -371,7 +371,7 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
     assert "    section ✅ merge-ready 2m 15s\n    ✅ :active, m, 2000-01-01 00:02:15, 2000-01-01 00:02:56\n" in markdown
     assert "| Backend validation |" not in markdown
     assert "| Required gate | Plan | success |" in markdown
-    assert "| Build: image | 1 | 61s | 2 | 1s | 59s |" in markdown
+    assert "| Build: image | unavailable | unavailable | 1 | 61s | 2 | 1s | 59s |" in markdown
     assert "2.0 min (33%)" in markdown
     assert "_pytest: 4271 passed, 0 failed._" in markdown
     assert "_Coverage: 70.5% line\\_rate._" in markdown

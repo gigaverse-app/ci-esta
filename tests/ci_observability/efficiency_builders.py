@@ -14,12 +14,12 @@ def pool(**changes):
                 dict(index=2, start_seconds=0, end_seconds=5, exit_code=0)], **changes))
 
 
-def report():
+def report(**job_fields):
     now = datetime(2026, 10, 23, tzinfo=timezone.utc)
     run = GitHubRunV1(id=431, run_attempt=2, head_sha="a" * 40, name="CI", status="completed",
                      created_at=now, run_started_at=now)
     job = GitHubJobV1(id=11, name="Tests", run_attempt=2, status="completed", conclusion="success",
-                     started_at=now, completed_at=now + timedelta(seconds=60))
+                     started_at=now, completed_at=now + timedelta(seconds=60), **job_fields)
     return build_report(repository="org/repo", pull_request_number=1, run=run,
                         latest_jobs=[job], billing_jobs=[job], commit_statuses=[], gate_selectors=[],
                         observed_at=now + timedelta(seconds=60))

@@ -23,6 +23,104 @@ jobs:
         with:
           config: .github/test-lanes.json
           artifact-name: public-action-selection
+  bun-cache:
+    needs: select-tests
+    if: >-
+      ${{ !cancelled() && (needs.select-tests.result != 'success' ||
+          fromJSON(needs.select-tests.outputs.lanes).tests) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Cold Bun dependency setup
+        id: cold
+        uses: ./actions/setup-cached-bun
+        env:
+          BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/ci-esta-bun-smoke
+        with:
+          working-directory: examples/bun-cache
+          bun-version-file: examples/bun-cache/.bun-version
+          cache-salt: smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          measurement-name: Bun cold
+      - name: Remove local dependency state before warm restore
+        env:
+          CACHE_PATH: ${{ runner.temp }}/ci-esta-bun-smoke
+        run: |
+          python3 - <<'PY'
+          import os, shutil
+          from pathlib import Path
+          cache = Path(os.environ['CACHE_PATH']).resolve()
+          assert cache.is_relative_to(Path(os.environ['RUNNER_TEMP']).resolve())
+          shutil.rmtree(cache)
+          shutil.rmtree('examples/bun-cache/node_modules')
+          PY
+      - name: Warm Bun dependency setup
+        id: warm
+        uses: ./actions/setup-cached-bun
+        env:
+          BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/ci-esta-bun-smoke
+        with:
+          working-directory: examples/bun-cache
+          bun-version-file: examples/bun-cache/.bun-version
+          cache-salt: smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          measurement-name: Bun warm
+      - name: Change lockfile formatting to exercise fallback restoration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          lock = Path('examples/bun-cache/bun.lock')
+          lock.write_text(lock.read_text() + '\n')
+          PY
+      - name: Fallback Bun dependency setup
+        id: fallback
+        uses: ./actions/setup-cached-bun
+        env:
+          BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/ci-esta-bun-smoke
+        with:
+          working-directory: examples/bun-cache
+          bun-version-file: examples/bun-cache/.bun-version
+          cache-salt: smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          measurement-name: Bun fallback
+      - name: Bun setup without a download cache
+        id: disabled
+        uses: ./actions/setup-cached-bun
+        env:
+          BUN_INSTALL_CACHE_DIR: ${{ runner.temp }}/ci-esta-bun-disabled
+        with:
+          working-directory: examples/bun-cache
+          bun-version-file: examples/bun-cache/.bun-version
+          cache-downloads: 'false'
+          measurement-name: Bun disabled
+      - name: Verify cold, warm, fallback and disabled measurements
+        env:
+          COLD: ${{ steps.cold.outputs.measurement-path }}
+          WARM: ${{ steps.warm.outputs.measurement-path }}
+          FALLBACK: ${{ steps.fallback.outputs.measurement-path }}
+          DISABLED: ${{ steps.disabled.outputs.measurement-path }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          cold = json.load(open(os.environ['COLD']))
+          warm = json.load(open(os.environ['WARM']))
+          fallback = json.load(open(os.environ['FALLBACK']))
+          assert cold['outcome'] == 'miss', cold
+          assert warm['outcome'] == 'exact-hit', warm
+          assert fallback['outcome'] == 'fallback-hit', fallback
+          for record in (cold, warm, fallback):
+              assert record['sync_outcome'] == 'success', record
+              assert record['sync_seconds'] >= 0, record
+              assert record['restore_seconds'] >= 0, record
+          assert cold['save_seconds'] >= 0, cold
+          assert warm['save_seconds'] is None, warm
+          disabled = json.load(open(os.environ['DISABLED']))
+          assert disabled['outcome'] == 'skipped', disabled
+          assert disabled['restore_seconds'] is None, disabled
+          assert disabled['save_seconds'] is None, disabled
+          assert disabled['sync_outcome'] == 'success', disabled
+          assert disabled['sync_seconds'] >= 0, disabled
+          PY
+      - name: Require successful planning after fallback execution
+        if: ${{ !cancelled() && needs.select-tests.result != 'success' }}
+        run: exit 1
   reporting-runtime:
     needs: select-tests
     if: >-

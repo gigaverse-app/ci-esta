@@ -95,4 +95,20 @@ class ImageReuseMeasurement(MeasurementIdentity):
     digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
 
 
-ExecutionMeasurement = ReuseMeasurement | ShardPoolMeasurement | CacheMeasurement | ImageReuseMeasurement
+class CacheOperationMeasurement(MeasurementIdentity):
+    schema_version: Literal["ci-esta/cache-operation/v1"] = "ci-esta/cache-operation/v1"
+    job: str = Field(min_length=1, max_length=200)
+    scope: str = Field(min_length=1, max_length=1000)
+    cache_kind: Literal["download", "build", "tool"]
+    outcome: Literal["exact-hit", "fallback-hit", "miss", "skipped", "unavailable"]
+    restore_step: str = Field(default="", max_length=500)
+    save_step: str = Field(default="", max_length=500)
+    restore_seconds: float | None = Field(default=None, ge=0)
+    save_seconds: float | None = Field(default=None, ge=0)
+    sync_seconds: float | None = Field(default=None, ge=0)
+    sync_outcome: Literal["success", "failure", "cancelled", "skipped"] | None = None
+
+
+ExecutionMeasurement = (
+    ReuseMeasurement | ShardPoolMeasurement | CacheMeasurement | ImageReuseMeasurement | CacheOperationMeasurement
+)
