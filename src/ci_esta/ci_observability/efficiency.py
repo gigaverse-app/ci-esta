@@ -99,6 +99,19 @@ def reused_lanes(report: CiObservabilityReportV1):
     return [lane for item in report.measurements if isinstance(item, ReuseMeasurement) for lane in item.lanes]
 
 
+def execution_badge(report: CiObservabilityReportV1) -> brand.Badge:
+    """Observed execution only: never turn a selected lane/file into a completed test."""
+    pools = [item for item in report.measurements if isinstance(item, ShardPoolMeasurement)]
+    if pools:
+        return brand.Badge("executed", f"{sum(len(pool.shards) for pool in pools)} shards", brand.BLUE)
+    jobs = [job for job in report.latest_attempt_jobs if job.run_attempt == report.provenance.run_attempt]
+    started = [job for job in jobs if job.started_at is not None and job.conclusion != "skipped"
+               and job.status in ("in_progress", "completed")]
+    if started or (jobs and all(job.conclusion == "skipped" for job in jobs)):
+        return brand.Badge("executed", f"{len(started)} jobs", brand.BLUE)
+    return brand.unavailable("executed")
+
+
 def reused_lane_count(report: CiObservabilityReportV1) -> int:
     return len({(lane.lane, job_family(lane.job)) for lane in reused_lanes(report)})
 
@@ -124,8 +137,14 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
     if timed:
         metrics.append(brand.Badge("est. runner time avoided", f"≈{format_seconds(sum(timed))}", brand.BLUE))
     lookups = sum(counts[key] for key in ("hit", "miss", "repaired"))
-    metrics.append(brand.Badge("environment cache hits", f"{counts['hit']}/{lookups}", brand.BLUE)
-                   if lookups else brand.unavailable("environment cache hits"))
+    if lookups:
+        metrics.append(brand.Badge("environment cache hits", f"{counts['hit']}/{lookups}", brand.BLUE))
+    if counts["disabled"]:
+        metrics.append(brand.Badge("environment caches", f"{counts['disabled']} disabled", brand.GREY))
+    if counts["unavailable"]:
+        metrics.append(brand.Badge("environment caches", f"{counts['unavailable']} unmeasured", brand.GREY))
+    if not caches:
+        metrics.append(brand.Badge("environment caches", "not recorded", brand.GREY))
     body = ["#### Reused validation evidence", ""]
     if lanes:
         body += ["| Lane | Successful source | Source job duration |", "|:--|:--|--:|"]
@@ -159,6 +178,10 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
                  "is recorded as repaired. Download caches are separate and are not included in these counts.", ""]
     else:
         body += ["No validated environment cache outcomes were recorded.", ""]
+    if not any(isinstance(item, ShardPoolMeasurement) for item in report.measurements):
+        body += ["Shard process intervals were not recorded. For pytest slot occupancy, run tests through "
+                 "`ci-esta-pytest run-local` and upload its intervals with `publish-shard-measurements`. "
+                 "Ordinary pytest/xdist and JUnit timings alone do not measure slot occupancy.", ""]
     body += ["Cache time saved is unavailable without a comparable cold run."]
     images = [item for item in report.measurements if isinstance(item, ImageReuseMeasurement)]
     if images:
@@ -181,6 +204,10 @@ def render_sharding(report: CiObservabilityReportV1) -> str:
     if timings is None and report.test_selection is not None and not isinstance(report.test_selection, dict):
         timings = report.test_selection.pytest
     signals = [signal for signal in report.repository_signals if signal.key == "pytest_parallelism"]
+    # An uninstrumented workflow has no shard/occupancy metric to display. Its
+    # measurement gap and the collection action remain visible in avoided work.
+    if not pools and timings is None and not signals:
+        return ""
     metrics, body = [], []
     if pools:
         indices = [shard.index for pool in pools for shard in pool.shards]

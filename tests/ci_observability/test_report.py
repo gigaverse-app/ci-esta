@@ -348,7 +348,7 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
     assert report.runner_cost.estimated_rounded_runner_minutes == 6
     assert report.runner_cost.rounding_waste_seconds == 119.0
     assert report.runner_cost.billed_attempts == [1, 2]
-    assert report.runner_cost.unpriced_rounded_runner_minutes == 0
+    assert report.runner_cost.unpriced_rounded_runner_minutes == 6
     assert report.merge_ready_from_creation_seconds == 140.0
     assert report.merge_ready_from_run_start_seconds == 135.0
     assert report.workflow_initial_queue_seconds is None
@@ -798,7 +798,7 @@ def _sticky_with_selection(**report_changes: object) -> str:
 
 
 def test_collapsed_sections_keep_titles_separate_from_visible_metrics_and_details() -> None:
-    sticky = _sticky_with_selection()
+    sticky = _sticky_with_selection(extensions={"pytest": {"shard_count": 4, "wall_seconds": 10}})
     summaries = re.findall(r"<summary>(.*?)</summary>", sticky, re.DOTALL)
     for title in ("Test selection", "What else avoided work?", "Sharding &amp; runner efficiency", "CI time and cost"):
         summary = next(value for value in summaries if f"<strong>{title}</strong>" in value)

@@ -71,9 +71,9 @@ inputs:
     default: "true"
   runner-sku-rates-json:
     description: >
-      Optional JSON array mapping runner labels to versioned SKU names and
-      USD/minute rates. Exact dollar cost is withheld when any timed job is
-      unmatched.
+      Optional JSON array overriding runner-label SKU names and USD/minute rates.
+      Known standard hosted labels use GitHub rates (free for known public repos);
+      custom runners need explicit rates. Unmatched jobs withhold the total.
     required: false
     default: "[]"
   test-selection-artifact:

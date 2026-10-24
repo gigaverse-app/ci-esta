@@ -109,6 +109,12 @@ class GitHubReferencedWorkflowV1(BaseModel):
     sha: str
 
 
+class GitHubRunRepositoryV1(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    private: bool | None = None
+
+
 class GitHubRunV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
@@ -126,6 +132,7 @@ class GitHubRunV1(BaseModel):
     head_sha: str
     path: str | None = None
     referenced_workflows: list[GitHubReferencedWorkflowV1] = Field(default_factory=list)
+    repository: GitHubRunRepositoryV1 | None = None
     pull_requests: list["GitHubPullRequestV1"] = Field(default_factory=list)
 
 
@@ -222,6 +229,7 @@ class RunnerSkuCostV1(BaseModel):
     estimated_rounded_runner_minutes: int
     rounding_waste_seconds: float
     estimated_cost_usd: Decimal
+    rate_source: Literal["configured", "github-list-price", "github-public"] = "configured"
 
 
 class RunnerCostV1(BaseModel):

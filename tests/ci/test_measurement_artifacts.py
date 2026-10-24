@@ -12,7 +12,7 @@ from ci_esta.ci_observability.efficiency import MEASUREMENT, collect_measurement
 from ci_esta.ci_observability.models import GitHubRunV1
 from ci_esta.ci_observability.report import render_markdown
 from tests.ci_observability.builders import RECORDED_AT, artifact
-from tests.ci_observability.test_efficiency import report
+from tests.ci_observability.efficiency_builders import report
 
 
 @pytest.mark.parametrize("enabled,hit,usable,restore,expected", [
@@ -57,5 +57,6 @@ def test_cache_producer_and_report_use_verified_artifact_outcomes(tmp_path, enab
     if expected in {"hit", "miss", "repaired"}:
         assert f"{int(expected == 'hit')}/1</strong> <sub>environment cache hits</sub>" in sticky
     else:
-        assert "unavailable</strong> <sub>environment cache hits</sub>" in sticky
+        label = "disabled" if expected == "disabled" else "unmeasured"
+        assert f"1 {label}</strong> <sub>environment caches</sub>" in sticky
     assert "Cache time saved is unavailable" in sticky

@@ -13,7 +13,7 @@ from pydantic import BaseModel, JsonValue
 
 from ci_esta.ci_observability import brand, markdown, optional_selection, work_selection
 from ci_esta.ci_observability.critical_path import analyze
-from ci_esta.ci_observability.efficiency import render_avoided_work, render_sharding, reuse_badge
+from ci_esta.ci_observability.efficiency import execution_badge, render_avoided_work, render_sharding, reuse_badge
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.impact import render_impact
 from ci_esta.ci_observability.models import (
@@ -42,6 +42,7 @@ from ci_esta.ci_observability.models import (
     StickySnapshotV1,
     TimingStatus,
 )
+from ci_esta.ci_observability.pricing import PRICING_URL, matching_rate
 from ci_esta.ci_observability.timeline import render_timeline
 
 STICKY_MARKER = "<!-- ci-observability-v1 -->"
@@ -200,14 +201,8 @@ def _complete_merge_elapsed(
     return max(values)
 
 
-def _matching_rate(job: ObservedJobV1, rates: list[RunnerSkuRateV1]) -> RunnerSkuRateV1 | None:
-    matches = [rate for rate in rates if rate.runner_label in job.runner_labels]
-    if len(matches) > 1:
-        raise ValueError(f"runner labels match multiple configured SKUs: {job.runner_labels}")
-    return matches[0] if matches else None
-
-
-def _runner_cost(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1]) -> RunnerCostV1:
+def _runner_cost(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1],
+                 repository_private: bool | None = None) -> RunnerCostV1:
     costed = [job for job in jobs if job.wall_seconds is not None and job.rounded_minutes is not None]
     rates_by_label = {rate.runner_label: rate for rate in rates}
     if len(rates_by_label) != len(rates):
@@ -215,20 +210,21 @@ def _runner_cost(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1]) -> Run
     rates_by_sku = {rate.sku: rate for rate in rates}
     if len(rates_by_sku) != len(rates):
         raise ValueError("runner SKU rates must use distinct SKU names")
-    jobs_by_sku: dict[str, list[ObservedJobV1]] = {}
+    jobs_by_sku: dict[tuple[str, str, str], list[ObservedJobV1]] = {}
     unpriced_minutes = 0
+    unpriced_jobs = 0
     for job in costed:
-        rate = _matching_rate(job, rates)
+        rate, source = matching_rate(job, rates, repository_private)
         if rate is None:
-            if rates:
-                unpriced_minutes += job.rounded_minutes or 0
+            unpriced_minutes += job.rounded_minutes or 0
+            unpriced_jobs += 1
             continue
-        jobs_by_sku.setdefault(rate.sku, []).append(job)
+        jobs_by_sku.setdefault((rate.sku, rate.runner_label, source), []).append(job)
 
     by_sku: list[RunnerSkuCostV1] = []
     for sku in sorted(jobs_by_sku):
         sku_jobs = jobs_by_sku[sku]
-        rate = _matching_rate(sku_jobs[0], rates)
+        rate, source = matching_rate(sku_jobs[0], rates, repository_private)
         assert rate is not None, "grouped SKU jobs must retain their matching rate"
         rounded_minutes = sum(job.rounded_minutes or 0 for job in sku_jobs)
         by_sku.append(
@@ -240,6 +236,7 @@ def _runner_cost(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1]) -> Run
                 estimated_rounded_runner_minutes=rounded_minutes,
                 rounding_waste_seconds=round(sum(job.rounding_waste_seconds or 0.0 for job in sku_jobs), 1),
                 estimated_cost_usd=rate.usd_per_minute * rounded_minutes,
+                rate_source=source,
             )
         )
     priced_total = sum((item.estimated_cost_usd for item in by_sku), start=Decimal(0))
@@ -250,7 +247,7 @@ def _runner_cost(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1]) -> Run
         billed_attempts=sorted({job.run_attempt for job in costed}),
         by_sku=by_sku,
         unpriced_rounded_runner_minutes=unpriced_minutes,
-        estimated_cost_usd=priced_total if rates and unpriced_minutes == 0 else None,
+        estimated_cost_usd=priced_total if (rates or costed) and unpriced_jobs == 0 else None,
     )
 
 
@@ -269,7 +266,8 @@ def _overlapping_runner_cost(
                 conclusion=item.run.conclusion,
                 created_at=item.run.created_at,
                 updated_at=item.run.updated_at,
-                runner_cost=_runner_cost(observed_jobs, runner_sku_rates),
+                runner_cost=_runner_cost(observed_jobs, runner_sku_rates,
+                                         item.run.repository.private if item.run.repository else None),
             )
         )
     priced_costs = [item.runner_cost.estimated_cost_usd for item in run_costs]
@@ -327,7 +325,7 @@ def build_report(
 
     longest = max(timed_latest, key=lambda item: (item.wall_seconds or 0.0, item.name), default=None)
     rates = runner_sku_rates or []
-    current_runner_cost = _runner_cost(billing, rates)
+    current_runner_cost = _runner_cost(billing, rates, run.repository.private if run.repository else None)
     overlapping_runner_cost = _overlapping_runner_cost(
         overlapping_prior_runs or [],
         observed_at,
@@ -497,9 +495,11 @@ def _cost_badges(report: CiObservabilityReportV1) -> list[brand.Badge]:
 
 def _work_badges(report: CiObservabilityReportV1) -> list[brand.Badge]:
     """One ordered vocabulary for every provider; missing evidence stays unknown."""
-    selected, executed = (brand.unavailable(label) for label in ("selected", "executed"))
+    selected, executed = brand.unavailable("selected"), execution_badge(report)
     if report.work_selection is not None:
-        selected, executed = work_selection.badges(report.work_selection)
+        selected, provider_execution = work_selection.badges(report.work_selection)
+        if provider_execution.value != "unavailable":
+            executed = provider_execution
     if report.test_selection is not None or report.lane_selection is not None:
         section = report.test_selection if report.test_selection is not None else report.lane_selection
         figures = optional_selection.badges(section, lanes=report.test_selection is None)
@@ -561,7 +561,9 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
     sections = [markdown.report_section("Selection and execution",
                 [],
                 ["Selected is the plan; executed is observed; reused requires a receipt. Units can differ.", "",
-                 *(selection_details or ["Selection and execution evidence was not recorded."])],
+                 "When executed is shown in jobs, it counts started jobs in this attempt and includes setup, checks and reporting. "
+                 "Measured shards count child processes, including failed ones; neither count asserts test success.", "",
+                 *(selection_details or ["No selection plan was recorded. Execution uses the available observations above."])],
                 metrics=_work_badges(report))]
     impact = [render_impact(report.measured_impact, report.provenance.repository)] if report.measured_impact else []
     attempts = []
@@ -572,7 +574,8 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
         attempts = [f"Latest attempt: **{format_seconds(current)} runner time**. "
                     f"Earlier attempts: **{format_seconds(prior)}**. "
                     "The runner badge includes all attempts; merge-ready describes the latest attempt.", ""]
-    sections += [render_avoided_work(report), render_sharding(report),
+    sharding = render_sharding(report)
+    sections += [render_avoided_work(report), *([sharding] if sharding else []),
                  markdown.report_section("CI time and cost", [],
                                          ["Runner minutes use per-job rounding; cost is an estimate.", "",
                                           *attempts, *impact, *_latency_lines(report)],
@@ -714,23 +717,31 @@ def _cost_details(report: CiObservabilityReportV1) -> list[str]:
         f"({waste_percent:.0f}%)** is per-job rounding.",
         "",
     ]
-    if cost.estimated_cost_usd is not None:
+    if cost.by_sku:
+        configured = all(item.rate_source == "configured" for item in cost.by_sku)
         body += [
-            f"Estimated runner cost at configured rates: **${_format_usd(cost.estimated_cost_usd)}**.",
+            (f"Estimated runner cost at {'configured' if configured else 'recorded'} rates: "
+             f"**${_format_usd(cost.estimated_cost_usd)}**." if cost.estimated_cost_usd is not None else
+             "Priced runner usage below is a partial estimate; the total is withheld until every timed job is priced."),
             "",
-            "| runner SKU | rounded min | USD/min | estimated cost |",
-            "|---|--:|--:|--:|",
+            "| runner SKU | rounded min | USD/min | estimated cost | Rate source |",
+            "|---|--:|--:|--:|:--|",
             *(
                 f"| {markdown.cell(item.sku)} | {item.estimated_rounded_runner_minutes} | "
-                f"${_format_usd(item.usd_per_minute)} | ${_format_usd(item.estimated_cost_usd)} |"
+                f"${_format_usd(item.usd_per_minute)} | ${_format_usd(item.estimated_cost_usd)} | {item.rate_source} |"
                 for item in cost.by_sku
             ),
             "",
         ]
-    elif cost.unpriced_rounded_runner_minutes:
+        if not configured:
+            body += [f"Standard hosted rates: [GitHub pricing]({PRICING_URL}), verified 2026-10-24. "
+                     "List-price estimates are before included minutes, discounts and taxes; they are not an invoice. "
+                     "Known public repositories use the free standard-runner rate. Explicit configured rates take precedence.", ""]
+    if cost.unpriced_rounded_runner_minutes:
         body += [
             f"_Exact dollar cost withheld: {cost.unpriced_rounded_runner_minutes} rounded runner min "
-            "did not match a configured runner label._",
+            "did not match a configured runner label or a known standard hosted runner. "
+            "Set `runner-sku-rates-json` for custom runners._",
             "",
         ]
     if len(cost.billed_attempts) > 1:

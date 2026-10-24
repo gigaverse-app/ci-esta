@@ -1229,6 +1229,16 @@
             }
           ],
           "title": "Estimated Cost Usd"
+        },
+        "rate_source": {
+          "default": "configured",
+          "enum": [
+            "configured",
+            "github-list-price",
+            "github-public"
+          ],
+          "title": "Rate Source",
+          "type": "string"
         }
       },
       "required": [
