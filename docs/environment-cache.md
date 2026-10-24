@@ -45,6 +45,11 @@ For custom installation flags or cache policies, compose `setup-bun`, your own
 locked installation and `report-cache` instead of weakening the shared action's
 frozen-install contract.
 
+The [web benchmark](benchmarks/2026-10-24-bun-cache.md) compares all four paths,
+including cache overhead. For that consumer, fresh installation was competitive
+with restoring its large archives, so it disables dependency archive caching
+while retaining the smaller compiler and tool caches.
+
 ## Other download, build and tool caches
 
 For caches outside dependency setup, keep the caller's validation and save policy
@@ -87,6 +92,13 @@ Cache keys are consumed to classify the restore but are not retained in reports.
 
 Reporting failures do not gate validation. Cache overhead is already included in
 job time. Hits do not establish time saved; that requires a comparable cold run.
+
+Tool caches can restore successfully while their launcher reinstalls anyway.
+For example, Bun 1.4.2 expires even exact-version `bunx` installations after one
+day. An immutable GitHub archive can therefore restore an already expired tool
+on every run. Measure the command after restoration and test an aged archive,
+not only a cache created minutes earlier. Keep pinned-version validation and a
+working cold-install path when adapting a tool's freshness policy.
 
 ## Python environments
 
