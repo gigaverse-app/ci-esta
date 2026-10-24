@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/gigaverse-app/ci-esta/compare/v1.3.1...v1.4.0) (2026-10-24)
+
+
+### Features
+
+* **adoption:** report integration gaps and share selector defaults ([#90](https://github.com/gigaverse-app/ci-esta/issues/90)) ([070ef1a](https://github.com/gigaverse-app/ci-esta/commit/070ef1a2819f7d86e7ecf67a3a94c61f71a85380))
+
 ## [1.3.1](https://github.com/gigaverse-app/ci-esta/compare/v1.3.0...v1.3.1) (2026-10-23)
 
 
