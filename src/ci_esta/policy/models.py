@@ -5,7 +5,8 @@ normalized by a trusted integration; declaring a profile does not grant permissi
 to a GitHub commenter or provision a resource.
 """
 
-from typing import Annotated, Literal
+from collections.abc import Iterable
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -45,8 +46,14 @@ class Profile(Contract):
     tag, but still cannot override environment or side-effect constraints.
     """
 
-    occasions: frozenset[Occasion]
-    include: frozenset[Name]
+    extends: Name | None = Field(
+        default=None, description="Inherit a built-in or project profile; explicit fields replace inherited fields."
+    )
+    occasions: frozenset[Occasion] = Field(
+        default_factory=lambda: frozenset({"pr", "push", "manual", "schedule", "deployment"})
+    )
+    include: frozenset[Name] = Field(default_factory=lambda: frozenset({"*"}))
+    exclude: frozenset[Name] = frozenset()
     scope: Literal["affected", "all", "explicit"] = "affected"
     allow_effects: frozenset[Name] = frozenset()
     environments: frozenset[Name] = frozenset()
@@ -68,8 +75,33 @@ class Profile(Contract):
 
 class Policy(Contract):
     schema_version: Literal["ci-esta/test-policy/v1"] = "ci-esta/test-policy/v1"
-    profiles: dict[Name, Profile]
+    defaults: Literal["v1", "none"] = "v1"
+    profiles: dict[Name, Profile] = Field(default_factory=dict)
     work: tuple[Work, ...] = ()
+
+    @model_validator(mode="before")
+    @classmethod
+    def expand_defaults(cls, value: Any) -> Any:
+        from ci_esta.policy.defaults import resolve_profiles
+
+        if isinstance(value, dict):
+            value = dict(value)
+            value["profiles"] = resolve_profiles(value.get("profiles", {}), value.get("defaults", "v1"))
+        return value
+
+    def inventory(self, ids: Iterable[str] | None = None) -> tuple[Work, ...]:
+        """Overlay exceptional metadata on the selector's authoritative IDs."""
+        if len({work.id for work in self.work}) != len(self.work):
+            raise ValueError("inventory work IDs must be unique")
+        if ids is None:
+            return self.work
+        names = tuple(ids)
+        if len(set(names)) != len(names):
+            raise ValueError("inventory work IDs must be unique")
+        metadata = {work.id: work for work in self.work}
+        if metadata.keys() - set(names):
+            raise ValueError(f"policy metadata references unknown work: {sorted(metadata.keys() - set(names))}")
+        return tuple(metadata.get(name, Work(id=name)) for name in names)
 
 
 class Request(Contract):

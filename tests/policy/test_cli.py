@@ -23,6 +23,8 @@ def configure(tmp_path):
     return [
         "--policy",
         str(path),
+        "--profile",
+        "legacy",
         "--occasion",
         "pr",
         "--revision",
@@ -50,7 +52,8 @@ def test_invalid_selector_output_removes_stale_plan(tmp_path, affected):
     assert not (tmp_path / "plan.json").exists()
 
 
-def test_actual_action_shell_calls_shipped_planner(tmp_path):
+@pytest.mark.parametrize("use_defaults", [False, True])
+def test_actual_action_shell_calls_shipped_planner(tmp_path, use_defaults):
     args = configure(tmp_path)
     root = Path(__file__).resolve().parents[2]
     action = yaml.safe_load((root / "actions/plan-test-policy/action.yml").read_text())
@@ -64,7 +67,9 @@ def test_actual_action_shell_calls_shipped_planner(tmp_path):
         **os.environ,
         "PATH": f"{tmp_path}:{os.environ['PATH']}",
         "SHARED_ACTION_PATH": str(root / "actions/plan-test-policy"),
-        "POLICY": args[1],
+        "POLICY": "" if use_defaults else args[1],
+        "WORK": '["python", "browser"]' if use_defaults else "",
+        "LANES": "",
         "PROFILE": "legacy",
         "OCCASION": "pr",
         "REVISION": "abc",

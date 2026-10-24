@@ -5,6 +5,7 @@ Cases are a JSON list with name, request (CLI fields), affected and expected IDs
 This is a contract-test helper, never a substitute for test execution evidence.
 """
 
+import argparse
 import json
 import re
 import subprocess
@@ -17,7 +18,7 @@ import yaml
 from ci_esta.testing.gha_expressions import evaluate_value
 
 
-def verify(policy: Path, cases: Path) -> None:
+def verify(policy: Path | None, cases: Path, *, work: str = "", lanes: str = "") -> None:
     for case in json.loads(cases.read_text()):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "plan.json"
@@ -26,7 +27,11 @@ def verify(policy: Path, cases: Path) -> None:
                 "-m",
                 "ci_esta.policy.cli",
                 "--policy",
-                str(policy),
+                str(policy) if policy else "",
+                "--work",
+                work,
+                "--lanes",
+                lanes,
                 "--output",
                 str(output),
                 "--github-output",
@@ -81,7 +86,8 @@ def verify_workflows(cases: Path) -> None:
             return re.sub(r"\$\{\{.*?\}\}", replace, value, flags=re.DOTALL)
 
         inputs = {key: render(str(value)) for key, value in step["with"].items()}
-        policy = inputs.pop("policy")
+        policy = inputs.pop("policy", "")
+        inputs.setdefault("occasion", case["context"].get("github", {}).get("event_name", ""))
         request = {
             key.replace("-", "_"): json.loads(value) if key in {"affected", "requested"} else value
             for key, value in inputs.items()
@@ -96,10 +102,17 @@ def verify_workflows(cases: Path) -> None:
         with tempfile.TemporaryDirectory() as directory:
             fixture = Path(directory) / "case.json"
             fixture.write_text(json.dumps([normalized]))
-            verify(Path(policy), fixture)
+            verify(Path(policy) if policy else None, fixture)
 
 
 if __name__ == "__main__":
-    verify(Path(sys.argv[1]), Path(sys.argv[2]))
-    if len(sys.argv) > 3 and sys.argv[3]:
-        verify_workflows(Path(sys.argv[3]))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("policy")
+    parser.add_argument("cases", type=Path)
+    parser.add_argument("workflow_cases", nargs="?", default="")
+    parser.add_argument("--work", default="")
+    parser.add_argument("--lanes", default="")
+    args = parser.parse_args()
+    verify(Path(args.policy) if args.policy else None, args.cases, work=args.work, lanes=args.lanes)
+    if args.workflow_cases:
+        verify_workflows(Path(args.workflow_cases))

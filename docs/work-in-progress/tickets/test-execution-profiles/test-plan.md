@@ -10,3 +10,12 @@ See [the design](../../../test-execution-policy.md) for source provenance and in
 - Run public action smoke and installed-wheel checks on Linux in Python 3.11 and 3.14 CI.
 - Consumer fixtures install the same immutable revision as their planners; AI also exercises actual selector requests.
 - Preserve native selection and required-gate tests. Never claim a skipped/live probe passed.
+
+
+## Opinionated defaults consolidation
+
+- [x] Public API/CLI admission across ci, thorough, full/deep, weekly, smoke, performance and explicit probes.
+- [x] Partial overrides, inheritance, empty permission replacement, unknown fields/parents, cycles and defaults:none.
+- [x] Selector-owned inventories, unknown metadata rejection and missing-inventory failure.
+- [x] Existing consumer parity fixtures and actual workflow-input contracts, with no planner mocks.
+- [ ] Installed-wheel and real public-action smoke at the final revision.

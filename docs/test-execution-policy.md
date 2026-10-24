@@ -22,6 +22,77 @@ The implementation is Python, but its JSON contracts and Actions work with any t
 
 The source map is about behavior, not exporting every source file. A repository-specific image launcher or account provisioner would be a poor shared default. In particular, AI's old YAML fields `blocking_initially`, `requires_manual_request` and `requires_isolated_destinations` were declarations without general enforcement. They are not advertised here as an existing security mechanism.
 
+## Opinionated defaults, with exceptions
+
+A new adopter needs work IDs, not a copied profile catalog. The Actions default to
+`ci`; a policy file is optional. CI-esta owns the versioned `v1` profile set:
+
+| Profile | Default scope and eligibility | Occasions |
+|---|---|---|
+| `ci` | Affected work; excludes `expensive` and `manual` tags | PR, push |
+| `thorough` | All ordinary work; excludes `expensive` and `manual`; fresh | Manual, schedule |
+| `full`, `deep`, `exhaustive` | Same full checkpoint; includes expensive, excludes manual; fresh | PR, manual, schedule |
+| `weekly` | Full checkpoint; includes expensive, excludes manual; fresh | Schedule, manual |
+| `smoke` | Work ID or tag `smoke`; excludes manual; fresh | Push, manual, deployment |
+| `performance` | Work ID or tag `performance`; excludes manual; fresh | Manual, schedule |
+| `probe` | Explicit requested work only; fresh | Manual |
+| `legacy` | Pass through affected scope, including expensive/manual tags | All normalized occasions |
+
+**No built-in grants side effects.** A full/weekly run still defers a paid or
+visible-output test unless a project explicitly allows its declared effects.
+A `manual` tag therefore means deliberate probe-only by default; a custom profile
+can provide an intentional exception. Unknown impact broadens only eligible work.
+Work IDs also match includes/excludes, so `smoke` does not need a duplicate tag.
+
+```yaml
+# Zero policy file. Existing default-branch/manual routing can choose legacy
+# explicitly during migration; new adopters start with ci.
+- uses: gigaverse-app/ci-esta/actions/plan-test-policy@<reviewed-commit>
+  with:
+    work: '["unit", {"id":"benchmark", "tags":["expensive", "performance"]}]'
+    affected: ${{ steps.select.outputs.lanes }}
+    # occasion defaults to github.event_name and is normalized by CI-esta
+```
+
+For an existing selector, use `lanes: .github/test-lanes.json` (JSON or YAML) to
+reuse its `lanes` keys. CI-esta reads only the inventory, not its dependency graph.
+An optional policy `work` list then contains metadata **only for exceptional IDs**.
+Unknown metadata IDs fail instead of silently creating another lane registry.
+Alternatively, `work` is inline JSON and `inventory` is a complete adapter-generated
+file. Choose one inventory source. Missing inventory fails; explicitly empty
+inventory remains representable.
+
+```yaml
+# Only the project-specific exceptions, not a copied weekly profile.
+profiles:
+  weekly:
+    allow_effects: [provider-spend]
+  production-probe:
+    extends: probe
+    environments: [production]
+    require_deployment: true
+work:
+  - id: provider-eval
+    tags: [expensive]
+    effects: [provider-spend]
+```
+
+Named built-ins inherit automatically. Other names use `extends` or supply a
+complete standalone `occasions`/`include` definition. Explicit fields replace
+inherited fields, including arrays: `allow_effects: []` removes grants. Unknown
+fields/parents and inheritance cycles fail. Defaults resolve once before planning;
+there is no second runtime merge. `defaults: none` disables the catalog entirely.
+The pin selects the implementation; `defaults: v1` identifies the behavior family.
+Changing its defaults requires parity tests and visible release notes.
+
+The four migrations keep their existing workflow input default `legacy`. This
+preserves current execution while offering the common defaults for new setups.
+BE deletes its ordinary policy file; web deletes its mock policy file. Due keeps
+one benchmark classification and a PR-occasion exception for `thorough`. AI keeps
+its affected-only `deep` exception, effect grants and exceptional lane metadata.
+Backend operational and web live policies keep their real environment/effect
+exceptions. Per-project fixtures remain local because they prove project wiring.
+
 ## Before and after
 
 ```text
@@ -98,12 +169,12 @@ python -m ci_esta.policy.schemas docs/schemas/test-policy
 | `requirements.schema.json` | Work ID to required resource/provider/capability declarations |
 | `resource-plan.schema.json` | `ci-esta/test-resources/v1`, resolved placements or unavailable reasons |
 
-Policy/request/work models reject unknown fields. The JSON schema is the complete field-level specification. Core fields are:
+Policy/request/work models reject unknown fields. Policy adds `defaults` (`v1` or `none`); `profiles` is optional and contains only overrides or custom definitions. The JSON schema specifies fields; the versioned catalog and inheritance rules above supply the default policy semantics. Core fields are:
 
 | Object | Fields and meaning |
 |---|---|
 | Work | `id`, `tags`, `effects`, optional `environment`, `fresh`, `timeout_seconds` |
-| Profile | `occasions`, `include` tags, `scope` (`affected`, `all`, `explicit`), `allow_effects`, allowed `environments`, `require_deployment`, `fresh`, optional `budget_seconds` and `reserve_seconds` |
+| Profile | optional `extends`, `occasions`, `include`/`exclude` tags or IDs, `scope` (`affected`, `all`, `explicit`), `allow_effects`, allowed `environments`, `require_deployment`, `fresh`, optional `budget_seconds` and `reserve_seconds` |
 | Request | `profile`, `occasion` (`pr`, `push`, `schedule`, `deployment`, `manual`), `revision`, optional `environment`, `deployed_revision`, `affected`, `requested` |
 | Decision | Full work declaration, `status`, human-readable `reason`, effective `fresh`, optional command timeout ceiling |
 | Requirement | `resource`, optional exact `provider`, required `capabilities` |
@@ -115,7 +186,7 @@ IDs and tags are data. The policy has no shell command field. Requested profile 
 ### Admission rules
 
 1. Validate the profile, occasion, unique inventory and requested/affected IDs. Unknown profiles, unknown explicit targets and empty explicit requests fail.
-2. Include work whose tags match the profile, subject to its effect ceiling. `include: ["*"]` does not override effects.
+2. Exclude matching work tags/IDs, then include matching tags/IDs, subject to the effect ceiling. `include: ["*"]` does not override effects.
 3. `affected` scope intersects eligible work with impact. `null` means unknown, so it broadens to eligible work. `[]` means known empty. A partial boolean map is an error, not proof that omitted IDs are unaffected.
 4. `all` ignores impact. `explicit` requires requested IDs. Explicit requested IDs narrow scope and bypass impact, but cannot bypass profile or effect restrictions.
 5. Admitted work must match its required environment and profile environment allowlist. `require_deployment` also requires an environment and observed deployed revision equal to the requested revision. Missing/mismatched prerequisites produce `unavailable`, not a successful skip.
@@ -230,7 +301,7 @@ Shared accounts and broadcast slots need actual concurrency groups or leases. A 
 
 ## Consumer rollout and compatibility
 
-Each consumer starts with a separate behavior-preserving extraction commit. `legacy` is an ordinary project-owned profile, not hidden special behavior in CI-esta.
+Each consumer starts with a separate behavior-preserving extraction commit. A later consolidation replaces copied profiles with shared defaults, retaining the same routing fixtures. `legacy` is the shared migration profile; project-owned exceptions preserve existing effect permissions.
 
 | Repository | Preserved | New explicit paths |
 |---|---|---|

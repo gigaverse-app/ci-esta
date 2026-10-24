@@ -5,6 +5,22 @@
       "additionalProperties": false,
       "description": "A permitted occasion, selection scope and effect ceiling.\n\nIncludes are tags. An empty include set selects no work; '*' selects every\ntag, but still cannot override environment or side-effect constraints.",
       "properties": {
+        "extends": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Inherit a built-in or project profile; explicit fields replace inherited fields.",
+          "title": "Extends"
+        },
         "occasions": {
           "items": {
             "enum": [
@@ -28,6 +44,18 @@
             "type": "string"
           },
           "title": "Include",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "exclude": {
+          "default": [],
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]+$",
+            "type": "string"
+          },
+          "title": "Exclude",
           "type": "array",
           "uniqueItems": true
         },
@@ -95,10 +123,6 @@
           "type": "integer"
         }
       },
-      "required": [
-        "occasions",
-        "include"
-      ],
       "title": "Profile",
       "type": "object"
     },
@@ -186,6 +210,15 @@
       "title": "Schema Version",
       "type": "string"
     },
+    "defaults": {
+      "default": "v1",
+      "enum": [
+        "v1",
+        "none"
+      ],
+      "title": "Defaults",
+      "type": "string"
+    },
     "profiles": {
       "patternProperties": {
         "^[^\\r\\n]+$": {
@@ -208,9 +241,6 @@
       "type": "array"
     }
   },
-  "required": [
-    "profiles"
-  ],
   "title": "Policy",
   "type": "object"
 }

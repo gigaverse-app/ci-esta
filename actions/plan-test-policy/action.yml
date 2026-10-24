@@ -2,14 +2,14 @@ name: Plan test execution policy
 description: Admit test work for an occasion before provisioning services; consume the existing selector's scope.
 inputs:
   policy:
-    description: Project-owned policy YAML or JSON.
-    required: true
+    description: Optional project exceptions to CI-esta v1 defaults, as YAML or JSON.
+    default: ''
   profile:
     description: Explicit profile; legacy preserves the project's existing scope.
-    default: legacy
+    default: ci
   occasion:
-    description: Normalized pr, push, schedule, deployment or manual occasion.
-    required: true
+    description: Normalized occasion or GitHub event name; inferred from this workflow by default.
+    default: ${{ github.event_name }}
   revision:
     description: Immutable revision under test.
     default: ${{ github.sha }}
@@ -24,6 +24,12 @@ inputs:
     default: ''
   deployed-revision:
     description: Revision observed by the existing deployment readiness check.
+    default: ''
+  work:
+    description: Inline JSON work IDs or metadata objects; no policy file needed.
+    default: ''
+  lanes:
+    description: Existing selector YAML/JSON file with authoritative lane IDs.
     default: ''
   inventory:
     description: Optional runner-generated inventory JSON file instead of policy work declarations.
@@ -63,9 +69,13 @@ runs:
         TARGET_ENVIRONMENT: ${{ inputs.environment }}
         DEPLOYED_REVISION: ${{ inputs.deployed-revision }}
         INVENTORY: ${{ inputs.inventory }}
+        WORK: ${{ inputs.work }}
+        LANES: ${{ inputs.lanes }}
         PLAN_OUTPUT: ${{ inputs.output }}
       run: |
         args=()
+        if [ -n "$WORK" ]; then args+=(--work "$WORK"); fi
+        if [ -n "$LANES" ]; then args+=(--lanes "$LANES"); fi
         if [ -n "$INVENTORY" ]; then args+=(--inventory "$INVENTORY"); fi
         uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../.." \
           python -m ci_esta.policy.cli --policy "$POLICY" --profile "$PROFILE" \

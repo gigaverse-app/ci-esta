@@ -2,8 +2,14 @@ name: Check test policy routing
 description: Execute project routing contracts through this action revision's installed policy CLI.
 inputs:
   policy:
-    description: Project-owned policy JSON or YAML.
-    required: true
+    description: Optional project exceptions to CI-esta defaults.
+    default: ''
+  work:
+    description: Inline work inventory, identical to the planning action.
+    default: ''
+  lanes:
+    description: Existing selector lane inventory, identical to the planning action.
+    default: ''
   cases:
     description: JSON routing cases with explicit expected work IDs or failure codes.
     required: true
@@ -21,7 +27,9 @@ runs:
         SHARED_ACTION_PATH: ${{ github.action_path }}
         POLICY: ${{ inputs.policy }}
         CASES: ${{ inputs.cases }}
+        WORK: ${{ inputs.work }}
+        LANES: ${{ inputs.lanes }}
         WORKFLOW_CASES: ${{ inputs.workflow-cases }}
       run: |
         uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../.." \
-          python -m ci_esta.policy.verify "$POLICY" "$CASES" "$WORKFLOW_CASES"
+          python -m ci_esta.policy.verify "$POLICY" "$CASES" "$WORKFLOW_CASES" --work "$WORK" --lanes "$LANES"

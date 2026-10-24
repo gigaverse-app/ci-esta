@@ -11,7 +11,10 @@ def _decision(work: Work, profile: Profile, request: Request) -> Decision:
         timeout = min(timeout, remaining) if timeout is not None else remaining
     status = "run"
     reason = f"admitted by profile {request.profile}"
-    if "*" not in profile.include and not profile.include.intersection(work.tags):
+    tags = work.tags | {work.id}
+    if profile.exclude.intersection(tags):
+        status, reason = "deferred", "work tags are excluded by this profile"
+    elif "*" not in profile.include and not profile.include.intersection(tags):
         status, reason = "deferred", "work tags are outside this profile"
     elif not work.effects.issubset(profile.allow_effects):
         status, reason = "deferred", "profile does not permit the declared side effects"
