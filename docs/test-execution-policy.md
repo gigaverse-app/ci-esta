@@ -29,7 +29,7 @@ A new adopter needs work IDs, not a copied profile catalog. Without an explicit 
 | Profile | Default scope and eligibility | Occasions |
 |---|---|---|
 | `affected` | Affected work; excludes `expensive` and `manual` tags | PR, push, manual |
-| `affected_deep` | Affected work including expensive; excludes manual; fresh | PR, push, manual |
+| `affected_deep` | Affected work including expensive; excludes manual; fresh | PR, push, manual, schedule |
 | `thorough` | All ordinary work; excludes `expensive` and `manual`; fresh | Manual, schedule |
 | `full`, `exhaustive` | Same full checkpoint; includes expensive, excludes manual; fresh | PR, manual, schedule |
 | `weekly` | Full checkpoint; includes expensive, excludes manual; fresh | Schedule, manual |
@@ -98,6 +98,55 @@ ordinary. Due marks widget comparison expensive. Web retains its live-environmen
 exceptions separately from ordinary mock journeys. Work classification and effect
 grants remain project-owned. Consumers need no JSON routing fixtures.
 
+## Daily affected validation
+
+A schedule with no profile still uses `weekly` and covers all eligible work.
+A consumer may explicitly choose `affected_deep` on a daily schedule, while
+retaining a separate weekly full checkpoint. Expensive tests then run for changed
+inputs; the calendar alone does not supply an affected set.
+
+```text
+BEFORE: schedule -> full suite every day
+AFTER:  schedule -> resolve-scheduled-base -> native selector -> affected_deep
+                           |                                       |
+                 missing/stale/failed history               changed + expensive
+                           |                                       |
+                      full fallback                         executor + strict gate
+                                                                   |
+                                                      execution marker on success
+Sunday ----------------------------------------------------> weekly (full scope)
+```
+
+`resolve-scheduled-base@v1` is language-neutral. It examines the current
+workflow's schedule events on the configured branch, with `actions:read` and
+`contents:read`. It requires an exact successful aggregate job and an exact
+successful execution step, plus Git ancestry. A successful workflow with skipped
+tests cannot establish or renew a baseline. A newer failed, cancelled or ongoing
+scheduled run forces full execution, even when its SHA equals an older success.
+API errors, divergent history and missing/stale proof also request full execution.
+Lookup is bounded to 100 recent schedule rows and 20 candidate job inventories;
+an older proof outside the bound only costs an additional full run.
+
+| Input/output | Contract |
+|---|---|
+| `head-sha`, `branch` | Tested immutable SHA and branch; default to GitHub context |
+| `evidence-job-name`, `evidence-step-name` | Required exact names; the step runs only after every admitted executor and validator passes |
+| `max-age-hours` | Positive number, default 168; measured from source run creation so reruns/skipped nights cannot renew age |
+| `base-sha`, `run-id`, `reason` | Proven ancestor and source run, or empty IDs and a fallback explanation |
+
+The consumer must treat an empty base as **all eligible work**, never as zero
+changes, and must declare complete inputs to its native selector. Version the
+execution marker when the validation contract changes. Keep a scheduled full
+checkpoint for environment drift and input-declaration mistakes; neither Git
+ancestry nor a marker proves an undeclared dependency was unchanged.
+
+Web's proposal uses the existing whole-mock-suite input selector. It marks two
+long recovery tests `@expensive`, excludes that tag on ordinary affected runs,
+and admits it on daily affected-deep runs. Both work groups use the same affected
+bit because the app build and harness are shared. This is conservative suite
+selection, not a new per-test dependency graph. All other tests, live workflows,
+service setup, three shards and their strict gate remain under web ownership.
+
 ## Before and after
 
 ```text
@@ -138,6 +187,7 @@ Policy admission is not successful execution. A provider being resolvable is not
 | Action/API | Input | Output / responsibility |
 |---|---|---|
 | pytest-selective `plan-lanes`, CI-esta `test-impact`, or native selector | Git tree pair and declared dependencies | Affected IDs or complete lane-to-boolean map; remains authoritative for impact |
+| **`actions/resolve-scheduled-base`** | Same-workflow scheduled history, branch, head SHA, aggregate job and execution step names, maximum age | Proven executed ancestor for the native selector; empty base requests full eligible execution |
 | **`actions/plan-test-policy`** | Policy, profile, occasion, revision, affected/requested IDs, optional environment/readiness identity | Complete admitted/fresh maps, count and versioned decision plan; no commands or provisioning |
 | **`actions/check-test-policy`** (optional) | Policy and project-owned routing examples | Tests the installed CLI from the exact action revision; fails on wrong routing or expected failures |
 | **Resource Python API / `python -m ci_esta.policy.resource_cli`** | Provider registry, requirements, available credential names, target environment | Per-work placement or unavailable reasons; no credential values required |
