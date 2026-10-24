@@ -131,18 +131,41 @@ work units), never file counts inferred from skipped jobs. None of these counts
 implies time saved or passing checks.
 
 The reusable workflow forwards `runner-sku-rates-json` to the same accounting
-code as direct action callers. Supply rates for the runner labels actually used:
+code as direct action callers. CI-esta owns the standard and larger-runner price
+catalog, keyed by GitHub billing SKU. Map organization runner names to those SKUs:
 
 ```yaml
-runner-sku-rates-json: '[{"sku":"actions_linux","runner_label":"ubuntu-latest","usd_per_minute":"0.006"}]'
+runner-sku-rates-json: >-
+  [
+    {"sku":"linux_8_core","runner_label":"8vcpu-runner"},
+    {"sku":"linux_16_core","runner_label":"16vcpu-runner"}
+  ]
 ```
 
-Explicit rates override the built-in standard-hosted
+Omitting `usd_per_minute` uses the built-in
 [GitHub list rates](https://docs.github.com/en/billing/reference/actions-runner-pricing)
 (verified 2026-10-24). Recognized single-label standard runners are priced without
 configuration; known public repositories use their free standard-runner rate.
 When visibility is absent, the rate is explicitly a list-price estimate.
-Custom, larger and self-hosted runners require explicit label-to-rate mappings.
+The catalog covers standard runners and GitHub's published x64, arm64, macOS and
+GPU larger-runner SKUs. Official larger macOS labels also resolve automatically.
+Larger runners remain billable in public repositories. Organization runner names
+need an explicit label-to-SKU mapping; their names are never parsed to guess hardware.
+Multiple labels may map to one SKU.
+
+For negotiated prices, self-hosted hardware or a SKU outside the catalog, supply
+`usd_per_minute` as an escape hatch. It overrides the catalog and public free rate,
+including when explicitly set to zero:
+
+```yaml
+runner-sku-rates-json: '[{"sku":"private_pool","runner_label":"build-pool","usd_per_minute":"0.015"}]'
+```
+
+Unknown SKUs without an explicit price leave that usage unpriced and withhold the
+total; the report still shows known prices. Catalog-derived SKU names include
+their verification date in the output for provenance. Existing configurations
+with explicit prices remain supported. Deploy the CI-esta release containing
+catalog mappings before adopting mappings without prices in consumers of `@v1`.
 Maintain those overrides for your account. Cost is a per-job rounded-minute
 estimate before allowances and discounts, not an invoice. Automatic SKU names
 record the source: `github_20261024_*` for list rates and `github_public_*` for
@@ -260,11 +283,11 @@ To post a sticky PR report, supply `pull-request-number`, set `post-sticky: 'tru
 | Runner seconds | Observed timed jobs across attempts, including retries |
 | Slowest step per job | Latest-attempt API step durations, with links to job logs; all steps remain in the JSON report |
 | Rounded runner minutes | Sum of per-job ceiling-rounded durations; an estimate, not a GitHub invoice |
-| Dollar estimate | Explicit runner rates or known standard hosted rates multiplied by rounded minutes; withheld when any timed job is unpriced |
+| Dollar estimate | Explicit runner rates or GitHub SKU catalog prices multiplied by rounded minutes; withheld when any timed job is unpriced |
 | Overlapping prior runs | Observed cost of prior PR runs that overlap the current run |
 | Test-selection savings | Optional comparison with comparable full-suite timing references; not a guaranteed counterfactual |
 
-Use `runner-sku-rates-json` to override standard rates and price custom labels with rates you maintain. GitHub plans, included usage and discounts are outside this report. Missing gate configuration or API data produces a partial/unavailable report rather than invented precision. Exact run IDs and SHAs belong in the JSON report, not Prometheus grouping labels.
+Use `runner-sku-rates-json` for label-to-SKU mappings and optional price overrides. GitHub plans, included usage and discounts are outside this report. Missing gate configuration or API data produces a partial/unavailable report rather than invented precision. Exact run IDs and SHAs belong in the JSON report, not Prometheus grouping labels.
 
 Step timing distinguishes completed, accrued and unavailable measurements. Missing,
 skipped or reversed timestamps stay unavailable; a completed step with identical

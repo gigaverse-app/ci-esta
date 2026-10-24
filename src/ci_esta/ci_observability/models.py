@@ -208,13 +208,13 @@ class ObservedGateV1(BaseModel):
 
 
 class RunnerSkuRateV1(BaseModel):
-    """Versioned caller-supplied price for one GitHub runner label."""
+    """Runner label mapped to a catalog SKU, with an optional explicit price override."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     sku: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,63}$")
     runner_label: str = Field(min_length=1, max_length=128)
-    usd_per_minute: Decimal = Field(ge=0)
+    usd_per_minute: Decimal | None = Field(default=None, ge=0)
 
 
 class RunnerSkuCostV1(BaseModel):

@@ -58,6 +58,58 @@ def test_explicit_rate_overrides_defaults_and_custom_hardware_is_preserved():
     assert measured.runner_cost.by_sku[0].sku == "custom"
 
 
+@pytest.mark.parametrize("sku,price", [
+    ("linux_8_core", "0.022"), ("linux_16_core", "0.042"),
+    ("linux_8_core_arm", "0.014"), ("windows_8_core", "0.042"),
+    ("windows_8_core_arm", "0.026"), ("macos_l", "0.077"),
+    ("macos_xl", "0.102"), ("linux_4_core_gpu", "0.052"),
+])
+@pytest.mark.parametrize("public", [True, False])
+def test_larger_runner_aliases_use_catalog_prices_even_in_public_repositories(sku, price, public):
+    alias = RunnerSkuRateV1(sku=sku, runner_label="team-runner")
+    measured = priced_report(["team-runner"], rates=[alias], public=public)
+    cost = measured.runner_cost
+    assert cost.estimated_cost_usd == cost.estimated_rounded_runner_minutes * Decimal(price)
+    assert cost.by_sku[0].sku == f"github_20261024_{sku}"
+
+
+def test_multiple_aliases_can_share_a_sku_without_duplicating_prices():
+    aliases = [RunnerSkuRateV1(sku="linux_8_core", runner_label=label) for label in ("build", "test")]
+    measured = priced_report(["build"], rates=aliases)
+    other = measured.billing_jobs[0].model_copy(update={"job_id": 2, "runner_labels": ["test"]})
+    cost = _runner_cost([*measured.billing_jobs, other], aliases)
+    assert cost.estimated_cost_usd == Decimal("0.132")
+    assert {row.runner_label for row in cost.by_sku} == {"build", "test"}
+
+
+@pytest.mark.parametrize("sku", ["linux_8_core", "private-hardware"])
+@pytest.mark.parametrize("price", ["0", "0.03"])
+def test_explicit_prices_remain_an_escape_hatch_for_known_and_custom_skus(sku, price):
+    override = RunnerSkuRateV1(sku=sku, runner_label="team-runner", usd_per_minute=Decimal(price))
+    measured = priced_report(["team-runner"], rates=[override], public=True)
+    assert measured.runner_cost.estimated_cost_usd == Decimal(price) * 3
+    assert measured.runner_cost.by_sku[0].sku == sku
+
+
+def test_unknown_sku_without_price_keeps_total_unpriced():
+    alias = RunnerSkuRateV1(sku="unknown", runner_label="team-runner")
+    measured = priced_report(["team-runner"], rates=[alias])
+    assert measured.runner_cost.estimated_cost_usd is None
+    assert measured.runner_cost.unpriced_rounded_runner_minutes == 3
+
+
+def test_standard_alias_uses_public_free_rate():
+    alias = RunnerSkuRateV1(sku="actions_linux", runner_label="standard-alias")
+    measured = priced_report(["standard-alias"], rates=[alias], public=True)
+    assert measured.runner_cost.estimated_cost_usd == 0
+
+
+@pytest.mark.parametrize("label,price", [("macos-15-large", "0.077"), ("macos-latest-xlarge", "0.102")])
+def test_official_larger_runner_labels_resolve_without_configuration(label, price):
+    measured = priced_report([label], public=True)
+    assert measured.runner_cost.estimated_cost_usd == Decimal(price) * 3
+
+
 def test_python_execution_uses_measured_shards_before_workflow_jobs():
     measured = report().model_copy(update={"measurements": [pool()]})
     assert "![executed: 2 shards]" in render_markdown(measured)

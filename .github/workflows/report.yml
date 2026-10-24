@@ -27,7 +27,7 @@ on:
         type: string
         default: '[]'
       runner-sku-rates-json:
-        description: Runner-label rate overrides; standard hosted labels use GitHub rates, custom labels need explicit rates.
+        description: Runner-label to GitHub SKU mappings; omit usd_per_minute for catalog prices or set it to override.
         type: string
         default: '[]'
       pull-request-number:
