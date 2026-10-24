@@ -14,11 +14,18 @@ ROOT = Path(__file__).resolve().parents[2]
     ("action.yml", True),
     ("actions/setup-cached-uv/action.yml", True),
     ("actions/setup-cached-uv/helper.py", True),
-        ("README.md", False), ("docs/critical-path.md", False),
+    ("README.md", False), ("docs/critical-path.md", False),
     (".github/workflows/observe-ci.yml", False), (".github/pull_request_template.md", False),
     ("src/example.py", True), ("tests/test_example.py", True), ("scripts/ci/setup.py", True),
     ("uv.lock", True), ("importlinter.toml", True), (".github/workflows/ci.yml", True),
-    ("actions/setup-cached-uv/action.yml", True),
+    ("actions/run-bun-tests/selection.mjs", True),
+    ("actions/resolve-lane-evidence/merged.cjs", True),
+    ("src/helpers.ts", True),
+    ("tests/github_actions/future.test.mjs", True),
+    ("tests/github_actions/future.test.cjs", True),
+    ("scripts/ci/helper.ts", True),
+    (".github/workflows/public-actions.yml", True),
+    (".github/validation-inputs.json", True),
 ])
 def test_repository_lane_inputs(tmp_path, path, expected):
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
