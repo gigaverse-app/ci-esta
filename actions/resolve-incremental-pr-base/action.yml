@@ -23,6 +23,12 @@ inputs:
       successfully in a reusable run. A caller prefix such as `validate / `
       is ignored.
     required: true
+  evidence-step-name:
+    description: Successful completion step required inside the evidence job.
+    default: ""
+  validation-evidence:
+    description: Require a completion step and retain the fallback base after newer unsuccessful or uncertain validation.
+    default: "false"
   cancelled-run-evidence-job-patterns:
     description: >
       Newline-delimited glob patterns for every scanner job that must have
@@ -58,6 +64,8 @@ runs:
         HEAD_SHA: ${{ inputs.head-sha }}
         HEAD_REF: ${{ inputs.head-ref }}
         PR_NUMBER: ${{ inputs.pr-number }}
+        EVIDENCE_STEP_NAME: ${{ inputs.evidence-step-name }}
+        VALIDATION_EVIDENCE: ${{ inputs.validation-evidence }}
         EVIDENCE_JOB_NAME: ${{ inputs.evidence-job-name }}
         CANCELLED_RUN_EVIDENCE_JOB_PATTERNS: ${{ inputs.cancelled-run-evidence-job-patterns }}
         MAX_AGE_HOURS: ${{ inputs.max-age-hours }}
@@ -74,6 +82,8 @@ runs:
             headRef: process.env.HEAD_REF,
             pullRequestNumber: Number(process.env.PR_NUMBER),
             evidenceJobName: process.env.EVIDENCE_JOB_NAME,
+            evidenceStepName: process.env.EVIDENCE_STEP_NAME,
+            validationEvidence: process.env.VALIDATION_EVIDENCE === "true",
             cancelledRunEvidenceJobPatterns: process.env.CANCELLED_RUN_EVIDENCE_JOB_PATTERNS
               .split("\n")
               .map((line) => line.trim())

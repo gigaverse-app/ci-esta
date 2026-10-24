@@ -19,6 +19,8 @@ export function workSelectionReport(execution, context) {
       reason: reason.slice(0, 1000), ...(reused ? { receipt } : {}),
       execution: { mode, status, total_files: totalFiles, executed_files: known ? executedFiles : null,
         always_run_files: alwaysRunFiles, duration_seconds: Number.isFinite(durationMs) ? durationMs / 1000 : null,
+        cpu_count: execution.cpuCount ?? null, worker_limit: execution.workers ?? null,
+        runner_label: execution.runnerLabel || null,
         tested_sha: testedSha, base_sha: base || null, runtime: `Bun ${bunVersion}` },
     }],
   };

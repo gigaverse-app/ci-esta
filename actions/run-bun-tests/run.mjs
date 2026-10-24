@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { cpus } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { planAffectedTests, readTestSelection, safePath } from "./selection.mjs";
@@ -76,6 +77,8 @@ export function runBunTests({ cwd = process.cwd(), inventoryFile, policyFile, ba
   const inventoryKnown = executions.every(item => item.executedFiles !== null);
   const executedFiles = inventoryKnown ? [...new Set(executions.flatMap(item => item.executedFiles))].sort() : null;
   const result = { schema_version: "ci-esta/bun-execution/v1", ...plan, bunVersion: version,
+    cpuCount: cpus().length, workers: args.some(arg => arg === "--parallel") ? null :
+      Number(args.find(arg => arg.startsWith("--parallel="))?.split("=")[1] || 1),
     totalFiles: files.length, alwaysRunFiles, executedFiles, executions, durationMs: performance.now() - started, exitCode };
   write("execution-selection.json", result);
   if (process.env.GITHUB_RUN_ID) {

@@ -45,6 +45,7 @@ async function resolveIncrementalPrBase({
   evidenceJobName,
   evidenceStepName = "",
   pytestEvidence,
+  validationEvidence = false,
   sameHeadOnly = false,
   conservativeFailures = false,
   cancelledRunEvidenceJobPatterns = [],
@@ -68,6 +69,7 @@ async function resolveIncrementalPrBase({
     !SHA_PATTERN.test(headSha) ||
     !headRef ||
     !evidenceJobName ||
+    (validationEvidence && (!evidenceStepName || sameHeadOnly || pytestEvidence)) ||
     (sameHeadOnly && (!evidenceStepName || pytestEvidence)) ||
     !Number.isInteger(pullRequestNumber) ||
     pullRequestNumber <= 0 ||
@@ -85,7 +87,7 @@ async function resolveIncrementalPrBase({
       run_id: context.runId,
     }));
     const oldestReusableMs = nowMs - maxAgeHours * HOUR_MS;
-    const reusableConclusions = pytestEvidence || sameHeadOnly ? ["success", "failure", "cancelled"] : ["success", "cancelled"];
+    const reusableConclusions = pytestEvidence || sameHeadOnly || validationEvidence ? ["success", "failure", "cancelled"] : ["success", "cancelled"];
     // Every reason a listed run cannot serve as evidence. An empty list is the only
     // admission; the reasons are logged, because a silent fallback hid for weeks that
     // same-head reuse never fired.
@@ -95,7 +97,7 @@ async function resolveIncrementalPrBase({
       const reasons = [];
       if (run.workflow_id !== currentRun.workflow_id) reasons.push("another workflow");
       if (run.status !== "completed") reasons.push(`status ${run.status}`);
-      else if (!reusableConclusions.includes(run.conclusion)) reasons.push(`conclusion ${run.conclusion}`);
+      else if (!validationEvidence && !reusableConclusions.includes(run.conclusion)) reasons.push(`conclusion ${run.conclusion}`);
       // Receipt-bound lanes admit any head of this PR: the receipt names the tested inputs, so
       // an earlier head whose run carries the same receipt tested the same thing (a retag that
       // only moves a first-party pin to an identical tree). A different receipt never matches.
@@ -350,10 +352,15 @@ async function resolveIncrementalPrBase({
       }
       const candidates = others.filter(isReusableRun);
       for (const candidate of candidates) {
+        if (validationEvidence && candidate.conclusion !== "success") {
+          core.info("Newer unsuccessful validation prevents advancing the selection base.");
+          return fallback;
+        }
         const succeeded = await hasSuccessfulEvidence(candidate);
         if (sameHeadOnly && contradictedSameHeadEvidence) return fallback;
         // Revoked same-head pytest evidence leaves ancestor proof, as before same-head reuse.
         if (pytestEvidence && contradictedSameHeadEvidence && candidate.head_sha === headSha) continue;
+        if (!succeeded && validationEvidence) return fallback;
         if (!succeeded) continue;
         // Exact-head lanes require their own successful receipt naming the
         // tested merge SHA. No ancestor or overall workflow result substitutes.
@@ -383,6 +390,8 @@ async function resolveIncrementalPrBase({
     } catch (error) {
       core.warning(`Could not list prior workflow runs (${error.message}); trying previous-head checks.`);
     }
+
+    if (validationEvidence) return fallback;
 
     if (sameHeadOnly) {
       // Enforcement point for listing lag: the run listing can omit a just-completed run

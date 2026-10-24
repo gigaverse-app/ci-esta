@@ -521,6 +521,26 @@ def _check_status(report: CiObservabilityReportV1) -> str:
     return brand.status_badge(label, color)
 
 
+def _runner_summary(report: CiObservabilityReportV1) -> str:
+    labels = sorted({label for job in report.latest_attempt_jobs for label in job.runner_labels})
+    parts = ["Runners: " + ", ".join(markdown.code(label) for label in labels)] if labels else []
+    if report.work_selection is not None:
+        for decision in report.work_selection.decisions:
+            execution = decision.execution
+            if execution is None:
+                continue
+            capacity = []
+            if execution.runner_label:
+                capacity.append(markdown.code(execution.runner_label))
+            if execution.cpu_count is not None:
+                capacity.append(f"{execution.cpu_count} visible CPUs")
+            if execution.worker_limit is not None:
+                capacity.append(f"{execution.worker_limit} worker limit")
+            if capacity:
+                parts.append(f"{markdown.inline(decision.name)}: " + " · ".join(capacity))
+    return "  \n".join(parts)
+
+
 def _header(report: CiObservabilityReportV1) -> list[str]:
     """The banner, then one line of badges: readiness, what ran and saved, and what it cost."""
     provenance = report.provenance
@@ -534,6 +554,8 @@ def _header(report: CiObservabilityReportV1) -> list[str]:
         "",
         f"{_check_status(report)} {workflow}{markdown.code(provenance.head_sha[:7])} · attempt {provenance.run_attempt} · "
         f"{report.collection_status.value} snapshot",
+        "",
+        _runner_summary(report),
         "",
         "---",
         "",

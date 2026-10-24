@@ -147,6 +147,7 @@ const core = { warning: (message) => warnings.push(message), info: (message) => 
     evidenceJobName,
     evidenceStepName: input.evidenceStepName ?? "",
     pytestEvidence: input.pytestEvidence,
+    validationEvidence: input.validationEvidence ?? false,
     sameHeadOnly: input.sameHeadOnly ?? false,
     conservativeFailures: input.conservativeFailures ?? false,
     cancelledRunEvidenceJobPatterns: input.cancelledRunEvidenceJobPatterns ?? [],
@@ -1367,3 +1368,26 @@ def test_unavailable_evidence_is_read_once_and_keeps_every_lane_required(failed_
     # A new planner invocation must retry; an outage is never persisted as proof.
     fresh = _resolve_incremental_base(_same_head_lane_scenario("success", "valid"))
     assert fresh["result"] == {"baseSha": CURRENT_HEAD_SHA, "reused": True}
+
+
+@pytest.mark.parametrize("variant", ["valid", "missing-marker", "failed-marker", "newer-failure", "newer-cancelled", "newer-timed_out", "jobs-unavailable"])
+def test_validation_base_requires_completion_and_does_not_cross_newer_failure(variant):
+    run = {"id": 1, "status": "completed", "conclusion": "success", "head_sha": SUCCESSFUL_ANCESTOR_SHA,
+           "updated_at": RECENT_SUCCESS_TIME, "pull_requests": [{"number": PULL_REQUEST_NUMBER}]}
+    runs = [run]
+    jobs = {1: [{"name": "checks", "conclusion": "success", "steps": [
+        {"name": "Validated Bun v1", "conclusion": "failure" if variant == "failed-marker" else "success"}
+    ] if variant != "missing-marker" else []}]}
+    if variant.startswith("newer-"):
+        runs.append({**run, "id": 2, "head_sha": CURRENT_HEAD_SHA,
+                     "updated_at": CURRENT_TIME, "conclusion": variant.removeprefix("newer-")})
+    resolved = _resolve_incremental_base({
+        "workflowId": WORKFLOW_ID, "runs": runs, "jobsByRun": jobs,
+        "comparisons": {f"{SUCCESSFUL_ANCESTOR_SHA}...{CURRENT_HEAD_SHA}": {"status": "ahead"}},
+        "fallbackBaseSha": FALLBACK_BASE_SHA, "headSha": CURRENT_HEAD_SHA,
+        "pullRequestNumber": PULL_REQUEST_NUMBER, "currentTime": CURRENT_TIME,
+        "evidenceJobName": "checks", "evidenceStepName": "Validated Bun v1", "validationEvidence": True,
+        "failAt": "jobs" if variant == "jobs-unavailable" else None,
+    })["result"]
+    assert resolved == {"baseSha": SUCCESSFUL_ANCESTOR_SHA if variant == "valid" else FALLBACK_BASE_SHA,
+                        "reused": variant == "valid"}

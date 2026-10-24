@@ -132,3 +132,23 @@ until a real package graph and the existing violation corpus prove equivalence.
 Use actionlint for workflow syntax, expressions, action inputs and runner-label
 validation. Keep completion/evidence gates and repository-specific policy checks:
 valid YAML cannot prove that every required test actually ran.
+
+## Bun capacity and validated revisions
+
+`report-bun-tests` accepts optional `cpuCount`, `workers` and `runnerLabel` in
+execution evidence. The report shows the observed CPU count and configured worker
+limit above its collapsed sections. A worker limit is not measured occupancy.
+Custom runner labels require a `runner-sku-rates-json` mapping to a catalog SKU,
+for example `{"runner_label":"16vcpu-runner","sku":"linux_16_core"}`.
+The catalog supplies the list price; estimates exclude account discounts.
+
+Non-pytest adopters can use `resolve-incremental-pr-base` with
+`validation-evidence: 'true'` and `evidence-step-name` to require a successful
+completion marker in the named evidence job. Place that marker after every
+required check and execution-inventory validation. A newer failed, cancelled,
+timed-out or unverifiable validation retains the fallback base. This mode does
+not use the ancestry index-lag fallback, which could miss newer failed proof.
+When `reused` is false, callers requiring a validated baseline must run a full
+checkpoint. Compare the returned PR head against the current tested merge tree
+so changes arriving from the base branch remain in the delta. Keep explicit full
+checkpoints and invalidate the completion contract when execution semantics change.
