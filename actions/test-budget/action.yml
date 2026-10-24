@@ -1,0 +1,41 @@
+name: Calculate remaining test budget
+description: Bound a test command after setup while preserving a cleanup and reporting reserve.
+inputs:
+  total-seconds:
+    description: Executor job limit in seconds.
+    required: true
+  started-at:
+    description: Job start Unix timestamp, recorded before setup begins.
+    required: true
+  reserve-seconds:
+    description: Time kept for cleanup and reporting.
+    required: true
+  requested-seconds:
+    description: Maximum requested test-command runtime.
+    required: true
+  resolution:
+    description: Elapsed-time resolution in seconds; 60 preserves minute-based legacy executors.
+    default: '1'
+outputs:
+  seconds:
+    description: Positive budget to pass to the test runner's timeout.
+    value: ${{ steps.budget.outputs.seconds }}
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
+    - id: budget
+      shell: bash
+      env:
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+        TOTAL: ${{ inputs.total-seconds }}
+        STARTED_AT: ${{ inputs.started-at }}
+        RESERVE: ${{ inputs.reserve-seconds }}
+        REQUESTED: ${{ inputs.requested-seconds }}
+        RESOLUTION: ${{ inputs.resolution }}
+      run: |
+        uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../.." \
+          python -m ci_esta.policy.budget --total "$TOTAL" --started-at "$STARTED_AT" \
+          --reserve "$RESERVE" --requested "$REQUESTED" --resolution "$RESOLUTION"

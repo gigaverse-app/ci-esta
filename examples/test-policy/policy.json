@@ -1,0 +1,76 @@
+{
+  "schema_version": "ci-esta/test-policy/v1",
+  "profiles": {
+    "pr": {
+      "occasions": [
+        "pr",
+        "push"
+      ],
+      "include": [
+        "unit",
+        "integration"
+      ]
+    },
+    "weekly": {
+      "occasions": [
+        "schedule",
+        "manual"
+      ],
+      "include": [
+        "unit",
+        "integration",
+        "paid"
+      ],
+      "allow_effects": [
+        "provider-spend"
+      ],
+      "scope": "all",
+      "fresh": true
+    },
+    "probe": {
+      "occasions": [
+        "manual"
+      ],
+      "include": [
+        "*"
+      ],
+      "allow_effects": [
+        "provider-spend",
+        "visible-output"
+      ],
+      "scope": "explicit"
+    }
+  },
+  "work": [
+    {
+      "id": "unit",
+      "tags": [
+        "unit"
+      ]
+    },
+    {
+      "id": "conformance",
+      "tags": [
+        "integration"
+      ]
+    },
+    {
+      "id": "provider-eval",
+      "tags": [
+        "paid"
+      ],
+      "effects": [
+        "provider-spend"
+      ]
+    },
+    {
+      "id": "publish-smoke",
+      "tags": [
+        "live"
+      ],
+      "effects": [
+        "visible-output"
+      ]
+    }
+  ]
+}

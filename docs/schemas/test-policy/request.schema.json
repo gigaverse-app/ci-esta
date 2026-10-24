@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Trusted context. None affected means unknown and conservatively broadens scope.",
+  "properties": {
+    "schema_version": {
+      "const": "ci-esta/test-request/v1",
+      "default": "ci-esta/test-request/v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "maxLength": 300,
+      "minLength": 1,
+      "pattern": "^[^\\r\\n]+$",
+      "title": "Profile",
+      "type": "string"
+    },
+    "occasion": {
+      "enum": [
+        "pr",
+        "push",
+        "schedule",
+        "deployment",
+        "manual"
+      ],
+      "title": "Occasion",
+      "type": "string"
+    },
+    "revision": {
+      "maxLength": 300,
+      "minLength": 1,
+      "pattern": "^[^\\r\\n]+$",
+      "title": "Revision",
+      "type": "string"
+    },
+    "environment": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Environment"
+    },
+    "deployed_revision": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deployed Revision"
+    },
+    "affected": {
+      "anyOf": [
+        {
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]+$",
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Affected"
+    },
+    "requested": {
+      "anyOf": [
+        {
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]+$",
+            "type": "string"
+          },
+          "type": "array",
+          "uniqueItems": true
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Requested"
+    }
+  },
+  "required": [
+    "profile",
+    "occasion",
+    "revision"
+  ],
+  "title": "Request",
+  "type": "object"
+}

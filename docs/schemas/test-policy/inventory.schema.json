@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Work": {
+      "additionalProperties": false,
+      "description": "An atomic suite or individual test. The adapter chooses the granularity.\n\nA conformance suite is one unit: admission must never split its validators\nfrom its tests. IDs and tags are data, never executable command strings.",
+      "properties": {
+        "id": {
+          "maxLength": 300,
+          "minLength": 1,
+          "pattern": "^[^\\r\\n]+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "tags": {
+          "default": [],
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]+$",
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "effects": {
+          "default": [],
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]+$",
+            "type": "string"
+          },
+          "title": "Effects",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "environment": {
+          "anyOf": [
+            {
+              "maxLength": 300,
+              "minLength": 1,
+              "pattern": "^[^\\r\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Environment"
+        },
+        "fresh": {
+          "default": false,
+          "title": "Fresh",
+          "type": "boolean"
+        },
+        "timeout_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timeout Seconds"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "Work",
+      "type": "object"
+    }
+  },
+  "items": {
+    "$ref": "#/$defs/Work"
+  },
+  "type": "array"
+}

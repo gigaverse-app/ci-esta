@@ -67,6 +67,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: ./actions/check-test-policy
+        with:
+          policy: examples/test-policy/policy.json
+          cases: examples/test-policy/cases.json
+      - uses: ./actions/plan-test-policy
+        id: policy-smoke
+        with:
+          policy: examples/test-policy/policy.json
+          profile: pr
+          occasion: pr
+          affected: '["unit","provider-eval"]'
+      - name: Verify public policy action routing
+        env:
+          ADMITTED: ${{ steps.policy-smoke.outputs.admitted }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          assert json.loads(os.environ['ADMITTED']) == {
+              'unit': True, 'conformance': False, 'provider-eval': False, 'publish-smoke': False}
+          PY
+      - name: Record budget start
+        run: echo "POLICY_BUDGET_START=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: ./actions/test-budget
+        id: budget-smoke
+        with:
+          total-seconds: '600'
+          started-at: ${{ env.POLICY_BUDGET_START }}
+          reserve-seconds: '60'
+          requested-seconds: '30'
+      - name: Require a positive bounded execution budget
+        env:
+          POLICY_SECONDS: ${{ steps.budget-smoke.outputs.seconds }}
+        run: test "$POLICY_SECONDS" -gt 0 && test "$POLICY_SECONDS" -le 30
       - uses: ./actions/service-container
         with:
           phase: warm

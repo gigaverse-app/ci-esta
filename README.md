@@ -118,3 +118,7 @@ Declare inputs at their readers so unrelated documentation does not select tests
 
 Use `ci-esta[selection]` for Python selection reports or `ci-esta[pytest]` for
 pytest execution tools. Before 1.0, review each minor release's migration notes.
+
+### Test execution profiles
+
+Separate affected work from special-occasion execution with [test execution policy](docs/test-execution-policy.md). The JSON planner works with pytest, Bun, Playwright and custom runners; resource resolution is optional.

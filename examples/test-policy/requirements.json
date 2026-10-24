@@ -1,0 +1,10 @@
+{
+  "redis-lua-tests": [
+    {
+      "resource": "redis",
+      "capabilities": [
+        "lua"
+      ]
+    }
+  ]
+}

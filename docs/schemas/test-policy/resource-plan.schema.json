@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "Placement": {
+      "description": "Reduction of a test's required-providers list to a CI matrix entry.\n\nThe selector calls :func:`placement_for` per test (or per group of tests\nsharing identical placements) and emits one matrix entry per unique\nplacement. The workflow then computes its ``env:`` block from\n:attr:`secrets`, its ``services:`` block from :attr:`services`, and picks\nthe runner vs k8s-job code path from :attr:`mode`.",
+      "properties": {
+        "mode": {
+          "description": "Where pytest executes.",
+          "enum": [
+            "runner",
+            "kubernetes_job"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "secrets": {
+          "description": "Sorted, deduplicated list of secret env-var names the *runner* must export. Cluster-internal providers contribute via :attr:`cluster_secrets` instead \u2014 those are mounted by the cluster, not by GitHub Actions.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Secrets",
+          "type": "array"
+        },
+        "cluster_secrets": {
+          "description": "Sorted, deduplicated list of env-var names the in-cluster Job needs from its service ConfigMap. Documentation only \u2014 the workflow doesn't pass them, the cluster mounts them. Runner providers' ``runner_secrets`` are promoted here when the placement is k8s mode.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Cluster Secrets",
+          "type": "array"
+        },
+        "services": {
+          "description": "Runner-side ``services:`` containers, one per service_name.",
+          "items": {
+            "$ref": "#/$defs/ServiceContainer"
+          },
+          "title": "Services",
+          "type": "array"
+        },
+        "runtime_env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Aggregated static env vars the workflow exports after services are up. Union of every chosen provider's ``runtime_env``; conflicting values for the same key raise.",
+          "title": "Runtime Env",
+          "type": "object"
+        },
+        "env_scope": {
+          "default": "any",
+          "description": "Strictest env binding across required providers.",
+          "title": "Env Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "Placement",
+      "type": "object"
+    },
+    "ResourceDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "resolved",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "placement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Placement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "status",
+        "reasons",
+        "placement"
+      ],
+      "title": "ResourceDecision",
+      "type": "object"
+    },
+    "ServiceContainer": {
+      "description": "Definition of a runner-side ephemeral container \u2014 maps 1:1 to one entry of GitHub Actions' ``services:`` block.\n\nProvided by ephemeral providers (``image=redis:7-alpine``, etc.) so the\nframework can spin up real-but-disposable infrastructure on the runner\nwithout paying the k8s round-trip.",
+      "properties": {
+        "service_name": {
+          "description": "Key under ``services:`` in the resulting workflow YAML. Used as the deduplication key when multiple providers contribute containers \u2014 two containers with the same service_name is a configuration error.",
+          "title": "Service Name",
+          "type": "string"
+        },
+        "image": {
+          "description": "Container image, e.g. ``redis:7-alpine``.",
+          "title": "Image",
+          "type": "string"
+        },
+        "ports": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional port mappings, e.g. ``['6379:6379']``.",
+          "title": "Ports"
+        },
+        "options": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw ``--health-cmd`` / ``--health-interval`` etc. for the container.",
+          "title": "Options"
+        },
+        "env": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Environment variables passed into the container.",
+          "title": "Env"
+        },
+        "volumes": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional volume mounts.",
+          "title": "Volumes"
+        },
+        "credentials": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Registry credentials for pulling private images.",
+          "title": "Credentials"
+        }
+      },
+      "required": [
+        "service_name",
+        "image"
+      ],
+      "title": "ServiceContainer",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "ci-esta/test-resources/v1",
+      "default": "ci-esta/test-resources/v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "work": {
+      "additionalProperties": {
+        "$ref": "#/$defs/ResourceDecision"
+      },
+      "title": "Work",
+      "type": "object"
+    }
+  },
+  "required": [
+    "work"
+  ],
+  "title": "ResourcePlan",
+  "type": "object"
+}

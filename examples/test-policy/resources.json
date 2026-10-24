@@ -1,0 +1,23 @@
+{
+  "redis": {
+    "name": "redis",
+    "providers": [
+      {
+        "name": "fake"
+      },
+      {
+        "name": "ephemeral",
+        "capabilities": [
+          "lua"
+        ],
+        "service_container": {
+          "service_name": "redis",
+          "image": "redis:7-alpine",
+          "ports": [
+            "6379:6379"
+          ]
+        }
+      }
+    ]
+  }
+}

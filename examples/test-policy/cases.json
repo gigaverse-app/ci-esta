@@ -1,0 +1,44 @@
+[
+  {
+    "name": "impact does not grant provider-spend permission",
+    "request": {
+      "profile": "pr",
+      "occasion": "pr",
+      "affected": [
+        "unit",
+        "provider-eval"
+      ]
+    },
+    "expected": [
+      "unit"
+    ]
+  },
+  {
+    "name": "weekly checkpoint excludes visible effects",
+    "request": {
+      "profile": "weekly",
+      "occasion": "schedule",
+      "affected": []
+    },
+    "expected": [
+      "unit",
+      "conformance",
+      "provider-eval"
+    ],
+    "fresh": true
+  },
+  {
+    "name": "explicit visible probe",
+    "request": {
+      "profile": "probe",
+      "occasion": "manual",
+      "requested": [
+        "publish-smoke"
+      ]
+    },
+    "expected": [
+      "publish-smoke"
+    ],
+    "fresh": true
+  }
+]

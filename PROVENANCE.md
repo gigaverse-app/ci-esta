@@ -62,3 +62,7 @@ The complete-toolkit extraction uses backend-common revision `b6a2de0f58f18b78e5
 Distributed shard range execution and completion verification are additionally preserved from backend-common PR268, source revision `0f050d9`. The migration inventory records the full source revision; Apache-2.0 ownership and notices are retained.
 
 Resource observation and pytest watchdog behavior were extracted from gigaverse-backend at 33648b198dc880339f0bf3c8c9f5e60042146b14 (deployment/scripts/ci/run_with_ci_test_observability.sh and conftest.py). Application executor cleanup remains in the consumer. Extraction adds signal-group cleanup and late-session exit-status regressions. The distributed pool recipe preserves gigaverse-ai's two-shards-per-runner policy while consolidating its range arithmetic.
+
+## Test execution policy extraction
+
+Resource models, ordered provider resolution and boolean marker filtering originate in gigaverse-ai at `d9814b9a3` (`tests/support/resources.py` and `.github/scripts/test-lanes/select-expensive-tests.py`). The occasion policy generalizes Due whole-suite conformance (`262a6d3`), backend operational/provenance boundaries (`262e5ce36`) and web budget/freshness/serialization behavior (`5efbceea3`). See [the source map and design](docs/test-execution-policy.md). Project credentials, registrations and provisioning are not extracted.

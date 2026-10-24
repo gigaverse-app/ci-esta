@@ -75,3 +75,7 @@ a stable `history-key`. See the [executable retention tutorial](learned-test-tim
 Reusable workflows are a different interface: GitHub requires them to live under
 `.github/workflows/` and callers use `jobs.<job>.uses`. Actions use
 `jobs.<job>.steps[].uses`.
+
+## Test execution policy
+
+`plan-test-policy` admits work after impact selection; `check-test-policy` tests project routing contracts against the installed CLI; `test-budget` computes a remaining runtime limit after setup. See [the complete schemas, action map and examples](test-execution-policy.md).
