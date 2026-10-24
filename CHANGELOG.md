@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/gigaverse-app/ci-esta/compare/v1.5.0...v1.5.1) (2026-10-24)
+
+
+### Bug fixes
+
+* **ci:** unblock secure consumers and deduplicate receipt reads ([#106](https://github.com/gigaverse-app/ci-esta/issues/106)) ([1edd5a9](https://github.com/gigaverse-app/ci-esta/commit/1edd5a96fbb7163e5922249bbd326e67ca2096dd))
+
 ## [1.5.0](https://github.com/gigaverse-app/ci-esta/compare/v1.4.2...v1.5.0) (2026-10-24)
 
 
