@@ -10,7 +10,7 @@ def builtin_profiles() -> dict[str, Profile]:
     # No default grants side effects. Expensive work can be affected without being
     # permitted; manual-only work additionally requires an explicit probe.
     affected = Profile(occasions={"pr", "push", "manual"}, exclude={"expensive", "manual"})
-    affected_deep = Profile(occasions={"pr", "push", "manual"}, exclude={"manual"}, fresh=True)
+    affected_deep = Profile(occasions={"pr", "push", "manual", "schedule"}, exclude={"manual"}, fresh=True)
     full = Profile(occasions={"pr", "manual", "schedule"}, exclude={"manual"}, scope="all", fresh=True)
     return {
         "affected": affected,
