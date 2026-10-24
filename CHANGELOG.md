@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.0](https://github.com/gigaverse-app/ci-esta/compare/v1.5.1...v1.6.0) (2026-10-24)
+
+
+### Features
+
+* **cache:** report Bun setup and runner identity ([#108](https://github.com/gigaverse-app/ci-esta/issues/108)) ([29fd9b9](https://github.com/gigaverse-app/ci-esta/commit/29fd9b907a81064b9986cc92a0b59de08857ac91))
+* **ci:** report bun capacity and require validated selection bases ([#110](https://github.com/gigaverse-app/ci-esta/issues/110)) ([aa9a171](https://github.com/gigaverse-app/ci-esta/commit/aa9a1711e9a58f49203016b1a05ddc0c8527fd37))
+
 ## [1.5.1](https://github.com/gigaverse-app/ci-esta/compare/v1.5.0...v1.5.1) (2026-10-24)
 
 
