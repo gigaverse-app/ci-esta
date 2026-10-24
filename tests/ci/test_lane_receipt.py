@@ -72,6 +72,7 @@ def action_receipt(
     repository: "Repository | None" = None,
     *,
     token: str = "",
+    reject_duplicate_reads: bool = False,
     inventory_paths: tuple[str, ...] = (),
     lane_input_paths: tuple[str, ...] = (),
 ) -> tuple[str, list[str]]:
@@ -94,19 +95,27 @@ core.setOutput('receipt', validationReceipt(process.env.GITHUB_ACTION_PATH, iden
 const input = JSON.parse(process.env.RECEIPT_TEST);
 const { strictGithub } = require(process.env.GITHUB_REST_FAKE);
 const outputs = {}, warnings = [];
+const reads = new Set();
+const read = (key) => {
+  if (input.rejectDuplicateReads && reads.has(key)) throw new Error(`duplicate immutable read: ${key}`);
+  reads.add(key);
+};
 const commits = { ...input.heads, ...input.merges };
 const github = strictGithub({ git: {
   getCommit: async ({ commit_sha }) => {
+    read(`consumer:commit:${commit_sha}`);
     const commit = commits[commit_sha];
     if (!commit) throw new Error(`no commit ${commit_sha}`);
     return { data: commit };
   },
   getTree: async ({ tree_sha }) => {
+    read(`consumer:tree:${tree_sha}`);
     const tree = input.trees[tree_sha];
     if (!tree) throw new Error(`no tree ${tree_sha}`);
     return { data: { sha: tree_sha, tree, truncated: false } };
   },
   getBlob: async ({ file_sha }) => {
+    read(`consumer:blob:${file_sha}`);
     const text = input.blobs[file_sha];
     if (text === undefined) throw new Error(`no blob ${file_sha}`);
     return { data: { content: Buffer.from(text).toString("base64"), encoding: "base64" } };
@@ -115,6 +124,7 @@ const github = strictGithub({ git: {
 const getOctokit = (token) => {
   if (token !== "dependency-token") throw new Error("wrong token");
   return strictGithub({ git: { getCommit: async ({ owner, repo, commit_sha }) => {
+    read(`shared:commit:${commit_sha}`);
     const tree = owner === "gigaverse-app" && repo === "backend-common" && input.shared[commit_sha];
     if (!tree) throw new Error(`no shared commit ${commit_sha}`);
     return { data: { tree: { sha: tree } } };
@@ -144,6 +154,7 @@ new AsyncFunction("github", "context", "core", "require", "process", "getOctokit
                     "blobs": served.blobs,
                     "shared": served.shared,
                     "runId": next(RUN_IDS),
+                    "rejectDuplicateReads": reject_duplicate_reads,
                 }
             ),
             "GITHUB_REST_FAKE": str(STRICT_FAKE),
@@ -361,3 +372,15 @@ def test_inventory_recipe_changes_invalidate_evidence(change: str) -> None:
         action_receipt(merges, MERGE, repository, inventory_paths=paths)[0]
         != action_receipt(merges, RECREATED_MERGE, repository, inventory_paths=paths)[0]
     )
+
+
+@pytest.mark.parametrize("inventory_paths", [(), ("uv.lock", "pyproject.toml")])
+def test_receipt_reads_each_immutable_git_object_only_once(inventory_paths: tuple[str, ...]) -> None:
+    repository, merges = retag()
+    expected, expected_warnings = action_receipt(merges, MERGE, repository, token="dependency-token", inventory_paths=inventory_paths)
+    actual, warnings = action_receipt(
+        merges, MERGE, repository, token="dependency-token", reject_duplicate_reads=True,
+        inventory_paths=inventory_paths,
+    )
+    assert warnings == expected_warnings
+    assert actual == expected
