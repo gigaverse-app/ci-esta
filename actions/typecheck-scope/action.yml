@@ -65,6 +65,13 @@ runs:
             core.warning(`Could not read checks on ${process.env.CLEAN_BASE} (${error.message}); running the full check.`);
           }
           core.setOutput('proven', proven ? 'true' : 'false');
+    - name: Install the isolated scope toolchain
+      if: steps.base.outputs.proven == 'true'
+      # Failure must preserve scope.sh's full-check fallback, never skip checking.
+      continue-on-error: true
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
     - name: Compute the scope
       id: scope
       shell: bash
