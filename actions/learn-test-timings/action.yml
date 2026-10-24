@@ -51,7 +51,7 @@ runs:
         INPUT_HISTORY_BRANCH: ${{ inputs.history-branch }}
         INPUT_HISTORY_MAX_DOWNLOADS: ${{ inputs.history-max-downloads }}
         GH_TOKEN: ${{ inputs.github-token }}
-      run: uv run --no-project --python 3.14 --with "$SHARED_ACTION_PATH/../.." python -m ci_esta.testing.timing_feedback
+      run: bash "$SHARED_ACTION_PATH/../../scripts/ci/timing-runtime.sh" ci_esta.testing.timing_feedback
     - name: Publish independent timing checkpoint
       if: steps.learn.outputs.publish == 'true'
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

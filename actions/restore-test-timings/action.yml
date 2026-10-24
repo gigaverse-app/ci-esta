@@ -35,4 +35,4 @@ runs:
         INPUT_HISTORY_MAX_DOWNLOADS: ${{ inputs.history-max-downloads }}
         INPUT_HISTORY_STRICT: ${{ inputs.strict }}
         GH_TOKEN: ${{ inputs.github-token }}
-      run: uv run --no-project --python 3.14 --with "$SHARED_ACTION_PATH/../.." python -m ci_esta.testing.timing_artifacts
+      run: bash "$SHARED_ACTION_PATH/../../scripts/ci/timing-runtime.sh" ci_esta.testing.timing_artifacts
