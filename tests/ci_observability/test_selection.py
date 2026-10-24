@@ -108,6 +108,41 @@ def test_expanders_stay_closed_even_when_worth_opening() -> None:
     assert markdown.count("<details>") == len(summaries(markdown)) + 1
 
 
+@pytest.mark.parametrize(
+    "reason",
+    [
+        "full suite requested by test:full label",
+        "full suite explicitly requested (--full true)",
+        "full suite fallback: pull request event metadata unavailable or invalid",
+    ],
+)
+def test_full_selection_displays_the_recorded_reason_before_graph_details(reason: str) -> None:
+    text = render(
+        explanation(
+            selected=TOTAL_FILES,
+            forced_full=True,
+            selection_reasons=[reason],
+            routes=[SelectionRoute(kind="unreached", tests=TOTAL_FILES)],
+        )
+    )
+    assert f"Selection reason: {reason}." in text
+    assert text.index(reason) < text.index("Graph:")
+    assert "Selected by the full-suite request or fallback" in text
+    assert "always-run, full-suite requests, shard padding" not in text
+
+
+def test_old_full_artifact_does_not_invent_a_trigger() -> None:
+    text = render(explanation(selected=TOTAL_FILES, forced_full=True))
+    assert "Full suite requested; the producer did not record the trigger." in text
+    assert "rerun policy" not in text
+
+
+def test_selection_reason_cannot_inject_report_markup() -> None:
+    text = render(explanation(selection_reasons=["global input: <script>alert(1)</script>\n| surprise |"]))
+    assert "<script>" not in text
+    assert "&lt;script&gt;" in text
+
+
 def test_a_full_suite_saves_nothing_and_blames_the_startup_floor() -> None:
     markdown = render(
         explanation(

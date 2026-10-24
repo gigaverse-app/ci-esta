@@ -17,7 +17,7 @@ inputs:
     description: Space-separated complete test roots used if planning cannot prove a narrower scope.
     required: true
   full:
-    description: 'auto selects on PRs/pushes and runs full on reruns, manual/scheduled/release events or test:full. Override with true or false.'
+    description: 'auto preserves selection on PR/push reruns and runs full for manual/scheduled/release checkpoints or test:full. Override with true or false.'
     default: auto
   extra-files:
     description: Optional newline file containing prior failure canaries or additional changed paths.
@@ -105,4 +105,5 @@ runs:
       shard-seconds: ${{ inputs.shard-seconds }}
       dependency-token: ${{ inputs.dependency-token }}
       explanation-artifact: ${{ inputs.explanation-artifact }}
+      explanation-format: '2'
       graph-base: ${{ inputs.graph-base }}

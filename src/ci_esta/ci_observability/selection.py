@@ -204,11 +204,13 @@ ROUTE_LABELS = {
     "floor": "Through the startup floor (every test loads it)",
     "changed": "Test files this PR edits, or that failed before and are retried",
     "other": "All other routes",
-    "unreached": "Selected without depending on the change (always-run, full-suite requests, shard padding)",
+    "unreached": "Selected outside dependency routes; see the selection reason above",
 }
 
 
-def _route_label(route: SelectionRoute) -> str:
+def _route_label(route: SelectionRoute, *, forced_full: bool = False) -> str:
+    if route.kind == "unreached" and forced_full:
+        return "Selected by the full-suite request or fallback"
     if route.kind == "funnel" and route.via is not None:
         return ("↳ " if route.parent else "") + f"via {markdown.cell(markdown.code(route.via))}"
     return ROUTE_LABELS[route.kind]
@@ -290,7 +292,7 @@ def _why(explanation: SelectionExplanation) -> list[str]:
         "| How the selected tests reach your change | Test files | Share |",
         "|:--|--:|:--|",
         *(
-            f"| {_route_label(route)} | {_count(route.tests)} | {_bar(route.tests, explanation.selected)} |"
+            f"| {_route_label(route, forced_full=explanation.forced_full)} | {_count(route.tests)} | {_bar(route.tests, explanation.selected)} |"
             for route in explanation.routes
         ),
     ]
@@ -464,6 +466,9 @@ def _reference_note(section: SelectionSectionV1, repository: str | None) -> list
 def render_selection_section(section: SelectionSectionV1, repository: str | None = None) -> str:
     """The sticky's test-selection section, as GitHub-flavored Markdown; `repository` links runs."""
     explanation = section.explanation
+    reason = "; ".join(explanation.selection_reasons)
+    if not reason and explanation.forced_full:
+        reason = "Full suite requested; the producer did not record the trigger"
     summary = badges(section)[0].summary
     saved = _saved(_test_share(section))
     if saved is not None and not explanation.full_suite:
@@ -472,6 +477,7 @@ def render_selection_section(section: SelectionSectionV1, repository: str | None
     lines = [
         f"#### 🎯 Test selection · by [pytest-selective]({SELECTIVE_URL})",
         "",
+        *([f"Selection reason: {markdown.inline(reason)}.", ""] if reason else []),
         f"Graph: **{graph}**. Selection counts describe the plan; shard measurements describe execution.",
         "",
         _takeaway(explanation),
@@ -485,4 +491,6 @@ def render_selection_section(section: SelectionSectionV1, repository: str | None
     note = "Plan before evidence reuse"
     if saved is not None and not explanation.full_suite:
         note += " · time compared with full-suite reference"
+    if reason:
+        note = f"{reason}. {note}"
     return markdown.report_section("Test selection", [summary], lines, note=note)

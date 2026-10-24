@@ -135,6 +135,12 @@ failed, cancelled or unexpectedly skipped work must not turn green. Preserve
 explicit reruns and scheduled/full validation. External services and changing
 state need their own policy; do not infer conformance from an unchanged Git tree.
 
+Keep selection and receipt reuse separate: an ordinary PR/push rerun executes
+its selected scope without reusing a completion receipt. It does not request the
+full suite. Retain manual/scheduled/release checkpoints and explicit full inputs;
+`test:full` must be present in the saved triggering event. Show the planner's
+recorded reason in the sticky rather than inferring it from the attempt number.
+
 Verify eligible reuse plus changed-input, missing-proof and explicit-rerun
 execution controls. If that evidence cannot be collected within the task, ship
 useful reporting/routing improvements and leave reuse disabled with the reason.

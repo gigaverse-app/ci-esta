@@ -145,7 +145,7 @@ def _reference_note(section: LaneSelectionSectionV1, repository: str | None) -> 
     jobs = len(reference.jobs)
     return [
         f"<sub>Skipped is the runner time the skipped jobs took on the last green "
-        f"{markdown.code(reference.head_branch)} push, which runs every lane ({run}, "
+        f"{markdown.code(reference.head_branch)} push with matching job timings ({run}, "
         f"{jobs} job{'s' if jobs != 1 else ''}). An estimate, not billed minutes.</sub>",
     ]
 
