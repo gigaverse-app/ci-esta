@@ -17,6 +17,7 @@ parentheses, and ``contains(seq, item)``. Missing context paths resolve to
 
 from __future__ import annotations
 
+import json
 import re
 from typing import Any
 
@@ -137,6 +138,11 @@ class _Parser:
                 return True
             if text == "false":
                 return False
+            if text in {"toJSON", "fromJSON"} and self.peek()[1] == "(":
+                self.expect("(")
+                value = self.parse_or()
+                self.expect(")")
+                return json.dumps(value) if text == "toJSON" else json.loads(value)
             if text == "contains" and self.peek()[1] == "(":
                 self.expect("(")
                 seq = self.parse_or()

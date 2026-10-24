@@ -9,7 +9,7 @@ inputs:
     default: ''
   labels:
     description: Trusted PR label names; full or affected-deep labels select the corresponding profile.
-    default: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+    default: ${{ toJSON(github.event.pull_request.labels.*.name || fromJSON('[]')) }}
   occasion:
     description: Normalized occasion or GitHub event name; inferred from this workflow by default.
     default: ${{ github.event_name }}

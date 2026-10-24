@@ -507,6 +507,47 @@ Consumer Actions use the supported `@v1` major tag. Python package dependencies 
 
 ## Validation and limits
 
+Consumers can test their actual workflow inputs without maintaining JSON case files:
+
+```python
+from pathlib import Path
+from ci_esta.testing.test_policy import plan_workflow
+
+result = plan_workflow(Path(".github/workflows/ci.yml"), "select-tests", {
+    "github": {"event_name": "pull_request", "sha": "abc", "event": {
+        "pull_request": {"labels": [{"name": "test:affected-deep"}]},
+    }},
+    "inputs": {},
+    "steps": {"select": {"outputs": {"lanes": '{"unit":true,"browser":false}'}}},
+})
+assert {item.work.id for item in result.runnable} == {"unit"}
+```
+
+The helper renders the checked-in workflow and shipped action defaults, including
+labels, then calls the production CLI. Unsupported expressions fail the test.
+Expected IDs stay explicit. Event payloads and upstream selector outputs are the
+boundaries supplied by the test.
+
+### Deciding which tests are expensive
+
+Use 30 seconds as an audit threshold, not an automatic admission rule. Record the
+run, attempt and revision, exclude skipped cases, and distinguish individual test
+times from file totals, suite totals and service startup. Compare another run
+before classifying an apparent outlier. JUnit time may include fixture setup and
+teardown, depending on the runner's configuration.
+
+Good candidates include intentional real-time recovery waits, repeated load or
+profiling samples, paid provider calls, and suites that need costly services.
+Bundled scenarios should be split when that preserves a useful quick regression
+test. A slow fixture or unexpected retry is a repair candidate. Keep essential
+correctness gates ordinary when their value warrants the cost; BE explicitly
+keeps migrations and OpenAPI ordinary while deferring real OpenSearch.
+
+Classification belongs beside existing test or lane metadata. It should not be
+inferred afresh from one noisy timing observation on every PR. Resource requests
+remain executor capacity; requesting more memory does not itself make a test
+expensive.
+
 Tests exercise the public CLI, the actual composite-action shell, admission and effect boundaries, unknown versus empty scope, explicit requests, deployment identity, budget exhaustion, resource capabilities/pins/collisions, generated schemas, and representative routing examples inside CI-esta. AI additionally runs its existing provider/placement tests and new actual-selector profile cases. Existing repository tests continue to exercise native impact selection and gates.
 
 CI-esta's Python 3.11/3.14 suites and installed-wheel smoke protect portability. The public-action smoke must exercise the new action from the PR checkout. Retained consumer mechanism tests use the installed shared implementation. No consumer is required to maintain JSON routing fixtures. No live operational probe needs to be dispatched merely to prove routing.
