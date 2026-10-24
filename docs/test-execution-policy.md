@@ -47,7 +47,7 @@ Work IDs also match includes/excludes, so `smoke` does not need a duplicate tag.
 ```yaml
 # Zero policy file. Existing default-branch/manual routing can choose legacy
 # explicitly during migration; new adopters start with ci.
-- uses: gigaverse-app/ci-esta/actions/plan-test-policy@<reviewed-commit>
+- uses: gigaverse-app/ci-esta/actions/plan-test-policy@v1
   with:
     work: '["unit", {"id":"benchmark", "tags":["expensive", "performance"]}]'
     affected: ${{ steps.select.outputs.lanes }}
@@ -246,7 +246,7 @@ Due removes both inline JavaScript steps, `scope` and `matrix`. The existing
 
 ```yaml
 - id: evidence
-  uses: gigaverse-app/ci-esta/actions/resolve-lane-evidence@<reviewed-commit>
+  uses: gigaverse-app/ci-esta/actions/resolve-lane-evidence@v1
   with:
     lanes: '{"locked":"Execute tests (locked)","minimum":"Execute tests (minimum)"}'
     selection-keys: '["library","integration"]'
@@ -285,7 +285,7 @@ can expose `{"sha":"<40 hex characters>"}` and use the JSON default.
 
 ```yaml
 - id: deployed
-  uses: gigaverse-app/ci-esta/actions/observe-deployment@<reviewed-commit>
+  uses: gigaverse-app/ci-esta/actions/observe-deployment@v1
   with:
     url: ${{ vars.APP_URL }}
     revision-source: pattern
@@ -422,7 +422,7 @@ GitHub integration passes the existing selector's output directly:
 
 ```yaml
 - id: policy
-  uses: gigaverse-app/ci-esta/actions/plan-test-policy@<reviewed-commit>
+  uses: gigaverse-app/ci-esta/actions/plan-test-policy@v1
   with:
     policy: .github/test-policy.json
     profile: ${{ inputs.profile || 'legacy' }}
@@ -492,7 +492,7 @@ Each consumer starts with a separate behavior-preserving extraction commit. A la
 
 Profiles do not automatically activate a new paid cron, enable disabled workflows or deploy anything. Existing schedules continue their existing work. A weekly profile can be dispatched immediately; changing an automatic schedule is a separately visible workflow edit. Labels are mapped where the consumer subscribes to label events; a label on its own does not make GitHub emit an event to an unsubscribed workflow.
 
-All new consumers pin this PR's exact commit for review. Before release adoption, update them to the reviewed release or immutable reviewed revision and rerun their routing tests. Merge order is CI-esta review, CI-esta merge/release, then consumer repins/merges. Rollback is the consumer adoption commit; no service or test data migration is involved.
+Consumer Actions use the supported `@v1` major tag. Python package dependencies and installed-package tests keep their own exact revisions until a reviewed package release is available. The new actions and evidence inputs must be published under `v1` before the affected consumer workflows can pass. Merge order is CI-esta review, CI-esta merge/release and `v1` publication, then consumer validation and merges. Rollback is the consumer adoption commit; no service or test data migration is involved.
 
 ## Alternatives and scope
 
