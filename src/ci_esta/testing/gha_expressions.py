@@ -28,6 +28,7 @@ _TOKEN = re.compile(
       \s+                         # whitespace (skipped)
     | (?P<str>'(?:[^']*)')        # 'single-quoted string'
     | (?P<op>==|!=|&&|\|\|)       # binary operators
+    | (?P<number>-?\d+(?:\.\d+)?) # decimal literals
     | (?P<punc>[(),])             # parens / comma
     | (?P<name>[A-Za-z_][\w.*\-]*)  # path / function / true / false
     """,
@@ -133,6 +134,8 @@ class _Parser:
             return val
         if kind == "str":
             return text[1:-1]
+        if kind == "number":
+            return float(text) if "." in text else int(text)
         if kind == "name":
             if text == "true":
                 return True
