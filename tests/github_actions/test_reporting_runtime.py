@@ -23,7 +23,7 @@ def test_reporting_and_timing_share_a_locked_isolated_environment(tmp_path):
     helper = ROOT / "scripts/ci/reporting-runtime.sh"
 
     def invoke(*args):
-        result = subprocess.run(["bash", str(helper), *args], cwd=consumer, env=env,
+        result = subprocess.run([shutil.which("bash"), helper.as_posix(), *args], cwd=consumer, env=env,
                                 capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
         return result.stdout.strip()
