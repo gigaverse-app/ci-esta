@@ -194,8 +194,8 @@ class TestActionMetadata:
         assert action["inputs"]["mode"]["required"] is True
         assert action["inputs"]["extension-output"]["default"] == "ci-observability-extension.json"
         assert action["inputs"]["signals-output"]["default"] == "ci-observability-signals.json"
-        assert "${{ github.action_path }}/../../src" in run_step["env"]["PYTHONPATH"]
-        assert "python3 -m ci_esta.ci_observability.enrichment" in run_step["run"]
+        assert run_step["env"]["SHARED_ACTION_PATH"] == "${{ github.action_path }}"
+        assert "reporting-runtime.sh\" ci_esta.ci_observability.enrichment" in run_step["run"]
         # Inputs reach the CLI through quoted env vars, never inline ${{ }}
         # interpolation into the shell script.
         assert "${{ inputs" not in run_step["run"]

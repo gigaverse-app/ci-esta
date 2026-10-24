@@ -48,6 +48,7 @@ include = ["actions", "src", "tests", "scripts", ".github", "docs", "examples", 
 "actions" = "ci_esta/_resources/actions"
 "scripts/ci" = "ci_esta/_resources/scripts/ci"
 "pyproject.toml" = "ci_esta/_resources/pyproject.toml"
+"uv.lock" = "ci_esta/_resources/uv.lock"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

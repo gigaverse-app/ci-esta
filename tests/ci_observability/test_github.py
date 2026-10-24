@@ -2,6 +2,7 @@ import base64
 import io
 import zipfile
 from datetime import datetime, timezone
+from threading import Barrier, Lock
 
 import httpx
 import pytest
@@ -41,6 +42,39 @@ WORKFLOW_ID = 30095599
 BRANCH = "agent/example"
 BEFORE_NOW = datetime(2026, 7, 23, 5, 59, 59, tzinfo=timezone.utc)
 AFTER_NOW = datetime(2026, 7, 23, 6, 0, 1, tzinfo=timezone.utc)
+
+
+def test_artifact_reads_overlap_but_keep_order_and_isolate_failed_downloads():
+    barrier = Barrier(4, timeout=5)
+    lock = Lock()
+    active = peak = 0
+
+    def respond(request):
+        nonlocal active, peak
+        identifier = int(request.url.path.split('/')[-2])
+        with lock:
+            active += 1
+            peak = max(peak, active)
+        barrier.wait()
+        with lock:
+            active -= 1
+        if identifier == 2:
+            return httpx.Response(404)
+        stream = io.BytesIO()
+        with zipfile.ZipFile(stream, 'w') as archive:
+            archive.writestr('evidence.json', str(identifier))
+        return httpx.Response(200, content=stream.getvalue())
+
+    client = GitHubActionsClient(REPOSITORY, TOKEN, API_URL, transport=httpx.MockTransport(respond))
+    try:
+        results = client.read_artifacts([1, 2, 3, 4])
+        assert results[0] == b'1'
+        assert isinstance(results[1], httpx.HTTPStatusError)
+        assert results[2:] == [b'3', b'4']
+        assert peak == 4
+        assert client.read_artifacts([]) == []
+    finally:
+        client.close()
 
 
 def test_exact_attempt_endpoints_preserve_historical_report_identity():

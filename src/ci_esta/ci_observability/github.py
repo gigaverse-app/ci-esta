@@ -6,10 +6,13 @@ from __future__ import annotations
 
 import base64
 import io
+import json
 import re
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from functools import cached_property
+from time import perf_counter
 
 import httpx
 import yaml
@@ -305,6 +308,24 @@ class GitHubActionsClient:
             if len(names) != 1:
                 raise ValueError(f"artifact {artifact_id} holds {len(names)} files, expected one")
             return archive.read(names[0])
+
+    def read_artifacts(self, artifact_ids: list[int]) -> list[bytes | Exception]:
+        """Bound concurrent downloads; preserve input order and each artifact's failure."""
+        if not artifact_ids:
+            return []
+
+        def read(identifier: int) -> bytes | Exception:
+            try:
+                return self.read_single_file_artifact(identifier)
+            except Exception as error:
+                return error
+
+        started = perf_counter()
+        with ThreadPoolExecutor(max_workers=min(4, len(artifact_ids))) as pool:
+            results = list(pool.map(read, artifact_ids))
+        print(json.dumps({"artifact_reads": len(results), "artifact_read_seconds": round(perf_counter() - started, 3),
+                          "artifact_read_failures": sum(isinstance(item, Exception) for item in results)}))
+        return results
 
     def _list_comments(self, pull_request_number: int) -> list[GitHubCommentV1]:
         comments: list[GitHubCommentV1] = []

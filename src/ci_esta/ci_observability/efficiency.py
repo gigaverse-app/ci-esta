@@ -36,13 +36,15 @@ def collect_measurements(client: GitHubActionsClient, run: GitHubRunV1, jobs: li
         artifacts = client.list_artifacts(None, run_id=run.id)
     except Exception as error:
         return [], [f"Execution measurements unavailable: {error}"]
-    for artifact in artifacts:
-        if not artifact.name.startswith(("ci-esta-reuse-", "ci-esta-shards-", "ci-esta-cache-", "ci-esta-image-")):
-            continue
+    artifacts = [artifact for artifact in artifacts
+                 if artifact.name.startswith(("ci-esta-reuse-", "ci-esta-shards-", "ci-esta-cache-", "ci-esta-image-"))]
+    for artifact, content in zip(artifacts, client.read_artifacts([item.id for item in artifacts]), strict=True):
         try:
             if not artifact.from_same_repository or artifact.workflow_run.id != run.id:
                 raise ValueError("measurement artifact is not from this repository run")
-            item = MEASUREMENT.validate_json(client.read_single_file_artifact(artifact.id))
+            if isinstance(content, Exception):
+                raise content
+            item = MEASUREMENT.validate_json(content)
             if (item.run_id, item.run_attempt, item.head_sha) != (run.id, run.run_attempt, run.head_sha):
                 # A run's artifact listing includes earlier attempts. They are not current evidence.
                 continue

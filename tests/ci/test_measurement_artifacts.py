@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from ci_esta.ci_observability.efficiency import MEASUREMENT, collect_measurements
+from ci_esta.ci_observability.github import GitHubActionsClient
 from ci_esta.ci_observability.models import GitHubRunV1
 from ci_esta.ci_observability.report import render_markdown
 from tests.ci_observability.builders import RECORDED_AT, artifact
@@ -39,7 +40,10 @@ def test_cache_producer_and_report_use_verified_artifact_outcomes(tmp_path, enab
     assert (measured.head_sha, measured.outcome, measured.sync_seconds) == ("a" * 40, expected, 1.25)
     upload = artifact(1, 431).model_copy(update={"name": outputs["measurement-name"]})
 
-    class API:
+    class API(GitHubActionsClient):
+        def __init__(self):
+            pass
+
         def list_artifacts(self, name, run_id):
             assert name is None and run_id == 431
             return [upload]

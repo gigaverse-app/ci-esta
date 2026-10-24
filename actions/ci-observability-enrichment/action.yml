@@ -98,15 +98,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Ensure enrichment runtime
+    - name: Install reporting toolchain
       continue-on-error: true
-      shell: bash
-      env:
-        SHARED_ACTION_PATH: ${{ github.action_path }}
-      run: |
-        python3 -c 'import pytest_selective, defusedxml, httpx; from pydantic import TypeAdapter' 2>/dev/null ||
-          python3 -m pip install --disable-pip-version-check \
-            'defusedxml==0.7.1' 'httpx==0.28.1' 'pydantic==2.12.4' "$(python3 "$SHARED_ACTION_PATH/../../scripts/ci/pytest_selective_requirement.py")"
+      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
 
     - name: Run enrichment subcommand
       shell: bash
@@ -130,7 +126,7 @@ runs:
         INPUT_EXPLANATION: ${{ inputs.explanation }}
         INPUT_FULL_SUITE_REFERENCE: ${{ inputs.full-suite-reference }}
         INPUT_SELECTION_OUTPUT: ${{ inputs.selection-output }}
-        PYTHONPATH: ${{ github.action_path }}/../../src
+        SHARED_ACTION_PATH: ${{ github.action_path }}
       # Inputs reach the CLI as quoted env vars, never inline expression
       # interpolation into the script. An empty build-ai shard count skips
       # the flag so the module records it as unavailable instead of failing
@@ -182,4 +178,4 @@ runs:
             exit 1
             ;;
         esac
-        python3 -m ci_esta.ci_observability.enrichment "${args[@]}"
+        bash "$SHARED_ACTION_PATH/../../scripts/ci/reporting-runtime.sh" ci_esta.ci_observability.enrichment "${args[@]}"
