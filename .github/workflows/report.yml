@@ -27,7 +27,7 @@ on:
         type: string
         default: '[]'
       runner-sku-rates-json:
-        description: Explicit runner-label rates for estimated cost; absent or unmatched rates remain unavailable.
+        description: Runner-label rate overrides; standard hosted labels use GitHub rates, custom labels need explicit rates.
         type: string
         default: '[]'
       pull-request-number:

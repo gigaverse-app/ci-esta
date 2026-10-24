@@ -112,14 +112,18 @@ gates and observation time before replacing a report.
 Python and Bun use the same headline fields, in the same order: readiness,
 selected, executed, reused, runner minutes, and estimated cost. Both lead with
 the same **Selection and execution** section; provider-specific explanations
-stay inside it. Missing evidence is explicitly `unavailable`, never omitted or
-converted to zero.
+stay inside it. Missing evidence is never converted to zero. Uninstrumented
+sharding sections are omitted, with collection instructions in the avoided-work
+section; missing headline evidence remains explicit.
 
 Python's `selected` count describes the plan before evidence reuse, not the
 files that actually ran. Bun's full/none modes establish selected-file counts
 (all files for full, always-run contracts for none);
 native scoped selection does not expose a separate plan inventory and remains
-unavailable. `executed` comes only from an observed file inventory. A failed
+unavailable. `executed` uses the observed file inventory when supplied, then
+measured shard processes, then started GitHub jobs in the current attempt.
+The unit is always shown. Jobs include setup, checks and reporting; neither
+job nor shard counts establish a test count or passing tests. A failed
 full run can select every file while executing only some. A reused plan without
 an execution inventory does not invent one. Multiple work inventories are not
 summed because they can overlap. Reuse retains its evidence's units (lanes or
@@ -133,10 +137,18 @@ code as direct action callers. Supply rates for the runner labels actually used:
 runner-sku-rates-json: '[{"sku":"actions_linux","runner_label":"ubuntu-latest","usd_per_minute":"0.006"}]'
 ```
 
-This example uses the [standard Linux list rate](https://docs.github.com/en/billing/reference/actions-runner-pricing).
-Maintain the rates for your account. Cost is a per-job rounded-minute estimate
-before allowances and discounts, not an invoice. Missing or unmatched rates
-keep the total unavailable; a partially priced run is not presented as fully priced.
+Explicit rates override the built-in standard-hosted
+[GitHub list rates](https://docs.github.com/en/billing/reference/actions-runner-pricing)
+(verified 2026-10-24). Recognized single-label standard runners are priced without
+configuration; known public repositories use their free standard-runner rate.
+When visibility is absent, the rate is explicitly a list-price estimate.
+Custom, larger and self-hosted runners require explicit label-to-rate mappings.
+Maintain those overrides for your account. Cost is a per-job rounded-minute
+estimate before allowances and discounts, not an invoice. Automatic SKU names
+record the source: `github_20261024_*` for list rates and `github_public_*` for
+free public standard runners. The existing JSON shape remains compatible with
+older v1 readers. Unmatched timed jobs withhold the total, while the known subtotal
+breakdown and count of unpriced runner minutes remain visible.
 
 Set `sticky-workflow` to the exact source workflow name that owns the PR comment.
 Other observed workflows still produce summaries and artifacts. Keep `sticky-key`
@@ -186,6 +198,7 @@ in the same avoided-work section.
 Artifacts are used because GitHub's jobs API omits the inner steps of composite
 actions. Cache measurement includes the duration of environment validation and
 locked sync; disabled and unavailable restores do not count as cache misses.
+Disabled caches are shown as disabled, and an absent cache record as not recorded.
 
 `ci-esta-pytest run-local` now writes `ci-esta-shards.json` in its log directory
 after all children exit, including on test failure. Publish it from each pool:
@@ -247,11 +260,11 @@ To post a sticky PR report, supply `pull-request-number`, set `post-sticky: 'tru
 | Runner seconds | Observed timed jobs across attempts, including retries |
 | Slowest step per job | Latest-attempt API step durations, with links to job logs; all steps remain in the JSON report |
 | Rounded runner minutes | Sum of per-job ceiling-rounded durations; an estimate, not a GitHub invoice |
-| Dollar estimate | Configured runner-label/SKU rates multiplied by rounded minutes; withheld when any timed job is unpriced |
+| Dollar estimate | Explicit runner rates or known standard hosted rates multiplied by rounded minutes; withheld when any timed job is unpriced |
 | Overlapping prior runs | Observed cost of prior PR runs that overlap the current run |
 | Test-selection savings | Optional comparison with comparable full-suite timing references; not a guaranteed counterfactual |
 
-Use `runner-sku-rates-json` only with rates you maintain. GitHub plans, included usage, discounts and billing policies are outside this report. Missing gate configuration or API data produces a partial/unavailable report rather than invented precision. Exact run IDs and SHAs belong in the JSON report, not Prometheus grouping labels.
+Use `runner-sku-rates-json` to override standard rates and price custom labels with rates you maintain. GitHub plans, included usage and discounts are outside this report. Missing gate configuration or API data produces a partial/unavailable report rather than invented precision. Exact run IDs and SHAs belong in the JSON report, not Prometheus grouping labels.
 
 Step timing distinguishes completed, accrued and unavailable measurements. Missing,
 skipped or reversed timestamps stay unavailable; a completed step with identical

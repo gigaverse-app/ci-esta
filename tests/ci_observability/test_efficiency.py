@@ -7,26 +7,9 @@ from pydantic import ValidationError
 
 from ci_esta.ci_observability.github import GitHubActionsClient
 from ci_esta.ci_observability.models import GitHubJobV1, GitHubRunV1
-from ci_esta.ci_observability.report import build_report, render_markdown
-from ci_esta.measurements import ShardInterval, ShardPoolMeasurement
-
-
-def pool(**changes):
-    return ShardPoolMeasurement.model_validate(dict(
-        run_id=431, run_attempt=2, head_sha="a" * 40, pool="tests:1-2", configured_shards=2, cpu_count=16,
-        shards=[dict(index=1, start_seconds=0, end_seconds=10, exit_code=0),
-                dict(index=2, start_seconds=0, end_seconds=5, exit_code=0)], **changes))
-
-
-def report():
-    now = datetime(2026, 10, 23, tzinfo=timezone.utc)
-    run = GitHubRunV1(id=431, run_attempt=2, head_sha="a" * 40, name="CI", status="completed",
-                     created_at=now, run_started_at=now)
-    job = GitHubJobV1(id=11, name="Tests", run_attempt=2, status="completed", conclusion="success",
-                     started_at=now, completed_at=now + timedelta(seconds=60))
-    return build_report(repository="org/repo", pull_request_number=1, run=run,
-                        latest_jobs=[job], billing_jobs=[job], commit_statuses=[], gate_selectors=[],
-                        observed_at=now + timedelta(seconds=60))
+from ci_esta.ci_observability.report import render_markdown
+from ci_esta.measurements import ShardInterval
+from tests.ci_observability.efficiency_builders import pool, report
 
 
 def test_observed_intervals_define_occupancy_and_all_the_detail_sections_survive():
@@ -95,7 +78,7 @@ def test_a_step_name_does_not_substitute_for_a_cache_measurement():
                           conclusion="success", timing_status="not_timed", wall_seconds=None)
     job = original.latest_attempt_jobs[0].model_copy(update={"steps": [step]})
     sticky = render_markdown(original.model_copy(update={"latest_attempt_jobs": [job]}))
-    assert "unavailable</strong> <sub>environment cache hits</sub>" in sticky
+    assert "not recorded</strong> <sub>environment caches</sub>" in sticky
     assert "Cache time saved is unavailable" in sticky
 
 
