@@ -17,6 +17,9 @@ class WorkExecutionV1(BaseModel):
     duration_seconds: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     tested_sha: str = Field(pattern=r"^[0-9a-f]{40}$")
     base_sha: str | None = Field(default=None, pattern=r"^[0-9a-f]{40}$")
+    cpu_count: int | None = Field(default=None, gt=0)
+    worker_limit: int | None = Field(default=None, gt=0)
+    runner_label: str | None = Field(default=None, min_length=1, max_length=128)
     runtime: str = Field(min_length=1, max_length=100)
 
     @model_validator(mode="after")

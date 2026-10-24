@@ -31,3 +31,11 @@ test("reuse describes prior proof and never executed tests", () => {
   assert.equal(result.decisions[0].execution.status, "not_run");
   assert.equal(result.decisions[0].execution.duration_seconds, null);
 });
+
+ test("runner capacity is measured separately from requested worker concurrency", () => {
+  const observed = workSelectionReport({...execution, cpuCount:16, workers:12, runnerLabel:"16vcpu-runner"}, context).decisions[0].execution;
+  assert.equal(observed.cpu_count, 16);
+  assert.equal(observed.worker_limit, 12);
+  assert.equal(observed.runner_label, "16vcpu-runner");
+  assert.equal(workSelectionReport(execution, context).decisions[0].execution.cpu_count, null);
+});
