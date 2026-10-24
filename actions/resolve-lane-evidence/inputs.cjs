@@ -8,9 +8,26 @@ const PIN_FILES = new Set(['uv.lock', 'pyproject.toml']);
 const PIN_METADATA = 'backend-common-bump.json';
 const SHA = /^[0-9a-f]{40}$/;
 
-async function readBlob(github, repo, sha) {
-  const { data } = await github.rest.git.getBlob({ ...repo, file_sha: sha });
-  return Buffer.from(data.content, data.encoding === 'base64' ? 'base64' : 'utf8').toString('utf8');
+// Git objects are immutable. Keep promises only for this repository/client and
+// this identity calculation, so concurrent readers share one request without
+// carrying evidence or authentication across invocations.
+function gitObjects(github, repo) {
+  const pending = new Map();
+  const read = (method, parameter, sha) => {
+    const key = `${method}:${sha}`;
+    if (!pending.has(key)) {
+      pending.set(key, github.rest.git[method]({ ...repo, [parameter]: sha }).then(({ data }) => data));
+    }
+    return pending.get(key);
+  };
+  return {
+    commit: (sha) => read('getCommit', 'commit_sha', sha),
+    tree: (sha) => read('getTree', 'tree_sha', sha),
+    blob: async (sha) => {
+      const data = await read('getBlob', 'file_sha', sha);
+      return Buffer.from(data.content, data.encoding === 'base64' ? 'base64' : 'utf8').toString('utf8');
+    },
+  };
 }
 
 // The one backend-common commit a consumer lock installs, or null when it pins none or several.
@@ -35,18 +52,17 @@ function digest(lines) {
 
 // A tree's content address with its pin files normalized: every other entry keeps its Git
 // object id, so any change outside the pin's spelling changes the result.
-async function normalizedTree(github, repo, treeSha, pin) {
+async function normalizedTree(objects, treeSha, pin) {
   const listing = async (sha, rewrite) => {
-    const { data } = await github.rest.git.getTree({ ...repo, tree_sha: sha });
+    const data = await objects.tree(sha);
     if (data.truncated) throw new Error(`tree ${sha} is truncated`);
-    const lines = [];
-    for (const entry of data.tree) {
-      lines.push(`${entry.mode} ${entry.type} ${await rewrite(entry)} ${entry.path}`);
-    }
+    // Promise.all preserves Git's listing order even when requests finish out of order.
+    const lines = await Promise.all(data.tree.map(async (entry) =>
+      `${entry.mode} ${entry.type} ${await rewrite(entry)} ${entry.path}`));
     return digest(lines);
   };
   const normalizedBlob = async (entry) =>
-    digest([normalizePin(await readBlob(github, repo, entry.sha), pin.commit, pin.tree)]);
+    digest([normalizePin(await objects.blob(entry.sha), pin.commit, pin.tree)]);
   return listing(treeSha, async (entry) => {
     if (entry.type === 'blob' && PIN_FILES.has(entry.path)) return normalizedBlob(entry);
     if (entry.type === 'tree' && entry.path === '.github') {
@@ -58,14 +74,12 @@ async function normalizedTree(github, repo, treeSha, pin) {
 }
 
 // The pin a tree's lock installs, resolved to backend-common's tree through the shared client.
-async function resolvePin(github, shared, repo, treeSha) {
-  const { data } = await github.rest.git.getTree({ ...repo, tree_sha: treeSha });
+async function resolvePin(objects, sharedObjects, treeSha) {
+  const data = await objects.tree(treeSha);
   const lock = data.tree.find((entry) => entry.path === 'uv.lock' && entry.type === 'blob');
-  const commit = lock && pinnedCommit(await readBlob(github, repo, lock.sha));
+  const commit = lock && pinnedCommit(await objects.blob(lock.sha));
   if (!commit) return null;
-  const { data: pinned } = await shared.rest.git.getCommit({
-    owner: 'gigaverse-app', repo: 'backend-common', commit_sha: commit,
-  });
+  const pinned = await sharedObjects.commit(commit);
   if (!SHA.test(pinned.tree?.sha || '')) throw new Error(`backend-common ${commit} has no tree`);
   return { commit, tree: pinned.tree.sha };
 }
@@ -76,21 +90,24 @@ async function resolvePin(github, shared, repo, treeSha) {
 // retag moves only the backend-common pin between commits of one tree (#217's PR217 -> v217);
 // neither changes a receipt. With `shared`, pins are spelled as the tree they install.
 async function testedIdentity(github, shared, repo, mergeSha, core) {
-  const { data: merge } = await github.rest.git.getCommit({ ...repo, commit_sha: mergeSha });
+  const objects = gitObjects(github, repo);
+  const merge = await objects.commit(mergeSha);
   if (merge.parents?.length !== 2 || !merge.tree?.sha) throw new Error('Expected a two-parent PR merge');
   const [base, head] = merge.parents.map((parent) => parent.sha);
-  const { data: headCommit } = await github.rest.git.getCommit({ ...repo, commit_sha: head });
+  const headCommit = await objects.commit(head);
   const exact = `tree ${merge.tree.sha} base ${base} head-tree ${headCommit.tree.sha}`;
   if (!shared) {
     core.warning('No dependency token: backend-common pins are compared exactly, so a retag re-runs every lane.');
     return exact;
   }
   try {
-    const identity = [];
-    for (const [role, treeSha] of [['tree', merge.tree.sha], ['head-tree', headCommit.tree.sha]]) {
-      const pin = await resolvePin(github, shared, repo, treeSha);
-      identity.push(`${role} ${pin ? `pin-normalized ${await normalizedTree(github, repo, treeSha, pin)}` : treeSha}`);
-    }
+    const sharedObjects = gitObjects(shared, { owner: 'gigaverse-app', repo: 'backend-common' });
+    const identity = await Promise.all(
+      [['tree', merge.tree.sha], ['head-tree', headCommit.tree.sha]].map(async ([role, treeSha]) => {
+        const pin = await resolvePin(objects, sharedObjects, treeSha);
+        return `${role} ${pin ? `pin-normalized ${await normalizedTree(objects, treeSha, pin)}` : treeSha}`;
+      }),
+    );
     return `${identity[0]} base ${base} ${identity[1]}`;
   } catch (error) {
     core.warning(`Could not normalize backend-common pins (${error.message}); pins are compared exactly.`);
@@ -104,18 +121,19 @@ async function inventoryIdentity(github, shared, repo, ref, paths) {
   if (!Array.isArray(paths) || !paths.length || paths.some((p) => typeof p !== 'string' || /[\\*?]/.test(p) || p.replace(/\/$/, '').split('/').some((part) => ['', '.', '..'].includes(part)))) {
     throw new Error('Inventory inputs must be nonempty repository-relative file or directory paths');
   }
-  const { data: commit } = await github.rest.git.getCommit({ ...repo, commit_sha: ref });
+  const objects = gitObjects(github, repo);
+  const commit = await objects.commit(ref);
   const treeSha = commit.tree.sha;
   const cache = new Map();
   const listing = async (sha) => {
     if (!cache.has(sha)) {
-      const { data } = await github.rest.git.getTree({ ...repo, tree_sha: sha });
+      const data = await objects.tree(sha);
       if (data.truncated) throw new Error(`tree ${sha} is truncated`);
       cache.set(sha, data.tree);
     }
     return cache.get(sha);
   };
-  const pin = shared ? await resolvePin(github, shared, repo, treeSha) : null;
+  const pin = shared ? await resolvePin(objects, gitObjects(shared, { owner: 'gigaverse-app', repo: 'backend-common' }), treeSha) : null;
   const lines = [];
   for (const input of [...new Set(paths.map((p) => p.replace(/\/$/, '')))].sort()) {
     let tree = treeSha;
@@ -128,7 +146,7 @@ async function inventoryIdentity(github, shared, repo, ref, paths) {
     }
     let value = entry?.sha || 'missing';
     if (pin && entry?.type === 'blob' && PIN_FILES.has(input)) {
-      value = digest([normalizePin(await readBlob(github, repo, entry.sha), pin.commit, pin.tree)]);
+      value = digest([normalizePin(await objects.blob(entry.sha), pin.commit, pin.tree)]);
     }
     lines.push(`${input} ${entry?.mode || '-'} ${value}`);
   }
