@@ -1,0 +1,55 @@
+name: Resolve scheduled validation base
+description: Find an executed successful scheduled ancestor for affected selection, or request a full fallback.
+inputs:
+  head-sha:
+    description: Immutable revision being tested.
+    default: ${{ github.sha }}
+  branch:
+    description: Branch whose scheduled validation history is authoritative.
+    default: ${{ github.ref_name }}
+  evidence-job-name:
+    description: Exact successful aggregate job name after all required test jobs.
+    required: true
+  evidence-step-name:
+    description: Exact successful step emitted only after actual complete execution, versioned when its contract changes.
+    required: true
+  max-age-hours:
+    description: Maximum age since the source run was created; stale history requests full execution.
+    default: '168'
+  github-token:
+    description: Token with actions:read and contents:read.
+    default: ${{ github.token }}
+outputs:
+  base-sha:
+    description: Proven ancestor, or empty when the selector must run all eligible work.
+    value: ${{ steps.resolve.outputs.base-sha }}
+  run-id:
+    description: Source scheduled run, or empty on fallback.
+    value: ${{ steps.resolve.outputs.run-id }}
+  reason:
+    description: Why a baseline was accepted or full execution requested.
+    value: ${{ steps.resolve.outputs.reason }}
+runs:
+  using: composite
+  steps:
+    - id: resolve
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+      env:
+        HEAD_SHA: ${{ inputs.head-sha }}
+        BRANCH: ${{ inputs.branch }}
+        EVIDENCE_JOB: ${{ inputs.evidence-job-name }}
+        EVIDENCE_STEP: ${{ inputs.evidence-step-name }}
+        MAX_AGE_HOURS: ${{ inputs.max-age-hours }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const { resolveScheduledBase } = require(`${process.env.GITHUB_ACTION_PATH}/resolve.cjs`);
+          const result = await resolveScheduledBase({
+            github, context, core,
+            headSha: process.env.HEAD_SHA, branch: process.env.BRANCH,
+            evidenceJob: process.env.EVIDENCE_JOB, evidenceStep: process.env.EVIDENCE_STEP,
+            maxAgeHours: Number(process.env.MAX_AGE_HOURS),
+          });
+          core.setOutput('base-sha', result.baseSha);
+          core.setOutput('run-id', result.runId);
+          core.setOutput('reason', result.reason);

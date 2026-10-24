@@ -22,6 +22,7 @@ Each piece is matched to the shape of the shared work:
 | `collect-ci-changes` | composite action | workflow/action/shell change classification |
 | `current-pr-head` | composite action | live stale-rerun admission |
 | `resolve-security-trigger` | composite action | every security workflow, both repos |
+| [`resolve-scheduled-base`](../docs/test-execution-policy.md#daily-affected-validation) | composite action | daily affected selection from executed scheduled ancestors; full fallback on uncertainty |
 | `resolve-incremental-pr-base` | composite action | automatic security and CI-code PR validation |
 | `trivy-scan-image` | composite action | each repo's Trivy workflow |
 | `backend-common/reusable-semgrep.yaml` | reusable workflow | each repo's Semgrep stub |
