@@ -177,10 +177,6 @@ runs:
           } catch (error) {
             core.warning(`Reuse measurements unavailable: ${error.message}`);
           }
-    - name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
-      if: github.event_name == 'pull_request'
-      shell: bash
-      run: 'true'
     - name: Publish reuse measurements
       if: steps.resolve.outputs.measurement-path != ''
       continue-on-error: true

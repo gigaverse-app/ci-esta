@@ -55,6 +55,9 @@ jobs:
         id: selection
         with:
           config: .github/test-lanes.json
+      - name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
+        if: github.event_name == 'pull_request'
+        run: 'true'
       - uses: ./actions/resolve-lane-evidence
         id: evidence
         if: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(github.event.pull_request.labels.*.name, 'test:full') }}

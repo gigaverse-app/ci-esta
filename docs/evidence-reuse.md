@@ -102,3 +102,16 @@ booleans and keep package build, version metadata, wheel and source-distribution
 installation checks mandatory. CI-esta's publishing workflow retains full
 exact-tag validation. Publishing, schedules and manual full checkpoints do not
 consume this evidence.
+
+GitHub can omit a merged PR from workflow-run metadata. To preserve ownership
+proof in that case, add this top-level workflow step to the planning job (nested
+composite steps are not exposed by the jobs API):
+
+```yaml
+- name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
+  if: github.event_name == 'pull_request'
+  run: 'true'
+```
+
+This marker proves association only; the executed lane still needs its own
+successful completion receipt.
