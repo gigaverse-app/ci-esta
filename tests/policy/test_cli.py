@@ -71,6 +71,7 @@ def test_actual_action_shell_calls_shipped_planner(tmp_path, use_defaults):
         "WORK": '["python", "browser"]' if use_defaults else "",
         "LANES": "",
         "PROFILE": "legacy",
+        "LABELS": "[]",
         "OCCASION": "pr",
         "REVISION": "abc",
         "AFFECTED": '{"python": false, "browser": true}',

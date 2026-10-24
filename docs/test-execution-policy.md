@@ -1,6 +1,6 @@
 # Test execution policy: impact, occasions, resources and evidence
 
-Status: proposed public API in CI-esta PR #98. **Do not merge until Aviad has reviewed this design.** Consumer PRs pin an immutable commit from this PR and remain open during review.
+The initial extraction landed in PR #98. Consumer Actions use `@v1`; Python dependencies keep their own lockfile pins. The affected-profile follow-up changes ordinary PR defaults as described below.
 
 ## Problem and decision
 
@@ -24,14 +24,14 @@ The source map is about behavior, not exporting every source file. A repository-
 
 ## Opinionated defaults, with exceptions
 
-A new adopter needs work IDs, not a copied profile catalog. The Actions default to
-`ci`; a policy file is optional. CI-esta owns the versioned `v1` profile set:
+A new adopter needs work IDs, not a copied profile catalog. Without an explicit profile, Actions choose `affected` for ordinary runs, `weekly` for schedules, and `affected_deep` or `full` for trusted PR labels. A policy file is optional. CI-esta owns the versioned `v1` profile set:
 
 | Profile | Default scope and eligibility | Occasions |
 |---|---|---|
-| `ci` | Affected work; excludes `expensive` and `manual` tags | PR, push |
+| `affected` | Affected work; excludes `expensive` and `manual` tags | PR, push, manual |
+| `affected_deep` | Affected work including expensive; excludes manual; fresh | PR, push, manual |
 | `thorough` | All ordinary work; excludes `expensive` and `manual`; fresh | Manual, schedule |
-| `full`, `deep`, `exhaustive` | Same full checkpoint; includes expensive, excludes manual; fresh | PR, manual, schedule |
+| `full`, `exhaustive` | Same full checkpoint; includes expensive, excludes manual; fresh | PR, manual, schedule |
 | `weekly` | Full checkpoint; includes expensive, excludes manual; fresh | Schedule, manual |
 | `smoke` | Work ID or tag `smoke`; excludes manual; fresh | Push, manual, deployment |
 | `performance` | Work ID or tag `performance`; excludes manual; fresh | Manual, schedule |
@@ -46,7 +46,7 @@ Work IDs also match includes/excludes, so `smoke` does not need a duplicate tag.
 
 ```yaml
 # Zero policy file. Existing default-branch/manual routing can choose legacy
-# explicitly during migration; new adopters start with ci.
+# explicitly during migration; new adopters start with affected.
 - uses: gigaverse-app/ci-esta/actions/plan-test-policy@v1
   with:
     work: '["unit", {"id":"benchmark", "tags":["expensive", "performance"]}]'
@@ -85,15 +85,18 @@ there is no second runtime merge. `defaults: none` disables the catalog entirely
 The pin selects the implementation; `defaults: v1` identifies the behavior family.
 Changing its defaults requires parity tests and visible release notes.
 
-The four migrations keep their existing workflow input default `legacy`. This
-preserves current execution while offering the common defaults for new setups.
-BE deletes its ordinary policy file; web deletes its mock policy file. Due keeps
-one benchmark classification and a PR-occasion exception for `thorough`. AI keeps
-its affected-only `deep` exception, effect grants and exceptional lane metadata.
-Backend operational and web live policies keep their real environment/effect
-exceptions. Consumers do not need JSON routing fixtures or a separate policy-check
-workflow. CI-esta tests its shared defaults; the existing consumer test suites
-continue to cover their selectors, resources and extracted CI mechanisms.
+Ordinary consumer PRs use `affected`. The `test:affected-deep` label selects
+`affected_deep`; `test:full` selects a complete checkpoint and takes precedence
+if both labels exist. Explicit profile inputs take precedence over labels.
+`ci` and `deep` remain compatibility spellings for `affected` and `affected_deep`;
+`test:deep` remains a compatibility label. Unlike the initial extraction, `deep`
+no longer expands unchanged work. Use `full` or `weekly` for complete validation.
+
+AI permits paid effects only for affected-deep, full/weekly and explicit probe
+profiles. Backend marks real OpenSearch expensive; migrations and OpenAPI stay
+ordinary. Due marks widget comparison expensive. Web retains its live-environment
+exceptions separately from ordinary mock journeys. Work classification and effect
+grants remain project-owned. Consumers need no JSON routing fixtures.
 
 ## Before and after
 
@@ -485,9 +488,9 @@ Each consumer starts with a separate behavior-preserving extraction commit. A la
 
 | Repository | Preserved | New explicit paths |
 |---|---|---|
-| AI | No automatic PR provider spending; existing labels/commands, main merge lanes, exact pins, cheap probe | Deep affected lanes, full weekly checkpoint, smoke and explicit probe |
+| AI | No automatic PR provider spending; existing labels/commands, main merge lanes, exact pins, cheap probe | Affected cheap lanes, affected-deep expensive lanes, full weekly checkpoint, smoke and explicit probe |
 | Due | Current library/integration/type/contracts/wheel and widget selection, attached conformance validators, matrix and gates | Thorough conformance, exhaustive including comparisons, performance-only dispatch |
-| Backend | Unit artifact lifecycle, path-selected independent services, manual-only operational jobs and provenance | Deep unit/integration validation; named operational smoke/stress admission |
+| Backend | Unit artifact lifecycle, path-selected independent services, manual-only operational jobs and provenance | Affected-deep search; weekly complete validation; named operational smoke/stress admission |
 | Web | Native selectors, mock authorization, live concurrency, deployment observation, active/disabled workflow state | Complete mock journeys, manual live smoke/full routing and shared elapsed budget |
 
 Profiles do not automatically activate a new paid cron, enable disabled workflows or deploy anything. Existing schedules continue their existing work. A weekly profile can be dispatched immediately; changing an automatic schedule is a separately visible workflow edit. Labels are mapped where the consumer subscribes to label events; a label on its own does not make GitHub emit an event to an unsubscribed workflow.
