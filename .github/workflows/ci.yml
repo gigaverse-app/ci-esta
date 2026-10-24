@@ -40,6 +40,7 @@ jobs:
       receipt: ${{ steps.evidence.outputs.receipt }}
       reused: ${{ steps.evidence.outputs.reused }}
       lanes: ${{ steps.selection.outputs.lanes }}
+      release-only: ${{ steps.evidence.outputs.release-only }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -54,11 +55,16 @@ jobs:
         id: selection
         with:
           config: .github/test-lanes.json
+      - name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
+        if: github.event_name == 'pull_request'
+        run: 'true'
       - uses: ./actions/resolve-lane-evidence
         id: evidence
-        if: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'test:full') }}
+        if: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(github.event.pull_request.labels.*.name, 'test:full') }}
         with:
-          lanes: '{"tests":"Test suite","compat":"Python compatibility"}'
+          lanes: '{"tests":"Test suite","compat":"Python compatibility","quality":"quality"}'
+          reuse-after-merge: 'true'
+          reuse-version-only-release: 'true'
           # Complete test/build inputs; docs and the disposable live probe do not affect these jobs.
           input-paths: '["actions","action.yml","examples",".github","src","tests","scripts","pyproject.toml","uv.lock","importlinter.toml","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
       - name: Record admission
@@ -138,15 +144,15 @@ jobs:
         with:
           bun-version: '1.4.2'
       - name: Exercise native Bun selection and fallback controls
-        if: ${{ needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
-        run: node --test tests/github_actions/bun-selection.test.mjs tests/github_actions/bun-work-report.test.mjs tests/github_actions/deployment-observer.test.mjs
+        if: ${{ needs.plan.result != 'success' || (fromJSON(needs.plan.outputs.lanes).tests && !fromJSON(needs.plan.outputs.reused || '{}').quality) }}
+        run: node --test tests/github_actions/bun-selection.test.mjs tests/github_actions/bun-work-report.test.mjs tests/github_actions/deployment-observer.test.mjs tests/github_actions/merged-evidence.test.cjs
       - name: Exercise selected routing and gate contracts
-        if: ${{ needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
+        if: ${{ needs.plan.result != 'success' || (fromJSON(needs.plan.outputs.lanes).tests && !fromJSON(needs.plan.outputs.reused || '{}').quality) }}
         run: uv run pytest -q tests/ci/test_repository_routing.py tests/ci/test_validation_gate.py tests/testing/test_workflow_adoption.py
       - run: uv build
       - run: uvx --from twine==7.0.0 twine check --strict dist/*
       - name: Verify installed wheel
-        if: ${{ needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
+        if: ${{ needs.plan.outputs.release-only == 'true' || needs.plan.result != 'success' || (fromJSON(needs.plan.outputs.lanes).tests && !fromJSON(needs.plan.outputs.reused || '{}').quality) }}
         run: |
           uv venv "$RUNNER_TEMP/wheel-test" --python 3.11
           uv pip install --python "$RUNNER_TEMP/wheel-test/bin/python" dist/*.whl
@@ -157,7 +163,7 @@ jobs:
           CI_TEST_RESOURCE_OBSERVABILITY=true "$RUNNER_TEMP/wheel-test/bin/ci-esta-resources" \
             "$RUNNER_TEMP/wheel-test/bin/ci-esta-pytest" pools --shards 13 --shards-per-runner 12
       - name: Verify source distribution
-        if: ${{ needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
+        if: ${{ needs.plan.outputs.release-only == 'true' || needs.plan.result != 'success' || (fromJSON(needs.plan.outputs.lanes).tests && !fromJSON(needs.plan.outputs.reused || '{}').quality) }}
         run: |
           uv venv "$RUNNER_TEMP/sdist-test" --python 3.14
           uv pip install --python "$RUNNER_TEMP/sdist-test/bin/python" "$(find dist -name '*.tar.gz' -print -quit)[pytest]"
@@ -169,3 +175,6 @@ jobs:
           name: distributions
           path: dist/*
           if-no-files-found: error
+      - name: ${{ needs.plan.outputs.receipt || 'Uncached validation completed' }}
+        if: ${{ success() && fromJSON(needs.plan.outputs.lanes).tests && !fromJSON(needs.plan.outputs.reused || '{}').quality && needs.plan.outputs.release-only != 'true' }}
+        run: 'true'

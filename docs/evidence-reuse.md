@@ -67,3 +67,51 @@ Use `validation-gate` with the aggregate job's direct `needs` and a boolean `req
 ## Permissions
 
 Evidence discovery uses `contents: read`, `actions: read`, and `checks: read`. Complete PR file collection also needs `pull-requests: read`. Do not run untrusted PR code with elevated credentials. These examples use the ordinary `pull_request` event, not `pull_request_target`.
+
+## Reuse after a merge
+
+Set `reuse-after-merge: 'true'` and declare complete `input-paths` for jobs whose
+execution contract is the same on PRs and branch pushes. A first-attempt push
+resolves exactly one merged, same-repository PR whose merge commit matches the
+push and whose base branch matches the destination. It then uses the existing
+workflow/job/receipt resolver; the merge event itself is never proof. Changed
+inputs, stale or missing completion receipts, newer contradictory runs, API
+uncertainty and explicit reruns execute fresh validation. No extra permissions
+beyond the existing read-only evidence permissions are needed.
+
+## Root Python release versions
+
+`reuse-version-only-release: 'true'` additionally recognizes a strict Release
+Please transition in a root Python project. It requires Python 3.11+, full Git
+history, a clean tracked checkout and complete `input-paths`. The only permitted
+changes are an increasing stable project version in `pyproject.toml`, the matching
+editable root package in `uv.lock`, the matching `.` release manifest entry, and
+`CHANGELOG.md`. Every other byte of the Python manifests, including dependency
+versions and comments, remains significant. Unknown or inconsistent edits retain
+full validation.
+
+This mode binds runtime proof to the validated base's exact inputs and, for a
+local first-party action, its old project-version manifests. It still requires
+a fresh matching completion receipt from the PR merged at that base; merely
+recognizing a version bump cannot skip anything. A previous unsuccessful run of
+the release head prevents reaching back to that base proof.
+
+The `release-only` output describes the recognized release transition, not a
+successful reuse decision. Consumers must gate skips on the individual `reused`
+booleans and keep package build, version metadata, wheel and source-distribution
+installation checks mandatory. CI-esta's publishing workflow retains full
+exact-tag validation. Publishing, schedules and manual full checkpoints do not
+consume this evidence.
+
+GitHub can omit a merged PR from workflow-run metadata. To preserve ownership
+proof in that case, add this top-level workflow step to the planning job (nested
+composite steps are not exposed by the jobs API):
+
+```yaml
+- name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
+  if: github.event_name == 'pull_request'
+  run: 'true'
+```
+
+This marker proves association only; the executed lane still needs its own
+successful completion receipt.
