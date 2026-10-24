@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.4.1](https://github.com/gigaverse-app/ci-esta/compare/v1.4.0...v1.4.1) (2026-10-24)
+
+
+### Bug fixes
+
+* **actions:** install the typecheck scope toolchain ([69e156f](https://github.com/gigaverse-app/ci-esta/commit/69e156fdf400c6d899167d5401d87ce4f46dd55e))
+
+
+### Performance
+
+* **actions:** overlap service pulls and use locked timing runtimes ([e56e382](https://github.com/gigaverse-app/ci-esta/commit/e56e382c3d4ca625d54e2aaeb9d2f6ef9cbf7dbb))
+* **reporting:** reuse locked runtimes and overlap artifact reads ([28a5bd0](https://github.com/gigaverse-app/ci-esta/commit/28a5bd09aa9db2886d112ec1e32f351d73b07888))
+
 ## [1.4.0](https://github.com/gigaverse-app/ci-esta/compare/v1.3.1...v1.4.0) (2026-10-24)
 
 
