@@ -23,6 +23,23 @@ jobs:
         with:
           config: .github/test-lanes.json
           artifact-name: public-action-selection
+  reporting-runtime:
+    needs: select-tests
+    if: >-
+      ${{ !cancelled() && (needs.select-tests.result != 'success' ||
+          fromJSON(needs.select-tests.outputs.lanes).tests) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: false
+      - name: Verify cold setup, warm reuse and consumer isolation
+        run: uv run --locked pytest -q tests/github_actions/test_reporting_runtime.py
   cold-typecheck-scope:
     needs: select-tests
     if: >-
