@@ -19,6 +19,9 @@ hosted service or application-language change is required.
 
 Use the [adoption tutorial and checklist](docs/tutorials/adoption-checklist.md)
 to choose an order, verify each improvement and find every action/CLI capability.
+Run `ci-esta adoption --root .` for a read-only inventory with source-linked
+suggestions. It helps find gaps; successful hosted runs and measurements verify
+whether an integration is useful.
 
 | Your problem | What you gain | Start here |
 | --- | --- | --- |

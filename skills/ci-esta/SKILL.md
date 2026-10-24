@@ -32,7 +32,7 @@ other runners as well.
 
 Use the [quickstart](https://github.com/gigaverse-app/ci-esta/blob/main/docs/quickstart.md)
 and [public action API](https://github.com/gigaverse-app/ci-esta/blob/main/docs/actions.md).
-Prefer `gigaverse-app/ci-esta@REF` for reporting and `/setup-cached-uv@REF` or
+Prefer `gigaverse-app/ci-esta/actions/ci-observability@v1` for reporting and `actions/setup-cached-uv@v1` or
 other named public actions under `gigaverse-app/ci-esta/actions/NAME@REF`
 for setup/execution. Check that the selected release
 contains the entry point. Retain old paths for existing pinned consumers until
@@ -41,6 +41,14 @@ Actions install their own support tools. Add the Python package to the test
 environment only when invoking its CLI or pytest plugins.
 
 ## Observe first
+
+Run `ci-esta adoption --root .` for a read-only inventory before proposing changes.
+Inspect its source evidence and limitations; it does not execute scripts, expand
+remote workflows, prove successful adoption or enable optional features. Use the
+checklist for capabilities outside its checks. Prefer shared selector event/base
+defaults over copied expressions, preserve deliberate coverage/manual overrides,
+and forward `test_roots_json` directly between jobs. Verify these contracts have
+reached the consumed release before removing older consumer glue.
 
 Use the [staged adoption checklist](https://github.com/gigaverse-app/ci-esta/blob/main/docs/tutorials/adoption-checklist.md)
 to inventory the toolkit's capabilities. For each applicable stage, record its

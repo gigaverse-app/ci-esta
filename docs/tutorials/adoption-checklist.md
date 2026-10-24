@@ -12,10 +12,26 @@ enable every action. Mark a capability **adopted**, **not applicable**, or
 
 This tutorial gives the order, acceptance checks and rollback choices. Linked
 recipes own the complete configurations. Use the
-[pytest-selective checklist](https://github.com/gigaverse-app/pytest-selective/blob/ed14fa784f2b28d5a303e4e92985dd8bd3644299/docs/tutorials/adoption-checklist.md)
+[pytest-selective checklist](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/tutorials/adoption-checklist.md)
 for dependency declarations, local development and selection health.
 
 ## 1. Record a useful baseline
+
+First inspect what the repository already wires:
+
+```bash
+uvx --from ci-esta ci-esta adoption --root .
+uvx --from ci-esta ci-esta adoption --root . --json > adoption.json
+```
+
+These commands use a separate tool environment; no application dependency is
+needed. The command follows local composite actions and reusable workflows. It suggests
+reporting, selection, shared checkpoint defaults and timing-feedback gaps with
+source paths. It never modifies files, enables retention or fails CI for optional
+advice. `--ignore SUGGESTION_ID` suppresses advice you have reviewed without
+hiding the detected action inventory. Remote workflows and arbitrary scripts
+remain explicit inspection limits. A configured action is not evidence of a
+successful run, compatible timing lanes or measured savings.
 
 Install CI-esta in a separate tool environment, or use its hosted reporting
 action. Actions do not require adding CI-esta to your application's dependencies.
@@ -57,6 +73,14 @@ type checking, CI lint and security admission independently selectable.
 - [ ] Keep the planner required. A successful empty plan skips pytest; a failed
   planner must not create a green empty route.
 - [ ] Keep full scheduled/manual checkpoints and existing conformance validators.
+
+The selector's `full: auto` default supplies checkpoints for reruns, manual,
+scheduled and release events, and `test:full`; ordinary PRs and pushes remain
+selective. `base` defaults to the PR base or push's previous commit. Keep an
+explicit base for validated incremental evidence and an explicit `full` override
+for coverage or manual experiments. Consume `test_roots_json` for file plans so
+paths survive job boundaries without shell splitting. Verify your selected
+action revision supports these defaults before deleting older expressions.
 
 Follow [selected gates](../selected-gates.md), then validate the finished wiring:
 
@@ -148,7 +172,7 @@ mandatory installation steps.
 | Export metrics or shard intervals; confirm destination and source identity | `publish-prometheus-snapshot`, `publish-shard-measurements` | [Runner diagnostics](../runners-and-diagnostics.md), [report integration](../integrations.md) |
 | Collect complete changes once; test renames, deletions and incomplete history | `collect-pr-changes`, `collect-pytest-changes`, `collect-ci-changes` | [Selection and gates](../selected-gates.md) |
 | Reject stale reruns and superseded work; preserve deliberate full runs | `current-pr-head`, `cancel-obsolete-pr-runs` | [Critical-path optimizations](../critical-path-optimizations.md) |
-| Choose test/type-check scope; validate changed-input and full fallbacks | `test-impact`, `typecheck-scope`, `pytest-expansion` | [Selector checklist](https://github.com/gigaverse-app/pytest-selective/blob/ed14fa784f2b28d5a303e4e92985dd8bd3644299/docs/tutorials/adoption-checklist.md) |
+| Choose test/type-check scope; validate changed-input and full fallbacks | `test-impact`, `typecheck-scope`, `pytest-expansion` | [Selector checklist](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/tutorials/adoption-checklist.md) |
 | Install efficiently; validate exact identity and broken-cache repair | `setup-cached-uv`, `setup-python-uv`, `native-windows-git` | [Environment cache](../environment-cache.md), [platform tuning](../critical-path-optimizations.md) |
 | Retain costs and partition current tests; verify partial/stale/concurrent updates | `restore-test-timings`, `learn-test-timings`, `plan-pytest-shards`, `plan-runner-pools` | [Timing tutorial](../learned-test-timings.md) |
 | Aggregate exact artifacts and retain coverage policy; fail on missing shards | `pytest-timings`, `verify-pytest-completion`, `coverage-policy` | [Sharding example](../../examples/pytest-shards/workflow.yml), [runner guide](../runners-and-diagnostics.md) |
@@ -168,7 +192,7 @@ unneeded rows explicitly so future maintainers know they were considered.
 
 | Surface | Purpose and adoption boundary |
 | --- | --- |
-| `ci-esta report`, `render`, `check-workflow` | Reporting, offline rendering and gate-wiring checks; use the commands above. |
+| `ci-esta adoption`, `report`, `render`, `check-workflow` | Read-only adoption inventory, reporting, offline rendering and gate-wiring checks; use the commands above. |
 | `ci-esta-pytest learn`, `history`, `plan`, `pools`, `run-local` | The timing-to-execution loop; use the [timing](../learned-test-timings.md) and [pool](../runners-and-diagnostics.md) recipes. |
 | `ci-esta-pytest merge`, `junit`, `coverage` | Existing duration-manifest aggregation, JUnit summaries and coverage validation. `merge` is not chronological history retention. |
 | `ci-esta-pytest canary`, `canary-run` | Plan and execute bounded previous-failure files; inspect `--help` and preserve the full selected inventory. |
