@@ -91,7 +91,9 @@ BE deletes its ordinary policy file; web deletes its mock policy file. Due keeps
 one benchmark classification and a PR-occasion exception for `thorough`. AI keeps
 its affected-only `deep` exception, effect grants and exceptional lane metadata.
 Backend operational and web live policies keep their real environment/effect
-exceptions. Per-project fixtures remain local because they prove project wiring.
+exceptions. Consumers do not need JSON routing fixtures or a separate policy-check
+workflow. CI-esta tests its shared defaults; the existing consumer test suites
+continue to cover their selectors, resources and extracted CI mechanisms.
 
 ## Before and after
 
@@ -134,7 +136,7 @@ Policy admission is not successful execution. A provider being resolvable is not
 |---|---|---|
 | pytest-selective `plan-lanes`, CI-esta `test-impact`, or native selector | Git tree pair and declared dependencies | Affected IDs or complete lane-to-boolean map; remains authoritative for impact |
 | **`actions/plan-test-policy`** | Policy, profile, occasion, revision, affected/requested IDs, optional environment/readiness identity | Complete admitted/fresh maps, count and versioned decision plan; no commands or provisioning |
-| **`actions/check-test-policy`** | Policy and project-owned routing examples | Tests the installed CLI from the exact action revision; fails on wrong routing or expected failures |
+| **`actions/check-test-policy`** (optional) | Policy and project-owned routing examples | Tests the installed CLI from the exact action revision; fails on wrong routing or expected failures |
 | **Resource Python API / `python -m ci_esta.policy.resource_cli`** | Provider registry, requirements, available credential names, target environment | Per-work placement or unavailable reasons; no credential values required |
 | Existing `service-container`, `setup-cached-uv`, image and project setup actions | Admitted work and project-owned configuration | Provisioning; policy does not duplicate these implementations |
 | **`actions/test-budget`** | Job start, total/requested seconds, cleanup reserve | Positive remaining seconds for the native runner timeout; fails when exhausted |
@@ -479,7 +481,7 @@ Shared accounts and broadcast slots need actual concurrency groups or leases. A 
 
 ## Consumer rollout and compatibility
 
-Each consumer starts with a separate behavior-preserving extraction commit. A later consolidation replaces copied profiles with shared defaults, retaining the same routing fixtures. `legacy` is the shared migration profile; project-owned exceptions preserve existing effect permissions.
+Each consumer starts with a separate behavior-preserving extraction commit. A later consolidation replaces copied profiles with shared defaults. Consumer JSON routing fixtures and their dedicated check steps are removed; they are not required for adoption. `legacy` is the shared migration profile; project-owned exceptions preserve existing effect permissions.
 
 | Repository | Preserved | New explicit paths |
 |---|---|---|
@@ -502,8 +504,8 @@ All new consumers pin this PR's exact commit for review. Before release adoption
 
 ## Validation and limits
 
-Tests exercise the public CLI, the actual composite-action shell, admission and effect boundaries, unknown versus empty scope, explicit requests, deployment identity, budget exhaustion, resource capabilities/pins/collisions, generated schemas, and consumer routing examples. AI additionally runs its existing provider/placement tests and new actual-selector profile cases. Existing repository tests continue to exercise native impact selection and gates.
+Tests exercise the public CLI, the actual composite-action shell, admission and effect boundaries, unknown versus empty scope, explicit requests, deployment identity, budget exhaustion, resource capabilities/pins/collisions, generated schemas, and representative routing examples inside CI-esta. AI additionally runs its existing provider/placement tests and new actual-selector profile cases. Existing repository tests continue to exercise native impact selection and gates.
 
-CI-esta's Python 3.11/3.14 suites and installed-wheel smoke protect portability. The public-action smoke must exercise the new action from the PR checkout. Consumer contract actions install the same immutable source revision as their planners. No live operational probe needs to be dispatched merely to prove routing.
+CI-esta's Python 3.11/3.14 suites and installed-wheel smoke protect portability. The public-action smoke must exercise the new action from the PR checkout. Retained consumer mechanism tests use the installed shared implementation. No consumer is required to maintain JSON routing fixtures. No live operational probe needs to be dispatched merely to prove routing.
 
 No CI savings are claimed by this extraction. Additional planner startup has a cost; static consumers gain consistent policy and auditable special-occasion execution, while the consumers remove their resolver, workflow-input, execution-scope and deployment-observer implementations. Measure cost separately before claiming optimization.
