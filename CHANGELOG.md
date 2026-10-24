@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.1](https://github.com/gigaverse-app/ci-esta/compare/v1.6.0...v1.6.1) (2026-10-24)
+
+
+### Bug fixes
+
+* **ci:** align validation inputs and reuse accounting ([5e6059d](https://github.com/gigaverse-app/ci-esta/commit/5e6059d4e6bf9ab415a8d4de6fa2dc85ebefc06d))
+
+
+### Performance
+
+* **ci:** reuse merged validation for version-only releases ([2f363d0](https://github.com/gigaverse-app/ci-esta/commit/2f363d081b59484c8cc1bf16c6965c28e74cea7c))
+
 ## [1.6.0](https://github.com/gigaverse-app/ci-esta/compare/v1.5.1...v1.6.0) (2026-10-24)
 
 
