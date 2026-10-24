@@ -261,8 +261,16 @@ def test_cli_without_explicit_head_uses_source_metadata(tmp_path):
     assert report["provenance"]["head_sha"] == HEAD_SHA
 
 
-@pytest.mark.parametrize("label,expected", [("ubuntu-latest", "0.012"), ("custom-runner", None)])
-def test_reusable_pricing_reaches_the_report_without_pricing_unknown_runners(monkeypatch, tmp_path, label, expected):
+@pytest.mark.parametrize("label,sku,price,expected", [
+    ("ubuntu-latest", "actions_linux", "0.006", "0.012"),
+    ("custom-runner", "actions_linux", "0.006", None),
+    ("ubuntu-latest", "actions_linux", None, "0.012"),
+    ("8vcpu-runner", "linux_8_core", None, "0.044"),
+    ("8vcpu-runner", "linux_8_core", "0.009", "0.018"),
+])
+def test_reusable_pricing_reaches_the_report_without_pricing_unknown_runners(
+    monkeypatch, tmp_path, label, sku, price, expected,
+):
     workflow = yaml.safe_load(Path(".github/workflows/report.yml").read_text())
     inputs = workflow[True]["workflow_call"]["inputs"]
     forwarded = workflow["jobs"]["report"]["steps"][1]["with"]
@@ -276,8 +284,10 @@ def test_reusable_pricing_reaches_the_report_without_pricing_unknown_runners(mon
     monkeypatch.setenv("GITHUB_REPOSITORY", REPOSITORY)
     monkeypatch.setenv("INPUT_GITHUB_TOKEN", TOKEN)
     monkeypatch.setenv("INPUT_RUN_ID", str(RUN_ID))
-    monkeypatch.setenv("INPUT_RUNNER_SKU_RATES_JSON",
-                       '[{"sku":"actions_linux","runner_label":"ubuntu-latest","usd_per_minute":"0.006"}]')
+    mapping = {"sku": sku, "runner_label": "8vcpu-runner" if sku == "linux_8_core" else "ubuntu-latest"}
+    if price is not None:
+        mapping["usd_per_minute"] = price
+    monkeypatch.setenv("INPUT_RUNNER_SKU_RATES_JSON", json.dumps([mapping]))
     monkeypatch.setenv("INPUT_RUN_ATTEMPT", str(RUN_ATTEMPT))
     monkeypatch.setenv("INPUT_COMMIT_SHA", HEAD_SHA)
     rates = ActionConfig.from_environment().runner_sku_rates
@@ -290,7 +300,8 @@ def test_reusable_pricing_reaches_the_report_without_pricing_unknown_runners(mon
         assert run(config, LATER) == 0
     report = json.loads(config.report_output.read_text())
     assert report["runner_cost"]["estimated_cost_usd"] == expected
-    assert ("![est. cost: $0.01]" if expected else "![est. cost: unavailable]") in config.markdown_output.read_text()
+    badge = f"![est. cost: ${float(expected):.2f}]" if expected else "![est. cost: unavailable]"
+    assert badge in config.markdown_output.read_text()
 
 
 def test_run_collects_jobs_for_overlapping_prior_same_pr_run(

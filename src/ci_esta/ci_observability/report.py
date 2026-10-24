@@ -207,10 +207,7 @@ def _runner_cost(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1],
     rates_by_label = {rate.runner_label: rate for rate in rates}
     if len(rates_by_label) != len(rates):
         raise ValueError("runner SKU rates must use distinct runner labels")
-    rates_by_sku = {rate.sku: rate for rate in rates}
-    if len(rates_by_sku) != len(rates):
-        raise ValueError("runner SKU rates must use distinct SKU names")
-    jobs_by_sku: dict[tuple[str, str], list[ObservedJobV1]] = {}
+    jobs_by_sku: dict[tuple[str, str], tuple[RunnerSkuRateV1, list[ObservedJobV1]]] = {}
     unpriced_minutes = 0
     unpriced_jobs = 0
     for job in costed:
@@ -219,13 +216,12 @@ def _runner_cost(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1],
             unpriced_minutes += job.rounded_minutes or 0
             unpriced_jobs += 1
             continue
-        jobs_by_sku.setdefault((rate.sku, rate.runner_label), []).append(job)
+        jobs_by_sku.setdefault((rate.sku, rate.runner_label), (rate, []))[1].append(job)
 
     by_sku: list[RunnerSkuCostV1] = []
     for sku in sorted(jobs_by_sku):
-        sku_jobs = jobs_by_sku[sku]
-        rate = matching_rate(sku_jobs[0], rates, repository_private)
-        assert rate is not None, "grouped SKU jobs must retain their matching rate"
+        rate, sku_jobs = jobs_by_sku[sku]
+        assert rate.usd_per_minute is not None, "grouped SKU jobs must retain their resolved price"
         rounded_minutes = sum(job.rounded_minutes or 0 for job in sku_jobs)
         by_sku.append(
             RunnerSkuCostV1(
@@ -733,14 +729,15 @@ def _cost_details(report: CiObservabilityReportV1) -> list[str]:
             "",
         ]
         if not configured:
-            body += [f"Standard hosted rates: [GitHub pricing]({PRICING_URL}), verified 2026-10-24. "
+            body += [f"Hosted runner rates: [GitHub pricing]({PRICING_URL}), verified 2026-10-24. "
                      "List-price estimates are before included minutes, discounts and taxes; they are not an invoice. "
-                     "Known public repositories use the free standard-runner rate. Explicit configured rates take precedence.", ""]
+                     "Known public repositories use the free standard-runner rate; larger runners remain billable. "
+                     "Explicit configured rates take precedence.", ""]
     if cost.unpriced_rounded_runner_minutes:
         body += [
             f"_Exact dollar cost withheld: {cost.unpriced_rounded_runner_minutes} rounded runner min "
-            "did not match a configured runner label or a known standard hosted runner. "
-            "Set `runner-sku-rates-json` for custom runners._",
+            "did not resolve to a known GitHub SKU or an explicit price. "
+            "Set `runner-sku-rates-json` to map custom labels to catalog SKUs or provide `usd_per_minute`._",
             "",
         ]
     if len(cost.billed_attempts) > 1:

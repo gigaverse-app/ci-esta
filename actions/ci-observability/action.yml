@@ -71,9 +71,10 @@ inputs:
     default: "true"
   runner-sku-rates-json:
     description: >
-      Optional JSON array overriding runner-label SKU names and USD/minute rates.
-      Known standard hosted labels use GitHub rates (free for known public repos);
-      custom runners need explicit rates. Unmatched jobs withhold the total.
+      Optional JSON array mapping runner_label to a GitHub billing sku.
+      Omit usd_per_minute to use CI-esta's catalog; set it to override any price.
+      Official labels resolve automatically. Public standard runners are free;
+      larger runners remain billable. Unknown SKUs need an explicit price.
     required: false
     default: "[]"
   test-selection-artifact:
