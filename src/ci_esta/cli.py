@@ -15,6 +15,10 @@ from ci_esta.ci_observability.report import render_markdown, render_prometheus
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CI-esta: GitHub Actions timing, cost estimates and evidence")
     commands = parser.add_subparsers(dest="command", required=True)
+    adoption = commands.add_parser("adoption", help="Read-only adoption inventory and suggestions; never changes CI")
+    adoption.add_argument("--root", type=Path, default=Path("."))
+    adoption.add_argument("--json", action="store_true")
+    adoption.add_argument("--ignore", action="append", default=[], metavar="SUGGESTION_ID")
     audit = commands.add_parser("check-workflow", help="Validate selected-lane aggregate gate wiring")
     audit.add_argument("--workflow", type=Path, required=True)
     audit.add_argument("--lanes", type=Path, required=True)
@@ -32,6 +36,12 @@ def main(argv: list[str] | None = None) -> int:
     render.add_argument("--markdown", required=True, type=Path)
     render.add_argument("--prometheus", required=True, type=Path)
     args = parser.parse_args(argv)
+    if args.command == "adoption":
+        from ci_esta.adoption import inspect
+        from ci_esta.adoption import render as render_adoption
+        report = inspect(args.root, ignore=set(args.ignore))
+        print(report.model_dump_json(indent=2) if args.json else render_adoption(report))
+        return 0
     if args.command == "check-workflow":
         from ci_esta.testing.workflow_adoption import check
         check(args.workflow, args.lanes)

@@ -17,6 +17,21 @@ for dependency declarations, local development and selection health.
 
 ## 1. Record a useful baseline
 
+First inspect what the repository already wires:
+
+```bash
+ci-esta adoption --root .
+ci-esta adoption --root . --json > adoption.json
+```
+
+This command follows local composite actions and reusable workflows. It suggests
+reporting, selection, shared checkpoint defaults and timing-feedback gaps with
+source paths. It never modifies files, enables retention or fails CI for optional
+advice. `--ignore SUGGESTION_ID` suppresses advice you have reviewed without
+hiding the detected action inventory. Remote workflows and arbitrary scripts
+remain explicit inspection limits. A configured action is not evidence of a
+successful run, compatible timing lanes or measured savings.
+
 Install CI-esta in a separate tool environment, or use its hosted reporting
 action. Actions do not require adding CI-esta to your application's dependencies.
 For local reporting, set an authorized read token in `GH_TOKEN` or `GITHUB_TOKEN`.
@@ -57,6 +72,14 @@ type checking, CI lint and security admission independently selectable.
 - [ ] Keep the planner required. A successful empty plan skips pytest; a failed
   planner must not create a green empty route.
 - [ ] Keep full scheduled/manual checkpoints and existing conformance validators.
+
+The selector's `full: auto` default supplies checkpoints for reruns, manual,
+scheduled and release events, and `test:full`; ordinary PRs and pushes remain
+selective. `base` defaults to the PR base or push's previous commit. Keep an
+explicit base for validated incremental evidence and an explicit `full` override
+for coverage or manual experiments. Consume `test_roots_json` for file plans so
+paths survive job boundaries without shell splitting. Verify your selected
+action revision supports these defaults before deleting older expressions.
 
 Follow [selected gates](../selected-gates.md), then validate the finished wiring:
 
