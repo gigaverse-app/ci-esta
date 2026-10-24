@@ -58,15 +58,18 @@ jobs:
       - name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
         if: github.event_name == 'pull_request'
         run: 'true'
+      - id: validation-inputs
+        run: |
+          paths=$(jq -c . .github/validation-inputs.json)
+          echo "paths=$paths" >> "$GITHUB_OUTPUT"
       - uses: ./actions/resolve-lane-evidence
         id: evidence
         if: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(github.event.pull_request.labels.*.name, 'test:full') }}
         with:
-          lanes: '{"tests":"Test suite","compat":"Python compatibility","quality":"quality"}'
+          lanes: '{"tests":"Test suite","compat":"Python compatibility","contracts":"Runtime contracts"}'
           reuse-after-merge: 'true'
           reuse-version-only-release: 'true'
-          # Complete test/build inputs; docs and the disposable live probe do not affect these jobs.
-          input-paths: '["actions","action.yml","examples",".github","src","tests","scripts","pyproject.toml","uv.lock","importlinter.toml","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
+          input-paths: ${{ steps.validation-inputs.outputs.paths }}
       - name: Record admission
         env:
           REUSED: ${{ steps.evidence.outputs.reused }}
@@ -118,7 +121,7 @@ jobs:
 
   gate:
     name: Validation gate
-    needs: [plan, tests, compat, quality]
+    needs: [plan, tests, compat, contracts, quality]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -127,7 +130,27 @@ jobs:
         with:
           needs: ${{ toJSON(needs) }}
           required: >-
-            {"plan":true,"quality":true,"tests":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').tests) }},"compat":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').compat) }}}
+            {"plan":true,"quality":true,"tests":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').tests) }},"compat":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').compat) }},"contracts":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').contracts) }}}
+
+  contracts:
+    name: Runtime contracts
+    needs: plan
+    if: ${{ !cancelled() && (needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').contracts)) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: ./actions/setup-cached-uv
+        with:
+          python-version: '3.14'
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: '1.4.2'
+      - name: Exercise native Bun selection and fallback controls
+        run: node --test tests/github_actions/*.test.*
+      - name: Exercise selected routing and gate contracts
+        run: uv run pytest -q tests/ci/test_repository_routing.py tests/ci/test_validation_gate.py tests/testing/test_workflow_adoption.py
+      - name: ${{ needs.plan.outputs.receipt || 'Uncached validation completed' }}
+        run: 'true'
 
   quality:
     needs: plan
@@ -140,19 +163,10 @@ jobs:
           python-version: '3.14'
       - run: uv run ruff check .
       - run: uv run lint-imports --config importlinter.toml --no-cache
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
-        with:
-          bun-version: '1.4.2'
-      - name: Exercise native Bun selection and fallback controls
-        if: ${{ needs.plan.result != 'success' || (fromJSON(needs.plan.outputs.lanes).tests && !fromJSON(needs.plan.outputs.reused || '{}').quality) }}
-        run: node --test tests/github_actions/bun-selection.test.mjs tests/github_actions/bun-work-report.test.mjs tests/github_actions/deployment-observer.test.mjs tests/github_actions/merged-evidence.test.cjs
-      - name: Exercise selected routing and gate contracts
-        if: ${{ needs.plan.result != 'success' || (fromJSON(needs.plan.outputs.lanes).tests && !fromJSON(needs.plan.outputs.reused || '{}').quality) }}
-        run: uv run pytest -q tests/ci/test_repository_routing.py tests/ci/test_validation_gate.py tests/testing/test_workflow_adoption.py
       - run: uv build
       - run: uvx --from twine==7.0.0 twine check --strict dist/*
       - name: Verify installed wheel
-        if: ${{ needs.plan.outputs.release-only == 'true' || needs.plan.result != 'success' || (fromJSON(needs.plan.outputs.lanes).tests && !fromJSON(needs.plan.outputs.reused || '{}').quality) }}
+        if: ${{ needs.plan.outputs.release-only == 'true' || needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
         run: |
           uv venv "$RUNNER_TEMP/wheel-test" --python 3.11
           uv pip install --python "$RUNNER_TEMP/wheel-test/bin/python" dist/*.whl
@@ -163,7 +177,7 @@ jobs:
           CI_TEST_RESOURCE_OBSERVABILITY=true "$RUNNER_TEMP/wheel-test/bin/ci-esta-resources" \
             "$RUNNER_TEMP/wheel-test/bin/ci-esta-pytest" pools --shards 13 --shards-per-runner 12
       - name: Verify source distribution
-        if: ${{ needs.plan.outputs.release-only == 'true' || needs.plan.result != 'success' || (fromJSON(needs.plan.outputs.lanes).tests && !fromJSON(needs.plan.outputs.reused || '{}').quality) }}
+        if: ${{ needs.plan.outputs.release-only == 'true' || needs.plan.result != 'success' || fromJSON(needs.plan.outputs.lanes).tests }}
         run: |
           uv venv "$RUNNER_TEMP/sdist-test" --python 3.14
           uv pip install --python "$RUNNER_TEMP/sdist-test/bin/python" "$(find dist -name '*.tar.gz' -print -quit)[pytest]"
@@ -175,6 +189,3 @@ jobs:
           name: distributions
           path: dist/*
           if-no-files-found: error
-      - name: ${{ needs.plan.outputs.receipt || 'Uncached validation completed' }}
-        if: ${{ success() && fromJSON(needs.plan.outputs.lanes).tests && !fromJSON(needs.plan.outputs.reused || '{}').quality && needs.plan.outputs.release-only != 'true' }}
-        run: 'true'

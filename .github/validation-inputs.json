@@ -1,0 +1,22 @@
+[
+  "actions",
+  "action.yml",
+  "examples",
+  ".github",
+  "src",
+  "tests",
+  "scripts",
+  "pyproject.toml",
+  "uv.lock",
+  "importlinter.toml",
+  "README.md",
+  "LICENSE",
+  "conftest.py",
+  "pytest.ini",
+  "tox.ini",
+  "setup.cfg",
+  ".ruff.toml",
+  "ruff.toml",
+  ".python-version",
+  ".gitattributes"
+]

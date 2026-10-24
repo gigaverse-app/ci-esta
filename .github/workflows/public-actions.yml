@@ -28,6 +28,10 @@ jobs:
       - name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
         if: github.event_name == 'pull_request'
         run: 'true'
+      - id: validation-inputs
+        run: |
+          paths=$(jq -c . .github/validation-inputs.json)
+          echo "paths=$paths" >> "$GITHUB_OUTPUT"
       - uses: ./actions/resolve-lane-evidence
         id: evidence
         if: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(github.event.pull_request.labels.*.name, 'test:full') }}
@@ -35,7 +39,7 @@ jobs:
           lanes: '{"bun":"bun-cache","linux":"reporting-runtime (ubuntu-latest)","windows":"reporting-runtime (windows-latest)","mac":"reporting-runtime (macos-latest)","typecheck":"cold-typecheck-scope","public":"public-actions"}'
           reuse-after-merge: 'true'
           reuse-version-only-release: 'true'
-          input-paths: '["actions","action.yml","examples",".github","src","tests","scripts","pyproject.toml","uv.lock","importlinter.toml","README.md","LICENSE","conftest.py","pytest.ini","tox.ini","setup.cfg",".ruff.toml","ruff.toml",".python-version",".gitattributes"]'
+          input-paths: ${{ steps.validation-inputs.outputs.paths }}
   bun-cache:
     needs: select-tests
     if: >-
