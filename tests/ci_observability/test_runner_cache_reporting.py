@@ -30,6 +30,14 @@ def test_pytest_workflow_keeps_its_missing_instrumentation_advice():
     assert "ci-esta-pytest run-local" in render_markdown(measured)
 
 
+def test_small_measured_cache_work_is_not_displayed_as_zero_or_unknown():
+    cache = CacheOperationMeasurement(run_id=431, run_attempt=2, head_sha="a" * 40, job="Tests",
+                                      scope="Bun", cache_kind="download", outcome="exact-hit",
+                                      restore_seconds=0.35, sync_seconds=0.003, sync_outcome="success")
+    sticky = render_markdown(report().model_copy(update={"measurements": [cache]}))
+    assert "| exact-hit | &lt;1s | unavailable | success (&lt;1s) |" in sticky
+
+
 @pytest.mark.parametrize("case", ["valid", "stale", "foreign", "missing", "skipped", "ambiguous"])
 def test_cache_collector_uses_source_attempt_steps_and_keeps_unknown_durations(case):
     measurement = CacheOperationMeasurement(

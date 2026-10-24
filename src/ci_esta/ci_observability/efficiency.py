@@ -152,6 +152,12 @@ def reuse_badge(report: CiObservabilityReportV1) -> brand.Badge:
     return brand.unavailable("reused")
 
 
+def cache_duration(seconds: float | None) -> str:
+    if seconds is None:
+        return "unavailable"
+    return "&lt;1s" if seconds < 1 else format_seconds(seconds)
+
+
 def render_avoided_work(report: CiObservabilityReportV1) -> str:
     lanes = reused_lanes(report)
     caches = [item for item in report.measurements if isinstance(item, CacheMeasurement)]
@@ -219,7 +225,7 @@ def render_avoided_work(report: CiObservabilityReportV1) -> str:
                  "| Job | Cache | Kind | Restore outcome | Restore | Save | Locked install |",
                  "|:--|:--|:--|:--|--:|--:|:--|"]
         for item in operations:
-            durations = [format_seconds(value) if value is not None else "unavailable"
+            durations = [cache_duration(value)
                          for value in (item.restore_seconds, item.save_seconds, item.sync_seconds)]
             sync = f"{item.sync_outcome} ({durations[2]})" if item.sync_outcome else "not recorded"
             body.append(f"| {markdown.cell(markdown.code(item.job))} | {markdown.cell(markdown.code(item.scope))} | "
