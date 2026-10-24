@@ -1,6 +1,46 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
+    "KubernetesJobProfile": {
+      "description": "The bundle of fields the workflow's kubernetes_job code path needs to build a pytest Job pod.\n\nAttached to providers that resolve to ``kubernetes_job`` mode so the selector can fail at selection time\nwhen a cluster_internal provider lacks its profile, instead of failing late inside the Job step with an empty\nimage/service setup.",
+      "properties": {
+        "service": {
+          "description": "Service name used both for the Docker image build and as the K8s service identity.",
+          "title": "Service",
+          "type": "string"
+        },
+        "service_account": {
+          "default": "default",
+          "description": "ServiceAccount used by the Job for IAM/IRSA.",
+          "title": "Service Account",
+          "type": "string"
+        },
+        "config_map": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the ConfigMap to mount as env. Resolved by the consumer when omitted.",
+          "title": "Config Map"
+        },
+        "timeout_seconds": {
+          "default": 600,
+          "description": "Active deadline for the Job pod.",
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "service"
+      ],
+      "title": "KubernetesJobProfile",
+      "type": "object"
+    },
     "Placement": {
       "description": "Reduction of a test's required-providers list to a CI matrix entry.\n\nThe selector calls :func:`placement_for` per test (or per group of tests\nsharing identical placements) and emits one matrix entry per unique\nplacement. The workflow then computes its ``env:`` block from\n:attr:`secrets`, its ``services:`` block from :attr:`services`, and picks\nthe runner vs k8s-job code path from :attr:`mode`.",
       "properties": {
@@ -58,6 +98,90 @@
       "title": "Placement",
       "type": "object"
     },
+    "Provider": {
+      "description": "One concrete way to satisfy a :class:`Resource`.\n\nProviders are ordered within a Resource by *preference* (cheapest first).\nThe framework resolves a test's ``requires(...)`` to the first provider\nthat is *available* in the current environment (see\n:func:`is_provider_available`). Tests can pin a specific provider with\n``provider=\"...\"`` when they genuinely need that flavour (e.g. a Lua-script\ntest that fakeredis can't execute).\n\nCombinations of fields encode the placement decision:\n\n* ``cluster_internal=True`` \u2014 placement is forced to ``kubernetes_job``;\n  ``runner_secrets`` must be empty (the runner never holds them) and\n  ``cluster_secrets`` documents what the in-cluster Job needs from its\n  service ConfigMap.\n* Every provider is assumed runnable in the target Kubernetes environment.\n  If the runner cannot satisfy ``runner_secrets`` but the selector chooses\n  k8s execution, those names are treated as target-env ConfigMap/Secret\n  requirements instead of GitHub Actions requirements.\n* ``service_container is not None`` \u2014 placement adds a ``services:`` entry on the runner.\n* ``runner_secrets`` non-empty \u2014 those secrets must be exported on the runner;\n  provider counts as available only when every name is present (and non-empty)\n  in the workflow's ``available_secrets`` list (unless we're resolving in\n  cluster mode, where target-env config is authoritative).\n* ``runtime_env`` \u2014 env vars consumers expect when this provider is the\n  chosen one. The workflow's \"Start placement services\" step exports them\n  after the service container is healthy, so tests don't need to special-\n  case \"is fakeredis or real Redis\" \u2014 both expose ``GV_REDIS_HOST`` etc.\n* ``env_scope != \"any\"`` \u2014 provider only resolves in that target environment.",
+      "properties": {
+        "capabilities": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Capabilities",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "name": {
+          "description": "Human-readable provider id, unique within its Resource. Tests pin via ``provider=<name>``.",
+          "title": "Name",
+          "type": "string"
+        },
+        "runner_secrets": {
+          "description": "Env-var names that must be present (non-empty) on the runner for this provider to be available. Only meaningful for runner-mode providers \u2014 by definition the runner can't carry secrets that only exist inside the target Kubernetes cluster.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Runner Secrets",
+          "type": "array"
+        },
+        "cluster_secrets": {
+          "description": "Env-var names this provider's tests will read from the target environment's service ConfigMap when running as a Kubernetes Job. Documentation only \u2014 the cluster mounts these, the runner never sees them. Only meaningful for cluster_internal=True providers.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Cluster Secrets",
+          "type": "array"
+        },
+        "runtime_env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Static env vars the workflow exports after this provider's services are up. Consumed by tests via the ordinary env mechanism \u2014 e.g. fakeredis declares ``{}`` so consumers fall through to their default Redis host, while ``redis-ephemeral`` declares ``{'GV_REDIS_HOST': 'localhost', 'GV_REDIS_PORT': '6379'}`` so the same test code reads the right host without a plugin mutating env at collection time.",
+          "title": "Runtime Env",
+          "type": "object"
+        },
+        "service_container": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ServiceContainer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Runner-side ephemeral container, if this provider needs one. Mutually compatible with ``runner_secrets`` (a containerized Postgres still might need a password env var)."
+        },
+        "cluster_internal": {
+          "default": false,
+          "description": "True if this provider needs Kubernetes execution \u2014 in-cluster DNS, deployed services, or namespace ConfigMaps. Forces ``kubernetes_job`` mode.",
+          "title": "Cluster Internal",
+          "type": "boolean"
+        },
+        "kubernetes_job_profile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KubernetesJobProfile"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Required when ``cluster_internal=True`` \u2014 declares the image/service/config-map/timeout the workflow needs to build a Job pod. Without this, the selector fails fast instead of letting the Job step run with an empty image setup."
+        },
+        "env_scope": {
+          "default": "any",
+          "description": "Target environment binding. ``any`` resolves under any active env; ``dev`` / ``stg`` / ``prd`` only resolve when the runner targets that env.",
+          "title": "Env Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Provider",
+      "type": "object"
+    },
     "ResourceDecision": {
       "additionalProperties": false,
       "properties": {
@@ -85,12 +209,20 @@
               "type": "null"
             }
           ]
+        },
+        "providers": {
+          "items": {
+            "$ref": "#/$defs/Provider"
+          },
+          "title": "Providers",
+          "type": "array"
         }
       },
       "required": [
         "status",
         "reasons",
-        "placement"
+        "placement",
+        "providers"
       ],
       "title": "ResourceDecision",
       "type": "object"

@@ -28,6 +28,7 @@ def test_json_resource_boundary_preserves_capability_and_pin_constraints(tmp_pat
     placement = json.loads(output.read_text())["work"]["lua-test"]["placement"]
     assert placement["secrets"] == ["REDIS_PASSWORD"]
     assert placement["mode"] == "runner"
+    assert json.loads(output.read_text())["work"]["lua-test"]["providers"][0]["name"] == "real"
     requirements.write_text(
         json.dumps({"lua-test": [{"resource": "redis", "provider": "fake", "capabilities": ["lua"]}]})
     )

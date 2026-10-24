@@ -7,13 +7,14 @@ from typing import Literal
 from pydantic import TypeAdapter
 
 from ci_esta.policy.models import Contract, Requirement
-from ci_esta.policy.resources import Placement, Resource, placement_for, resolve_pins
+from ci_esta.policy.resources import Placement, Provider, Resource, placement_for, resolve_pins
 
 
 class ResourceDecision(Contract):
     status: Literal["resolved", "unavailable"]
     reasons: tuple[str, ...]
     placement: Placement | None
+    providers: tuple[Provider, ...]
 
 
 class ResourcePlan(Contract):
@@ -50,6 +51,7 @@ def main(argv: list[str] | None = None) -> int:
             status="unavailable" if reasons else "resolved",
             reasons=tuple(reasons),
             placement=None if reasons else placement_for(providers),
+            providers=() if reasons else tuple(providers),
         )
     result = ResourcePlan(work=decisions)
     destination.write_text(result.model_dump_json(indent=2) + "\n")
