@@ -36,7 +36,7 @@ pytest-selective selects at two granularities, and the sticky has a section for 
 | Best for | One large suite whose time is in the tests themselves | Lanes that start services (PostgreSQL, Redis, framework checkouts) or must keep complete conformance evidence |
 | Artifact the report reads | `test-impact-explanation` (`test-selection-artifact`) | `test-lane-selection` (`lane-selection-artifact`) |
 | Sticky section | 🎯 Test selection: files ran, why, test time saved | 🧪 Test lanes: lanes ran, why, runner time skipped |
-| "Saved" is measured against | The median of recent full-suite pytest timings, from `ci-full-suite-reference-v1` artifacts | The skipped jobs' runner time on the default branch's last green push run, which runs every lane |
+| "Saved" is measured against | The median of recent full-suite pytest timings, from `ci-full-suite-reference-v1` artifacts | Available matching job timings from the default branch's last green push run; an unobserved job has no measured saving |
 
 Use both in a large repository: lanes decide which services start, and file selection narrows the biggest lane. gigaverse-backend plans its unit lane by file inside lane-level routing.
 
@@ -49,14 +49,14 @@ The report reads the lane plan on every run and the file explanation only when i
 3. **Declare what imports cannot show.** Data files, subprocess entry points, external checkouts and settings read at runtime belong in lane `inputs` or reader-owned declarations. Lock files and workflows stay global inputs that run everything.
 4. **Keep required checks honest.** A skipped job never reports. CI-esta's `validation-gate` accepts a skip only when planning succeeded and explicitly skipped it; a failed planner runs the complete suite.
 5. **Turn on the sticky.** Set `post-sticky: true`, grant `pull-requests: write`, and pass `sticky-key` when one observer reports several workflows. `plan-lanes` uploads the lane plan, so the lane section needs no extra step.
-6. **Keep full checkpoints.** Main pushes, `test:full` and planner fallbacks run every lane. They are the safety net, and they are the baseline the sticky prices skipped work against.
+6. **Keep full checkpoints.** Manual/scheduled/release events, `test:full` in the triggering event, and conservative planner fallbacks retain full work. Ordinary PRs, pushes and their reruns remain selective. Use explicit `full: 'true'` when another workflow needs a complete checkpoint.
 7. **Reuse evidence last.** Selection asks "what might this change affect?"; [evidence reuse](evidence-reuse.md) asks "did this exact declared work already pass?" Keep conservative fallbacks at both layers.
 
 Use the [selected-lane aggregate gate](selected-gates.md) to keep optional jobs
 and required statuses consistent. CI-esta's own workflow now combines
 pytest-selective lane planning with receipt reuse, while its quality job always
-checks routing, builds distributions and validates metadata. Main, manual and
-`test:full` runs retain complete execution.
+checks routing, builds distributions and validates metadata. Manual and
+`test:full` runs retain complete execution; ordinary main pushes use selection.
 
 ## pytest-obligation: preserve what green means
 

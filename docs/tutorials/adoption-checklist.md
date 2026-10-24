@@ -74,9 +74,9 @@ type checking, CI lint and security admission independently selectable.
   planner must not create a green empty route.
 - [ ] Keep full scheduled/manual checkpoints and existing conformance validators.
 
-The selector's `full: auto` default supplies checkpoints for reruns, manual,
-scheduled and release events, and `test:full`; ordinary PRs and pushes remain
-selective. `base` defaults to the PR base or push's previous commit. Keep an
+The selector's `full: auto` default supplies checkpoints for manual,
+scheduled and release events, and `test:full`; ordinary PRs, pushes and their reruns
+remain selective. `base` defaults to the PR base or push's previous commit. Keep an
 explicit base for validated incremental evidence and an explicit `full` override
 for coverage or manual experiments. Consume `test_roots_json` for file plans so
 paths survive job boundaries without shell splitting. Verify your selected

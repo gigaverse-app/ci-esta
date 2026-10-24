@@ -17,7 +17,7 @@ inputs:
     description: Space-separated complete test roots used if planning cannot prove a narrower scope.
     required: true
   full:
-    description: 'auto selects on PRs/pushes and runs full on reruns, manual/scheduled/release events or test:full. Override with true or false.'
+    description: 'auto preserves selection on PR/push reruns and runs full for manual/scheduled/release checkpoints or test:full. Override with true or false.'
     default: auto
   extra-files:
     description: Optional newline file containing prior failure canaries or additional changed paths.
@@ -52,6 +52,9 @@ inputs:
     description: Artifact name for why the selection is this large, which the ci-observability action renders into the PR
       sticky. Writing it never changes the selection. Empty skips the upload.
     default: test-impact-explanation
+  explanation-format:
+    description: '2 includes recorded selection reasons for CI-esta; use 1 for a legacy strict report reader.'
+    default: '2'
   graph-base:
     description: The PR's base commit. The explanation measures startup-floor and blast-radius changes from its merge base
       with `head`, so they stay visible after `base` moves to a validated tree. Without it, or without the history, they compare
@@ -105,4 +108,5 @@ runs:
       shard-seconds: ${{ inputs.shard-seconds }}
       dependency-token: ${{ inputs.dependency-token }}
       explanation-artifact: ${{ inputs.explanation-artifact }}
+      explanation-format: ${{ inputs.explanation-format }}
       graph-base: ${{ inputs.graph-base }}

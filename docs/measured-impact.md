@@ -99,7 +99,8 @@ when upgrading Bun; this is a measured runtime detail, not a stable public API.
 
 Remove broad `labeled`/`unlabeled` validation triggers when ordinary label changes
 have no effect on the work. Keep a documented immediate full-run mechanism:
-manual full dispatch or explicit rerun. A `test:full` label can still force the
+manual full dispatch or explicit `full: 'true'` input. PR/push reruns preserve
+selection. A `test:full` label present in the event can still force the
 next revision's full validation. Preserve dedicated label-driven security and
 drill workflows that actually use the event.
 
