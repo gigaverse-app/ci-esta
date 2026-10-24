@@ -1,5 +1,6 @@
 """Versioned opinionated defaults. Consumers declare work and only their exceptions."""
 
+from collections.abc import Iterable
 from typing import Any
 
 from ci_esta.policy.models import Profile
@@ -8,13 +9,17 @@ from ci_esta.policy.models import Profile
 def builtin_profiles() -> dict[str, Profile]:
     # No default grants side effects. Expensive work can be affected without being
     # permitted; manual-only work additionally requires an explicit probe.
+    affected = Profile(occasions={"pr", "push", "manual"}, exclude={"expensive", "manual"})
+    affected_deep = Profile(occasions={"pr", "push", "manual"}, exclude={"manual"}, fresh=True)
     full = Profile(occasions={"pr", "manual", "schedule"}, exclude={"manual"}, scope="all", fresh=True)
     return {
-        "ci": Profile(occasions={"pr", "push"}, exclude={"expensive", "manual"}),
+        "affected": affected,
+        "affected_deep": affected_deep,
+        "ci": affected,  # Compatibility spelling; new callers use affected.
         "legacy": Profile(),
         "thorough": Profile(occasions={"manual", "schedule"}, exclude={"expensive", "manual"}, scope="all", fresh=True),
         "full": full,
-        "deep": full,
+        "deep": affected_deep,  # Compatibility spelling; scope now stays affected.
         "exhaustive": full,
         "weekly": full.model_copy(update={"occasions": frozenset({"manual", "schedule"})}),
         "smoke": Profile(
@@ -25,6 +30,25 @@ def builtin_profiles() -> dict[str, Profile]:
         ),
         "probe": Profile(occasions={"manual"}, scope="explicit", fresh=True),
     }
+
+
+def profile_for_run(*, occasion: str, profile: str = "", labels: Iterable[str] = ()) -> str:
+    """An explicit profile wins; otherwise select the shared occasion/label defaults.
+
+    Callers authorize label/comment handling before this function. A full label
+    takes precedence over affected-deep so an explicit checkpoint stays complete.
+    """
+    if profile:
+        return profile
+    if occasion == "schedule":
+        return "weekly"
+    if occasion == "pr":
+        names = set(labels)
+        if "test:full" in names:
+            return "full"
+        if names.intersection({"test:affected-deep", "test:affected_deep", "test:deep"}):
+            return "affected_deep"
+    return "affected"
 
 
 def resolve_profiles(overrides: dict[str, Any], defaults: str) -> dict[str, Profile]:

@@ -157,3 +157,80 @@ def test_typed_inheritance_resolves_once_and_roundtrips():
     assert policy.profiles["costly"].scope == "all"
     assert policy.profiles["costly"].occasions == {"manual", "schedule"}
     assert Policy.model_validate_json(policy.model_dump_json()) == policy
+
+
+@pytest.mark.parametrize(
+    "profile,expected",
+    [
+        ("affected", {"changed"}),
+        ("affected_deep", {"changed", "costly_changed"}),
+        ("weekly", {"changed", "unchanged", "costly_changed", "costly_unchanged"}),
+    ],
+)
+def test_affected_profiles_do_not_expand_unchanged_work(profile, expected):
+    inventory = (
+        Work(id="changed"),
+        Work(id="unchanged"),
+        Work(id="costly_changed", tags={"expensive"}),
+        Work(id="costly_unchanged", tags={"expensive"}),
+        Work(id="manual_changed", tags={"manual"}),
+    )
+    request = Request(
+        profile=profile, occasion="manual", revision="abc", affected={"changed", "costly_changed", "manual_changed"}
+    )
+    result = plan(Policy(), request, inventory)
+    assert {d.work.id for d in result.runnable} == expected
+
+
+@pytest.mark.parametrize(
+    "occasion,labels,explicit,expected",
+    [
+        ("pr", [], "", "affected"),
+        ("pr", ["test:affected-deep"], "", "affected_deep"),
+        ("pr", ["test:deep"], "", "affected_deep"),
+        ("pr", ["test:full"], "", "full"),
+        ("pr", ["test:full", "test:affected-deep"], "", "full"),
+        ("schedule", [], "", "weekly"),
+        ("manual", [], "", "affected"),
+        ("pr", ["test:full"], "legacy", "legacy"),
+    ],
+)
+def test_profile_selection_uses_explicit_request_then_occasion_and_labels(occasion, labels, explicit, expected):
+    from ci_esta.policy.defaults import profile_for_run
+
+    assert profile_for_run(occasion=occasion, labels=labels, profile=explicit) == expected
+
+
+@pytest.mark.parametrize(
+    "occasion,labels,expected",
+    [
+        ("pull_request", [], ["cheap"]),
+        ("pull_request", ["test:affected-deep"], ["cheap", "costly"]),
+        ("schedule", [], ["cheap", "costly", "unchanged"]),
+    ],
+)
+def test_cli_routes_events_without_a_copied_profile_expression(tmp_path, occasion, labels, expected):
+    output = tmp_path / "plan.json"
+    assert (
+        main(
+            [
+                "--work",
+                json.dumps(["cheap", {"id": "costly", "tags": ["expensive"]}, "unchanged"]),
+                "--affected",
+                '["cheap", "costly"]',
+                "--labels",
+                json.dumps(labels),
+                "--occasion",
+                occasion,
+                "--revision",
+                "abc",
+                "--output",
+                str(output),
+                "--github-output",
+                "",
+            ]
+        )
+        == 0
+    )
+    result = json.loads(output.read_text())
+    assert [d["work"]["id"] for d in result["decisions"] if d["status"] == "run"] == expected

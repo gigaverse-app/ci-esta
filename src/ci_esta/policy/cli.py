@@ -10,6 +10,7 @@ import yaml
 from pydantic import TypeAdapter
 
 from ci_esta.policy import ExecutionPlan, Policy, Request, Work, plan
+from ci_esta.policy.defaults import profile_for_run
 
 
 def affected_ids(value: str) -> frozenset[str] | None:
@@ -29,18 +30,21 @@ def write_outputs(result: ExecutionPlan, output: str) -> None:
         "admitted": {item.work.id: item.status == "run" for item in result.decisions},
         "fresh": {item.work.id: item.fresh for item in result.decisions},
         "count": len(result.runnable),
+        "profile": result.request.profile,
         "plan": result.model_dump(mode="json"),
     }
     if output:
         with Path(output).open("a", encoding="utf-8") as stream:
             for key, value in values.items():
-                stream.write(f"{key}={json.dumps(value, separators=(',', ':'))}\n")
+                encoded = value if isinstance(value, str) else json.dumps(value, separators=(",", ":"))
+                stream.write(f"{key}={encoded}\n")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--policy", default="", help="Optional exceptions to built-in defaults")
-    parser.add_argument("--profile", default="ci")
+    parser.add_argument("--profile", default="", help="Override automatic affected/weekly/label selection")
+    parser.add_argument("--labels", default="[]", help="JSON list of trusted PR label names")
     parser.add_argument("--occasion", required=True, help="Normalized occasion or GitHub event name")
     parser.add_argument("--revision", required=True)
     parser.add_argument("--environment")
@@ -92,15 +96,19 @@ def main(argv: list[str] | None = None) -> int:
         # A partial boolean map is unknown evidence, not proof that omitted lanes are unaffected.
         if isinstance(raw_affected, dict) and set(raw_affected) != {item.id for item in inventory}:
             raise ValueError("affected mapping must account for every inventory work ID")
+        labels = json.loads(args.labels)
+        if not isinstance(labels, list) or any(not isinstance(label, str) for label in labels):
+            raise ValueError("labels must be an array of names")
+        occasion = {
+            "pull_request": "pr",
+            "pull_request_target": "pr",
+            "workflow_dispatch": "manual",
+            "workflow_call": "manual",
+            "issue_comment": "manual",
+        }.get(args.occasion, args.occasion)
         request = Request(
-            profile=args.profile,
-            occasion={
-                "pull_request": "pr",
-                "pull_request_target": "pr",
-                "workflow_dispatch": "manual",
-                "workflow_call": "manual",
-                "issue_comment": "manual",
-            }.get(args.occasion, args.occasion),
+            profile=profile_for_run(occasion=occasion, profile=args.profile, labels=labels),
+            occasion=occasion,
             revision=args.revision,
             environment=args.environment or None,
             deployed_revision=args.deployed_revision or None,

@@ -23,6 +23,11 @@ LABELED_EXPRESSION = "github.event_name == 'pull_request' && contains(github.eve
 
 
 class TestComparisonAndLiterals:
+    def test_run_attempt_and_json_action_inputs(self) -> None:
+        assert evaluate("github.run_attempt == 1", {"github": {"run_attempt": 1}})
+        assert not evaluate("github.run_attempt == 1", {"github": {"run_attempt": 2}})
+        assert evaluate_value("toJSON(fromJSON('[1,2]'))", {}) == "[1, 2]"
+
     def test_string_equality_matches_context_value(self) -> None:
         context = pull_request_event("opened")
 

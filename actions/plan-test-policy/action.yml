@@ -5,8 +5,11 @@ inputs:
     description: Optional project exceptions to CI-esta v1 defaults, as YAML or JSON.
     default: ''
   profile:
-    description: Explicit profile; legacy preserves the project's existing scope.
-    default: ci
+    description: Optional override; otherwise affected, weekly on schedules, or the trusted PR label profile.
+    default: ''
+  labels:
+    description: Trusted PR label names; full or affected-deep labels select the corresponding profile.
+    default: ${{ toJSON(github.event.pull_request.labels.*.name || fromJSON('[]')) }}
   occasion:
     description: Normalized occasion or GitHub event name; inferred from this workflow by default.
     default: ${{ github.event_name }}
@@ -38,6 +41,9 @@ inputs:
     description: Destination for the authoritative plan artifact.
     default: test-policy-plan.json
 outputs:
+  profile:
+    description: Resolved profile name.
+    value: ${{ steps.plan.outputs.profile }}
   admitted:
     description: Complete work ID-to-boolean map for executor conditions.
     value: ${{ steps.plan.outputs.admitted }}
@@ -62,6 +68,7 @@ runs:
         SHARED_ACTION_PATH: ${{ github.action_path }}
         POLICY: ${{ inputs.policy }}
         PROFILE: ${{ inputs.profile }}
+        LABELS: ${{ inputs.labels }}
         OCCASION: ${{ inputs.occasion }}
         REVISION: ${{ inputs.revision }}
         AFFECTED: ${{ inputs.affected }}
@@ -79,7 +86,7 @@ runs:
         if [ -n "$INVENTORY" ]; then args+=(--inventory "$INVENTORY"); fi
         uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../.." \
           python -m ci_esta.policy.cli --policy "$POLICY" --profile "$PROFILE" \
-          --occasion "$OCCASION" --revision "$REVISION" --affected "$AFFECTED" \
+          --labels "$LABELS" --occasion "$OCCASION" --revision "$REVISION" --affected "$AFFECTED" \
           --requested "$REQUESTED" --environment "$TARGET_ENVIRONMENT" \
           --deployed-revision "$DEPLOYED_REVISION" --output "$PLAN_OUTPUT" \
           --github-output "$GITHUB_OUTPUT" "${args[@]}"
