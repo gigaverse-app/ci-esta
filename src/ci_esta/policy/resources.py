@@ -4,7 +4,7 @@ The project owns provider registrations and credential discovery. This module is
 pure: it never reads credentials, starts a service, or acquires an account lease.
 """
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -16,7 +16,7 @@ ExecutionMode = Literal["runner", "kubernetes_job"]
 RequiresPin = Requirement
 
 
-class KubernetesJobProfile(BaseModel):
+class KubernetesJobProfile(BaseModel, frozen=True):
     """
     The bundle of fields the workflow's kubernetes_job code path needs to build a pytest Job pod.
 
@@ -45,7 +45,7 @@ class KubernetesJobProfile(BaseModel):
     )
 
 
-class ServiceContainer(BaseModel):
+class ServiceContainer(BaseModel, frozen=True):
     """
     Definition of a runner-side ephemeral container — maps 1:1 to one entry of GitHub Actions' ``services:`` block.
 
@@ -77,7 +77,7 @@ class ServiceContainer(BaseModel):
     )
 
 
-class Provider(BaseModel):
+class Provider(BaseModel, frozen=True):
     """
     One concrete way to satisfy a :class:`Resource`.
 
@@ -213,7 +213,7 @@ class Provider(BaseModel):
         return self
 
 
-class Resource(BaseModel):
+class Resource(BaseModel, frozen=True):
     """
     Named external dependency a test can declare via ``@pytest.mark.requires(ResourceName.X)``.
 
@@ -225,14 +225,14 @@ class Resource(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     name: str = Field(..., description="Resource id, used as the argument to ``requires(...)``.")
-    providers: list[Provider] = Field(
+    providers: Sequence[Provider] = Field(
         ...,
         min_length=1,
         description="Providers in preference order; the first available wins.",
     )
 
 
-class Placement(BaseModel):
+class Placement(BaseModel, frozen=True):
     """
     Reduction of a test's required-providers list to a CI matrix entry.
 
@@ -431,7 +431,7 @@ def resolve_pins(
     return chosen, skip_reasons
 
 
-def placement_for(providers: list[Provider]) -> Placement:
+def placement_for(providers: Sequence[Provider]) -> Placement:
     """
     Reduce a list of resolved providers to a single :class:`Placement`.
 
