@@ -470,14 +470,14 @@ def sticky_marker(key: str = "") -> str:
 
 
 def _readiness(report: CiObservabilityReportV1) -> brand.Badge | None:
-    """Merge readiness, colored by status; None when no required gate is configured."""
+    """Configured CI gate completion, colored by status; None when no required gate is configured."""
     if not report.required_gates:
         return None
     gates = report.attempt_elapsed_seconds
     if gates is not None:
-        return brand.Badge("merge-ready", format_seconds(gates), brand.GREEN)
+        return brand.Badge("CI gates passed", format_seconds(gates), brand.GREEN)
     label = _readiness_label(report)
-    return brand.Badge("merge", label, brand.RED if label == "blocked" else brand.AMBER)
+    return brand.Badge("CI gates", label, brand.RED if label == "blocked" else brand.AMBER)
 
 
 def _cost_badges(report: CiObservabilityReportV1) -> list[brand.Badge]:
@@ -591,13 +591,14 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
         prior = report.runner_cost.raw_runner_seconds - current
         attempts = [f"Latest attempt: **{format_seconds(current)} runner time**. "
                     f"Earlier attempts: **{format_seconds(prior)}**. "
-                    "The runner badge includes all attempts; merge-ready describes the latest attempt.", ""]
+                    "The runner badge includes all attempts; CI gates passed describes the latest attempt.", ""]
     sharding = render_sharding(report)
     sections += [render_avoided_work(report), *([sharding] if sharding else []),
                  markdown.report_section("CI time and cost", [],
-                                         ["Runner minutes use per-job rounding; cost is an estimate.", "",
+                                         ["Configured CI gates only. Reviews, draft status, conflicts and deployment decisions are not assessed.", "",
+                                          "Runner minutes use per-job rounding; cost is an estimate.", "",
                                           *attempts, *impact, *_latency_lines(report)],
-                                         metrics=[_readiness(report) or brand.unavailable("merge-ready"),
+                                         metrics=[_readiness(report) or brand.unavailable("CI gates passed"),
                                                   *_cost_badges(report)])]
     body = "\n---\n\n".join(sections)
     return "\n".join([*_header(report), body, "", "---", "", *_footer(report, marker)])

@@ -108,9 +108,9 @@ def test_bars_are_dates_github_parses_and_end_clear_of_its_controls() -> None:
     # GitHub's Mermaid drew every `dateFormat X` bar from the axis origin; dates parse everywhere.
     assert "    dateFormat YYYY-MM-DD HH:mm:ss\n    axisFormat %M:%S\n" in gantt
     assert "2m 49s · ⏳ 13s :crit, j4, 2000-01-01 00:00:52, 2000-01-01 00:03:41\n" in gantt
-    # GitHub ignores rightPadding: the merge-ready bar extends the axis past the last job instead,
+    # GitHub ignores rightPadding: the CI gates passed bar extends the axis past the last job instead,
     # so GitHub's zoom and pan buttons cover it rather than the jobs.
-    assert "    section ✅ merge-ready 3m 41s\n    ✅ :active, m, 2000-01-01 00:03:41, 2000-01-01 00:04:48\n" in gantt
+    assert "    section ✅ CI gates passed 3m 41s\n    ✅ :active, m, 2000-01-01 00:03:41, 2000-01-01 00:04:48\n" in gantt
 
 
 def test_the_theme_reads_on_both_github_themes_and_never_draws_a_today_line() -> None:
