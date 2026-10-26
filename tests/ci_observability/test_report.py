@@ -112,7 +112,7 @@ def test_rerun_excludes_wait_before_attempt_from_critical_path_and_timeline(atte
     assert report.merge_ready_from_creation_seconds == 7331  # Literal historical metric stays available.
     if attempt == 2:
         assert report.workflow_initial_queue_seconds is None  # Rerun-request time is not available.
-        assert "2m 6s to merge-ready" in render_markdown(report)
+        assert "2m 6s to CI gates passed" in render_markdown(report)
         assert "122m" not in render_markdown(report)
 
 
@@ -365,10 +365,10 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
         "|:--|--:|--:|:--|--:|--:|\n"
         f"| {WORKFLOW_NAME} | 2m 15s | after 5s | Build: image · 2m 1s | 6 min | — |\n"
     ) in markdown
-    # One row per job, named in the left column; orange is the job that finished last before merge-ready.
+    # One row per job, named in the left column; orange is the job that finished last before CI gates passed.
     assert "    section Build image\n    2m 1s :crit, j0, 2000-01-01 00:00:05, 2000-01-01 00:02:06\n" in markdown
     assert "    section Required gate\n    59s :done, j1, 2000-01-01 00:00:05, 2000-01-01 00:01:04\n" in markdown
-    assert "    section ✅ merge-ready 2m 15s\n    ✅ :active, m, 2000-01-01 00:02:15, 2000-01-01 00:02:56\n" in markdown
+    assert "    section ✅ CI gates passed 2m 15s\n    ✅ :active, m, 2000-01-01 00:02:15, 2000-01-01 00:02:56\n" in markdown
     assert "| Backend validation |" not in markdown
     assert "| Required gate | Plan | success |" in markdown
     assert "| Build: image | unavailable | unavailable | 1 | 61s | 2 | 1s | 59s |" in markdown
@@ -547,10 +547,10 @@ def test_active_skipped_reversed_and_missing_gate_data_are_explicit() -> None:
     assert report.merge_ready_from_creation_seconds is None
     markdown = render_markdown(report)
     assert "| gates running |" in markdown
-    # Before merge-ready there is no merge-ready bar, and the chain is the longest one so far.
+    # Before CI gates passed there is no CI gates passed bar, and the chain is the longest one so far.
     assert "orange is the longest chain" in markdown
     assert "    section Active (running)\n    2m 50s :crit, j0, 2000-01-01 00:00:05, 2000-01-01 00:02:55\n" in markdown
-    assert "section ✅ merge-ready" not in markdown
+    assert "section ✅ CI gates passed" not in markdown
     assert 'gate_conclusion="pending"' in render_prometheus(report)
 
 

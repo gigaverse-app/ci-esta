@@ -3,8 +3,8 @@ Render the sticky's CI timeline as a Mermaid gantt chart.
 
 Each job is one row, named in the left column; its bar is its run, labeled with how long it took
 and how long it first waited for a runner. Orange marks the chain the merge waited on, and a
-green bar runs on from merge-ready. GitHub's Mermaid ignores `displayMode: compact`, so a wait
-cannot share its job's row as a bar of its own, and it ignores `rightPadding`, so the merge-ready
+green bar runs on from CI gates passed. GitHub's Mermaid ignores `displayMode: compact`, so a wait
+cannot share its job's row as a bar of its own, and it ignores `rightPadding`, so the CI gates passed
 bar is what keeps the last jobs clear of the zoom and pan buttons GitHub draws on the right edge.
 
 The chain comes from the critical-path analysis of the workflow's `needs` graph when it is
@@ -29,7 +29,7 @@ CHAIN_GAP_SECONDS = 15.0
 CHAIN_SLACK_SECONDS = 3.0
 #: Waits shorter than this are not shown: they are noise at the chart's scale.
 SHOWN_QUEUE_SECONDS = 5.0
-#: The merge-ready bar extends the axis by this share of the run, so GitHub's zoom and pan
+#: The CI gates passed bar extends the axis by this share of the run, so GitHub's zoom and pan
 #: buttons, drawn over the chart's right edge, cover it instead of the last jobs.
 CONTROLS_SHARE = 0.3
 #: Row labels are cut to this many characters; the left column is fixed width.
@@ -114,7 +114,7 @@ def critical_chain(jobs: list[ObservedJobV1], merge_ready_seconds: float | None)
     """
     The jobs the merge waited on, first to last, inferred from timestamps.
 
-    The chain ends at the last job to finish by merge-ready (or at all), and walks back through
+    The chain ends at the last job to finish by CI gates passed (or at all), and walks back through
     the job that finished just before each one was created.
     """
     ends = [job for job in jobs if job.end_offset_seconds is not None]
@@ -184,7 +184,7 @@ def render_timeline(report: CiObservabilityReportV1) -> list[str]:
         return []
     chain, from_graph = _chain(report, jobs)
     title = (
-        f"{format_seconds(merge_ready)} to merge-ready · orange is what the merge waited on"
+        f"{format_seconds(merge_ready)} to CI gates passed · orange is what the CI gates waited on"
         if merge_ready is not None
         else "CI jobs from workflow creation · orange is the longest chain"
     )
@@ -207,7 +207,7 @@ def render_timeline(report: CiObservabilityReportV1) -> list[str]:
     if merge_ready is not None:
         ready = math.ceil(merge_ready)
         lines += [
-            f"    section ✅ merge-ready {format_seconds(merge_ready)}",
+            f"    section ✅ CI gates passed {format_seconds(merge_ready)}",
             f"    ✅ :active, m, {_at(ready)}, {_at(ready + max(math.ceil(ready * CONTROLS_SHARE), 1))}",
         ]
     source = (
