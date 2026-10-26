@@ -12,8 +12,10 @@ continue to use pytest-selective; CI-esta does not build a second import graph.
 
 The public action is `gigaverse-app/ci-esta/actions/run-bun-tests`; see
 [entry-point availability](actions.md) before selecting a release pin.
-Pin a reviewed commit. It needs Node 22+ and Bun >=1.4.2 <2 installed by the caller;
-it installs no Python or application dependencies. Bun owns static/transitive
+Pin a reviewed commit. The caller supplies Bun >=1.4.2 <2 and application
+dependencies. CI-esta owns the adapter in Python and automatically prepares its
+locked, isolated tool environment, shared with reporting and timing actions.
+It does not use or change the application virtual environment or lockfile. Bun owns static/transitive
 imports, aliases and literal dynamic imports through
 [`--changed=<base>`](https://bun.sh/blog/bun-v1.4). The adapter owns conservative
 admission, exact repository inventory, full fallback, execution and reporting.
@@ -22,9 +24,12 @@ The repository owns discovery, global inputs, preload/setup, coverage policy,
 explicit full checkpoints, required check names and always-run contracts.
 The JSON boundary avoids importing arbitrary consumer code into the planner or
 hardcoding a monorepo layout in CI-esta. It also works without GitHub Actions:
-import `planAffectedTests`, `readTestSelection` from `selection.mjs` or
-`runBunTests` from `run.mjs` in a pinned checkout of the action directory.
-No npm package or generic plugin registry is needed for this single native adapter.
+use `SelectionRequest` / `RunRequest` and `plan_affected_tests` / `run_bun_tests`
+from `ci_esta.testing.bun`. Existing `selection.mjs`, `run.mjs` and
+`work-report.mjs` exports remain thin JSON bridges to that same Python code.
+Direct JavaScript consumers need `CI_ESTA_PYTHON` pointing to the prepared tool
+interpreter, or the checkout's `uv sync --locked` environment. The action exports
+that interpreter for subsequent steps; it does not install a second test runner.
 The action also exposes `selection-module`, an absolute module path in the current
 job, so consumer controls can exercise their real policy against the pinned planner.
 
@@ -118,6 +123,28 @@ the full inventory. Optional persisted plans are recomputed at execution; stale,
 missing or forged reuse plans fall back to full. An explicit full override wins.
 Keep generated inventory/reports outside the worktree (for example RUNNER_TEMP).
 Unsupported runtime versions and missing inventory fail visibly.
+
+## Direct Python use
+
+```python
+from pathlib import Path
+from ci_esta.testing.bun.execution import run_bun_tests
+from ci_esta.testing.bun.models import RunRequest
+
+result = run_bun_tests(RunRequest(
+    cwd=Path("/checkout/app"), inventory_file="/tmp/bun-inventory.json",
+    policy_file=".github/test-selection.json", base="<full comparison SHA>",
+    output_directory=Path("/tmp/bun-execution"),
+))
+raise SystemExit(result.exit_code)
+```
+
+Install `ci-esta[selection]` in the tool environment. The GitHub action uses the
+pinned checkout and lockfile. Selection policy, Git proof, inventory checks,
+process orchestration and report models live in Python; Bun owns its native
+import traversal and test process. Python's native dependency graph remains in
+pytest-selective. Extra tool setup and Python bridge startup are costs to measure,
+not evidence of a CI speedup.
 
 ## Evidence and reports
 

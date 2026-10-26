@@ -17,6 +17,29 @@ The policy agrees across languages; discovery, dependency analysis and coverage
 semantics stay with the real runner. Ordinary selected execution, a proven empty
 selection and reuse of a completed job are three different outcomes.
 
+## Maintainer architecture
+
+CI-esta's implementation language is Python even when the application uses
+TypeScript or Bun. `ci_esta.testing.bun` owns typed policy and inventory models,
+Git validation, batching, native process invocation and report conversion.
+It imports pytest-selective's checkpoint function directly and uses the existing
+`WorkSelectionV1` / `WorkExecutionV1` reporting models. The completeness predicate
+is shared by execution and report validation. There is no JavaScript copy of
+event policy to keep synchronized.
+
+Actions use `scripts/ci/tool-runtime.sh`, the same locked environment used by
+reporting and timing. It runs the pinned source with Python 3.14, avoids building
+the tool package on each invocation, and leaves the consumer's environment and
+lockfile alone. The Python API supports Python 3.11+. The old reporting/timing
+launcher paths remain aliases to this runtime.
+
+The existing Bun JavaScript exports are small synchronous JSON bridges for
+adopters that already import them. New integrations should use the action or
+Python API. Bun still resolves its own dependency graph and runs its own tests.
+The shared GitHub evidence resolver currently uses Octokit through github-script;
+it is common to Python and Bun callers, rather than a second language-specific
+policy implementation. This change does not port that existing API integration.
+
 ## Choose scope before deciding whether to execute it again
 
 1. Resolve the occasion and any explicit full request.
@@ -137,16 +160,17 @@ documentation.
 
 | Invariant | Enforcement | Control |
 | --- | --- | --- |
-| Same event policy in Python and Bun | pytest-selective checkpoint API; Node-only `checkpoint.mjs` adapter | `tests/ci/test_checkpoint_parity.py` executes both on identical event payloads and attempts |
+| Same event policy in Python and Bun | One imported `pytest_selective.checkpoint.full_checkpoint_reason` implementation | `tests/testing/test_bun_action_policy.py` verifies real action event/override wiring; native-runner controls cover execution |
 | No older green beyond uncertain newer ownership | Chronological candidate barrier in `resolve.cjs` | `test_unverified_owner_cannot_hide_newer_validation`, all three proof modes, newer/older controls |
 | Index fallback respects newer failures | Paginated check runs, fetched run chronology and ownership barrier | `test_check_index_lag_obeys_chronology_and_ownership`, both API orders |
-| Actual tested merge controls selection | `planAffectedTests` parent/ancestry checks and executor revalidation | Real Git/Bun main-revert failure and docs-only controls in `bun-selection.test.mjs` |
+| Actual tested merge controls selection | Python `plan_affected_tests` parent/ancestry checks and executor revalidation | Real Git/Bun main-revert failure and docs-only controls in `bun-selection.test.mjs` |
 | Requested work and actual execution stay separate | Shared Bun completeness predicate fails execution before a receipt can be published; strict gates | Real Bun execution with damaged timing evidence fails; pytest completion and lane-gate controls |
 
-Run `uv run pytest -q tests/ci/test_checkpoint_parity.py tests/ci/test_incremental_evidence.py`
+Run `uv run pytest -q tests/testing/test_bun_action_policy.py tests/ci/test_incremental_evidence.py`
 and, with Bun >=1.4.2 <2 and Node 22+, `node --test tests/github_actions/bun-selection.test.mjs`.
-The cross-runtime test uses the installed supported pytest-selective package;
-production Bun jobs do not install Python. Hosted public-action smoke exercises
+Both action paths call the supported pytest-selective checkpoint API in Python.
+Bun actions prepare CI-esta's isolated Python environment; application dependencies
+and the native runner remain separate. JavaScript exports are compatibility bridges. Hosted public-action smoke exercises
 the actual composite boundary. Measure same-source full/selected controls,
 required-gate elapsed time, summed runner time and observer overhead separately.
 Correct selection does not itself establish a measured speedup.

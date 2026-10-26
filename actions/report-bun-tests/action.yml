@@ -10,9 +10,12 @@ inputs:
 runs:
   using: composite
   steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
     - shell: bash
       env:
-        REPORT_MODULE: ${{ github.action_path }}/../run-bun-tests/work-report.mjs
+        SHARED_ACTION_PATH: ${{ github.action_path }}
         BUN_EXECUTION_FILE: ${{ inputs.execution-file }}
         BUN_WORK_REPORT: ${{ inputs.output-file }}
-      run: node "$REPORT_MODULE"
+      run: bash "$SHARED_ACTION_PATH/../../scripts/ci/tool-runtime.sh" ci_esta.testing.bun.cli report

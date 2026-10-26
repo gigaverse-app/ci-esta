@@ -175,3 +175,5 @@ reductions for measured time. The published
 comes from pytest-selective and consumer input declarations, not receipt reuse.
 
 For cross-language setup, tested-head/merge identity, main history and failure scenarios, use [the selection and evidence policy](https://github.com/gigaverse-app/ci-esta/blob/main/docs/test-selection-policy.md). Bun `full: auto` follows the same event contract as pytest-selective; use `validated-head` when the baseline is a recorded tested merge.
+
+Keep shared CI policy, Git evidence, completion validation and report conversion in Python. An adopter using Bun or TypeScript does not require a JavaScript CI-esta implementation. Reuse the isolated locked tool runtime and pytest-selective checkpoint API; retain thin JavaScript bridges only for existing import contracts.
