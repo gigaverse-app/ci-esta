@@ -361,7 +361,7 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
     markdown = render_markdown(report)
     assert markdown.startswith('<a href="https://github.com/gigaverse-app/ci-esta"><picture>')
     assert (
-        "| Workflow | Merge-ready | First runner | Longest job | Runner time | Cost |\n"
+        "| Workflow | CI gates passed | First runner | Longest job | Runner time | Cost |\n"
         "|:--|--:|--:|:--|--:|--:|\n"
         f"| {WORKFLOW_NAME} | 2m 15s | after 5s | Build: image · 2m 1s | 6 min | — |\n"
     ) in markdown
@@ -895,7 +895,7 @@ def test_the_selection_sticky_keeps_cost_figures_visible_above_folded_details(
     # The summary line stands in for the heading; the footer that identifies the sticky stays outside.
     assert "#### ⏱️ CI time and cost" not in sticky
     latency = sticky.index(summary)
-    assert latency < sticky.index("| Merge-ready |") < sticky.index("</details>", latency) < sticky.index(STICKY_MARKER)
+    assert latency < sticky.index("| CI gates passed |") < sticky.index("</details>", latency) < sticky.index(STICKY_MARKER)
 
 
 def test_a_report_without_a_selection_still_collapses_latency_and_cost() -> None:

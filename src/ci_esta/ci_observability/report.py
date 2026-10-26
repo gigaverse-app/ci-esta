@@ -635,7 +635,7 @@ def _latency_table(report: CiObservabilityReportV1) -> list[str]:
     longest, longest_name = report.longest_latest_job_seconds, report.longest_latest_job_name
     columns = [
         ("Workflow", ":--", markdown.cell(report.provenance.workflow_name or "")),
-        ("Merge-ready", "--:", format_seconds(gates) if gates is not None else _readiness_label(report)),
+        ("CI gates passed", "--:", format_seconds(gates) if gates is not None else _readiness_label(report)),
         ("First runner", "--:", f"after {format_seconds(admission)}" if admission is not None else ""),
         (
             "Longest job",
