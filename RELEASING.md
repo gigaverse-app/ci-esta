@@ -17,9 +17,13 @@ workflow `release.yml`, and GitHub environment `pypi`. No API token is needed.
 5. Verify a clean install of the exact version and exercise `ci-esta --help`
    and `ci-esta-pytest pools` outside the source checkout.
 
-After successful publication, the workflow advances `v1`, the explicitly declared
+After successful publication, the workflow advances `v2`, the explicitly declared
 Actions API major in `release.yml`. It is independent of the Python package's
-version. Consumers use `gigaverse-app/ci-esta/actions/NAME@v1`.
+version. Consumers use `gigaverse-app/ci-esta/actions/NAME@v2`.
+The v1 alias remains on the compatible 1.6.2 release. V2 removes the Bun
+JavaScript imports and replaces `selection-module` with `python-path`; follow
+[the Bun migration recipe](docs/bun-test-selection.md) before changing pins.
+Do not advance v1 to this incompatible interface.
 Python consumers declare their own compatible package
 range and keep exact artifacts in lockfiles.
 
@@ -31,7 +35,7 @@ major; Python package version changes alone never change that alias.
 
 Full package release tags remain immutable. Prereleases do not advance the Actions
 alias. Python package fixes require a new package release and successful
-validation/publication. For an Actions-only change, advance `v1` to the merged
+validation/publication. For an Actions-only change, advance `v2` to the merged
 commit after its main CI and public action smoke pass. This does not require a
 GitHub release, Python version change, or PyPI publication.
 

@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
     (".github/workflows/observe-ci.yml", False), (".github/pull_request_template.md", False),
     ("src/example.py", True), ("tests/test_example.py", True), ("scripts/ci/setup.py", True),
     ("uv.lock", True), ("importlinter.toml", True), (".github/workflows/ci.yml", True),
-    ("actions/run-bun-tests/selection.mjs", True),
+    ("src/ci_esta/testing/bun/selection.py", True),
     ("actions/resolve-lane-evidence/merged.cjs", True),
     ("src/helpers.ts", True),
     ("tests/github_actions/future.test.mjs", True),

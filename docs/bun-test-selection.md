@@ -24,14 +24,32 @@ The repository owns discovery, global inputs, preload/setup, coverage policy,
 explicit full checkpoints, required check names and always-run contracts.
 The JSON boundary avoids importing arbitrary consumer code into the planner or
 hardcoding a monorepo layout in CI-esta. It also works without GitHub Actions:
-use `SelectionRequest` / `RunRequest` and `plan_affected_tests` / `run_bun_tests`
-from `ci_esta.testing.bun`. Existing `selection.mjs`, `run.mjs` and
-`work-report.mjs` exports remain thin JSON bridges to that same Python code.
-Direct JavaScript consumers need `CI_ESTA_PYTHON` pointing to the prepared tool
-interpreter, or the checkout's `uv sync --locked` environment. The action exports
-that interpreter for subsequent steps; it does not install a second test runner.
-The action also exposes `selection-module`, an absolute module path in the current
-job, so consumer controls can exercise their real policy against the pinned planner.
+import `SelectionRequest` / `RunRequest` from `ci_esta.testing.bun.models`,
+`plan_affected_tests` from `ci_esta.testing.bun.selection`, and `run_bun_tests`
+from `ci_esta.testing.bun.execution`.
+
+After the action, native Python policy controls can use its pinned source and
+prepared interpreter without installing dependencies in the application:
+
+```yaml
+- uses: gigaverse-app/ci-esta/actions/run-bun-tests@<reviewed-commit>
+  id: tests
+  with:
+    inventory: ${{ runner.temp }}/bun-inventory.json
+    policy: .github/test-selection.json
+- name: Verify repository policy
+  env:
+    PYTHONPATH: ${{ steps.tests.outputs.python-path }}
+  run: '"$CI_ESTA_PYTHON" .github/scripts/test_selection.py'
+```
+
+The `python-path` output replaces `selection-module`. The JavaScript imports
+`selection.mjs`, `run.mjs` and `work-report.mjs` have been removed. Migrate policy
+controls to the Python API above, and report custom execution with
+`actions/report-bun-tests` or `ci_esta.testing.bun.report.work_selection_report`.
+Pin the migration commit until Actions v2 is released, then use `@v2`.
+The `@v1` alias and v1.6.2 retain the old output. Existing immutable pins
+remain available during migration.
 
 1. Produce a complete inventory with the repository's existing discovery code:
 
@@ -143,7 +161,7 @@ Install `ci-esta[selection]` in the tool environment. The GitHub action uses the
 pinned checkout and lockfile. Selection policy, Git proof, inventory checks,
 process orchestration and report models live in Python; Bun owns its native
 import traversal and test process. Python's native dependency graph remains in
-pytest-selective. Extra tool setup and Python bridge startup are costs to measure,
+pytest-selective. Extra tool setup and Python process startup are costs to measure,
 not evidence of a CI speedup.
 
 ## Evidence and reports

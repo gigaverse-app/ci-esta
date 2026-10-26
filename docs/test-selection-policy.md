@@ -33,12 +33,12 @@ the tool package on each invocation, and leaves the consumer's environment and
 lockfile alone. The Python API supports Python 3.11+. The old reporting/timing
 launcher paths remain aliases to this runtime.
 
-The existing Bun JavaScript exports are small synchronous JSON bridges for
-adopters that already import them. New integrations should use the action or
-Python API. Bun still resolves its own dependency graph and runs its own tests.
-The shared GitHub evidence resolver currently uses Octokit through github-script;
-it is common to Python and Bun callers, rather than a second language-specific
-policy implementation. This change does not port that existing API integration.
+Bun actions call the Python entry point directly. Native consumer policy tests
+use the prepared `CI_ESTA_PYTHON` interpreter and action's `python-path` output.
+The removed JavaScript imports and migration recipe are documented in the
+[Bun guide](bun-test-selection.md). Node integration tests call the Python JSON
+CLI while exercising real Bun/Git processes; they do not require production
+JavaScript wrappers.
 
 ## Choose scope before deciding whether to execute it again
 
@@ -170,7 +170,7 @@ Run `uv run pytest -q tests/testing/test_bun_action_policy.py tests/ci/test_incr
 and, with Bun >=1.4.2 <2 and Node 22+, `node --test tests/github_actions/bun-selection.test.mjs`.
 Both action paths call the supported pytest-selective checkpoint API in Python.
 Bun actions prepare CI-esta's isolated Python environment; application dependencies
-and the native runner remain separate. JavaScript exports are compatibility bridges. Hosted public-action smoke exercises
+and the native runner remain separate. Consumer policy controls use the native Python API. Hosted public-action smoke exercises
 the actual composite boundary. Measure same-source full/selected controls,
 required-gate elapsed time, summed runner time and observer overhead separately.
 Correct selection does not itself establish a measured speedup.

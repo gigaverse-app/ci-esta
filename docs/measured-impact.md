@@ -55,11 +55,11 @@ must carry its receipt and cannot claim freshly executed tests. File-count
 reductions are not converted to time savings. Only measured benchmark pairs
 support the before/after time table.
 
-Custom Bun runners can import `workSelectionReport` from the pinned action's
-`work-report.mjs`, passing the same execution shape as `runBunTests` and a context
-containing `runId`, `attempt`, and the source run `headSha`. Keep the tested merge
-commit in `execution.testedSha`; it may differ from the PR head. This helper only
-formats evidence and cannot authorize a skip. Python repositories retain
+Custom Python orchestration can call `work_selection_report` from
+`ci_esta.testing.bun.report` with `BunExecution` and `ReportContext` from
+`ci_esta.testing.bun.models`. Keep the tested merge commit in
+`execution.tested_sha`; it may differ from the PR head. This helper only formats
+evidence and cannot authorize a skip. Python repositories retain
 pytest-selective's graph and explanation contracts; base reporting needs no
 pytest installation.
 

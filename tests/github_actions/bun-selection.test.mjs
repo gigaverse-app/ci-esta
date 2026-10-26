@@ -6,8 +6,17 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
-import { planAffectedTests, readTestSelection } from "../../actions/run-bun-tests/selection.mjs";
-import { runBunTests, readInventory } from "../../actions/run-bun-tests/run.mjs";
+const python = process.env.CI_ESTA_PYTHON || fileURLToPath(new URL("../../.venv/bin/python", import.meta.url));
+const pythonEnv = { ...process.env, PYTHONPATH: fileURLToPath(new URL("../../src", import.meta.url)) };
+function command(operation, input) {
+  return JSON.parse(execFileSync(python, ["-m", "ci_esta.testing.bun.cli", operation, "--json-input"], {
+    input: JSON.stringify(input), encoding: "utf8", env: pythonEnv, stdio: ["pipe", "pipe", "inherit"],
+  }));
+}
+const planAffectedTests = options => command("plan", { options });
+const readTestSelection = (path, options) => command("read-plan", { path, options });
+const runBunTests = options => command("run", options);
+const readInventory = (path, cwd) => command("inventory", { path, cwd });
 
 const policy = { schema_version: "ci-esta/bun-policy/v1", scopedRoots: ["packages/features/", "packages/components/"],
   unaffectedPaths: ["README.md", ".github/PULL_REQUEST_TEMPLATE.md"], unaffectedRoots: ["docs/"],
@@ -315,17 +324,6 @@ test("an unchanged extensionless symlink in a runtime root forces full execution
   assert.equal(f.plan({ base }).fallback, true);
 });
 
-test("the action exports its real planner path for subsequent consumer controls", t => {
-  const f = fixture(t);
-  const output = join(f.reports, "github-output");
-  const previous = process.env.GITHUB_OUTPUT;
-  process.env.GITHUB_OUTPUT = output;
-  try { execute(f, f.plan({ full: true })); }
-  finally { if (previous === undefined) delete process.env.GITHUB_OUTPUT; else process.env.GITHUB_OUTPUT = previous; }
-  const values = Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").map(line => line.split("=")));
-  assert.equal(values["selection-module"], new URL("../../actions/run-bun-tests/selection.mjs", import.meta.url).pathname);
-});
-
 for (const revert of [false, true]) {
   test(`tested merge history includes main ${revert ? "reverts" : "docs without a full checkpoint"}`, (t) => {
     const f = fixture(t);
@@ -374,8 +372,8 @@ for (const event of ["pull_request", "push", "workflow_dispatch", "schedule", "r
         files: ["packages/features/value.test.ts"], alwaysRunFiles: []}));
       const eventPath = join(f.reports, "event.json");
       writeFileSync(eventPath, JSON.stringify({pull_request: {labels: []}}));
-      const result = spawnSync(process.execPath, [fileURLToPath(new URL("../../actions/run-bun-tests/run.mjs", import.meta.url))], {
-        cwd: f.cwd, encoding: "utf8", env: {...process.env, GITHUB_RUN_ID: "", GITHUB_OUTPUT: "",
+      const result = spawnSync(python, ["-m", "ci_esta.testing.bun.cli", "run"], {
+        cwd: f.cwd, encoding: "utf8", env: {...pythonEnv, GITHUB_RUN_ID: "", GITHUB_OUTPUT: "",
           GITHUB_EVENT_NAME: event, GITHUB_EVENT_PATH: eventPath, GITHUB_RUN_ATTEMPT: attempt,
           BUN_TEST_INVENTORY: inventory, BUN_TEST_POLICY: ".github/test-selection.json",
           BUN_TEST_BASE: f.base, BUN_TEST_FULL: "auto", BUN_TEST_OUTPUT: f.reports},

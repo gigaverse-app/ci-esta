@@ -26,9 +26,9 @@ inputs:
     description: Fresh output directory outside tracked inputs.
     default: '${{ runner.temp }}/bun-test-selection'
 outputs:
-  selection-module:
-    description: Absolute path to the pinned planner module for consumer policy regression controls in this job.
-    value: ${{ steps.run.outputs.selection-module }}
+  python-path:
+    description: Python module search path for this pinned toolkit, for consumer controls using its native API.
+    value: ${{ steps.run.outputs.python-path }}
   mode:
     description: full, scoped or none. This is selection intent, never a completion receipt.
     value: ${{ steps.run.outputs.mode }}
@@ -57,5 +57,5 @@ runs:
         export PYTHONPATH="$SHARED_ACTION_PATH/../../src"
         CI_ESTA_PYTHON=$(bash "$SHARED_ACTION_PATH/../../scripts/ci/tool-runtime.sh" --prepare)
         echo "CI_ESTA_PYTHON=$CI_ESTA_PYTHON" >> "$GITHUB_ENV"
-        echo "selection-module=$SHARED_ACTION_PATH/selection.mjs" >> "$GITHUB_OUTPUT"
+        echo "python-path=$PYTHONPATH" >> "$GITHUB_OUTPUT"
         "$CI_ESTA_PYTHON" -m ci_esta.testing.bun.cli run

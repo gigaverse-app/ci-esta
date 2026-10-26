@@ -52,7 +52,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           # Actions API version is independent of the Python distribution version.
-          ACTION_API_MAJOR: '1'
+          ACTION_API_MAJOR: '2'
           RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_SHA: ${{ github.sha }}
         run: |
