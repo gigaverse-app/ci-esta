@@ -5,6 +5,8 @@ description: A staged tutorial and completion checklist covering reporting, sele
 
 # Adopt CI-esta, one measured improvement at a time
 
+See the [selection and evidence policy](../test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
+
 Start with one workflow and its required gate. Measure it, choose the most useful
 change, and keep that change only after checking its result. You do not need to
 enable every action. Mark a capability **adopted**, **not applicable**, or

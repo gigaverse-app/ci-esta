@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
 import { planAffectedTests, readTestSelection } from "../../actions/run-bun-tests/selection.mjs";
@@ -324,3 +325,97 @@ test("the action exports its real planner path for subsequent consumer controls"
   const values = Object.fromEntries(readFileSync(output, "utf8").trim().split("\n").map(line => line.split("=")));
   assert.equal(values["selection-module"], new URL("../../actions/run-bun-tests/selection.mjs", import.meta.url).pathname);
 });
+
+for (const revert of [false, true]) {
+  test(`tested merge history includes main ${revert ? "reverts" : "docs without a full checkpoint"}`, (t) => {
+    const f = fixture(t);
+    f.git("checkout", "-qb", "pr");
+    f.put("packages/features/new.ts", "export const added = true;");
+    for (const file of ["value.test.ts", "dynamic.test.ts"]) {
+      const path = join(f.cwd, "packages/features", file);
+      writeFileSync(path, readFileSync(path, "utf8").replace("toBe(1)", "toBe(2)"));
+    }
+    const validatedHead = f.commit();
+    f.git("checkout", "-qb", "main-history", f.base);
+    f.put("packages/features/value.ts", "export const value = 2;");
+    f.commit();
+    f.git("checkout", "-qb", "tested-merge");
+    f.git("merge", "--no-ff", "pr", "-m", "tested merge");
+    const base = f.git("rev-parse", "HEAD");
+    assert.equal(execute(f, f.plan({ full: true })).status, 0);
+    f.git("checkout", "pr");
+    f.put("README.md", "PR docs"); f.commit();
+    f.git("checkout", "main-history");
+    if (revert) f.put("packages/features/value.ts", "export const value = 1;");
+    else f.put("docs/main.md", "Main docs");
+    f.commit();
+    f.git("merge", "--no-ff", "pr", "-m", "current merge");
+    const plan = f.plan({ base, validatedHead });
+    assert.equal(plan.mode, revert ? "scoped" : "none", plan.reason);
+    assert.equal(plan.fallback, false, plan.reason);
+    const actual = execute(f, plan).selection;
+    assert.equal(actual.mode, plan.mode, actual.reason);
+    assert.equal(actual.exitCode, revert ? 1 : 0);
+    if (revert) assert.equal(execute(f, f.plan({ full: true })).status, 1);
+    assert.deepEqual(actual.executedFiles, revert ? ["packages/features/dynamic.test.ts", "packages/features/value.test.ts"] : []);
+    assert.equal(f.plan({ base, validatedHead: f.base }).fallback, true);
+    assert.equal(f.plan({ base, validatedHead: "not-a-sha" }).fallback, true);
+    assert.equal(f.plan({ base }).fallback, true);
+  });
+}
+
+for (const event of ["pull_request", "push", "workflow_dispatch", "schedule", "release", "workflow_call"]) {
+  for (const attempt of ["1", "2"]) {
+    test(`Bun action auto policy: ${event} attempt ${attempt}`, (t) => {
+      const f = fixture(t);
+      f.put("README.md", "Docs"); f.commit();
+      const inventory = join(f.reports, "inventory.json");
+      writeFileSync(inventory, JSON.stringify({schema_version: "ci-esta/bun-inventory/v1",
+        files: ["packages/features/value.test.ts"], alwaysRunFiles: []}));
+      const eventPath = join(f.reports, "event.json");
+      writeFileSync(eventPath, JSON.stringify({pull_request: {labels: []}}));
+      const result = spawnSync(process.execPath, [fileURLToPath(new URL("../../actions/run-bun-tests/run.mjs", import.meta.url))], {
+        cwd: f.cwd, encoding: "utf8", env: {...process.env, GITHUB_RUN_ID: "", GITHUB_OUTPUT: "",
+          GITHUB_EVENT_NAME: event, GITHUB_EVENT_PATH: eventPath, GITHUB_RUN_ATTEMPT: attempt,
+          BUN_TEST_INVENTORY: inventory, BUN_TEST_POLICY: ".github/test-selection.json",
+          BUN_TEST_BASE: f.base, BUN_TEST_FULL: "auto", BUN_TEST_OUTPUT: f.reports},
+      });
+      assert.equal(result.status, 0, result.stderr);
+      const plan = JSON.parse(readFileSync(join(f.reports, "test-selection.json"), "utf8"));
+      assert.equal(plan.mode, ["pull_request", "push"].includes(event) ? "none" : "full", plan.reason);
+    });
+  }
+}
+
+
+for (const damage of ["missing-timings", "missing-full-file", "missing-always-run"]) {
+  test(`successful Bun exit with ${damage} cannot establish completion`, (t) => {
+    const f = fixture(t);
+    const wrapper = join(f.reports, "bun-wrapper.mjs");
+    writeFileSync(wrapper, `#!/usr/bin/env node
+import {spawnSync} from 'node:child_process';
+import {readFileSync,writeFileSync,unlinkSync} from 'node:fs';
+const args=process.argv.slice(2);
+const result=spawnSync(${JSON.stringify(bun)},args,{stdio:'inherit'});
+const path=args.find(arg=>arg.startsWith('--timings='))?.slice('--timings='.length);
+if(path){
+  if(${JSON.stringify(damage)}==='missing-timings') unlinkSync(path);
+  else {
+    const data=JSON.parse(readFileSync(path,'utf8'));
+    delete data.files[Object.keys(data.files)[0]];
+    writeFileSync(path,JSON.stringify(data));
+  }
+}
+process.exitCode=result.status ?? 1;
+`);
+    chmodSync(wrapper, 0o755);
+    if (damage === "missing-always-run") { f.put("README.md", "Docs"); f.commit(); }
+    const plan = damage === "missing-always-run" ? f.plan() : f.plan({ full: true });
+    const result = execute(f, plan, { bun: wrapper,
+      alwaysRunFiles: damage === "missing-always-run" ? ["packages/features/value.test.ts"] : [],
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.selection.complete, false);
+    assert.equal(result.selection.executions.every(batch => batch.exitCode === 0), true);
+  });
+}

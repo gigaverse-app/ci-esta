@@ -8,11 +8,14 @@ inputs:
     description: Repository-owned selection policy JSON.
     required: true
   base:
-    description: Exact committed ancestor SHA; missing or invalid history executes the full inventory.
+    description: Exact comparison commit; use a recorded tested merge together with validated-head. Missing history executes the full inventory.
+    default: ${{ github.event.pull_request.base.sha || github.event.before }}
+  validated-head:
+    description: Optional proven PR head, which must be the comparison merge's second parent and an ancestor of the current checkout.
     default: ''
   full:
-    description: Force the full inventory for scheduled checkpoints, reruns and explicit overrides.
-    default: 'false'
+    description: 'auto keeps PR/push reruns selective and runs full for manual/scheduled/release checkpoints or test:full. Override with true or false.'
+    default: 'auto'
   args:
     description: JSON array of Bun execution flags; default preserves per-file isolation and parallel execution.
     default: '["--isolate","--parallel"]'
@@ -35,15 +38,24 @@ outputs:
 runs:
   using: composite
   steps:
+    - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      with:
+        enable-cache: false
     - id: run
       shell: bash
       env:
-        BUN_TEST_ADAPTER: ${{ github.action_path }}/run.mjs
+        SHARED_ACTION_PATH: ${{ github.action_path }}
         BUN_TEST_INVENTORY: ${{ inputs.inventory }}
         BUN_TEST_POLICY: ${{ inputs.policy }}
         BUN_TEST_BASE: ${{ inputs.base }}
+        BUN_TEST_VALIDATED_HEAD: ${{ inputs.validated-head }}
         BUN_TEST_FULL: ${{ inputs.full }}
         BUN_TEST_ARGS: ${{ inputs.args }}
         BUN_TEST_SHARDS: ${{ inputs.shards }}
         BUN_TEST_OUTPUT: ${{ inputs.output-directory }}
-      run: node "$BUN_TEST_ADAPTER"
+      run: |
+        export PYTHONPATH="$SHARED_ACTION_PATH/../../src"
+        CI_ESTA_PYTHON=$(bash "$SHARED_ACTION_PATH/../../scripts/ci/tool-runtime.sh" --prepare)
+        echo "CI_ESTA_PYTHON=$CI_ESTA_PYTHON" >> "$GITHUB_ENV"
+        echo "selection-module=$SHARED_ACTION_PATH/selection.mjs" >> "$GITHUB_OUTPUT"
+        "$CI_ESTA_PYTHON" -m ci_esta.testing.bun.cli run

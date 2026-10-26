@@ -135,6 +135,32 @@ jobs:
           assert disabled['sync_outcome'] == 'success', disabled
           assert disabled['sync_seconds'] >= 0, disabled
           PY
+      - name: Prepare the public Bun executor smoke
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          Path('.ci-esta-smoke.test.ts').write_text("import {test,expect} from 'bun:test'; test('native executor',()=>expect(2+2).toBe(4));")
+          Path(os.environ['RUNNER_TEMP'], 'bun-inventory.json').write_text(json.dumps({
+              'schema_version': 'ci-esta/bun-inventory/v1',
+              'files': ['.ci-esta-smoke.test.ts'], 'alwaysRunFiles': [],
+          }))
+          PY
+      - uses: ./actions/run-bun-tests
+        with:
+          inventory: ${{ runner.temp }}/bun-inventory.json
+          policy: .github/test-selection.json
+          base: ${{ github.sha }}
+      - name: Verify the public executor retained full fallback
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          result = json.loads(Path(os.environ['RUNNER_TEMP'], 'bun-test-selection/execution-selection.json').read_text())
+          assert result['mode'] == 'full', result
+          assert result['executedFiles'] == ['.ci-esta-smoke.test.ts'], result
+          assert result['exitCode'] == 0, result
+          PY
       - name: Require successful planning after fallback execution
         if: ${{ !cancelled() && needs.select-tests.result != 'success' }}
         run: exit 1

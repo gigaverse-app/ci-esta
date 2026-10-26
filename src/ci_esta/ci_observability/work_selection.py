@@ -6,6 +6,14 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from ci_esta.ci_observability import brand, markdown
 
 
+def execution_is_complete(mode: str, executed_files: list[str] | None, total_files: int,
+                          always_run_files: list[str]) -> bool:
+    """The executor and report must agree before a successful receipt is possible."""
+    return (executed_files is not None
+            and (mode != "full" or len(executed_files) == total_files)
+            and set(always_run_files).issubset(executed_files))
+
+
 class WorkExecutionV1(BaseModel):
     """Observed runner output, separate from the admission request and benchmark evidence."""
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -32,13 +40,10 @@ class WorkExecutionV1(BaseModel):
             raise ValueError("reused work cannot claim newly executed tests")
         if self.status == "not_run" and self.executed_files:
             raise ValueError("unexecuted work cannot contain executed files")
-        if self.status == "passed" and self.executed_files is None:
-            raise ValueError("passed execution needs a known inventory")
-        if self.status == "passed" and self.executed_files is not None:
-            if self.mode == "full" and len(self.executed_files) != self.total_files:
-                raise ValueError("passed full execution must cover the inventory")
-            if not set(self.always_run_files).issubset(self.executed_files):
-                raise ValueError("passed execution must include always-run contracts")
+        if self.status == "passed" and not execution_is_complete(
+            self.mode, self.executed_files, self.total_files, self.always_run_files,
+        ):
+            raise ValueError("passed execution needs a known inventory covering full work and always-run contracts")
         return self
 
 

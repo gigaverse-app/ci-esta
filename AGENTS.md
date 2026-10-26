@@ -15,6 +15,11 @@ the toolkit itself.
   should not become a prerequisite of the validation it measures.
 - pytest-selective owns dependency graphs, explanation models, pytest expansion
   and isolation guards. Reuse its public contracts rather than copying them.
+- Implement shared policy, Git validation, execution orchestration and reporting
+  in Python, including for Bun/TypeScript adopters. Reuse the isolated locked
+  tool runtime; the application's language does not determine CI-esta's language.
+  Keep JavaScript only at necessary native/API boundaries or as thin compatibility
+  wrappers. Do not mirror Python policy in JavaScript and rely on parity tests.
 - Keep report source run/attempt/head identities correct. Unknown timings are
   not zero; runner estimates are not billing. Preserve raw evidence and state
   attribution when publishing [performance claims](docs/benchmarks/2026-10-22.md).

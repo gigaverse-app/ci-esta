@@ -46,6 +46,7 @@ async function resolveIncrementalPrBase({
   evidenceStepName = "",
   pytestEvidence,
   validationEvidence = false,
+  testedMergeStepPrefix = "",
   sameHeadOnly = false,
   conservativeFailures = false,
   cancelledRunEvidenceJobPatterns = [],
@@ -71,6 +72,7 @@ async function resolveIncrementalPrBase({
     !evidenceJobName ||
     (validationEvidence && (!evidenceStepName || sameHeadOnly || pytestEvidence)) ||
     (sameHeadOnly && (!evidenceStepName || pytestEvidence)) ||
+    (testedMergeStepPrefix && !validationEvidence) ||
     !Number.isInteger(pullRequestNumber) ||
     pullRequestNumber <= 0 ||
     !Number.isFinite(maxAgeHours) ||
@@ -92,12 +94,13 @@ async function resolveIncrementalPrBase({
     // admission; the reasons are logged, because a silent fallback hid for weeks that
     // same-head reuse never fired.
     const recoveredOwners = new Set();
+    const unverifiedOwners = new Set();
     const rejectionReasons = (run) => {
       const completedMs = Date.parse(run.updated_at || run.created_at || "");
       const reasons = [];
       if (run.workflow_id !== currentRun.workflow_id) reasons.push("another workflow");
       if (run.status !== "completed") reasons.push(`status ${run.status}`);
-      else if (!validationEvidence && !reusableConclusions.includes(run.conclusion)) reasons.push(`conclusion ${run.conclusion}`);
+      else if (!validationEvidence && !pytestEvidence && !sameHeadOnly && !reusableConclusions.includes(run.conclusion)) reasons.push(`conclusion ${run.conclusion}`);
       // Receipt-bound lanes admit any head of this PR: the receipt names the tested inputs, so
       // an earlier head whose run carries the same receipt tested the same thing (a retag that
       // only moves a first-party pin to an identical tree). A different receipt never matches.
@@ -118,6 +121,7 @@ async function resolveIncrementalPrBase({
           run.event !== "pull_request" || run.head_branch !== headRef) return;
       const reasons = rejectionReasons(run);
       if (reasons.length !== 1 || reasons[0] !== `not associated with PR #${pullRequestNumber}`) return;
+      unverifiedOwners.add(run.id);
       try {
         const jobs = await readEvidence(`jobs:${run.id}`, () => github.paginate(github.rest.actions.listJobsForWorkflowRun, {
           ...context.repo, run_id: run.id, filter: "latest", per_page: 100,
@@ -127,6 +131,7 @@ async function resolveIncrementalPrBase({
         const owner = `PR evidence #${pullRequestNumber} head ${run.head_sha}`;
         if (jobs.some((job) => (job.steps || []).some((step) => step.name === owner && step.conclusion === "success"))) {
           recoveredOwners.add(run.id);
+          unverifiedOwners.delete(run.id);
           core.info(`Recovered PR #${pullRequestNumber} ownership for run ${run.id} from its execution marker.`);
         }
       } catch (error) {
@@ -136,13 +141,14 @@ async function resolveIncrementalPrBase({
     const sameHeadFromCheckRuns = async () => {
       let checkRuns;
       try {
-        ({ data: { check_runs: checkRuns } } = await readEvidence(`checks:${headSha}`, () => github.rest.checks.listForRef({
+        checkRuns = await readEvidence(`checks:${headSha}`, () => github.paginate(github.rest.checks.listForRef, {
           owner: context.repo.owner, repo: context.repo.repo, ref: headSha, per_page: 100,
-        })));
+        }));
       } catch (error) {
         core.warning(`Could not inspect checks on ${headSha} (${error.message}); falling back.`);
         return null;
       }
+      const runs = [];
       for (const runId of runIdsFromCheckRuns(checkRuns, context.runId)) {
         let run;
         try {
@@ -150,11 +156,15 @@ async function resolveIncrementalPrBase({
             owner: context.repo.owner, repo: context.repo.repo, run_id: runId,
           })));
         } catch (error) {
-          core.warning(`Could not inspect same-head run ${runId} (${error.message}); continuing.`);
-          continue;
+          core.warning(`Could not inspect same-head run ${runId} (${error.message}); retaining validation.`);
+          return null;
         }
-        // This fallback covers listing lag for the head itself: only its own runs count here.
+        runs.push(run);
+      }
+      // Check-run transport order cannot let an older success hide newer contradictory proof.
+      for (const run of runs.sort(newestFirst)) {
         await recoverOwner(run);
+        if (unverifiedOwners.has(run.id)) return null;
         const reasons = [...rejectionReasons(run), ...(run.head_sha === headSha ? [] : ["different head"])];
         if (reasons.length) {
           reportRejection(run, reasons);
@@ -174,6 +184,7 @@ async function resolveIncrementalPrBase({
       return rightMs - leftMs || right.id - left.id;
     };
     const evidenceByRunId = new Map();
+    const testedMergeByRunId = new Map();
     let contradictedSameHeadEvidence = false;
     const outsideFallbackBaseBySha = new Map();
     // Runs the listing returned in their final state: already judged, never fetched again.
@@ -280,7 +291,18 @@ async function resolveIncrementalPrBase({
                 (job) => matchesJobPattern(job.name, pattern) && job.conclusion === "success",
               ),
             ));
-        const proven = primaryEvidenceSucceeded && cancelledEvidenceSucceeded;
+        let proven = primaryEvidenceSucceeded && cancelledEvidenceSucceeded;
+        if (proven && testedMergeStepPrefix) {
+          const merges = evidenceJobs.filter(job => job.conclusion === "success" &&
+            (job.steps || []).some(step => receiptMatches(step.name, evidenceStepName) && step.conclusion === "success"))
+            .flatMap(job => (job.steps || []).filter(step =>
+              step.conclusion === "success" && step.name.startsWith(testedMergeStepPrefix))
+              .map(step => step.name.slice(testedMergeStepPrefix.length)));
+          // Only the completed evidence job can name the exact tested merge; masked SHAs cannot identify it.
+          proven = merges.length === 1 && SHA_PATTERN.test(merges[0]);
+          if (proven) testedMergeByRunId.set(run.id, merges[0]);
+          else reportRejection(run, ["missing or ambiguous tested merge identity"]);
+        }
         if (!proven) {
           const reasons = [];
           if (sameHeadOnly && run.run_attempt !== 1) reasons.push(`attempt ${run.run_attempt} (reruns reproduce, never prove)`);
@@ -300,7 +322,8 @@ async function resolveIncrementalPrBase({
         return proven;
       } catch (error) {
         core.warning(`Could not verify evidence job for run ${run.id} (${error.message}); continuing.`);
-        if ((sameHeadOnly || pytestEvidence) && run.head_sha === headSha) contradictedSameHeadEvidence = true;
+        if ((sameHeadOnly && conservativeFailures) || ((sameHeadOnly || pytestEvidence) && run.head_sha === headSha))
+          contradictedSameHeadEvidence = true;
         evidenceByRunId.set(run.id, false);
         return false;
       }
@@ -350,8 +373,13 @@ async function resolveIncrementalPrBase({
         const reasons = rejectionReasons(run);
         if (reasons.length) reportRejection(run, reasons);
       }
-      const candidates = others.filter(isReusableRun);
+      const candidates = others.filter(run => isReusableRun(run) || ((validationEvidence || sameHeadOnly || pytestEvidence) && unverifiedOwners.has(run.id)));
       for (const candidate of candidates) {
+        // An unverified newer owner cannot disappear and expose an older validation success.
+        if (unverifiedOwners.has(candidate.id)) {
+          core.info("Unverified PR ownership prevents advancing the selection base.");
+          return fallback;
+        }
         if (validationEvidence && candidate.conclusion !== "success") {
           core.info("Newer unsuccessful validation prevents advancing the selection base.");
           return fallback;
@@ -379,7 +407,10 @@ async function resolveIncrementalPrBase({
             core.info(
               `Validated evidence candidate ${candidate.head_sha} from run ${candidate.id} for incremental PR selection.`,
             );
-            return pytestEvidence ? evidenceByRunId.get(candidate.id) : { baseSha: candidate.head_sha, reused: true };
+            return pytestEvidence ? evidenceByRunId.get(candidate.id) : {
+              baseSha: candidate.head_sha, reused: true,
+              ...(testedMergeStepPrefix ? { testedMergeSha: testedMergeByRunId.get(candidate.id) } : {}),
+            };
           }
         } catch (error) {
           core.warning(

@@ -1,5 +1,7 @@
 # Improve one CI cost first
 
+See the [selection and evidence policy](test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
+
 For a staged rollout across the toolkit, use the
 [adoption checklist](tutorials/adoption-checklist.md).
 

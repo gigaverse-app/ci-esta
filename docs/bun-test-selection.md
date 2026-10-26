@@ -1,5 +1,7 @@
 # Affected tests with Bun
 
+See the [selection and evidence policy](test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
+
 Use this adapter when the repository actually runs `bun test`. TypeScript and
 React identify source languages and libraries, not the test runner. A project
 using Bun only to install packages may still run Jest, Vitest or Playwright.
@@ -8,10 +10,12 @@ continue to use pytest-selective; CI-esta does not build a second import graph.
 
 ## Contract and ownership
 
-The public action is `gigaverse-app/ci-esta/run-bun-tests`; see
+The public action is `gigaverse-app/ci-esta/actions/run-bun-tests`; see
 [entry-point availability](actions.md) before selecting a release pin.
-Pin a reviewed commit. It needs Node 22+ and Bun >=1.4.2 <2 installed by the caller;
-it installs no Python or application dependencies. Bun owns static/transitive
+Pin a reviewed commit. The caller supplies Bun >=1.4.2 <2 and application
+dependencies. CI-esta owns the adapter in Python and automatically prepares its
+locked, isolated tool environment, shared with reporting and timing actions.
+It does not use or change the application virtual environment or lockfile. Bun owns static/transitive
 imports, aliases and literal dynamic imports through
 [`--changed=<base>`](https://bun.sh/blog/bun-v1.4). The adapter owns conservative
 admission, exact repository inventory, full fallback, execution and reporting.
@@ -20,9 +24,12 @@ The repository owns discovery, global inputs, preload/setup, coverage policy,
 explicit full checkpoints, required check names and always-run contracts.
 The JSON boundary avoids importing arbitrary consumer code into the planner or
 hardcoding a monorepo layout in CI-esta. It also works without GitHub Actions:
-import `planAffectedTests`, `readTestSelection` from `selection.mjs` or
-`runBunTests` from `run.mjs` in a pinned checkout of the action directory.
-No npm package or generic plugin registry is needed for this single native adapter.
+use `SelectionRequest` / `RunRequest` and `plan_affected_tests` / `run_bun_tests`
+from `ci_esta.testing.bun`. Existing `selection.mjs`, `run.mjs` and
+`work-report.mjs` exports remain thin JSON bridges to that same Python code.
+Direct JavaScript consumers need `CI_ESTA_PYTHON` pointing to the prepared tool
+interpreter, or the checkout's `uv sync --locked` environment. The action exports
+that interpreter for subsequent steps; it does not install a second test runner.
 The action also exposes `selection-module`, an absolute module path in the current
 job, so consumer controls can exercise their real policy against the pinned planner.
 
@@ -84,17 +91,19 @@ full/conformance policy of their own.
   with:
     inventory: ${{ runner.temp }}/bun-inventory.json
     policy: .github/test-selection.json
-    base: ${{ github.event.before }}
-    full: ${{ github.run_attempt > 1 || github.event_name == 'schedule' }}
     shards: '8'
     args: '["--isolate","--parallel"]'
     output-directory: ${{ runner.temp }}/bun-test-selection
 ```
 
-The inventory command is an adopter API, not a built-in Bun flag. For a PR use
-its trusted base SHA; for a push use `event.before`; manual measurements supply
-an explicit base SHA. Fetch history. Ordinary PRs and main pushes use selection;
-retain scheduled/manual full checkpoints, explicit full overrides and reruns.
+The inventory command is an adopter API, not a built-in Bun flag. Fetch history.
+The action defaults `base` to the PR base or push `event.before` and `full` to
+`auto`: ordinary PRs/pushes and their reruns stay selective; manual, scheduled,
+release and `test:full` requests run full. Manual measurements can explicitly
+set a base and `full: false`. Reruns execute their selected scope without receipt
+reuse. For validated incremental PR selection, use the
+[complete tested-merge workflow](../examples/bun-tests/workflow.yml) and pass
+`validated-head` with its recorded merge; missing proof retains a full checkpoint.
 Unreferenced documentation must not start tests. Do not apply a whole-suite coverage floor
 to a subset or lower a floor to make it pass. Coverage lanes should stay full.
 
@@ -108,12 +117,34 @@ timeout, concurrency, seed, randomization and dots; selection/output flags are
 owned by the adapter. There is no retry of a failed selected test as a full run
 that could conceal its failure.
 
-Missing/invalid history, dirty tracked files, untracked inputs, malformed policy,
+Missing/invalid history, an invalid recorded merge parent, dirty tracked files, untracked inputs, malformed policy,
 unknown paths, symlinks, renames/deletions and changed reader fingerprints execute
 the full inventory. Optional persisted plans are recomputed at execution; stale,
 missing or forged reuse plans fall back to full. An explicit full override wins.
 Keep generated inventory/reports outside the worktree (for example RUNNER_TEMP).
 Unsupported runtime versions and missing inventory fail visibly.
+
+## Direct Python use
+
+```python
+from pathlib import Path
+from ci_esta.testing.bun.execution import run_bun_tests
+from ci_esta.testing.bun.models import RunRequest
+
+result = run_bun_tests(RunRequest(
+    cwd=Path("/checkout/app"), inventory_file="/tmp/bun-inventory.json",
+    policy_file=".github/test-selection.json", base="<full comparison SHA>",
+    output_directory=Path("/tmp/bun-execution"),
+))
+raise SystemExit(result.exit_code)
+```
+
+Install `ci-esta[selection]` in the tool environment. The GitHub action uses the
+pinned checkout and lockfile. Selection policy, Git proof, inventory checks,
+process orchestration and report models live in Python; Bun owns its native
+import traversal and test process. Python's native dependency graph remains in
+pytest-selective. Extra tool setup and Python bridge startup are costs to measure,
+not evidence of a CI speedup.
 
 ## Evidence and reports
 
@@ -126,7 +157,9 @@ Upload `execution-selection.json` and `test-selection.json` even on failure.
 The execution report records tested SHA/base, mode/reason/fallback, Bun version,
 complete/always-run/actual file inventories, batch statuses and wall milliseconds.
 Native timing files start empty for each invocation; previous measurements never
-claim files ran. A failed process stays failed even if evidence is incomplete.
+claim files ran. A failed process stays failed. Missing timing evidence, missing
+files in a full run or missing always-run contracts also fail the action, even
+when Bun exits zero. The executor and reporter share the same completeness rule.
 
 Upload **only** `ci-work-selection.json` as artifact
 `ci-work-selection-<run_attempt>`; point CI-esta's completed-run observer at that

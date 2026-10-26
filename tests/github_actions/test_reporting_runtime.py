@@ -19,7 +19,9 @@ def test_reporting_and_timing_share_a_locked_isolated_environment(tmp_path):
     sentinel = consumer / ".venv" / "keep"
     sentinel.parent.mkdir()
     sentinel.write_text("preserve")
-    env = dict(os.environ, RUNNER_TEMP=str(tmp_path), UV_PROJECT_ENVIRONMENT=str(sentinel.parent))
+    env = dict(os.environ, RUNNER_TEMP=str(tmp_path), UV_PROJECT_ENVIRONMENT=str(sentinel.parent),
+               GITHUB_RUN_ID="7", GITHUB_RUN_ATTEMPT="2", GITHUB_SHA="a" * 40,
+               GITHUB_EVENT_PATH="", BUN_EXECUTION_FILE=str(consumer / "bun-execution.json"))
     helper = ROOT / "scripts/ci/reporting-runtime.sh"
 
     def invoke(*args):
@@ -33,6 +35,14 @@ def test_reporting_and_timing_share_a_locked_isolated_environment(tmp_path):
     invoke("ci_esta.ci_observability.enrichment", "capture-pytest", "--shard-count", "2",
            "--wall-time", "3", "--total-time", "5", "--out", "timings.json")
     assert json.loads((consumer / "timings.json").read_text())["shard_count"] == 2
+    (consumer / "bun-execution.json").write_text(json.dumps({
+        "mode": "full", "reason": "Full checkpoint", "testedSha": "b" * 40,
+        "bunVersion": "1.4.2", "totalFiles": 2, "executedFiles": ["one.test.ts"], "exitCode": 0,
+    }))
+    invoke("ci_esta.testing.bun.cli", "report")
+    report = json.loads((consumer / "ci-work-selection.json").read_text())
+    assert report["decisions"][0]["execution"]["status"] == "incomplete"
+    assert report["head_sha"] != report["decisions"][0]["execution"]["tested_sha"]
     assert Path(invoke("--prepare")) == interpreter
     assert interpreter.stat().st_mtime_ns == stamp
     assert sentinel.read_text() == "preserve"

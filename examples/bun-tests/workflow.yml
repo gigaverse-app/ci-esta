@@ -1,0 +1,70 @@
+name: Bun validation
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  checks: read
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+      - run: bun install --frozen-lockfile
+      - id: previous
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && !contains(github.event.pull_request.labels.*.name, 'test:full')
+        uses: gigaverse-app/ci-esta/actions/resolve-incremental-pr-base@v1
+        with:
+          fallback-base-sha: ${{ github.event.pull_request.base.sha }}
+          head-sha: ${{ github.event.pull_request.head.sha }}
+          head-ref: ${{ github.head_ref }}
+          pr-number: ${{ github.event.pull_request.number }}
+          evidence-job-name: Tests
+          evidence-step-name: Validated Bun selection v1
+          validation-evidence: 'true'
+          tested-merge-step-prefix: 'Validated merge '
+      - name: Fetch recorded tested merge
+        if: steps.previous.outputs.tested-merge-sha != ''
+        continue-on-error: true
+        env:
+          TESTED_MERGE: ${{ steps.previous.outputs.tested-merge-sha }}
+        run: git fetch --no-tags origin "$TESTED_MERGE"
+      # This is your repository's complete discovery command, not a built-in Bun flag.
+      - run: bun run test:inventory > "$RUNNER_TEMP/bun-inventory.json"
+      - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
+        with:
+          inventory: ${{ runner.temp }}/bun-inventory.json
+          policy: .github/test-selection.json
+          base: ${{ steps.previous.outputs.tested-merge-sha || github.event.pull_request.base.sha || github.event.before }}
+          validated-head: ${{ steps.previous.outputs.reused == 'true' && steps.previous.outputs.base-sha || '' }}
+          full: ${{ github.event_name == 'pull_request' && steps.previous.outputs.reused != 'true' && 'true' || 'auto' }}
+      - name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
+        if: github.event_name == 'pull_request'
+        run: 'true'
+      - name: Validated Bun selection v1
+        run: 'true'
+      - name: Validated merge ${{ github.sha }}
+        run: 'true'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bun-test-execution-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/bun-test-selection/test-selection.json
+            ${{ runner.temp }}/bun-test-selection/execution-selection.json
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ci-work-selection-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/bun-test-selection/ci-work-selection.json
+          if-no-files-found: error

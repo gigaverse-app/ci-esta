@@ -149,6 +149,7 @@ required check and execution-inventory validation. A newer failed, cancelled,
 timed-out or unverifiable validation retains the fallback base. This mode does
 not use the ancestry index-lag fallback, which could miss newer failed proof.
 When `reused` is false, callers requiring a validated baseline must run a full
-checkpoint. Compare the returned PR head against the current tested merge tree
-so changes arriving from the base branch remain in the delta. Keep explicit full
-checkpoints and invalidate the completion contract when execution semantics change.
+checkpoint. Follow the [tested-tree policy and setup](test-selection-policy.md#which-git-identity-was-actually-tested)
+for PR-head versus synthetic-merge comparisons, parent validation and main reverts.
+Keep explicit full checkpoints and invalidate completion markers when the execution
+contract changes.

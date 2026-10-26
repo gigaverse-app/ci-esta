@@ -221,7 +221,7 @@ def test_run_writes_all_outputs_summary_and_sticky(
     report = json.loads(config.report_output.read_text())
     assert report["schema_version"] == "ci-observability/v1"
     assert report["collection_status"] == "complete"
-    assert "| Merge-ready |" in config.markdown_output.read_text()
+    assert "| CI gates passed |" in config.markdown_output.read_text()
     assert "_pytest: 42 passed, 0 failed._" in config.markdown_output.read_text()
     assert "ci_raw_runner_seconds" in config.prometheus_output.read_text()
     assert summary_path.read_text() == config.markdown_output.read_text() + "\n"
@@ -574,9 +574,9 @@ def test_sticky_leads_with_the_selection_measured_against_comparable_runs_of_oth
     assert "1m 18s longest-shard wall, 4m 53s summed test time" in sticky
     # The latency report folds into one closed expander after the section; the footer stays visible.
     latency = sticky.index("<details>\n<summary><strong>CI time and cost</strong>")
-    assert sticky.index("#### 🎯 Test selection") < latency < sticky.index("| Merge-ready |")
+    assert sticky.index("#### 🎯 Test selection") < latency < sticky.index("| CI gates passed |")
     assert sticky.rstrip().endswith("· schema `ci-observability/v1`</sub>")
-    assert sticky.index("</details>", sticky.index("| Merge-ready |")) < sticky.index(STICKY_MARKER)
+    assert sticky.index("</details>", sticky.index("| CI gates passed |")) < sticky.index(STICKY_MARKER)
     section = _report(config).test_selection
     assert section is not None
     # Not this run's own, not a fork's, not unreadable, not another suite size; newest first.
