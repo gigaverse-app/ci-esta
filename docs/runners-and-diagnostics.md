@@ -149,6 +149,15 @@ required check and execution-inventory validation. A newer failed, cancelled,
 timed-out or unverifiable validation retains the fallback base. This mode does
 not use the ancestry index-lag fallback, which could miss newer failed proof.
 When `reused` is false, callers requiring a validated baseline must run a full
-checkpoint. Compare the returned PR head against the current tested merge tree
-so changes arriving from the base branch remain in the delta. Keep explicit full
-checkpoints and invalidate the completion contract when execution semantics change.
+checkpoint. If tests check out the PR head, compare that validated head with the
+current tested head. If tests check out GitHub's synthetic merge, also set
+`tested-merge-step-prefix: 'Validated merge '` and publish a successful top-level
+step named `Validated merge ${{ github.sha }}` in the evidence job after validation.
+The resolver returns that exact commit as `tested-merge-sha`, separately from the
+validated PR head in `base-sha`. Fetch the recorded merge, verify its second parent
+is `base-sha` and that head is an ancestor of the current tested tree, then compare
+the two tested trees directly. Historical synthetic merges need not be ancestors
+of each other. This includes reverted base-branch changes without forcing a full
+suite for unrelated base updates. Missing or unverifiable merge history requires
+full validation. Keep explicit full checkpoints and invalidate the completion
+contract when execution semantics change.

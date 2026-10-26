@@ -82,7 +82,7 @@ const github = strictGithub({
       }),
       listJobsForWorkflowRun: async ({ run_id }) => {
         reads.push(`jobs:${run_id}`);
-        if (input.failAt === "jobs") throw new Error("jobs API unavailable");
+        if (input.failAt === "jobs" || input.failedJobRunId === run_id) throw new Error("HTTP 502: jobs API unavailable");
         return { data: {
           jobs: input.jobsByRun?.[run_id] ?? [
             { name: "Security evidence", conclusion: "success" },
@@ -148,6 +148,7 @@ const core = { warning: (message) => warnings.push(message), info: (message) => 
     evidenceStepName: input.evidenceStepName ?? "",
     pytestEvidence: input.pytestEvidence,
     validationEvidence: input.validationEvidence ?? false,
+    testedMergeStepPrefix: input.testedMergeStepPrefix ?? "",
     sameHeadOnly: input.sameHeadOnly ?? false,
     conservativeFailures: input.conservativeFailures ?? false,
     cancelledRunEvidenceJobPatterns: input.cancelledRunEvidenceJobPatterns ?? [],
@@ -1391,3 +1392,75 @@ def test_validation_base_requires_completion_and_does_not_cross_newer_failure(va
     })["result"]
     assert resolved == {"baseSha": SUCCESSFUL_ANCESTOR_SHA if variant == "valid" else FALLBACK_BASE_SHA,
                         "reused": variant == "valid"}
+
+
+@pytest.mark.parametrize("conclusion", ["success", "failure", "cancelled", "timed_out"])
+@pytest.mark.parametrize("newer", [True, False])
+def test_unverified_owner_cannot_hide_newer_validation(conclusion, newer):
+    marker = "Validated Bun v2"
+    success = {
+        "id": 1, "status": "completed", "conclusion": "success",
+        "head_sha": SUCCESSFUL_ANCESTOR_SHA, "updated_at": RECENT_SUCCESS_TIME,
+        "pull_requests": [{"number": PULL_REQUEST_NUMBER}],
+    }
+    unknown = {
+        **success, "id": 2, "conclusion": conclusion, "pull_requests": [],
+        "event": "pull_request", "head_branch": "feature/security-ci",
+        "head_sha": FAILED_ANCESTOR_SHA,
+        "updated_at": CURRENT_TIME if newer else "2026-09-01T11:00:00Z",
+    }
+    observed = _resolve_incremental_base({
+        "workflowId": WORKFLOW_ID, "runs": [success, unknown],
+        "jobsByRun": {1: [{"name": "checks", "conclusion": "success", "steps": [
+            {"name": marker, "conclusion": "success"},
+        ]}]},
+        "failedJobRunId": 2,
+        "comparisons": {f"{SUCCESSFUL_ANCESTOR_SHA}...{CURRENT_HEAD_SHA}": {"status": "ahead"}},
+        "fallbackBaseSha": FALLBACK_BASE_SHA, "headSha": CURRENT_HEAD_SHA,
+        "pullRequestNumber": PULL_REQUEST_NUMBER, "currentTime": CURRENT_TIME,
+        "evidenceJobName": "checks", "evidenceStepName": marker, "validationEvidence": True,
+    })
+    assert observed["result"] == {
+        "baseSha": FALLBACK_BASE_SHA if newer else SUCCESSFUL_ANCESTOR_SHA,
+        "reused": not newer,
+    }
+    assert any("HTTP 502" in warning for warning in observed["warnings"])
+
+
+@pytest.mark.parametrize("variant", ["valid", "missing", "malformed", "masked", "failed", "other-job", "conflicting"])
+def test_validation_returns_only_the_merge_recorded_by_the_completed_job(variant):
+    merge = "1" * 40
+    prefix = "Validated merge "
+    tree_marker = {"name": prefix + merge, "conclusion": "success"}
+    if variant == "malformed":
+        tree_marker["name"] = prefix + "not-a-commit"
+    if variant == "masked":
+        tree_marker["name"] = prefix + "1" * 20 + "***" + "1" * 17
+    if variant == "failed":
+        tree_marker["conclusion"] = "failure"
+    job = {"name": "checks", "conclusion": "success", "steps": [
+        {"name": "Validated Bun v2", "conclusion": "success"},
+    ]}
+    jobs = [job]
+    if variant not in {"missing", "other-job"}:
+        job["steps"].append(tree_marker)
+    if variant == "other-job":
+        jobs.append({"name": "unrelated", "conclusion": "success", "steps": [tree_marker]})
+    if variant == "conflicting":
+        job["steps"].append({"name": prefix + "2" * 40, "conclusion": "success"})
+    observed = _resolve_incremental_base({
+        "workflowId": WORKFLOW_ID,
+        "runs": [{"id": 1, "status": "completed", "conclusion": "success",
+                  "head_sha": SUCCESSFUL_ANCESTOR_SHA, "updated_at": RECENT_SUCCESS_TIME,
+                  "pull_requests": [{"number": PULL_REQUEST_NUMBER}]}],
+        "jobsByRun": {1: jobs},
+        "comparisons": {f"{SUCCESSFUL_ANCESTOR_SHA}...{CURRENT_HEAD_SHA}": {"status": "ahead"}},
+        "fallbackBaseSha": FALLBACK_BASE_SHA, "headSha": CURRENT_HEAD_SHA,
+        "pullRequestNumber": PULL_REQUEST_NUMBER, "currentTime": CURRENT_TIME,
+        "evidenceJobName": "checks", "evidenceStepName": "Validated Bun v2", "validationEvidence": True,
+        "testedMergeStepPrefix": prefix,
+    })
+    expected = {"baseSha": FALLBACK_BASE_SHA, "reused": False}
+    if variant == "valid":
+        expected = {"baseSha": SUCCESSFUL_ANCESTOR_SHA, "reused": True, "testedMergeSha": merge}
+    assert observed["result"] == expected

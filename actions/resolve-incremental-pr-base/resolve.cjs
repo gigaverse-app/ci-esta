@@ -46,6 +46,7 @@ async function resolveIncrementalPrBase({
   evidenceStepName = "",
   pytestEvidence,
   validationEvidence = false,
+  testedMergeStepPrefix = "",
   sameHeadOnly = false,
   conservativeFailures = false,
   cancelledRunEvidenceJobPatterns = [],
@@ -71,6 +72,7 @@ async function resolveIncrementalPrBase({
     !evidenceJobName ||
     (validationEvidence && (!evidenceStepName || sameHeadOnly || pytestEvidence)) ||
     (sameHeadOnly && (!evidenceStepName || pytestEvidence)) ||
+    (testedMergeStepPrefix && !validationEvidence) ||
     !Number.isInteger(pullRequestNumber) ||
     pullRequestNumber <= 0 ||
     !Number.isFinite(maxAgeHours) ||
@@ -92,6 +94,7 @@ async function resolveIncrementalPrBase({
     // admission; the reasons are logged, because a silent fallback hid for weeks that
     // same-head reuse never fired.
     const recoveredOwners = new Set();
+    const unverifiedOwners = new Set();
     const rejectionReasons = (run) => {
       const completedMs = Date.parse(run.updated_at || run.created_at || "");
       const reasons = [];
@@ -118,6 +121,7 @@ async function resolveIncrementalPrBase({
           run.event !== "pull_request" || run.head_branch !== headRef) return;
       const reasons = rejectionReasons(run);
       if (reasons.length !== 1 || reasons[0] !== `not associated with PR #${pullRequestNumber}`) return;
+      unverifiedOwners.add(run.id);
       try {
         const jobs = await readEvidence(`jobs:${run.id}`, () => github.paginate(github.rest.actions.listJobsForWorkflowRun, {
           ...context.repo, run_id: run.id, filter: "latest", per_page: 100,
@@ -127,6 +131,7 @@ async function resolveIncrementalPrBase({
         const owner = `PR evidence #${pullRequestNumber} head ${run.head_sha}`;
         if (jobs.some((job) => (job.steps || []).some((step) => step.name === owner && step.conclusion === "success"))) {
           recoveredOwners.add(run.id);
+          unverifiedOwners.delete(run.id);
           core.info(`Recovered PR #${pullRequestNumber} ownership for run ${run.id} from its execution marker.`);
         }
       } catch (error) {
@@ -174,6 +179,7 @@ async function resolveIncrementalPrBase({
       return rightMs - leftMs || right.id - left.id;
     };
     const evidenceByRunId = new Map();
+    const testedMergeByRunId = new Map();
     let contradictedSameHeadEvidence = false;
     const outsideFallbackBaseBySha = new Map();
     // Runs the listing returned in their final state: already judged, never fetched again.
@@ -280,7 +286,18 @@ async function resolveIncrementalPrBase({
                 (job) => matchesJobPattern(job.name, pattern) && job.conclusion === "success",
               ),
             ));
-        const proven = primaryEvidenceSucceeded && cancelledEvidenceSucceeded;
+        let proven = primaryEvidenceSucceeded && cancelledEvidenceSucceeded;
+        if (proven && testedMergeStepPrefix) {
+          const merges = evidenceJobs.filter(job => job.conclusion === "success" &&
+            (job.steps || []).some(step => receiptMatches(step.name, evidenceStepName) && step.conclusion === "success"))
+            .flatMap(job => (job.steps || []).filter(step =>
+              step.conclusion === "success" && step.name.startsWith(testedMergeStepPrefix))
+              .map(step => step.name.slice(testedMergeStepPrefix.length)));
+          // Only the completed evidence job can name the exact tested merge; masked SHAs cannot identify it.
+          proven = merges.length === 1 && SHA_PATTERN.test(merges[0]);
+          if (proven) testedMergeByRunId.set(run.id, merges[0]);
+          else reportRejection(run, ["missing or ambiguous tested merge identity"]);
+        }
         if (!proven) {
           const reasons = [];
           if (sameHeadOnly && run.run_attempt !== 1) reasons.push(`attempt ${run.run_attempt} (reruns reproduce, never prove)`);
@@ -350,8 +367,13 @@ async function resolveIncrementalPrBase({
         const reasons = rejectionReasons(run);
         if (reasons.length) reportRejection(run, reasons);
       }
-      const candidates = others.filter(isReusableRun);
+      const candidates = others.filter(run => isReusableRun(run) || (validationEvidence && unverifiedOwners.has(run.id)));
       for (const candidate of candidates) {
+        // An unverified newer owner cannot disappear and expose an older validation success.
+        if (validationEvidence && unverifiedOwners.has(candidate.id)) {
+          core.info("Unverified PR ownership prevents advancing the selection base.");
+          return fallback;
+        }
         if (validationEvidence && candidate.conclusion !== "success") {
           core.info("Newer unsuccessful validation prevents advancing the selection base.");
           return fallback;
@@ -379,7 +401,10 @@ async function resolveIncrementalPrBase({
             core.info(
               `Validated evidence candidate ${candidate.head_sha} from run ${candidate.id} for incremental PR selection.`,
             );
-            return pytestEvidence ? evidenceByRunId.get(candidate.id) : { baseSha: candidate.head_sha, reused: true };
+            return pytestEvidence ? evidenceByRunId.get(candidate.id) : {
+              baseSha: candidate.head_sha, reused: true,
+              ...(testedMergeStepPrefix ? { testedMergeSha: testedMergeByRunId.get(candidate.id) } : {}),
+            };
           }
         } catch (error) {
           core.warning(

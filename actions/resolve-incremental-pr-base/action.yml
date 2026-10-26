@@ -29,6 +29,12 @@ inputs:
   validation-evidence:
     description: Require a completion step and retain the fallback base after newer unsuccessful or uncertain validation.
     default: "false"
+  tested-merge-step-prefix:
+    description: >
+      With validation-evidence, require one successful step in the completed evidence
+      job naming this prefix followed by the exact tested merge SHA. Consumers must
+      fetch that commit and verify its PR-head parent before selecting from its tree.
+    default: ""
   cancelled-run-evidence-job-patterns:
     description: >
       Newline-delimited glob patterns for every scanner job that must have
@@ -49,6 +55,9 @@ outputs:
   base-sha:
     description: Proven successful ancestor, or fallback-base-sha.
     value: ${{ steps.resolve.outputs.base-sha }}
+  tested-merge-sha:
+    description: Exact tested merge from successful evidence; empty on fallback or without a prefix.
+    value: ${{ steps.resolve.outputs.tested-merge-sha }}
   reused:
     description: Whether base-sha came from a prior successful workflow run.
     value: ${{ steps.resolve.outputs.reused }}
@@ -65,6 +74,7 @@ runs:
         HEAD_REF: ${{ inputs.head-ref }}
         PR_NUMBER: ${{ inputs.pr-number }}
         EVIDENCE_STEP_NAME: ${{ inputs.evidence-step-name }}
+        TESTED_MERGE_STEP_PREFIX: ${{ inputs.tested-merge-step-prefix }}
         VALIDATION_EVIDENCE: ${{ inputs.validation-evidence }}
         EVIDENCE_JOB_NAME: ${{ inputs.evidence-job-name }}
         CANCELLED_RUN_EVIDENCE_JOB_PATTERNS: ${{ inputs.cancelled-run-evidence-job-patterns }}
@@ -83,6 +93,7 @@ runs:
             pullRequestNumber: Number(process.env.PR_NUMBER),
             evidenceJobName: process.env.EVIDENCE_JOB_NAME,
             evidenceStepName: process.env.EVIDENCE_STEP_NAME,
+            testedMergeStepPrefix: process.env.TESTED_MERGE_STEP_PREFIX,
             validationEvidence: process.env.VALIDATION_EVIDENCE === "true",
             cancelledRunEvidenceJobPatterns: process.env.CANCELLED_RUN_EVIDENCE_JOB_PATTERNS
               .split("\n")
@@ -92,3 +103,4 @@ runs:
           });
           core.setOutput("base-sha", result.baseSha);
           core.setOutput("reused", result.reused ? "true" : "false");
+          core.setOutput("tested-merge-sha", result.testedMergeSha || "");
