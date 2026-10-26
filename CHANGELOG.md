@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.2](https://github.com/gigaverse-app/ci-esta/compare/v1.6.1...v1.6.2) (2026-10-26)
+
+
+### Bug fixes
+
+* **ci:** unify Python selection policy and validation evidence ([#117](https://github.com/gigaverse-app/ci-esta/issues/117)) ([d4347d5](https://github.com/gigaverse-app/ci-esta/commit/d4347d515da456263bfb7ebbdc21a9a486e9e836))
+* **report:** distinguish CI gate completion from merge readiness ([#114](https://github.com/gigaverse-app/ci-esta/issues/114)) ([c101f10](https://github.com/gigaverse-app/ci-esta/commit/c101f1085b66ba2904b2e0605fc933d88add62f3))
+* **report:** retain reports when test summaries exceed the display limit ([#115](https://github.com/gigaverse-app/ci-esta/issues/115)) ([e14c416](https://github.com/gigaverse-app/ci-esta/commit/e14c416310bb5e781d162a7359e4e9e71b927534))
+
 ## [1.6.1](https://github.com/gigaverse-app/ci-esta/compare/v1.6.0...v1.6.1) (2026-10-24)
 
 
