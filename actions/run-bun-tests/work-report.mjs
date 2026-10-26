@@ -3,13 +3,17 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+export function executionIsComplete({ mode, executedFiles, totalFiles, alwaysRunFiles = [] }) {
+  return Array.isArray(executedFiles) && (mode !== "full" || executedFiles.length === totalFiles) &&
+    alwaysRunFiles.every(file => executedFiles.includes(file));
+}
+
 export function workSelectionReport(execution, context) {
   const { mode, reason, fallback, testedSha, base, bunVersion, totalFiles,
     executedFiles, alwaysRunFiles = [], durationMs, exitCode, receipt } = execution;
   const reused = mode === "reused";
   const known = Array.isArray(executedFiles);
-  const complete = known && (mode !== "full" || executedFiles.length === totalFiles) &&
-    alwaysRunFiles.every(file => executedFiles.includes(file));
+  const complete = executionIsComplete(execution);
   const status = reused ? "not_run" : exitCode !== 0 ? "failed" : !complete ? "incomplete" : "passed";
   return {
     schema_version: "ci-esta/work-selection/v1", provider: "Bun",

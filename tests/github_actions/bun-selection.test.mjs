@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -385,4 +385,37 @@ for (const event of ["pull_request", "push", "workflow_dispatch", "schedule", "r
       assert.equal(plan.mode, ["pull_request", "push"].includes(event) ? "none" : "full", plan.reason);
     });
   }
+}
+
+
+for (const damage of ["missing-timings", "missing-full-file", "missing-always-run"]) {
+  test(`successful Bun exit with ${damage} cannot establish completion`, (t) => {
+    const f = fixture(t);
+    const wrapper = join(f.reports, "bun-wrapper.mjs");
+    writeFileSync(wrapper, `#!/usr/bin/env node
+import {spawnSync} from 'node:child_process';
+import {readFileSync,writeFileSync,unlinkSync} from 'node:fs';
+const args=process.argv.slice(2);
+const result=spawnSync(${JSON.stringify(bun)},args,{stdio:'inherit'});
+const path=args.find(arg=>arg.startsWith('--timings='))?.slice('--timings='.length);
+if(path){
+  if(${JSON.stringify(damage)}==='missing-timings') unlinkSync(path);
+  else {
+    const data=JSON.parse(readFileSync(path,'utf8'));
+    delete data.files[Object.keys(data.files)[0]];
+    writeFileSync(path,JSON.stringify(data));
+  }
+}
+process.exitCode=result.status ?? 1;
+`);
+    chmodSync(wrapper, 0o755);
+    if (damage === "missing-always-run") { f.put("README.md", "Docs"); f.commit(); }
+    const plan = damage === "missing-always-run" ? f.plan() : f.plan({ full: true });
+    const result = execute(f, plan, { bun: wrapper,
+      alwaysRunFiles: damage === "missing-always-run" ? ["packages/features/value.test.ts"] : [],
+    });
+    assert.notEqual(result.status, 0);
+    assert.equal(result.selection.complete, false);
+    assert.equal(result.selection.executions.every(batch => batch.exitCode === 0), true);
+  });
 }

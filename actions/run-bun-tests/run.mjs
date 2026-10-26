@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { planAffectedTests, readTestSelection, safePath } from "./selection.mjs";
 import { fullCheckpointReason } from "./checkpoint.mjs";
-import { workSelectionReport } from "./work-report.mjs";
+import { executionIsComplete, workSelectionReport } from "./work-report.mjs";
 
 export function readInventory(path, cwd) {
   const inventory = JSON.parse(readFileSync(path, "utf8"));
@@ -77,7 +77,12 @@ export function runBunTests({ cwd = process.cwd(), inventoryFile, policyFile, ba
   }
   const inventoryKnown = executions.every(item => item.executedFiles !== null);
   const executedFiles = inventoryKnown ? [...new Set(executions.flatMap(item => item.executedFiles))].sort() : null;
-  const result = { schema_version: "ci-esta/bun-execution/v1", ...plan, bunVersion: version,
+  const complete = executionIsComplete({ mode: plan.mode, executedFiles, totalFiles: files.length, alwaysRunFiles });
+  if (!complete && exitCode === 0) {
+    console.error("Bun execution inventory is incomplete; successful processes alone cannot establish validation");
+    exitCode = 1;
+  }
+  const result = { complete, schema_version: "ci-esta/bun-execution/v1", ...plan, bunVersion: version,
     cpuCount: cpus().length, workers: args.some(arg => arg === "--parallel") ? null :
       Number(args.find(arg => arg.startsWith("--parallel="))?.split("=")[1] || 1),
     totalFiles: files.length, alwaysRunFiles, executedFiles, executions, durationMs: performance.now() - started, exitCode };

@@ -130,7 +130,9 @@ Upload `execution-selection.json` and `test-selection.json` even on failure.
 The execution report records tested SHA/base, mode/reason/fallback, Bun version,
 complete/always-run/actual file inventories, batch statuses and wall milliseconds.
 Native timing files start empty for each invocation; previous measurements never
-claim files ran. A failed process stays failed even if evidence is incomplete.
+claim files ran. A failed process stays failed. Missing timing evidence, missing
+files in a full run or missing always-run contracts also fail the action, even
+when Bun exits zero. The executor and reporter share the same completeness rule.
 
 Upload **only** `ci-work-selection.json` as artifact
 `ci-work-selection-<run_attempt>`; point CI-esta's completed-run observer at that

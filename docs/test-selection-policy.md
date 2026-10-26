@@ -141,7 +141,7 @@ documentation.
 | No older green beyond uncertain newer ownership | Chronological candidate barrier in `resolve.cjs` | `test_unverified_owner_cannot_hide_newer_validation`, all three proof modes, newer/older controls |
 | Index fallback respects newer failures | Paginated check runs, fetched run chronology and ownership barrier | `test_check_index_lag_obeys_chronology_and_ownership`, both API orders |
 | Actual tested merge controls selection | `planAffectedTests` parent/ancestry checks and executor revalidation | Real Git/Bun main-revert failure and docs-only controls in `bun-selection.test.mjs` |
-| Requested work and actual execution stay separate | Execution inventory and strict gate; receipt after completion | Bun failure/always-run controls, pytest completion and lane-gate tests |
+| Requested work and actual execution stay separate | Shared Bun completeness predicate fails execution before a receipt can be published; strict gates | Real Bun execution with damaged timing evidence fails; pytest completion and lane-gate controls |
 
 Run `uv run pytest -q tests/ci/test_checkpoint_parity.py tests/ci/test_incremental_evidence.py`
 and, with Bun >=1.4.2 <2 and Node 22+, `node --test tests/github_actions/bun-selection.test.mjs`.
