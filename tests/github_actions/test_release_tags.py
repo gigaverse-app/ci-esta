@@ -12,11 +12,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 @pytest.mark.parametrize("exists", [True, False])
 @pytest.mark.parametrize("release,alias", [
-    ("v0.3.1", "v1"), ("v0.4.0", "v1"),
-    ("v1.0.0", "v1"), ("v1.0.1", "v1"), ("v1.2.0", "v1"), ("v2.0.0", "v1"),
+    ("v0.3.1", "v2"), ("v0.4.0", "v2"),
+    ("v1.0.0", "v2"), ("v1.0.1", "v2"), ("v1.2.0", "v2"), ("v2.0.0", "v2"),
     ("v1.1.0-rc.1", None), ("v1.1.0+build", None), ("main", None), ("v1", None),
 ])
-def test_publication_updates_only_the_compatible_alias(release: str, alias: str | None, exists: bool) -> None:
+def test_publication_preserves_v1_and_updates_only_the_v2_alias(release: str, alias: str | None, exists: bool) -> None:
     workflow = yaml.safe_load((ROOT / ".github/workflows/release.yml").read_text())
     job = workflow["jobs"]["action-version"]
     assert job["needs"] == "publish"
