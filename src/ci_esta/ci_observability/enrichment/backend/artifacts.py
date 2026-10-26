@@ -20,7 +20,7 @@ from ci_esta.ci_observability.enrichment.models import (
     RepositorySignal,
 )
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
-from ci_esta.ci_observability.models import PYTEST_TIMING_SIGNAL
+from ci_esta.ci_observability.models import PYTEST_TIMING_SIGNAL, REPOSITORY_SIGNAL_VALUE_LIMIT
 
 
 def parse_coverage_xml(path: Path) -> float | None:
@@ -124,6 +124,14 @@ def build_extension(
     )
 
 
+def _summary(value: str) -> str:
+    # A display limit must not discard the whole report. Full nodeids and
+    # infrastructure labels remain unchanged in the typed extension artifact.
+    if len(value) <= REPOSITORY_SIGNAL_VALUE_LIMIT:
+        return value
+    return value[: REPOSITORY_SIGNAL_VALUE_LIMIT - 1] + "…"
+
+
 def build_repository_signals(
     extension: BackendExtensions,
 ) -> list[RepositorySignal]:
@@ -134,7 +142,7 @@ def build_repository_signals(
             RepositorySignal(
                 key="likely_infra_failure",
                 label="⚠️ Likely CI infra failure",
-                value="; ".join(signal.label for signal in backend.infra_signals),
+                value=_summary("; ".join(signal.label for signal in backend.infra_signals)),
             )
         )
     if backend.pytest:
@@ -165,7 +173,7 @@ def build_repository_signals(
                 RepositorySignal(
                     key="slowest_tests",
                     label="Slowest tests",
-                    value="; ".join(f"{test.seconds:.1f}s {test.nodeid}" for test in pytest.slowest[:3]),
+                    value=_summary("; ".join(f"{test.seconds:.1f}s {test.nodeid}" for test in pytest.slowest[:3])),
                 )
             )
     if backend.coverage_percent is not None:

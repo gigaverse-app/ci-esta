@@ -272,12 +272,15 @@ class OverlappingRunnerCostV1(BaseModel):
 PYTEST_TIMING_SIGNAL = "pytest_parallelism"
 
 
+REPOSITORY_SIGNAL_VALUE_LIMIT = 512
+
+
 class RepositorySignalV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     key: str = Field(pattern=r"^[a-z][a-z0-9_]{0,63}$")
     label: str = Field(min_length=1, max_length=80)
-    value: str = Field(min_length=1, max_length=512)
+    value: str = Field(min_length=1, max_length=REPOSITORY_SIGNAL_VALUE_LIMIT)
 
 
 class PytestTimingMetadata(BaseModel):
@@ -423,6 +426,7 @@ class CiObservabilityReportV1(BaseModel):
         if value is None:
             return None
         from ci_esta.ci_observability.optional_selection import validate_legacy_section
+
         return validate_legacy_section(info.field_name, value)
 
     @model_validator(mode="after")
@@ -439,7 +443,9 @@ class CiObservabilityReportV1(BaseModel):
         source = self.provenance
         for measurement in self.measurements:
             if (measurement.run_id, measurement.run_attempt, measurement.head_sha) != (
-                source.run_id, source.run_attempt, source.head_sha
+                source.run_id,
+                source.run_attempt,
+                source.head_sha,
             ):
                 raise ValueError("measurement does not match report provenance")
         if len(signal_keys) != len(set(signal_keys)):
@@ -451,5 +457,6 @@ def __getattr__(name: str):
     # Preserve existing Python consumers without importing their provider for base reporting.
     if name in {"SelectionSectionV1", "LaneSelectionSectionV1"}:
         from ci_esta.ci_observability import python_selection_models
+
         return getattr(python_selection_models, name)
     raise AttributeError(name)
