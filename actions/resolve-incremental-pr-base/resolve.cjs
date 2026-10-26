@@ -100,7 +100,7 @@ async function resolveIncrementalPrBase({
       const reasons = [];
       if (run.workflow_id !== currentRun.workflow_id) reasons.push("another workflow");
       if (run.status !== "completed") reasons.push(`status ${run.status}`);
-      else if (!validationEvidence && !reusableConclusions.includes(run.conclusion)) reasons.push(`conclusion ${run.conclusion}`);
+      else if (!validationEvidence && !pytestEvidence && !sameHeadOnly && !reusableConclusions.includes(run.conclusion)) reasons.push(`conclusion ${run.conclusion}`);
       // Receipt-bound lanes admit any head of this PR: the receipt names the tested inputs, so
       // an earlier head whose run carries the same receipt tested the same thing (a retag that
       // only moves a first-party pin to an identical tree). A different receipt never matches.
@@ -141,13 +141,14 @@ async function resolveIncrementalPrBase({
     const sameHeadFromCheckRuns = async () => {
       let checkRuns;
       try {
-        ({ data: { check_runs: checkRuns } } = await readEvidence(`checks:${headSha}`, () => github.rest.checks.listForRef({
+        checkRuns = await readEvidence(`checks:${headSha}`, () => github.paginate(github.rest.checks.listForRef, {
           owner: context.repo.owner, repo: context.repo.repo, ref: headSha, per_page: 100,
-        })));
+        }));
       } catch (error) {
         core.warning(`Could not inspect checks on ${headSha} (${error.message}); falling back.`);
         return null;
       }
+      const runs = [];
       for (const runId of runIdsFromCheckRuns(checkRuns, context.runId)) {
         let run;
         try {
@@ -155,11 +156,15 @@ async function resolveIncrementalPrBase({
             owner: context.repo.owner, repo: context.repo.repo, run_id: runId,
           })));
         } catch (error) {
-          core.warning(`Could not inspect same-head run ${runId} (${error.message}); continuing.`);
-          continue;
+          core.warning(`Could not inspect same-head run ${runId} (${error.message}); retaining validation.`);
+          return null;
         }
-        // This fallback covers listing lag for the head itself: only its own runs count here.
+        runs.push(run);
+      }
+      // Check-run transport order cannot let an older success hide newer contradictory proof.
+      for (const run of runs.sort(newestFirst)) {
         await recoverOwner(run);
+        if (unverifiedOwners.has(run.id)) return null;
         const reasons = [...rejectionReasons(run), ...(run.head_sha === headSha ? [] : ["different head"])];
         if (reasons.length) {
           reportRejection(run, reasons);
@@ -317,7 +322,8 @@ async function resolveIncrementalPrBase({
         return proven;
       } catch (error) {
         core.warning(`Could not verify evidence job for run ${run.id} (${error.message}); continuing.`);
-        if ((sameHeadOnly || pytestEvidence) && run.head_sha === headSha) contradictedSameHeadEvidence = true;
+        if ((sameHeadOnly && conservativeFailures) || ((sameHeadOnly || pytestEvidence) && run.head_sha === headSha))
+          contradictedSameHeadEvidence = true;
         evidenceByRunId.set(run.id, false);
         return false;
       }
@@ -367,10 +373,10 @@ async function resolveIncrementalPrBase({
         const reasons = rejectionReasons(run);
         if (reasons.length) reportRejection(run, reasons);
       }
-      const candidates = others.filter(run => isReusableRun(run) || (validationEvidence && unverifiedOwners.has(run.id)));
+      const candidates = others.filter(run => isReusableRun(run) || ((validationEvidence || sameHeadOnly || pytestEvidence) && unverifiedOwners.has(run.id)));
       for (const candidate of candidates) {
         // An unverified newer owner cannot disappear and expose an older validation success.
-        if (validationEvidence && unverifiedOwners.has(candidate.id)) {
+        if (unverifiedOwners.has(candidate.id)) {
           core.info("Unverified PR ownership prevents advancing the selection base.");
           return fallback;
         }

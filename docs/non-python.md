@@ -1,5 +1,7 @@
 # CI-esta for non-Python repositories
 
+See the [selection and evidence policy](test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
+
 This optional-provider boundary is available from the current Git revision;
 published 0.1.0 predates it. Install from the checkout (`pip install .`) or use
 the reviewed immutable Actions revision.

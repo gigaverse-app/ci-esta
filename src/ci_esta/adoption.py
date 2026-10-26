@@ -121,7 +121,7 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
     file_selectors = uses("gigaverse-app/pytest-selective", "gigaverse-app/pytest-selective/actions/test-impact",
                           "gigaverse-app/ci-esta/actions/test-impact")
     selectors = [*file_selectors, *uses("gigaverse-app/pytest-selective/actions/plan-lanes")]
-    copied = [item.source for item in selectors if "github." in str(item.inputs.get("full", ""))]
+    copied = [item.source for item in [*selectors, *ci("run-bun-tests")] if "github." in str(item.inputs.get("full", ""))]
     if copied:
         advise("checkpoint-policy", "Review the copied full-run policy. Prefer the selector's auto default when equivalent; preserve coverage or manual-experiment overrides.", copied)
     python = [path for path, command in commands if re.search(r"\bpytest(?:\s|$)", command)]

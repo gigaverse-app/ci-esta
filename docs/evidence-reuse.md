@@ -1,5 +1,7 @@
 # Reuse successful GitHub Actions jobs safely
 
+See the [selection and evidence policy](test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
+
 A skipped job is not proof that its work passed. CI-esta reuses a lane only when a prior successful job carries a matching completion receipt. The receipt binds the tested inputs and the downloaded CI-esta implementation. An unavailable API or uncertain proof runs more work.
 
 ## Start with the whole tree

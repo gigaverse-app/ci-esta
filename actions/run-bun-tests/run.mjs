@@ -4,6 +4,7 @@ import { cpus } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { planAffectedTests, readTestSelection, safePath } from "./selection.mjs";
+import { fullCheckpointReason } from "./checkpoint.mjs";
 import { workSelectionReport } from "./work-report.mjs";
 
 export function readInventory(path, cwd) {
@@ -22,7 +23,7 @@ export function readInventory(path, cwd) {
   return { files: [...files].sort(), alwaysRunFiles: inventory.alwaysRunFiles };
 }
 
-export function runBunTests({ cwd = process.cwd(), inventoryFile, policyFile, base, full = false,
+export function runBunTests({ cwd = process.cwd(), inventoryFile, policyFile, base, validatedHead = "", full = false, checkpointReason = "",
   planFile, outputDirectory, args = ["--isolate", "--parallel"], shards = 1, bun = "bun" }) {
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT,
     `selection-module=${fileURLToPath(new URL("./selection.mjs", import.meta.url))}\n`);
@@ -34,7 +35,7 @@ export function runBunTests({ cwd = process.cwd(), inventoryFile, policyFile, ba
   const version = execFileSync(bun, ["--version"], { encoding: "utf8" }).trim();
   if (!/^1\.(?:4\.(?:[2-9]|[1-9]\d+)|[5-9]\.\d+|[1-9]\d+\.\d+)$/.test(version))
     throw new Error(`Bun ${version} is outside the verified >=1.4.2 <2 runtime contract`);
-  const options = { cwd, base, full, policyFile, alwaysRunFiles };
+  const options = { cwd, base, validatedHead, full, checkpointReason, policyFile, alwaysRunFiles };
   const plan = planFile && !full ? readTestSelection(planFile, options) : planAffectedTests(options);
   const output = resolve(outputDirectory);
   mkdirSync(output, { recursive: true });
@@ -95,9 +96,11 @@ export function runBunTests({ cwd = process.cwd(), inventoryFile, policyFile, ba
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
+    const checkpointReason = fullCheckpointReason(process.env.BUN_TEST_FULL || "auto");
     const result = runBunTests({ inventoryFile: process.env.BUN_TEST_INVENTORY,
       policyFile: process.env.BUN_TEST_POLICY, base: process.env.BUN_TEST_BASE,
-      full: process.env.BUN_TEST_FULL === "true", outputDirectory: process.env.BUN_TEST_OUTPUT,
+      validatedHead: process.env.BUN_TEST_VALIDATED_HEAD || "",
+      full: checkpointReason !== null, checkpointReason, outputDirectory: process.env.BUN_TEST_OUTPUT,
       args: JSON.parse(process.env.BUN_TEST_ARGS || '["--isolate","--parallel"]'),
       shards: Number(process.env.BUN_TEST_SHARDS || "1") });
     process.exitCode = result.exitCode;

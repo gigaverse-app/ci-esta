@@ -5,22 +5,31 @@ import { extname, join } from "node:path";
 const opaqueDependency =
   /\b(?:Bun\s*\.\s*file|readFile(?:Sync)?|import\s*\.\s*meta\s*\.\s*glob)\b|["'](?:node:)?fs(?:\/promises)?["']|\b(?:import|require)\s*\(\s*(?!\s*["'])[^\s]/;
 
-export function planAffectedTests({ cwd = process.cwd(), base, full = false, policyFile = ".github/test-selection.json", alwaysRunFiles = [] }) {
+export function planAffectedTests({ cwd = process.cwd(), base, validatedHead = "", full = false, checkpointReason = "", policyFile = ".github/test-selection.json", alwaysRunFiles = [] }) {
   const git = (...args) => execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   const plan = {
     mode: "full",
     base: "",
     testedSha: "",
     changedFiles: [],
-    fallback: false,
-    reason: "Full checkpoint requested",
+    fallback: Boolean(checkpointReason?.includes("fallback")),
+    reason: checkpointReason || "Full checkpoint requested",
+    ...(validatedHead ? { validatedHead } : {}),
   };
   try {
     plan.testedSha = git("rev-parse", "HEAD").trim();
     if (full) return plan;
     if (!base || !/^[0-9a-f]{40}$/.test(base)) throw new Error("Missing committed selection base");
     plan.base = git("rev-parse", "--verify", `${base}^{commit}`).trim();
-    git("merge-base", "--is-ancestor", plan.base, plan.testedSha);
+    if (validatedHead) {
+      if (!/^[0-9a-f]{40}$/.test(validatedHead)) throw new Error("Invalid validated PR head");
+      const parents = git("show", "-s", "--format=%P", plan.base).trim().split(" ");
+      if (parents.length !== 2 || parents[1] !== validatedHead)
+        throw new Error("Recorded merge does not have the validated PR head as its second parent");
+      git("merge-base", "--is-ancestor", validatedHead, plan.testedSha);
+    } else {
+      git("merge-base", "--is-ancestor", plan.base, plan.testedSha);
+    }
     if (git("status", "--porcelain", "--untracked-files=no").trim())
       throw new Error("Tracked worktree differs from the planned commit");
     const policy = JSON.parse(readFileSync(join(cwd, policyFile), "utf8"));
@@ -106,7 +115,7 @@ export function planAffectedTests({ cwd = process.cwd(), base, full = false, pol
 export function readTestSelection(path, options = {}) {
   try {
     const saved = JSON.parse(readFileSync(path, "utf8"));
-    const actual = planAffectedTests({ ...options, base: saved.base, full: saved.mode === "full" });
+    const actual = planAffectedTests({ ...options, base: saved.base, validatedHead: saved.validatedHead || "", full: options.full || saved.mode === "full" });
     if (!["full", "scoped", "none"].includes(saved.mode) || actual.testedSha !== saved.testedSha || actual.mode !== saved.mode)
       throw new Error("Plan does not match the checked-out revision and current policy");
     return actual;

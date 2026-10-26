@@ -85,6 +85,7 @@ extra:
   - docs/quickstart.md
   - docs/runners-and-diagnostics.md
   - docs/selected-gates.md
+  - docs/test-selection-policy.md
   - CONTRIBUTING.md
   - RELEASING.md
 nav:
@@ -101,6 +102,7 @@ nav:
   - Report before-and-after impact: docs/measured-impact.md
   - Runner capacity and hang diagnostics: docs/runners-and-diagnostics.md
 - Optimize safely:
+  - Selection and evidence policy: docs/test-selection-policy.md
   - Shorten blocking jobs: docs/critical-path-optimizations.md
   - Cache Python environments: docs/environment-cache.md
   - Tune Python test execution: docs/python-ci-tuning.md

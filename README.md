@@ -2,6 +2,8 @@
 
 # CI-esta: make GitHub Actions faster, with evidence
 
+See the [selection and evidence policy](docs/test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
+
 [![Documentation](https://readthedocs.org/projects/ci-esta/badge/?version=latest)](https://ci-esta.readthedocs.io/en/latest/)
 
 [Read the documentation](https://ci-esta.readthedocs.io/en/latest/) · [Related tools](https://ci-esta.readthedocs.io/en/latest/ecosystem/)

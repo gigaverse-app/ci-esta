@@ -1,5 +1,7 @@
 # Affected tests with Bun
 
+See the [selection and evidence policy](test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
+
 Use this adapter when the repository actually runs `bun test`. TypeScript and
 React identify source languages and libraries, not the test runner. A project
 using Bun only to install packages may still run Jest, Vitest or Playwright.
@@ -8,7 +10,7 @@ continue to use pytest-selective; CI-esta does not build a second import graph.
 
 ## Contract and ownership
 
-The public action is `gigaverse-app/ci-esta/run-bun-tests`; see
+The public action is `gigaverse-app/ci-esta/actions/run-bun-tests`; see
 [entry-point availability](actions.md) before selecting a release pin.
 Pin a reviewed commit. It needs Node 22+ and Bun >=1.4.2 <2 installed by the caller;
 it installs no Python or application dependencies. Bun owns static/transitive
@@ -84,17 +86,19 @@ full/conformance policy of their own.
   with:
     inventory: ${{ runner.temp }}/bun-inventory.json
     policy: .github/test-selection.json
-    base: ${{ github.event.before }}
-    full: ${{ github.run_attempt > 1 || github.event_name == 'schedule' }}
     shards: '8'
     args: '["--isolate","--parallel"]'
     output-directory: ${{ runner.temp }}/bun-test-selection
 ```
 
-The inventory command is an adopter API, not a built-in Bun flag. For a PR use
-its trusted base SHA; for a push use `event.before`; manual measurements supply
-an explicit base SHA. Fetch history. Ordinary PRs and main pushes use selection;
-retain scheduled/manual full checkpoints, explicit full overrides and reruns.
+The inventory command is an adopter API, not a built-in Bun flag. Fetch history.
+The action defaults `base` to the PR base or push `event.before` and `full` to
+`auto`: ordinary PRs/pushes and their reruns stay selective; manual, scheduled,
+release and `test:full` requests run full. Manual measurements can explicitly
+set a base and `full: false`. Reruns execute their selected scope without receipt
+reuse. For validated incremental PR selection, use the
+[complete tested-merge workflow](../examples/bun-tests/workflow.yml) and pass
+`validated-head` with its recorded merge; missing proof retains a full checkpoint.
 Unreferenced documentation must not start tests. Do not apply a whole-suite coverage floor
 to a subset or lower a floor to make it pass. Coverage lanes should stay full.
 
@@ -108,7 +112,7 @@ timeout, concurrency, seed, randomization and dots; selection/output flags are
 owned by the adapter. There is no retry of a failed selected test as a full run
 that could conceal its failure.
 
-Missing/invalid history, dirty tracked files, untracked inputs, malformed policy,
+Missing/invalid history, an invalid recorded merge parent, dirty tracked files, untracked inputs, malformed policy,
 unknown paths, symlinks, renames/deletions and changed reader fingerprints execute
 the full inventory. Optional persisted plans are recomputed at execution; stale,
 missing or forged reuse plans fall back to full. An explicit full override wins.

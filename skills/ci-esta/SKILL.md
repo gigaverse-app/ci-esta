@@ -158,7 +158,7 @@ Measure cache-key evaluation and save/restore overhead. Compute recursive input
 hashes once before installing dependencies, verify the actual installed-tool
 directory, and still execute locked synchronization/compiler checks. Audit broad
 label triggers while preserving intentional label-driven workflows and explicit
-full reruns. Check the exact branch-required job also fails when planning fails.
+full checkpoints and selective reruns. Check the exact branch-required job also fails when planning fails.
 
 Follow the task's existing PR/merge scope. Provide the changed config, regression
 evidence and a concise table of elapsed time, summed runner-seconds, job counts,
@@ -173,3 +173,5 @@ command, explicitly marking live impact unmeasured. Do not substitute test-count
 reductions for measured time. The published
 [92.3% README routing result](https://github.com/gigaverse-app/ci-esta/blob/main/docs/benchmarks/2026-10-22.md)
 comes from pytest-selective and consumer input declarations, not receipt reuse.
+
+For cross-language setup, tested-head/merge identity, main history and failure scenarios, use [the selection and evidence policy](https://github.com/gigaverse-app/ci-esta/blob/main/docs/test-selection-policy.md). Bun `full: auto` follows the same event contract as pytest-selective; use `validated-head` when the baseline is a recorded tested merge.

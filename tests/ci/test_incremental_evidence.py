@@ -1394,13 +1394,14 @@ def test_validation_base_requires_completion_and_does_not_cross_newer_failure(va
                         "reused": variant == "valid"}
 
 
+@pytest.mark.parametrize("mode", ["validation", "lane", "pytest"])
 @pytest.mark.parametrize("conclusion", ["success", "failure", "cancelled", "timed_out"])
 @pytest.mark.parametrize("newer", [True, False])
-def test_unverified_owner_cannot_hide_newer_validation(conclusion, newer):
+def test_unverified_owner_cannot_hide_newer_validation(conclusion, newer, mode):
     marker = "Validated Bun v2"
     success = {
         "id": 1, "status": "completed", "conclusion": "success",
-        "head_sha": SUCCESSFUL_ANCESTOR_SHA, "updated_at": RECENT_SUCCESS_TIME,
+        "head_sha": SUCCESSFUL_ANCESTOR_SHA, "updated_at": RECENT_SUCCESS_TIME, "run_attempt": 1,
         "pull_requests": [{"number": PULL_REQUEST_NUMBER}],
     }
     unknown = {
@@ -1411,17 +1412,20 @@ def test_unverified_owner_cannot_hide_newer_validation(conclusion, newer):
     }
     observed = _resolve_incremental_base({
         "workflowId": WORKFLOW_ID, "runs": [success, unknown],
-        "jobsByRun": {1: [{"name": "checks", "conclusion": "success", "steps": [
+        "jobsByRun": {1: [{"name": "Plan tests", "conclusion": "success"},
+                          {"name": "checks", "conclusion": "success", "steps": [
             {"name": marker, "conclusion": "success"},
         ]}]},
         "failedJobRunId": 2,
         "comparisons": {f"{SUCCESSFUL_ANCESTOR_SHA}...{CURRENT_HEAD_SHA}": {"status": "ahead"}},
         "fallbackBaseSha": FALLBACK_BASE_SHA, "headSha": CURRENT_HEAD_SHA,
         "pullRequestNumber": PULL_REQUEST_NUMBER, "currentTime": CURRENT_TIME,
-        "evidenceJobName": "checks", "evidenceStepName": marker, "validationEvidence": True,
+        "evidenceJobName": "checks", "evidenceStepName": marker, "validationEvidence": mode == "validation",
+        "sameHeadOnly": mode == "lane",
+        "pytestEvidence": {"planJobName": "Plan tests", "completionStepName": marker} if mode == "pytest" else None,
     })
     assert observed["result"] == {
-        "baseSha": FALLBACK_BASE_SHA if newer else SUCCESSFUL_ANCESTOR_SHA,
+        "baseSha": FALLBACK_BASE_SHA if newer else CURRENT_HEAD_SHA if mode == "lane" else SUCCESSFUL_ANCESTOR_SHA,
         "reused": not newer,
     }
     assert any("HTTP 502" in warning for warning in observed["warnings"])
@@ -1464,3 +1468,28 @@ def test_validation_returns_only_the_merge_recorded_by_the_completed_job(variant
     if variant == "valid":
         expected = {"baseSha": SUCCESSFUL_ANCESTOR_SHA, "reused": True, "testedMergeSha": merge}
     assert observed["result"] == expected
+
+
+@pytest.mark.parametrize("latest", ["failure", "unknown-owner", "success"])
+@pytest.mark.parametrize("order", [[1, 2], [2, 1]])
+def test_check_index_lag_obeys_chronology_and_ownership(latest, order):
+    scenario = _two_head_lane_scenario("success", "failure" if latest == "failure" else "success")
+    for run in scenario["runs"]:
+        run["head_sha"] = CURRENT_HEAD_SHA
+    if latest == "unknown-owner":
+        scenario["runs"][1].update(pull_requests=[], event="pull_request", head_branch="feature/security-ci")
+        scenario["failedJobRunId"] = 2
+    scenario["indexedRuns"] = []
+    scenario["checkRuns"] = {CURRENT_HEAD_SHA: [
+        {"details_url": f"https://github.com/gigaverse-app/example/actions/runs/{number}/job/1"}
+        for number in order
+    ]}
+    result = _resolve_incremental_base(scenario)["result"]
+    assert result == {"baseSha": CURRENT_HEAD_SHA if latest == "success" else FALLBACK_BASE_SHA,
+                      "reused": latest == "success"}
+
+
+def test_missing_newer_job_evidence_cannot_resurrect_conservative_lane_proof():
+    scenario = _two_head_lane_scenario("success", "failure")
+    scenario.update(headSha="e" * 40, conservativeFailures=True, failedJobRunId=2)
+    assert _resolve_incremental_base(scenario)["result"] == {"baseSha": FALLBACK_BASE_SHA, "reused": False}

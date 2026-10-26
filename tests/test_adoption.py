@@ -115,3 +115,17 @@ jobs:
     report = audit(tmp_path)
     assert "fake-secret" not in json.dumps(report)
     assert report["actions"][0]["inputs"]["history-key"] == "lane-v1"
+
+
+def test_bun_copied_checkpoint_policy_is_discoverable(tmp_path):
+    write(tmp_path, ".github/workflows/test.yml", """
+jobs:
+  test:
+    steps:
+      - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
+        with:
+          full: "${{ github.run_attempt > 1 }}"
+""")
+    report = audit(tmp_path)
+    assert "checkpoint-policy" in {item["id"] for item in report["suggestions"]}
+    assert "python-selection" not in {item["id"] for item in report["suggestions"]}
