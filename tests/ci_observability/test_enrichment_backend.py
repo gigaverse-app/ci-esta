@@ -227,3 +227,34 @@ def test_backend_enrichment_fetches_logs_only_for_terminal_failures(
 
     assert enrichment.unavailable == []
     assert requested_paths == ["/repos/gigaverse-app/gigaverse-backend/actions/runs/456/jobs"]
+
+
+@pytest.mark.parametrize("nodeid_length", [150, 512, 2000])
+def test_long_slowest_test_names_keep_report_and_full_artifact(tmp_path: Path, nodeid_length: int) -> None:
+    name = "test_receipt[" + "parameter_" * nodeid_length + "]"
+    (tmp_path / "report-group-1.xml").write_text(
+        f'<testsuite tests="1" failures="0" errors="0" skipped="0" time="7">'
+        f'<testcase classname="tests.receipts" name="{name}" time="7"/></testsuite>'
+    )
+    extension = artifacts.build_extension(tmp_path, models.GitHubEnrichment())
+    before = extension.model_dump_json()
+    signals = artifacts.build_repository_signals(extension)
+    slowest = next(signal for signal in signals if signal.key == "slowest_tests")
+    assert slowest.value.startswith("7.0s tests.receipts::test_receipt[")
+    assert len(slowest.value) <= 512
+    assert slowest.value.endswith("…")
+    assert extension.model_dump_json() == before
+    assert extension.backend.pytest.slowest[0].nodeid == f"tests.receipts::{name}"
+
+
+def test_long_infrastructure_summary_preserves_full_extension() -> None:
+    extension = models.BackendExtensions(
+        backend=models.BackendEnrichment(
+            infra_signals=[
+                models.InfraSignal(label="quota " * 200, line="rate limit"),
+            ]
+        )
+    )
+    signals = artifacts.build_repository_signals(extension)
+    assert len(signals[0].value) <= 512
+    assert extension.backend.infra_signals[0].label == "quota " * 200
