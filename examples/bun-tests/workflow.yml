@@ -40,7 +40,7 @@ jobs:
         run: git fetch --no-tags origin "$TESTED_MERGE"
       # This is your repository's complete discovery command, not a built-in Bun flag.
       - run: bun run test:inventory > "$RUNNER_TEMP/bun-inventory.json"
-      - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v2
+      - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
         with:
           inventory: ${{ runner.temp }}/bun-inventory.json
           policy: .github/test-selection.json

@@ -47,9 +47,10 @@ The `python-path` output replaces `selection-module`. The JavaScript imports
 `selection.mjs`, `run.mjs` and `work-report.mjs` have been removed. Migrate policy
 controls to the Python API above, and report custom execution with
 `actions/report-bun-tests` or `ci_esta.testing.bun.report.work_selection_report`.
-Pin the migration commit until Actions v2 is released, then use `@v2`.
-The `@v1` alias and v1.6.2 retain the old output. Existing immutable pins
-remain available during migration.
+This maintainer-approved migration stays on `@v1`. Before that alias advances,
+migrate any `selection-module` consumers to `python-path` and native Python
+imports. Pin the reviewed migration commit until publication. The immutable
+v1.6.2 tag and existing commit pins retain the old interface for rollback.
 
 1. Produce a complete inventory with the repository's existing discovery code:
 
