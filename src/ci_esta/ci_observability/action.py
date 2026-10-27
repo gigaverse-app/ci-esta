@@ -342,12 +342,32 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         job_dependencies = config.job_dependencies
         try:
             latest_jobs = client.list_jobs(config.run_id, include_all_attempts=False)
-            if older_attempt or any(job.run_attempt != config.run_attempt for job in latest_jobs):
+            needs_exact_attempt = older_attempt or any(job.run_attempt != config.run_attempt for job in latest_jobs)
+            if needs_exact_attempt:
                 latest_jobs = client.list_jobs(
                     config.run_id, include_all_attempts=False, run_attempt=config.run_attempt
                 )
             if any(job.run_attempt != config.run_attempt for job in latest_jobs):
                 raise ValueError("job attempts do not match the requested report identity")
+            # The generic job listing can lag a workflow_run:completed event.
+            # Use the exact-attempt endpoint once; preserve the useful original
+            # snapshot if refreshing fails, with its inconsistency made visible.
+            if not needs_exact_attempt and run_metadata.status == "completed" and (
+                not latest_jobs or any(job.status != "completed" for job in latest_jobs)
+            ):
+                try:
+                    refreshed = client.list_jobs(
+                        config.run_id, include_all_attempts=False, run_attempt=config.run_attempt
+                    )
+                    if latest_jobs and not refreshed:
+                        raise ValueError("refreshed job list is empty")
+                    if any(job.run_attempt != config.run_attempt for job in refreshed):
+                        raise ValueError("refreshed job attempts do not match the requested report identity")
+                    latest_jobs = refreshed
+                except Exception as error:
+                    errors.append(f"completed source run job refresh unavailable: {error}")
+            if run_metadata.status == "completed" and any(job.status != "completed" for job in latest_jobs):
+                errors.append("completed source run still has nonterminal jobs after exact-attempt refresh")
         except Exception as error:
             latest_jobs = []
             errors.append(f"latest-attempt jobs unavailable: {error}")
@@ -361,6 +381,13 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         except Exception as error:
             billing_jobs = latest_jobs
             errors.append(f"all-attempt jobs unavailable; latest attempt only: {error}")
+        # A later all-attempt listing must not downgrade terminal evidence from
+        # the same job/attempt back to an accrued duration or a running verdict.
+        completed_jobs = {(job.id, job.run_attempt): job for job in latest_jobs if job.status == "completed"}
+        billing_jobs = [
+            completed_jobs.get((job.id, job.run_attempt), job) if job.status != "completed" else job
+            for job in billing_jobs
+        ]
         overlapping_prior_runs: list[GitHubRunJobsV1] = []
         if (
             config.pull_request_number is not None
