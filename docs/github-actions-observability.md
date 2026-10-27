@@ -49,6 +49,14 @@ artifact contain Markdown, versioned JSON and Prometheus metrics. Inspect
 gate list leaves gate latency unassessed while still reporting jobs, steps and
 runner time.
 
+GitHub's generic jobs listing can briefly lag a completed workflow. When its
+run metadata is terminal but jobs still appear active, the reporter refreshes
+once through the exact-attempt endpoint. Terminal evidence for the same job
+and attempt also replaces stale accrued entries in the billing view. If the
+refresh fails or remains inconsistent, the report keeps the available evidence
+and marks collection partial; it never infers a job's success from run success.
+Live workflows keep their ordinary snapshot without this extra request.
+
 The reusable workflow declares no permissions of its own: the caller's grant is
 the ceiling. Grant `pull-requests: write` only when `post-sticky` is true.
 

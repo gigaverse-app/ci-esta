@@ -18,6 +18,7 @@ from ci_esta.ci_observability.action import REFERENCE_SAMPLE, ActionConfig, run
 from ci_esta.ci_observability.enrichment.profiles import pytest_timings
 from ci_esta.ci_observability.github import GitHubActionsClient, GitHubArtifactV1
 from ci_esta.ci_observability.models import (
+    ActionsJobGateSelectorV1,
     CiObservabilityReportV1,
     CommitStatusGateSelectorV1,
     FullSuiteReferenceV1,
@@ -246,6 +247,79 @@ def test_historical_attempt_recovers_exact_metadata_and_jobs(tmp_path):
     report = json.loads(config.report_output.read_text())
     assert report["collection_status"] == "complete"
     assert report["provenance"]["run_attempt"] == RUN_ATTEMPT
+
+
+@pytest.mark.parametrize("conclusion", ["success", "failure", None])
+def test_completed_run_refreshes_stale_job_listing_without_inventing_a_verdict(tmp_path, conclusion):
+    config = _config(tmp_path, post_sticky=False).model_copy(update={
+        "gate_selectors": [ActionsJobGateSelectorV1(kind=GateKind.ACTIONS_JOB, job_name="Tests")],
+    })
+    stale = _job().model_copy(update={"status": "in_progress", "conclusion": None, "completed_at": None})
+    refreshed = _job().model_copy(update={"conclusion": conclusion}) if conclusion else stale
+    calls = []
+
+    def jobs(run_id, *, include_all_attempts, run_attempt=None):
+        assert run_id == RUN_ID
+        calls.append((include_all_attempts, run_attempt))
+        # The generic latest/all endpoints can lag the completed run. The
+        # attempt-specific endpoint provides an independent recovery path.
+        return [refreshed] if run_attempt == RUN_ATTEMPT else [stale]
+
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=_run_metadata()),
+        patch.object(GitHubActionsClient, "list_jobs", side_effect=jobs),
+    ):
+        assert run(config, LATER) == 0
+    report = json.loads(config.report_output.read_text())
+    assert calls == [(False, None), (False, RUN_ATTEMPT), (True, None)]
+    assert report["required_gates"][0]["conclusion"] == conclusion
+    assert report["latest_attempt_jobs"][0]["conclusion"] == conclusion
+    assert report["billing_jobs"][0]["conclusion"] == conclusion
+    assert report["collection_status"] == ("complete" if conclusion else "partial")
+    if conclusion is None:
+        assert any("completed source run" in error for error in report["collection_errors"])
+
+
+@pytest.mark.parametrize("failure", ["unavailable", "wrong_attempt"])
+def test_terminal_job_refresh_failure_retains_the_original_snapshot(tmp_path, failure):
+    config = _config(tmp_path, post_sticky=False)
+    stale = _job().model_copy(update={"status": "in_progress", "conclusion": None, "completed_at": None})
+
+    def jobs(run_id, *, include_all_attempts, run_attempt=None):
+        if run_attempt is not None:
+            if failure == "unavailable":
+                raise RuntimeError("GitHub temporarily unavailable")
+            return [_job().model_copy(update={"run_attempt": RUN_ATTEMPT + 1})]
+        return [stale]
+
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=_run_metadata()),
+        patch.object(GitHubActionsClient, "list_jobs", side_effect=jobs),
+        patch.object(GitHubActionsClient, "list_commit_statuses", return_value=[_status()]),
+    ):
+        assert run(config, LATER) == 0
+    report = json.loads(config.report_output.read_text())
+    assert report["collection_status"] == "partial"
+    assert len(report["latest_attempt_jobs"]) == 1
+    assert report["latest_attempt_jobs"][0]["run_attempt"] == RUN_ATTEMPT
+    assert report["latest_attempt_jobs"][0]["status"] == "in_progress"
+    assert any("refresh unavailable" in error for error in report["collection_errors"])
+
+
+def test_live_run_keeps_its_nonterminal_snapshot_without_extra_fetch(tmp_path):
+    config = _config(tmp_path, post_sticky=False)
+    live = _run_metadata().model_copy(update={"status": "in_progress", "conclusion": None})
+    job = _job().model_copy(update={"status": "in_progress", "conclusion": None, "completed_at": None})
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=live),
+        patch.object(GitHubActionsClient, "list_jobs", return_value=[job]) as jobs,
+        patch.object(GitHubActionsClient, "list_commit_statuses", return_value=[_status()]),
+    ):
+        assert run(config, LATER) == 0
+    assert jobs.call_count == 2  # Latest and billing, no terminal recovery.
+    report = json.loads(config.report_output.read_text())
+    assert report["collection_status"] == "complete"
+    assert report["latest_attempt_jobs"][0]["status"] == "in_progress"
 
 
 def test_cli_without_explicit_head_uses_source_metadata(tmp_path):
