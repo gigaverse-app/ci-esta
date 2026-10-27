@@ -359,6 +359,8 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
                     refreshed = client.list_jobs(
                         config.run_id, include_all_attempts=False, run_attempt=config.run_attempt
                     )
+                    if latest_jobs and not refreshed:
+                        raise ValueError("refreshed job list is empty")
                     if any(job.run_attempt != config.run_attempt for job in refreshed):
                         raise ValueError("refreshed job attempts do not match the requested report identity")
                     latest_jobs = refreshed

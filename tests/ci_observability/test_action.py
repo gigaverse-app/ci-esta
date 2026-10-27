@@ -280,7 +280,7 @@ def test_completed_run_refreshes_stale_job_listing_without_inventing_a_verdict(t
         assert any("completed source run" in error for error in report["collection_errors"])
 
 
-@pytest.mark.parametrize("failure", ["unavailable", "wrong_attempt"])
+@pytest.mark.parametrize("failure", ["unavailable", "wrong_attempt", "empty"])
 def test_terminal_job_refresh_failure_retains_the_original_snapshot(tmp_path, failure):
     config = _config(tmp_path, post_sticky=False)
     stale = _job().model_copy(update={"status": "in_progress", "conclusion": None, "completed_at": None})
@@ -289,6 +289,8 @@ def test_terminal_job_refresh_failure_retains_the_original_snapshot(tmp_path, fa
         if run_attempt is not None:
             if failure == "unavailable":
                 raise RuntimeError("GitHub temporarily unavailable")
+            if failure == "empty":
+                return []
             return [_job().model_copy(update={"run_attempt": RUN_ATTEMPT + 1})]
         return [stale]
 
