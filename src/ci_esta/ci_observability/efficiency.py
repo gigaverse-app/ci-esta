@@ -28,6 +28,11 @@ if TYPE_CHECKING:
 MEASUREMENT = TypeAdapter(ExecutionMeasurement)
 
 
+def _receipt_step(job: GitHubJobV1, receipt: str, conclusion: str) -> bool:
+    steps = [step for step in job.steps if step.name == receipt]
+    return len(steps) == 1 and steps[0].status == "completed" and steps[0].conclusion == conclusion
+
+
 def collect_measurements(client: GitHubActionsClient, run: GitHubRunV1, jobs: list[GitHubJobV1]):
     """One artifact listing, exact source identity, and API timings for admitted proof jobs."""
     measurements, errors = [], []
@@ -53,8 +58,16 @@ def collect_measurements(client: GitHubActionsClient, run: GitHubRunV1, jobs: li
                 lanes = []
                 for lane in item.lanes:
                     current = [job for job in jobs if job_family(job.name) == job_family(lane.job)]
-                    if not current or any(job.conclusion != "skipped" for job in current):
+                    if not current or any(
+                        job.conclusion != "skipped" and not (
+                            job.status == "completed" and job.conclusion == "success"
+                            and _receipt_step(job, item.receipt, "skipped")
+                        ) for job in current
+                    ):
                         continue
+                    # An aggregate gate still validates reused children. Its
+                    # exact completion receipt must be skipped, never reminted.
+                    aggregate = any(job.conclusion != "skipped" for job in current)
                     try:
                         key = (lane.source_run_id, lane.source_attempt)
                         if key not in sources:
@@ -67,10 +80,13 @@ def collect_measurements(client: GitHubActionsClient, run: GitHubRunV1, jobs: li
                             or source.run_attempt != lane.source_attempt or run.workflow_id is None
                             or source.workflow_id != run.workflow_id or source.id == run.id
                             or proof is None or proof.run_attempt != lane.source_attempt
-                            or proof.name != lane.job or proof.conclusion != "success"):
+                            or proof.name != lane.job or proof.conclusion != "success"
+                            or (aggregate and not _receipt_step(proof, item.receipt, "success"))):
                             raise ValueError("reuse source job does not match admitted evidence")
                         seconds = None
-                        if proof.started_at is not None and proof.completed_at is not None:
+                        # The gate's own duration does not measure the child
+                        # execution avoided. Keep that estimate unavailable.
+                        if not aggregate and proof.started_at is not None and proof.completed_at is not None:
                             seconds = (proof.completed_at - proof.started_at).total_seconds()
                             if seconds < 0:
                                 seconds = None

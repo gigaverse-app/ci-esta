@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from ci_esta.ci_observability.github import GitHubActionsClient
-from ci_esta.ci_observability.models import GitHubJobV1, GitHubRunV1
+from ci_esta.ci_observability.models import GitHubJobV1, GitHubRunV1, GitHubStepV1
 from ci_esta.ci_observability.report import render_markdown
 from ci_esta.measurements import ShardInterval
 from tests.ci_observability.efficiency_builders import pool, report
@@ -82,7 +82,10 @@ def test_a_step_name_does_not_substitute_for_a_cache_measurement():
     assert "Cache time saved is unavailable" in sticky
 
 
-@pytest.mark.parametrize("variant", ["valid", "executed", "stale", "foreign", "bad-source", "missing-time", "partial"])
+@pytest.mark.parametrize("variant", [
+    "valid", "executed", "stale", "foreign", "bad-source", "missing-time", "partial",
+    "aggregate", "aggregate-fresh", "aggregate-wrong-receipt", "aggregate-failed", "aggregate-no-source-receipt",
+])
 def test_collector_binds_reuse_to_this_attempt_and_reads_actual_source_duration(variant):
     from ci_esta.ci_observability.efficiency import collect_measurements
     from ci_esta.measurements import ReusedLane, ReuseMeasurement
@@ -100,6 +103,10 @@ def test_collector_binds_reuse_to_this_attempt_and_reads_actual_source_duration(
                                  source_head_sha="b" * 40, source_job_id=101, source_seconds=9999)])
     if variant == "partial":
         reused.lanes.append(reused.lanes[0].model_copy(update={"source_job_id": 999}))
+    if variant.startswith("aggregate") and variant != "aggregate-no-source-receipt":
+        proof = proof.model_copy(update={"steps": [GitHubStepV1(
+            number=1, name=reused.receipt, status="completed", conclusion="success",
+        )]})
     upload = artifact(123, 431, fork=variant == "foreign").model_copy(update={"name": "ci-esta-reuse-plan-2"})
 
     class API(GitHubActionsClient):
@@ -125,15 +132,25 @@ def test_collector_binds_reuse_to_this_attempt_and_reads_actual_source_duration(
 
     current_job = proof.model_copy(update={"id": 102, "run_attempt": 2,
                                           "conclusion": "success" if variant == "executed" else "skipped"})
+    if variant.startswith("aggregate"):
+        current_job = current_job.model_copy(update={
+            "conclusion": "failure" if variant == "aggregate-failed" else "success",
+            "steps": [GitHubStepV1(
+                number=1, name="Validated inputs other" if variant == "aggregate-wrong-receipt" else reused.receipt,
+                status="completed", conclusion="success" if variant == "aggregate-fresh" else "skipped",
+            )],
+        })
     records, errors = collect_measurements(API(), current, [current_job])
     lanes = [lane for record in records for lane in record.lanes]
-    if variant in {"valid", "missing-time", "partial"}:
+    if variant in {"valid", "missing-time", "partial", "aggregate"}:
         assert len(lanes) == 1
-        assert lanes[0].source_seconds == (None if variant == "missing-time" else 73)
+        # A validating aggregate gate still executes. Its own duration is not
+        # the duration of the child tests it avoided, which remains unknown.
+        assert lanes[0].source_seconds == (None if variant in {"missing-time", "aggregate"} else 73)
         assert bool(errors) is (variant == "partial")
     else:
         assert lanes == []
-        assert bool(errors) is (variant in {"foreign", "bad-source"})
+        assert bool(errors) is (variant in {"foreign", "bad-source", "aggregate-no-source-receipt"})
 
 
 def test_overlapping_pool_indices_withhold_global_occupancy():
