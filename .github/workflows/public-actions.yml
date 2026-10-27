@@ -147,14 +147,22 @@ jobs:
           }))
           PY
       - uses: ./actions/run-bun-tests
+        id: executor
         with:
           inventory: ${{ runner.temp }}/bun-inventory.json
           policy: .github/test-selection.json
           base: ${{ github.sha }}
-      - name: Verify the public executor retained full fallback
+      - name: Verify the public executor and native Python consumer
+        env:
+          PYTHONPATH: ${{ steps.executor.outputs.python-path }}
         run: |
-          python3 - <<'PY'
+          cd "$RUNNER_TEMP"
+          "$CI_ESTA_PYTHON" - <<'PY'
           import json, os
+          from ci_esta.testing.bun.models import SelectionRequest
+          from ci_esta.testing.bun.selection import plan_affected_tests
+          plan = plan_affected_tests(SelectionRequest(cwd=os.environ['GITHUB_WORKSPACE'], base='f' * 40))
+          assert plan.mode == 'full' and plan.fallback, plan
           from pathlib import Path
           result = json.loads(Path(os.environ['RUNNER_TEMP'], 'bun-test-selection/execution-selection.json').read_text())
           assert result['mode'] == 'full', result

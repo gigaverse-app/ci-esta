@@ -1,4 +1,4 @@
-"""Actions and compatibility entry points use the same Python implementation."""
+"""Actions and JSON commands use the same Python implementation."""
 
 import argparse
 import json
@@ -28,7 +28,7 @@ def request_from_env() -> RunRequest:
     )
 
 
-class BridgeRequest(BaseModel):
+class CommandInput(BaseModel):
     options: SelectionRequest | None = None
     path: Path | None = None
     cwd: Path | None = None
@@ -55,7 +55,7 @@ def main() -> int:
             write_json(Path(os.environ.get("BUN_WORK_REPORT") or "ci-work-selection.json"),
                        work_selection_report(execution, report_context()))
             return 0
-        request = BridgeRequest.model_validate_json(sys.stdin.read())
+        request = CommandInput.model_validate_json(sys.stdin.read())
         if args.operation == "plan":
             if request.options is None:
                 parser.error("plan requires options")
