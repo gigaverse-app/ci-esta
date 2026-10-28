@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.3](https://github.com/gigaverse-app/ci-esta/compare/v1.6.2...v1.6.3) (2026-10-28)
+
+
+### Bug fixes
+
+* **report:** count reused contracts behind aggregate gates ([#121](https://github.com/gigaverse-app/ci-esta/issues/121)) ([9ca9f70](https://github.com/gigaverse-app/ci-esta/commit/9ca9f70935b57aa50cfac677a5b1bb5f4dbe4822))
+* **report:** refresh stale jobs after workflow completion ([#119](https://github.com/gigaverse-app/ci-esta/issues/119)) ([4dd8e64](https://github.com/gigaverse-app/ci-esta/commit/4dd8e64324d06e55292c91509aa5152703932058))
+
 ## [1.6.2](https://github.com/gigaverse-app/ci-esta/compare/v1.6.1...v1.6.2) (2026-10-26)
 
 
