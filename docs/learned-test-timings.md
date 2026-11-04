@@ -19,8 +19,7 @@ still inventories current files and assigns an explicit fallback to unknown
 files. New tests therefore remain in the plan. Use separate manifests for
 Python versions, operating systems, services and dependency variants.
 
-For CI, add `learn-test-timings` at a reviewed immutable CI-esta
-commit after a successful pytest step. Supply `junit-pattern: junit.xml` and a
+For CI, add `gigaverse-app/ci-esta/actions/learn-test-timings@v1` after a successful pytest step. Supply `junit-pattern: junit.xml` and a
 unique `artifact-name`, such as `test-timings-py311-linux`. It requires uv, writes
 `.ci-test-durations.json`, and retains both that file and the source XML for 21
 days. Its output is an advisory artifact, not a completion receipt. Download the
@@ -41,8 +40,7 @@ No retention is enabled merely by upgrading CI-esta.
 Use the same `history-key` before planning and after successful tests. Choose a
 different key for each OS, Python version, service and fixed marker lane. These
 actions install their own tool environment; your application needs no new dependency.
-Pin a reviewed CI-esta commit containing these actions until this feature is
-released on `v1`.
+Use the published `@v1` actions. Adopt new inputs after they are available on `v1`.
 
 ```yaml
 permissions:

@@ -1,5 +1,5 @@
 """
-Contract: shared JavaScript calls only REST methods the pinned actions/github-script provides.
+Contract: shared JavaScript calls only REST methods the selected actions/github-script provides.
 
 ``resolve.cjs`` called ``github.rest.actions.listWorkflowRunsForWorkflow``. The real client
 has no such method, so ``github.paginate(undefined)`` fetched the API root and every
@@ -14,13 +14,13 @@ from pathlib import Path
 
 import pytest
 
-from scripts.ci.github_script_surface import rest_surface
+from scripts.ci.github_script_surface import main, rest_surface
 
 ROOT = Path(__file__).resolve().parents[2]
 SURFACE_FILE = ROOT / "tests/ci/github_script_rest_surface.json"
 STRICT_FAKE = ROOT / "tests/ci/github_rest_fake.cjs"
 SURFACE = json.loads(SURFACE_FILE.read_text(encoding="utf-8"))
-PIN = re.compile(r"actions/github-script@([0-9a-f]{40})")
+REFERENCE = re.compile(r"actions/github-script@([^\s]+)")
 REST_CALL = re.compile(r"github\.rest\.(\w+)\.(\w+)")
 SHARED_SOURCES = [
     ".github/**/*.yml", ".github/**/*.yaml", ".github/**/*.cjs", ".github/**/*.js",
@@ -48,17 +48,17 @@ def _node(script: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_every_github_script_pin_matches_the_recorded_surface() -> None:
-    pins = {match.group(1) for path in _shared_sources() for match in PIN.finditer(path.read_text(encoding="utf-8"))}
+def test_every_github_script_major_matches_the_recorded_surface() -> None:
+    refs = {match.group(1) for path in _shared_sources() for match in REFERENCE.finditer(path.read_text(encoding="utf-8"))}
 
-    assert pins, "no pinned actions/github-script found; the scan is broken"
-    assert pins == {SURFACE["github_script_sha"]}, (
-        f"actions/github-script pins {sorted(pins)} differ from the recorded surface "
-        f"{SURFACE['github_script_sha']}; regenerate it (see scripts/ci/github_script_surface.py)"
+    assert refs, "no actions/github-script found; the scan is broken"
+    assert refs == {SURFACE["github_script_ref"]}, (
+        f"actions/github-script refs {sorted(refs)} differ from the recorded surface "
+        f"{SURFACE['github_script_ref']}; regenerate it (see scripts/ci/github_script_surface.py)"
     )
 
 
-def test_shared_scripts_call_only_methods_the_pinned_client_provides() -> None:
+def test_shared_scripts_call_only_methods_the_recorded_client_provides() -> None:
     calls = _rest_calls()
     missing = {
         f"github.rest.{namespace}.{method} ({', '.join(sorted(set(paths)))})"
@@ -67,7 +67,7 @@ def test_shared_scripts_call_only_methods_the_pinned_client_provides() -> None:
     }
 
     assert KNOWN_CALLS <= set(calls), "the scanner missed known call sites"
-    assert not missing, f"calls the pinned actions/github-script does not provide: {sorted(missing)}"
+    assert not missing, f"calls the selected actions/github-script does not provide: {sorted(missing)}"
 
 
 @pytest.mark.parametrize(
@@ -103,7 +103,7 @@ def test_the_strict_fake_rejects_what_the_real_client_would_not_do(script: str, 
 
 
 def test_the_strict_fake_serves_a_real_method() -> None:
-    """CONTROL: a method the pinned client provides works through the fake and its paginate."""
+    """CONTROL: a method the recorded client provides works through the fake and its paginate."""
     completed = _node(
         "const {strictGithub}=require(process.argv[1]);"
         "const g=strictGithub({actions:{listWorkflowRuns: async()=>({data:{workflow_runs:[{id:7}]}})}});"
@@ -160,3 +160,17 @@ def test_the_surface_is_parsed_from_the_bundled_endpoint_table() -> None:
 def test_an_unrecognised_bundle_layout_is_refused(bundle: str) -> None:
     with pytest.raises(ValueError, match="layout changed"):
         rest_surface(bundle)
+
+
+@pytest.mark.parametrize("ref_option", ["--ref", "--sha"])
+def test_recorder_keeps_the_selected_ref_and_real_endpoint_table(tmp_path: Path, ref_option: str) -> None:
+    bundle = tmp_path / "bundle.js"
+    bundle.write_text(BUNDLE, encoding="utf-8")
+    output = tmp_path / "surface.json"
+
+    main([ref_option, "v9", "--bundle", str(bundle), "--output", str(output)])
+
+    assert json.loads(output.read_text(encoding="utf-8")) == {
+        "github_script_ref": "v9",
+        "rest": {"actions": ["getWorkflowRun", "listWorkflowRuns"], "git": ["getCommit"]},
+    }

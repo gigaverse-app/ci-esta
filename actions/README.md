@@ -8,7 +8,7 @@ Reusable pieces so `gigaverse-ai` and `gigaverse-backend` share identical CI
 mechanics without forcing repository-specific build and test layouts into one
 workflow.
 
-Use `gigaverse-app/ci-esta/actions/<name>@<reviewed-commit>` for the
+Use `gigaverse-app/ci-esta/actions/<name>@v1` for the
 extracted actions. The backend-common reusable workflows listed below retain
 Gigaverse event/security/release policy; they are external compositions, not
 workflows shipped by CI-esta. Start with the [portable adoption guide](../docs/ci-optimization.md)
@@ -260,7 +260,7 @@ on:
 permissions: { contents: read, pull-requests: write }
 jobs:
   semgrep:
-    uses: gigaverse-app/backend-common/.github/workflows/reusable-semgrep.yaml@<pinned-sha>
+    uses: gigaverse-app/backend-common/.github/workflows/reusable-semgrep.yaml@<consumer-ref>
     secrets: inherit
 ```
 
@@ -322,10 +322,10 @@ steps. No secrets are accepted or inherited.
 
 Backend-common's own `ci-code-validation.yaml` also invokes each composite action
 through a relative `./actions/...` reference. This is intentional:
-consumer-facing calls stay pinned to known commits, while pull requests in this
+consumer-facing calls use the published major tags, while pull requests in this
 repository exercise the implementation in the current checkout. Its reusable
 call sets `run-checks: false`, reusing only the shared change plan so the same
-files are not scanned once by pinned actions and again by local actions.
+files are not scanned once by published actions and again by local actions.
 
 ## `setup-python-uv`
 
