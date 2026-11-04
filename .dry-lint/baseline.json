@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "contract": "310f6cf8411bd76736e8586ec017db07c77d1819116dcfc127d80d9035b57ba0",
+  "started_at": "a3ded1d6b3cf7f555e7cc53050518a93d469e9f2",
+  "checked_at": "a3ded1d6b3cf7f555e7cc53050518a93d469e9f2",
+  "entries": [
+    {
+      "hashes": {
+        "actions/resolve-lane-evidence/release_version.py::git": "cb9e2ad283347b10",
+        "src/ci_esta/workflow_inputs.py::git": "636743995ec5d40d"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "scripts/ci/bun_cache.py::output": "923be6adaaafd4ed",
+        "src/ci_esta/testing/bun/execution.py::append_outputs": "aafb6dc5cf20668e"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/ci_observability/enrichment/primitives.py::format_seconds": "c30c8a09be4dda8f",
+        "src/ci_esta/testing/junit.py::format_duration": "d152c0f8e1adaad4"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "actions/resolve-lane-evidence/release_version.py::git": "cb9e2ad283347b10",
+        "src/ci_esta/testing/bun/selection.py::git": "7905c287e590a296"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/ci_observability/enrichment/backend/artifacts.py::parse_coverage_xml": "8db14586508fe71f",
+        "src/ci_esta/testing/coverage.py::read_coverage_summary": "5eb5b5085bc8a9be"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/drill.py::_jobs": "9a725c38ca5d9913",
+        "src/ci_esta/ci_observability/enrichment/backend/github.py::GitHubClient.list_jobs": "a28983e6541a6919"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/testing/bun/selection.py::git": "7905c287e590a296",
+        "src/ci_esta/workflow_inputs.py::git": "636743995ec5d40d"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/ci_observability/report.py::_elapsed": "548d3f83eef5f64e",
+        "src/ci_esta/drill.py::_seconds": "6281c02972d28324"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/testing/bun/execution.py::write_json": "df6cc8ead48a4fa1",
+        "src/ci_esta/testing/timing_store.py::write_history": "e5b9beb3ad2fe0ee"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/testing/bun/execution.py::report_context": "a6142ea5d614ae87",
+        "src/ci_esta/testing/local_shards.py::_write_measurements": "ebd132c13e2c004a"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/ci_observability/enrichment/backend/github.py::github_client": "b6146c91581790a0",
+        "src/ci_esta/testing/timing_artifacts.py::github_client": "ad51a4ee6ae8af22"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/ci_observability/impact.py::_seconds": "df107ac1a408829b",
+        "src/ci_esta/ci_observability/report.py::_elapsed": "548d3f83eef5f64e"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/ci_observability/enrichment/backend/github.py::GitHubClient.list_comments": "55cde2f721014b62",
+        "src/ci_esta/ci_observability/github.py::GitHubActionsClient._list_comments": "c5e10e2d8540d5ba"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/ci_observability/enrichment/backend/github.py::GitHubClient.list_jobs": "a28983e6541a6919",
+        "src/ci_esta/ci_observability/github.py::GitHubActionsClient.list_jobs": "c327f1751135b9cd"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/testing/bun/execution.py::append_outputs": "aafb6dc5cf20668e",
+        "src/ci_esta/testing/canary_action.py::_append_action_outputs": "475e9f92e892e982"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/ci_observability/selection.py::_files": "eff77bc995beed40",
+        "src/ci_esta/ci_observability/lanes.py::_takeaway": "64c87782fa788aeb"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/policy/verify.py::verify_workflows": "268d24e60b818469",
+        "src/ci_esta/testing/test_policy.py::plan_workflow": "ee16eb09e777113b"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/testing/bun/execution.py::append_outputs": "aafb6dc5cf20668e",
+        "src/ci_esta/testing/canary_run.py::_append_github_outputs": "1463b95358b1f544"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/measurements.py::ShardPoolMeasurement.wall_seconds": "0834819b47ddcccb",
+        "src/ci_esta/ci_observability/enrichment/backend/legacy.py::_runner_lane_seconds": "11b09d233f605c01"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    },
+    {
+      "hashes": {
+        "src/ci_esta/testing/action.py::_append_action_outputs": "dc78cb718e9c7a5f",
+        "src/ci_esta/testing/bun/execution.py::append_outputs": "aafb6dc5cf20668e"
+      },
+      "context_hash": "",
+      "state": "remaining"
+    }
+  ]
+}
