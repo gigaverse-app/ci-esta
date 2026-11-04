@@ -11,8 +11,7 @@ continue to use pytest-selective; CI-esta does not build a second import graph.
 ## Contract and ownership
 
 The public action is `gigaverse-app/ci-esta/actions/run-bun-tests`; see
-[entry-point availability](actions.md) before selecting a release pin.
-Pin a reviewed commit. The caller supplies Bun >=1.4.2 <2 and application
+[entry-point availability](actions.md) for the published `@v1` entry point. The caller supplies Bun >=1.4.2 <2 and application
 dependencies. CI-esta owns the adapter in Python and automatically prepares its
 locked, isolated tool environment, shared with reporting and timing actions.
 It does not use or change the application virtual environment or lockfile. Bun owns static/transitive
@@ -32,7 +31,7 @@ After the action, native Python policy controls can use its pinned source and
 prepared interpreter without installing dependencies in the application:
 
 ```yaml
-- uses: gigaverse-app/ci-esta/actions/run-bun-tests@<reviewed-commit>
+- uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
   id: tests
   with:
     inventory: ${{ runner.temp }}/bun-inventory.json

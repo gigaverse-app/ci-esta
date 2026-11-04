@@ -246,7 +246,7 @@ after all children exit, including on test failure. Publish it from each pool:
 ```yaml
 - name: Publish shard execution intervals
   if: always()
-  uses: gigaverse-app/ci-esta/actions/publish-shard-measurements@<reviewed-commit>
+  uses: gigaverse-app/ci-esta/actions/publish-shard-measurements@v1
   with:
     path: pytest-logs/ci-esta-shards.json
     pool: ${{ matrix.first }}-${{ matrix.last }}
@@ -263,7 +263,7 @@ durations remain visible but cannot substitute for process intervals.
 
 For a report inside the original workflow instead:
 
-Run this after your existing aggregate gate. Replace `Validation gate` with its exact display name. Pin the action to a reviewed commit SHA for production.
+Run this after your existing aggregate gate. Replace `Validation gate` with its exact display name. Use the published `@v1` action.
 
 ```yaml
 report:

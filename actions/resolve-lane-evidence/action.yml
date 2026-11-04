@@ -70,7 +70,7 @@ runs:
   using: composite
   steps:
     - id: resolve
-      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+      uses: actions/github-script@v9
       env:
         SELECTION_KEYS: ${{ inputs.selection-keys }}
         SELECTION: ${{ inputs.selection }}
@@ -180,7 +180,7 @@ runs:
     - name: Publish reuse measurements
       if: steps.resolve.outputs.measurement-path != ''
       continue-on-error: true
-      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.resolve.outputs.measurement-name }}
         path: ${{ steps.resolve.outputs.measurement-path }}
