@@ -107,3 +107,94 @@ def test_completion_distinguishes_execution_from_collection(tmp_path: Path, mode
         assert not receipt.exists(), "Collection alone never proves execution"
     else:
         assert receipt.read_text().strip() == str(result.returncode)
+
+
+LANE_MARKER = "not other_lane"
+OTHER_LANE_ONLY = "import pytest\npytestmark = pytest.mark.other_lane\n" + "".join(
+    f"def test_{case}(): pass\n" for case in range(3)
+)
+
+
+def write_shard_worker(directory: Path, *extra_args: str) -> Path:
+    """A shard command shaped like an adopter's: one pytest run over its manifest, with a lane marker."""
+    worker = directory / "shard.py"
+    worker.write_text(
+        "\n".join(
+            (
+                "import os, subprocess, sys",
+                'shard = os.environ["GV_PYTEST_SHARD_INDEX"]',
+                'paths = [line for line in open(f"group-{shard}.txt").read().splitlines() if line]',
+                "raise SystemExit(subprocess.call([sys.executable, '-m', 'pytest', '-p', 'ci_esta.testing.pytest_completion',",
+                "    f'--completion-receipt=pytest-status-group-{shard}', f'--junitxml=junit-group-{shard}.xml',",
+                f"    '-o', 'markers=other_lane', '-m', {LANE_MARKER!r}, '-q', *{list(extra_args)!r}, *paths]))",
+            )
+        )
+        + "\n"
+    )
+    return worker
+
+
+def run_local(directory: Path, worker: Path, shards: int) -> int:
+    from ci_esta.testing.local_shards import LocalShardRunConfig, run_local_shards
+
+    return run_local_shards(
+        LocalShardRunConfig(
+            shard_count=shards,
+            command=[sys.executable, str(worker)],
+            log_dir=directory / "logs",
+            environment={"PYTHONPATH": str(ROOT / "src"), "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "PYTEST_ADDOPTS": ""},
+        )
+    )
+
+
+def test_shard_holding_only_lane_deselected_files_completes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """REGRESSION: duration packing can give one shard only files the lane marker deselects.
+
+    gigaverse-backend run 42418197930 packed a real-Celery-worker file alone into shard 1 of 12:
+    "collected 11 items / 11 deselected / 0 selected", pytest exit 5, and run-local failed the job
+    although every test the lane owns passed. The verifier already accepted that receipt.
+    """
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "test_other_lane.py").write_text(OTHER_LANE_ONLY)
+    (tmp_path / "test_unit.py").write_text("def test_unit(): pass\n")
+    (tmp_path / "group-1.txt").write_text("test_other_lane.py\n")
+    (tmp_path / "group-2.txt").write_text("test_unit.py\n")
+
+    assert run_local(tmp_path, write_shard_worker(tmp_path), shards=2) == 1, "pytest's raw exit 5 fails the shard"
+    assert run_local(tmp_path, write_shard_worker(tmp_path, "--completion-accept-all-deselected"), shards=2) == 0
+    for shard in (1, 2):
+        assert (tmp_path / f"pytest-status-group-{shard}").read_text().strip() == "0"
+        assert (tmp_path / f"junit-group-{shard}.xml").stat().st_size
+
+
+@pytest.mark.parametrize(
+    "mode", ["empty-file", "no-test-files", "partly-deselected-failure", "collect-only", "fail-fast"]
+)
+def test_accepting_all_deselected_never_hides_missing_or_failed_work(tmp_path: Path, mode: str) -> None:
+    """Only a session that collected tests and deselected every one becomes a pass; nothing else changes."""
+    sources = {
+        "empty-file": {"test_probe.py": ""},
+        "no-test-files": {"helper.py": "def test_not_collected(): pass\n"},
+        "partly-deselected-failure": {
+            "test_other_lane.py": OTHER_LANE_ONLY,
+            "test_probe.py": "def test_x(): assert False\n",
+        },
+        "collect-only": {"test_other_lane.py": OTHER_LANE_ONLY},
+        "fail-fast": {
+            "test_other_lane.py": OTHER_LANE_ONLY,
+            "test_probe.py": "def test_x(): assert False\ndef test_y(): pass\n",
+        },
+    }[mode]
+    for name, source in sources.items():
+        (tmp_path / name).write_text(source)
+    args = {"collect-only": ["--collect-only"], "fail-fast": ["--maxfail=1"]}.get(mode, [])
+    result = run_pytest(
+        tmp_path, "--completion-accept-all-deselected", "-o", "markers=other_lane", "-m", LANE_MARKER, *args
+    )
+    expected = {"empty-file": 5, "no-test-files": 5, "partly-deselected-failure": 1, "collect-only": 5, "fail-fast": 1}
+    assert result.returncode == expected[mode], result.stdout + result.stderr
+    receipt = tmp_path / "receipt"
+    if mode in {"collect-only", "fail-fast"}:
+        assert not receipt.exists(), "Collection or fail-fast never proves execution"
+    else:
+        assert receipt.read_text().strip() == str(expected[mode])
