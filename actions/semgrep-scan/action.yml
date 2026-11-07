@@ -137,7 +137,7 @@ runs:
       # Run regardless of PR context so workflow_dispatch / push runs are debuggable
       # without having to fetch the JSON artifact or re-trigger as a PR.
       if: always()
-      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+      uses: actions/github-script@v9
       with:
         script: |
           const fs = require('fs');

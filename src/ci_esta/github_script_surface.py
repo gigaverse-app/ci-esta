@@ -1,5 +1,5 @@
 """
-Record the REST methods that a pinned ``actions/github-script`` release provides.
+Record the REST methods that an ``actions/github-script`` release provides.
 
 Shared JavaScript calls ``github.rest.<namespace>.<method>``, and tests replace that
 client with fakes. A fake that defines a method the real client lacks hides the bug:
@@ -8,11 +8,11 @@ Octokit has no such method, ``github.paginate(undefined)`` fetched the API root,
 every same-head reuse silently fell back. The recorded surface is what the contract
 test and the strict fake check against.
 
-Regenerate after changing the ``actions/github-script`` pin::
+Regenerate after changing the ``actions/github-script`` major version or refreshing its API snapshot::
 
     gh api -H "Accept: application/vnd.github.raw" \\
-      "repos/actions/github-script/contents/dist/index.js?ref=<sha>" > /tmp/github-script.js
-    python -m scripts.ci.github_script_surface --sha <sha> --bundle /tmp/github-script.js \\
+      "repos/actions/github-script/contents/dist/index.js?ref=v9" > /tmp/github-script.js
+    python -m scripts.ci.github_script_surface --ref v9 --bundle /tmp/github-script.js \\
       --output tests/ci/github_script_rest_surface.json
 """
 
@@ -51,13 +51,13 @@ def rest_surface(bundle: str) -> dict[str, list[str]]:
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Record the REST methods a pinned actions/github-script provides.")
-    parser.add_argument("--sha", required=True, help="actions/github-script commit the bundle came from")
-    parser.add_argument("--bundle", required=True, type=Path, help="that commit's dist/index.js")
+    parser = argparse.ArgumentParser(description="Record the REST methods an actions/github-script release provides.")
+    parser.add_argument("--ref", "--sha", dest="ref", required=True, help="actions/github-script ref the bundle came from")
+    parser.add_argument("--bundle", required=True, type=Path, help="that release's dist/index.js")
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args(argv)
     surface = rest_surface(args.bundle.read_text(encoding="utf-8"))
-    record = {"github_script_sha": args.sha, "rest": surface}
+    record = {"github_script_ref": args.ref, "rest": surface}
     args.output.write_text(json.dumps(record, indent=1) + "\n", encoding="utf-8")
 
 

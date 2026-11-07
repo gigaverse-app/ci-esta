@@ -129,3 +129,16 @@ New policy adopters can declare work directly in `plan-test-policy` without a
 policy file. CI-esta provides ordinary, full, weekly, smoke, performance and probe
 defaults. Optional configuration contains only exceptional metadata and profile
 overrides; existing selectors remain authoritative for work IDs.
+
+<!-- dry-lint-progress:start -->
+[![dry-lint cleanup progress](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fgigaverse-app%2Fci-esta%2Fmain%2F.dry-lint%2Fprogress.json)](https://github.com/gigaverse-app/dry-lint)
+
+**Cleaning up duplication with dry-lint.** CI checks new changes against the accepted backlog.
+
+| Duplicate pairs cleaned | Remaining | Dismissed |
+| ---: | ---: | ---: |
+| 0 | 20 | 0 |
+
+[Accepted backlog](.dry-lint/baseline.json). Counts cover judged pairs in the configured scope, not lines of code; dismissals do not count as cleanup.
+[Read the audit](https://github.com/gigaverse-app/ci-esta/actions/workflows/dry-lint-audit.yml) to choose the next refactor.
+<!-- dry-lint-progress:end -->
