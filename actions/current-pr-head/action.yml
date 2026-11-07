@@ -17,7 +17,7 @@ runs:
   steps:
   - name: Compare rerun SHA with live PR head
     id: current
-    uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3
+    uses: actions/github-script@v9
     env:
       PR_NUMBER: ${{ inputs.pr-number }}
       EXPECTED_HEAD_SHA: ${{ inputs.expected-head-sha }}

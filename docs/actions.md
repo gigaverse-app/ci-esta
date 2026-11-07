@@ -14,8 +14,8 @@ Both publish execution measurements consumed automatically by the report workflo
 Use `actions/NAME@v1` for the current Actions API. Its moving major tag is
 independent of the Python package version and advances only after the exact
 commit passes main CI and the public action smoke. Python dependency ranges and installed
-agent skills are separate. Use an immutable full release tag or commit when a
-fixed revision is required. Prereleases do not advance `v1`.
+agent skills are separate. Use the published major tag; use a commit hash only when
+the user explicitly requests that exact exception. Prereleases do not advance `v1`.
 
 Each `actions/NAME` directory contains the implementation and its helper files.
 The former `.github/actions/NAME` and top-level `NAME` directories have been

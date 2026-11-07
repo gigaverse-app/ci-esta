@@ -47,7 +47,7 @@ runs:
   steps:
     - name: Prove the base checks clean
       id: base
-      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+      uses: actions/github-script@v9
       env:
         CLEAN_BASE: ${{ inputs.base }}
         CLEAN_BASE_CHECKS: ${{ inputs.clean-base-checks }}
@@ -69,7 +69,7 @@ runs:
       if: steps.base.outputs.proven == 'true'
       # Failure must preserve scope.sh's full-check fallback, never skip checking.
       continue-on-error: true
-      uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      uses: astral-sh/setup-uv@v10.0.1
       with:
         enable-cache: false
     - name: Compute the scope
