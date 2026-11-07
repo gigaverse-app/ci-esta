@@ -42,7 +42,7 @@ required outputs or evidence.
 Begin with the package manager cache:
 
 ```yaml
-- uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+- uses: astral-sh/setup-uv@v10.0.1
   with:
     enable-cache: true
     cache-dependency-glob: |

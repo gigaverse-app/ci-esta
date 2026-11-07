@@ -124,7 +124,7 @@ every main update. An ordinary rerun can use a prior completed run as a selectio
 baseline, but cannot reuse that run's execution receipt.
 
 The new `validated-head`, `tested-merge-step-prefix` and `full: auto` Bun contract
-must be present in the reviewed action revision. During rollout, pin the reviewed commit from [CI-esta #117](https://github.com/gigaverse-app/ci-esta/pull/117); use `@v1` after it contains these inputs. Do not point a consumer
+must be present in the published `@v1` action. Adopt these inputs after [CI-esta #117](https://github.com/gigaverse-app/ci-esta/pull/117) is available on `v1`. Do not point a consumer
 at an older release and assume unknown inputs are enforced.
 
 The ownership marker binds a run to the PR when GitHub omits `pull_requests`.

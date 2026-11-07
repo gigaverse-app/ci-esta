@@ -47,7 +47,7 @@ jobs:
           (fromJSON(needs.select-tests.outputs.lanes).tests && !fromJSON(needs.select-tests.outputs.reused || '{}').bun)) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
       - name: Cold Bun dependency setup
         id: cold
         uses: ./actions/setup-cached-bun
@@ -185,8 +185,8 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: false
       - name: Verify cold setup, warm reuse and consumer isolation
@@ -200,7 +200,7 @@ jobs:
           (fromJSON(needs.select-tests.outputs.lanes).tests && !fromJSON(needs.select-tests.outputs.reused || '{}').typecheck)) }}
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
       - name: Prepare isolated checker configuration without installing tools
         run: |
           command -v uv || echo 'Cold runner: uv is absent before the action'
@@ -238,7 +238,7 @@ jobs:
           (fromJSON(needs.select-tests.outputs.lanes).tests && !fromJSON(needs.select-tests.outputs.reused || '{}').public)) }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@v7
       - uses: ./actions/check-test-policy
         with:
           policy: examples/test-policy/policy.json

@@ -1,22 +1,19 @@
-"""First-party actions follow compatible releases; external actions retain digests."""
+"""Actions use published major tags, with release tags where no major is published."""
 
 import re
 from pathlib import Path
 
 
-def test_shared_actions_use_versioned_toolkits_and_pinned_external_actions() -> None:
+def test_shared_actions_use_published_versions() -> None:
     root = Path(__file__).resolve().parents[2]
     remote = re.compile(r"^\s*(?:-\s*)?uses:\s+(?!\./)(\S+)", re.MULTILINE)
-    immutable = re.compile(r"^[^@\s]+@[0-9a-f]{40}$")
-    toolkit = re.compile(r"^gigaverse-app/(?:ci-esta|pytest-selective)/actions/[a-z][a-z0-9-]*@v1$")
-    unpinned = [
+    major = re.compile(r"^[^@\s]+@v[1-9][0-9]*$")
+    # These publishers have no moving tag for the release line in use.
+    release_only = re.compile(r"^(?:astral-sh/setup-uv@v10|aquasecurity/trivy-action@v0)\.\d+\.\d+$")
+    invalid = [
         f"{path.relative_to(root)}: {reference}"
         for path in (root / "actions").glob("*/action.y*ml")
         for reference in remote.findall(path.read_text())
-        if not (
-            toolkit.fullmatch(reference)
-            if reference.startswith(("gigaverse-app/ci-esta/", "gigaverse-app/pytest-selective/"))
-            else immutable.fullmatch(reference)
-        )
+        if not (major.fullmatch(reference) or release_only.fullmatch(reference))
     ]
-    assert not unpinned, "\n".join(unpinned)
+    assert not invalid, "\n".join(invalid)
