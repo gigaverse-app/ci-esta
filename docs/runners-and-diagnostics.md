@@ -27,6 +27,16 @@ Use pytest-selective's duration-balanced assignments inside each process. Always
 run the completion gate against the planned global shard count; resource logs
 and successful subprocess startup are not evidence that tests completed.
 
+The planner packs whole files by duration and does not know the lane's `-m`
+filter. A shard can therefore receive only files that filter deselects, for
+example files marked for a separate real-worker or smoke lane. pytest exits 5
+for that shard, and `run-local` fails on any nonzero exit. Lanes that filter by
+marker or keyword should load the completion plugin with
+`--completion-accept-all-deselected`. It turns exit 5 into 0 only when the
+session ran to completion, collected at least one test and deselected all of
+them. A shard that collected nothing still exits 5, so an empty or wrong
+manifest still fails.
+
 `run-local` prints each shard's result as it finishes. Every 60 seconds it also
 prints the log tail of shards still running, so a blocked first shard cannot hide
 other results or watchdog traces before a job timeout. Tune this interval with
