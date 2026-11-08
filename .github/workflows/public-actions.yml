@@ -188,6 +188,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
+      - uses: ./actions/native-windows-git
+      - name: Verify native Git on the current Windows image
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $actual = (Get-Command git -CommandType Application | Select-Object -First 1).Source
+          $prefix = Split-Path (Split-Path (git --exec-path) -Parent) -Parent
+          $expected = [IO.Path]::GetFullPath((Join-Path $prefix 'bin/git.exe'))
+          if ($actual -ne $expected) { throw "Native Git was not activated: $actual; expected $expected" }
+          git init --template= (Join-Path $env:RUNNER_TEMP 'native-git-smoke')
+          if ($LASTEXITCODE -ne 0) { throw 'Native Git could not create a repository' }
       - uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: false
