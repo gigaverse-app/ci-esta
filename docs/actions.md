@@ -14,8 +14,32 @@ Both publish execution measurements consumed automatically by the report workflo
 Use `actions/NAME@v1` for the current Actions API. Its moving major tag is
 independent of the Python package version and advances only after the exact
 commit passes main CI and the public action smoke. Python dependency ranges and installed
-agent skills are separate. Use the published major tag; use a commit hash only when
-the user explicitly requests that exact exception. Prereleases do not advance `v1`.
+agent skills are separate. Prereleases do not advance `v1`.
+
+Follow your repository's pinning policy. Without one, use the published major tag
+`@v1`. If your workflows pin actions to commit SHAs (for example because zizmor or
+an organization policy requires it), pin CI-esta the same way, with the release tag
+as a comment, and let Dependabot or Renovate update both:
+
+```yaml
+- uses: gigaverse-app/ci-esta/actions/setup-cached-uv@<sha> # v1.8.0
+```
+
+Resolve a tag to its commit with `gh api repos/gigaverse-app/ci-esta/commits/v1.8.0 --jq .sha`.
+That returns the commit for annotated tags too, where `git/ref/tags/TAG` returns the
+tag object instead. Pin a release tag (`v1.8.0`), not the moving `v1`, so the comment
+stays true.
+
+Some actions have version floors in the environment they run in:
+`setup-cached-uv` always runs `uv sync --locked`, so it needs a committed `uv.lock`;
+without one, keep your existing Python setup or use `astral-sh/setup-uv` with its cache.
+The pytest completion-receipt plugin (`-p ci_esta.testing.pytest_completion`) runs
+inside your pytest process, so that environment needs Python 3.11+, CI-esta's floor.
+For jobs testing older interpreters, gate each test job directly and use its own
+inventory (JUnit, tox `--result-json`) instead of receipts; never write a receipt
+with a shell `echo $?`, because pytest also exits 1 without finishing. Actions that
+install their own runtime, such as `plan-runner-pools` and `ci-observability`, have
+no floor for your project.
 
 Each `actions/NAME` directory contains the implementation and its helper files.
 The former `.github/actions/NAME` and top-level `NAME` directories have been

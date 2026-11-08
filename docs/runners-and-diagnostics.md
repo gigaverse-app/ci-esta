@@ -63,6 +63,23 @@ Public repositories receive free standard GitHub-hosted runner time. Larger
 runners are billed for both public and private repositories and do not use
 included minutes. See [GitHub's larger-runner billing rules](https://docs.github.com/en/actions/concepts/runners/larger-runners#billing).
 
+An organization's larger runners live in runner groups, and a group can refuse
+public repositories. A job requesting such a label then waits for a runner that
+never comes. Check before benchmarking, with organization-admin read access:
+
+```bash
+gh api orgs/ORG/actions/runner-groups \
+  --jq '.runner_groups[] | {name, visibility, allows_public_repositories}'
+# GitHub-hosted larger runners: the label is the runner's name
+gh api orgs/ORG/actions/hosted-runners --jq '.runners[] | {name, runner_group_id}'
+```
+
+If the group holding the label has `allows_public_repositories: false` (or a
+`selected` visibility that excludes the repository), leave larger-runner layouts
+unmeasured and say so. Changing the group is an organization setting for its
+owners; do not change it as part of a CI change. Compare standard-runner layouts
+instead.
+
 Plan bounded, consecutive ranges once, then execute the returned assignment:
 
 ```bash

@@ -9,13 +9,26 @@ Start with a report if you do not know the bottleneck. If repeated dependency
 installation is already the problem, replace those setup steps directly. Use
 [the public action version policy](actions.md#availability-and-pinning): the
 root/short paths below use `@v1` for automatic compatible 1.x upgrades.
-Use an exact release tag or commit SHA if your project requires fixed revisions.
+If your project pins actions to commit SHAs, pin these the same way
+([resolve a tag to its SHA](actions.md#availability-and-pinning)).
 
 ## Report a completed workflow
 
 Save this as `.github/workflows/observe-ci.yml`. Change `CI` to the name of your
-validation workflow and `Validation gate` to its exact required job name. Commit
-the observer to your default branch; it starts observing subsequent runs.
+validation workflow and `Validation gate` to the exact name of the job your branch
+protection requires. If that aggregate job already exists under another name, keep
+its name; do not add or rename a gate just for reporting.
+
+`workflow_run` starts a workflow only from the copy on the default branch, so the
+observer runs once it is merged, never on the PR that adds it. Until then, measure
+any completed run with the CLI, which produces the same report:
+
+```bash
+uv tool install 'ci-esta[selection]>=1.8,<2'
+export GH_TOKEN="$(gh auth token)"
+ci-esta report --repository OWNER/REPO --run-id RUN_ID --gate 'Validation gate' \
+  --critical-path --output-dir ci-esta-report
+```
 
 ```yaml
 name: CI report
@@ -92,6 +105,10 @@ It repairs unusable environments. Keep extra system-library/ABI inputs in
 `cache-variant`. Compare cold and warm setup; if restoring the expanded environment
 costs more than installing it, set `cache-environment: 'false'` and retain uv's
 package cache. [Cache identity and recovery](environment-cache.md).
+
+The action needs a committed `uv.lock`. A project without one (tox, nox or pip
+requirements) keeps its existing setup steps; `astral-sh/setup-uv` with
+`enable-cache: true`, or an existing cached-uv action, still caches downloads.
 
 ## Choose the next improvement from the report
 

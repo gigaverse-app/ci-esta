@@ -311,19 +311,46 @@ skipped or reversed timestamps stay unavailable; a completed step with identical
 timestamps is a measured zero at GitHub's timestamp precision. Steps explain job
 time and are never added to runner usage. Older v1 reports without steps still load.
 
+## Report JSON fields
+
+`ci-observability.json` follows `CiObservabilityReportV1`. These are the fields a
+before/after comparison usually needs. Times are seconds; `null` means unmeasured,
+never zero.
+
+| Field | Meaning |
+| --- | --- |
+| `collection_status`, `collection_errors` | `complete`, `partial` or `unavailable`, and why. Trust no number from a report that is not `complete` without reading the errors. A missing or wrong token gives `unavailable`. |
+| `provenance.run_id`, `.run_attempt`, `.head_sha`, `.workflow_name` | The observed source run, not the observer's own run. Cite these with every number. |
+| `required_gates[].display_name`, `.conclusion`, `.matched` | Each `--gate` you named and whether a job with that exact name was found. |
+| `required_gates[].elapsed_from_creation_seconds` | Workflow creation to that gate completing: the time a PR author waits. |
+| `merge_ready_from_creation_seconds` | The same, for the last of all named gates; `null` unless every named gate matched and succeeded. |
+| `workflow_job_admission_delay_seconds` | Time before jobs started (dependencies, approvals and runner queueing together). |
+| `runner_cost.raw_runner_seconds` | Summed wall time of every timed job, across attempts. Compare layouts with this. |
+| `runner_cost.estimated_rounded_runner_minutes` | The same with each job rounded up to a whole minute, as GitHub bills; an estimate, not an invoice. |
+| `runner_cost.estimated_cost_usd` | Rounded minutes times known runner rates; `null` when any job's runner is unpriced. Public-repository standard runners are free. |
+| `latest_attempt_jobs[].name`, `.wall_seconds`, `.conclusion` | Each job of the latest attempt and its duration. |
+| `latest_attempt_jobs[].steps[].wall_seconds` | Step durations, to separate setup from tests inside a job. |
+| `longest_latest_job_name`, `longest_latest_job_seconds` | The longest job; not necessarily on the critical path. |
+| `critical_path.elapsed_seconds`, `.execution_seconds` | With `--critical-path`: the observed dependency chain to the gate, and the same chain with waiting removed. |
+| `critical_path.observed_path`, `.execution_path` | The job names on those chains. |
+
+`billing_jobs` lists every timed job across attempts; `latest_attempt_jobs` only
+the latest attempt. Use the latest attempt for elapsed time and both for cost.
+
 ## Local reports and offline rendering
 
 ```bash
-pip install "ci-esta"
+uv tool install 'ci-esta[selection]>=1.8,<2'
 # Set GITHUB_TOKEN or GH_TOKEN in your environment; do not put it in command history.
 ci-esta report --repository owner/repo --run-id 123456 --gate 'Validation gate'
 ci-esta render ci-esta-report/ci-observability.json \
   --markdown report.md --prometheus report.prom
 ```
 
-Base reporting installs neither pytest nor pytest-selective. Install
-`ci-esta[selection]` for Python selection explanations or `ci-esta[pytest]` for
-pytest execution tools. The Actions for evidence, gates and change collection do not require a Python application or pytest.
+The selection extra adds pytest-selective (and pytest), which `ci-esta check-workflow`,
+`ci-esta lanes`, `ci-esta-pytest plan` and `ci-esta-pytest merge` need; without it they
+exit with the install command instead. Base reporting alone (`ci-esta report`, `render`,
+`adoption`) needs neither. In a test environment, add `ci-esta[pytest]` for the pytest plugins. The Actions for evidence, gates and change collection do not require a Python application or pytest.
 
 ## Prometheus without unbounded labels
 
