@@ -7,12 +7,19 @@ from pathlib import Path
 
 import yaml
 
+from ci_esta.testing.lane_inference import EXTENDS, resolve
 from ci_esta.workflow_graph import lane_references
 
 
-def check(workflow: Path, lanes: Path) -> None:
+def check(workflow: Path, lanes: Path | None, repo: Path = Path(".")) -> None:
+    """`lanes` is a lane file, complete or extending the workflow; None infers the lanes, as plan-work does."""
     jobs = yaml.safe_load(workflow.read_text())["jobs"]
-    configured = json.loads(lanes.read_text())["lanes"]
+    document = json.loads(lanes.read_text()) if lanes is not None else None
+    # A complete lane file names its lanes; an extending file or none needs the workflow's inferred lanes.
+    if document is not None and EXTENDS not in document:
+        configured = document["lanes"]
+    else:
+        configured = resolve(repo, "HEAD", "HEAD", lanes).config.lanes
     gate_ids = [name for name, job in jobs.items() if job.get("name") == "Validation gate"]
     if len(gate_ids) != 1:
         raise ValueError("Exactly one stable Validation gate is required")

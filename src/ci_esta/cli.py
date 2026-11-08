@@ -22,7 +22,8 @@ def main(argv: list[str] | None = None) -> int:
     adoption.add_argument("--ignore", action="append", default=[], metavar="SUGGESTION_ID")
     audit = commands.add_parser("check-workflow", help="Validate selected-lane aggregate gate wiring")
     audit.add_argument("--workflow", type=Path, required=True)
-    audit.add_argument("--lanes", type=Path, required=True)
+    audit.add_argument("--lanes", type=Path, help="lane file; omitted, lanes are inferred from the workflows")
+    audit.add_argument("--repo", type=Path, default=Path("."))
     collect = commands.add_parser("report", help="Read a GitHub Actions run and save JSON, Markdown and Prometheus")
     collect.add_argument("--repository", required=True, help="owner/repository")
     collect.add_argument("--run-id", required=True, type=int)
@@ -54,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "check-workflow":
         from ci_esta.testing.workflow_adoption import check
-        check(args.workflow, args.lanes)
+        check(args.workflow, args.lanes, args.repo)
         print("Workflow lane and aggregate-gate contracts passed")
         return 0
     if args.command == "render":
