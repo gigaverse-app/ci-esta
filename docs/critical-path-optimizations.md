@@ -42,6 +42,10 @@ native executable. For suites creating many temporary Git repositories, use:
 The action verifies that the native executable reports exactly the same Git
 version before adding its directory to PATH. Unrecognized layouts keep the
 existing Git. It changes neither Git configuration nor test/coverage policy.
+Discovery uses the installation's `git --exec-path`, so it follows the `ucrt64`
+layout introduced in Git for Windows 2.56 as well as older `mingw64`, ARM64 and
+32-bit layouts. The job log names the selected executable; check it when a
+runner image changes. An external `GIT_EXEC_PATH` never selects another installation.
 This implementation originates in pytest-selective PR #26.
 
 Keep raw before/after CI reports and JUnit. Compare the same suite, Python,
