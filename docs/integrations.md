@@ -54,8 +54,10 @@ The report reads the lane plan on every run and the file explanation only when i
 
 Use the [selected-lane aggregate gate](selected-gates.md) to keep optional jobs
 and required statuses consistent. CI-esta's own workflow now combines
-pytest-selective lane planning with receipt reuse, while its quality job always
-checks routing, builds distributions and validates metadata. Manual and
+pytest-selective lane planning with receipt reuse. Its quality job always lints;
+routing contracts run in the `tests` lane, and distribution builds and metadata
+checks run in the `package` lane, so a documentation-only change runs neither
+([lane table](../CONTRIBUTING.md#documentation-only-ci)). Manual and
 `test:full` runs retain complete execution; ordinary main pushes use selection.
 
 ## pytest-obligation: preserve what green means
