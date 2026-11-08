@@ -176,7 +176,9 @@ tsconfig `paths` aliases (`@/x`), Vite-style query imports (`./icon.svg?react`, 
 `@/hero.png?url`), whose file is the input, and workspace packages imported by name
 (`@scope/lib/util`), which only a `node_modules` link resolves at runtime. Without
 `node_modules`, a workspace package resolves from its directory, ignoring an `exports` map;
-an import that resolves neither way fails the graph rather than losing an edge.
+an import that resolves neither way fails the graph rather than losing an edge. An untracked
+file in the checkout, such as generated code, never changes, but the files it imports still
+reach the tests that import it.
 
 A test preload (`preload` in any `bunfig*.toml`, top-level or under `[test]`) runs before every
 test without being imported. The planner cannot see which `--config` a lane passes, so a change to
@@ -202,8 +204,9 @@ still narrow the files that run.
 The graph is built in one `Bun.build()` call per round, with the entry list in a file rather
 than on the command line, so the number of tests has no command-line limit. On
 [web-app](https://github.com/gigaverse-app/gigaverse-web-app) at `deac0ab2a`, the graph over
-809 Bun test files and 3 preloads reached 3,260 files in 2.3 s with Bun 1.4.2 and 3.9 s with
-Bun 1.3.14 on a Windows workstation; both versions produced the same 110,474 edges.
+809 Bun test files and 3 preloads reached 3,260 files on a Windows workstation in 0.7 to
+0.8 s with Bun 1.4.2 (6.6 s on a cold first run) and 3.1 to 3.9 s with Bun 1.3.14. Both
+versions produced the same 110,474 edges.
 
 ## Direct Python use
 

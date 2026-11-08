@@ -85,6 +85,10 @@ def application(tmp_path: Path) -> tuple[Path, str]:
     for name in ("lazy", "side"):
         write(tmp_path, f"src/{name}.ts", f"export const {name} = 1;\n")
     write(tmp_path, "src/legacy.cjs", "module.exports = 1;\n")
+    # Generated code is untracked, but what it imports still reaches the tests that import it.
+    write(tmp_path, ".gitignore", "src/generated.ts\n")
+    write(tmp_path, "src/generated.ts", "export { routes } from './routes';\n")
+    write(tmp_path, "src/routes.ts", "export const routes = [];\n")
     write(tmp_path, "src/style.css", ".stage { color: red; }\n")
     write(tmp_path, "src/icon.svg", "<svg xmlns='http://www.w3.org/2000/svg'/>\n")
     # Both tests import `@lib/alias`, which Bun 1.3 then names only by its specifier.
@@ -93,7 +97,8 @@ def application(tmp_path: Path) -> tuple[Path, str]:
         "tests/unit/assets.test.ts",
         TEST.format(
             imports="import { alias } from '@lib/alias';\nimport css from '../../src/style.css?raw';\n"
-            "import { format } from '@sample/kit/format';\nconst legacy = require('../../src/legacy.cjs');"
+            "import { format } from '@sample/kit/format';\nconst legacy = require('../../src/legacy.cjs');\n"
+            "import { routes } from '../../src/generated';"
         ),
     )
     write(
@@ -121,6 +126,7 @@ def application(tmp_path: Path) -> tuple[Path, str]:
         ("src/legacy.cjs", "module.exports = 2;\n", {"unit": True, "feature": False}),
         ("src/side.ts", "export const side = 2;\n", {"unit": False, "feature": True}),
         ("src/lazy.ts", "export const lazy = 2;\n", {"unit": False, "feature": True}),
+        ("src/routes.ts", "export const routes = [1];\n", {"unit": True, "feature": False}),
         # A preload runs before every test, so it and everything it bundles reach every Bun lane.
         ("setup.ts", "globalThis.kit = 2;\n", {"unit": True, "feature": True}),
         ("packages/kit/setup.ts", "export const kit = 2;\n", {"unit": True, "feature": True}),

@@ -67,10 +67,18 @@ def repository_path(path: str, repo: Path) -> str:
     return normalized(os.path.relpath(os.path.realpath(path), os.path.realpath(repo)))
 
 
-def resolve_relative(directory: str, specifier: str, files: set[str]) -> str | None:
-    """The tracked file a relative specifier names from `directory`, ignoring a `?query` suffix."""
+def checked_out(path: str, files: set[str], untracked: Path | None = None) -> bool:
+    """Whether `path` is a tracked file or, when `untracked` names the checkout, any file in it.
+
+    Untracked files, such as generated code, are never changed, but their imports still count.
+    """
+    return path in files or (untracked is not None and not path.startswith("../") and (untracked / path).is_file())
+
+
+def resolve_relative(directory: str, specifier: str, files: set[str], untracked: Path | None = None) -> str | None:
+    """The file a relative specifier names from `directory`, ignoring a `?query` suffix."""
     base = posixpath.normpath(posixpath.join(directory, specifier.split("?")[0]))
-    return next((base + suffix for suffix in RESOLUTION if base + suffix in files), None)
+    return next((base + suffix for suffix in RESOLUTION if checked_out(base + suffix, files, untracked)), None)
 
 
 def build_imports(repo: Path, entries: list[str], bun: str) -> dict[str, list[dict[str, object]]]:
@@ -123,12 +131,13 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
                 specifier = str(item.get("path", ""))
                 if os.path.isabs(specifier):
                     target = repository_path(specifier, repo)
-                elif not item.get("external") and normalized(specifier) in files:
-                    # Bun 1.4 names an import of another entry point by its repository path.
+                elif not item.get("external") and checked_out(normalized(specifier), files, repo):
+                    # Bun 1.4 names an import of another entry point, or of an untracked file such as
+                    # generated code, by its repository path; the untracked file's own imports still count.
                     target = normalized(specifier)
                 elif specifier.startswith("."):
                     # A relative specifier: an import Bun left unresolved, or (Bun 1.3) one to another entry point.
-                    target = resolve_relative(posixpath.dirname(importer), specifier, files)
+                    target = resolve_relative(posixpath.dirname(importer), specifier, files, repo)
                     if target is None:
                         raise ValueError(f"cannot resolve {specifier!r} imported by {importer}")
                 elif item.get("external"):
@@ -137,7 +146,12 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
                     # Bun resolved it, but to no path the planner can name: never drop the edge.
                     raise ValueError(f"cannot map {specifier!r} imported by {importer}")
                 targets.add(target)
-                if target in files and target not in edges and target not in imports and MODULE.search(target):
+                if (
+                    checked_out(target, files, repo)
+                    and target not in edges
+                    and target not in imports
+                    and MODULE.search(target)
+                ):
                     pending.append(target)
         pending = sorted(set(pending))
     if missing := sorted(set(entries) - set(edges)):
