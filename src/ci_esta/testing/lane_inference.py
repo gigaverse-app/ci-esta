@@ -18,13 +18,14 @@ import shlex
 import tomllib
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pytest_selective.ci import Lane, LaneConfig
 from pytest_selective.impact_graph import policy_fingerprints
 from pytest_selective.impact_models import GitTree, ImpactConfig
 from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
 from ci_esta.git import git
+from ci_esta.testing.lane_rules import Rule, effective
 from ci_esta.workflow_graph import ALL, WorkflowGraph
 
 #: The words that start a test command, and the arguments after them that are paths.
@@ -97,6 +98,8 @@ class ResolvedLanes(BaseModel):
     sources: dict[str, list[str]]
     #: Lane name to the workflow jobs its conditions gate.
     jobs: dict[str, list[str]]
+    #: Every rule in force: the built-in defaults, replaced or disabled by the lane file, and its own.
+    rules: list[Rule] = Field(default_factory=lambda: effective([], []))
 
 
 def infer(repo: Path, base: str, head: str) -> ResolvedLanes:
@@ -191,7 +194,7 @@ def resolve(repo: Path, base: str, head: str, lane_file: Path | None) -> Resolve
         )
     if document[EXTENDS] != "workflow":
         raise ValueError(f'{label}: "extends" must be "workflow"')
-    unknown = set(document) - {EXTENDS, "lanes", "graph", "global_inputs"}
+    unknown = set(document) - {EXTENDS, "lanes", "graph", "global_inputs", "rules", "disable_rules"}
     if unknown:
         raise ValueError(f"{label}: unknown keys {sorted(unknown)}")
     inferred = infer(repo, base, head)
@@ -212,4 +215,7 @@ def resolve(repo: Path, base: str, head: str, lane_file: Path | None) -> Resolve
             "global_inputs": document.get("global_inputs", inferred.config.global_inputs),
         }
     )
-    return ResolvedLanes(config=config, sources=sources, jobs=inferred.jobs)
+    rules = effective(
+        [Rule.model_validate(rule) for rule in document.get("rules") or []], list(document.get("disable_rules") or [])
+    )
+    return ResolvedLanes(config=config, sources=sources, jobs=inferred.jobs, rules=rules)

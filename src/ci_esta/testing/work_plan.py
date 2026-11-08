@@ -26,13 +26,38 @@ from ci_esta.package_inputs import PackageInputsUnavailable, changed_package_inp
 from ci_esta.testing.bun.graph import bun_lane_reasons
 from ci_esta.testing.lane_inference import resolve
 from ci_esta.testing.lane_report import render
+from ci_esta.testing.lane_rules import BUN_ENVIRONMENT, PYTHON_ENVIRONMENT, Rule, by_name, effective
 from ci_esta.workflow_graph import ALL, WorkflowGraph, changed_job_lanes
 
 
 def plan_work(
-    repo: Path, config: LaneConfig, base: str, head: str, *, full: bool = False, bun: str = "bun"
+    repo: Path,
+    config: LaneConfig,
+    base: str,
+    head: str,
+    *,
+    full: bool = False,
+    bun: str = "bun",
+    rules: list[Rule] | None = None,
 ) -> LanePlan:
-    """pytest-selective's lane plan, with CI changes routed through the workflow graph."""
+    """pytest-selective's lane plan, with CI changes routed through the workflow graph.
+
+    `rules` are the rules in force (`ci-esta lanes` lists them); None keeps the built-in defaults.
+    """
+    rules = effective([], []) if rules is None else rules
+    python = by_name(rules, PYTHON_ENVIRONMENT)
+    if python is None or python.origin != "built-in":
+        # A replaced or disabled Python environment rule decides what is global, for the graph too.
+        patterns = python.when if python is not None and python.select == ["all"] else []
+        graph = config.graph.model_copy(update={"global_inputs": patterns})
+        config = config.model_copy(update={"graph": graph, "global_inputs": patterns})
+    bun_rule = by_name(rules, BUN_ENVIRONMENT)
+    bun_environment = bun_rule.when if bun_rule is not None and bun_rule.select == ["bun"] else None
+    generic = [
+        rule
+        for rule in rules
+        if (rule.name, tuple(rule.select)) not in {(PYTHON_ENVIRONMENT, ("all",)), (BUN_ENVIRONMENT, ("bun",))}
+    ]
     if config.global_inputs is None:
         # The selector's built-in policy treats non-Markdown .github/ files as global inputs because
         # it cannot see workflows. The workflow graph can, so keep only the environment defaults.
@@ -54,7 +79,7 @@ def plan_work(
         )
     # Bun tests reach lanes through Bun's own module graph, built from the checked-out head.
     roots = {name: lane.roots for name, lane in config.lanes.items()}
-    bun_reasons = bun_lane_reasons(repo, roots, set(result.changed), bun)
+    bun_reasons = bun_lane_reasons(repo, roots, set(result.changed), bun, bun_environment)
     # A job that builds the package runs when the package's inputs change, as the build tools list them.
     package_lanes = after.package_lanes()
     if package_lanes - {lane for lane, selected in result.lanes.items() if selected}:
@@ -64,8 +89,19 @@ def plan_work(
             found = [f"full-suite fallback: package inputs unavailable: {error}"]
         for reason in found:
             reasons[reason] = package_lanes
+    for rule in generic:
+        for path in rule.fired_by(set(result.changed)):
+            reasons[f"rule {rule.name}: {path}" + (f" ({rule.reason})" if rule.reason else "")] = targets(
+                rule, after, package_lanes, set(bun_reasons)
+            )
     lanes = dict(result.lanes)
-    evidence = {name: list(values) for name, values in result.lane_reasons.items()}
+    evidence = {
+        name: [
+            value.replace("global input: ", f"rule {PYTHON_ENVIRONMENT}: ", 1) if python is not None else value
+            for value in values
+        ]
+        for name, values in result.lane_reasons.items()
+    }
     for name in config.lanes:
         added = [reason for reason, selected in reasons.items() if ALL in selected or name in selected]
         added += bun_reasons.get(name, [])
@@ -75,6 +111,26 @@ def plan_work(
             lanes[name] = True
             evidence[name].extend(added)
     return result.model_copy(update={"lanes": lanes, "lane_reasons": evidence})
+
+
+def targets(rule: Rule, graph: WorkflowGraph, package_lanes: set[str], bun_lanes: set[str]) -> set[str]:
+    """The lanes a rule selects."""
+    selected: set[str] = set()
+    for value in rule.select:
+        if value == "all":
+            selected.add(ALL)
+        elif value == "package":
+            selected |= package_lanes
+        elif value == "bun":
+            selected |= bun_lanes
+        elif value.startswith("lane:"):
+            selected.add(value.removeprefix("lane:"))
+        else:
+            workflow, _, job = value.removeprefix("job:").partition("#")
+            if (workflow, job) not in graph.jobs:
+                raise ValueError(f"rule {rule.name}: {workflow} has no job {job!r}")
+            selected |= graph.jobs[(workflow, job)].lanes
+    return selected
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -93,7 +149,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         resolved = resolve(args.repo, args.base, args.head, args.config)
         config = resolved.config
-        result = plan_work(args.repo, config, args.base, args.head, full=args.full is not None, bun=args.bun)
+        result = plan_work(
+            args.repo, config, args.base, args.head, full=args.full is not None, bun=args.bun, rules=resolved.rules
+        )
         if args.full is not None:
             result.reason = args.full
     except (ValueError, OSError, DependencyDeclarationError) as error:

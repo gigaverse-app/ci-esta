@@ -82,13 +82,15 @@ class ProgressWatchdog:
                 self._deadline = time.monotonic() + self.timeout_seconds
             print(
                 f"\n[pytest-hang-watchdog] no pytest progress for {self.timeout_seconds}s; last phase: {phase}",
-                file=sys.stderr, flush=True,
+                file=sys.stderr,
+                flush=True,
             )
             print("[pytest-hang-watchdog] live threads:", file=sys.stderr, flush=True)
             for thread in threading.enumerate():
                 print(
                     f"[pytest-hang-watchdog] name={thread.name!r} ident={thread.ident} daemon={thread.daemon}",
-                    file=sys.stderr, flush=True,
+                    file=sys.stderr,
+                    flush=True,
                 )
             faulthandler.dump_traceback(file=sys.stderr, all_threads=True)
             if session is not None:
@@ -98,7 +100,8 @@ class ProgressWatchdog:
                 print(
                     f"[pytest-hang-watchdog] session already finished with exitstatus={status}; "
                     "forcing exit to avoid a shutdown hang on a leaked non-daemon thread.",
-                    file=sys.stderr, flush=True,
+                    file=sys.stderr,
+                    flush=True,
                 )
                 sys.stderr.flush()
                 sys.stdout.flush()

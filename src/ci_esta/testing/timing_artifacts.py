@@ -23,9 +23,9 @@ def artifact_name(key: str) -> str:
 def read_histories(client: GitHubActionsClient, key: str, branch: str, max_downloads: int = 20) -> list[TimingHistory]:
     """Read every uncovered writer, skipping ancestors already in a checkpoint.
 
-Concurrent writers have separate artifact IDs. A checkpoint can cover an ID
-only after downloading it; readers therefore cannot skip an unseen update.
-Exceeding the budget fails without publishing a truncated replacement.
+    Concurrent writers have separate artifact IDs. A checkpoint can cover an ID
+    only after downloading it; readers therefore cannot skip an unseen update.
+    Exceeding the budget fails without publishing a truncated replacement.
     """
     if max_downloads < 1:
         raise ValueError("history-max-downloads must be positive")
@@ -57,14 +57,16 @@ Exceeding the budget fails without publishing a truncated replacement.
 
 
 def history_branch() -> str:
-    return os.environ.get("INPUT_HISTORY_BRANCH") or json.loads(
-        Path(os.environ["GITHUB_EVENT_PATH"]).read_text()
-    )["repository"]["default_branch"]
+    return (
+        os.environ.get("INPUT_HISTORY_BRANCH")
+        or json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())["repository"]["default_branch"]
+    )
 
 
 def github_client() -> GitHubActionsClient:
     return GitHubActionsClient(
-        os.environ["GITHUB_REPOSITORY"], os.environ["GH_TOKEN"],
+        os.environ["GITHUB_REPOSITORY"],
+        os.environ["GH_TOKEN"],
         api_url=os.environ.get("GITHUB_API_URL", "https://api.github.com"),
     )
 

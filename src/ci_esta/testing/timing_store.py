@@ -62,9 +62,12 @@ class TimingHistory(BaseModel):
             if file not in self.tracked_files:
                 self.removed_files.setdefault(file, self.inventory_at)
         self.observations, _ = load_observations(
-            {"observations": {node: asdict(value) for node, value in self.observations.items()},
-             "removed_files": {file: since.isoformat() for file, since in self.removed_files.items()}},
-            self.tracked_files, now,
+            {
+                "observations": {node: asdict(value) for node, value in self.observations.items()},
+                "removed_files": {file: since.isoformat() for file, since in self.removed_files.items()},
+            },
+            self.tracked_files,
+            now,
         )
 
     def export(self, output: Path) -> None:
@@ -132,16 +135,24 @@ def write_history(state: TimingHistory, path: Path) -> None:
 
 
 def learn_with_history(
-    reports: list[Path], *, history: Path, key: str, output: Path,
-    complete_files: bool, observed_at: datetime, working_directory: Path = Path("."),
-    inventory: Path | None = None, snapshots: Sequence[TimingHistory] = (),
-    run_id: int = 0, attempt: int = 0,
+    reports: list[Path],
+    *,
+    history: Path,
+    key: str,
+    output: Path,
+    complete_files: bool,
+    observed_at: datetime,
+    working_directory: Path = Path("."),
+    inventory: Path | None = None,
+    snapshots: Sequence[TimingHistory] = (),
+    run_id: int = 0,
+    attempt: int = 0,
 ) -> LearnedTimings:
     """Validate before mutation; retain untouched files and reject stale observations.
 
-``complete_files`` is the caller's declaration that it ran every case belonging
-to each observed file in this lane. JUnit alone cannot prove absence of -k/-m
-or node-level selection. Different fixed marker lanes require different keys.
+    ``complete_files`` is the caller's declaration that it ran every case belonging
+    to each observed file in this lane. JUnit alone cannot prove absence of -k/-m
+    or node-level selection. Different fixed marker lanes require different keys.
     """
     if not complete_files:
         raise ValueError("retention requires --complete-files; partial cases within a file cannot replace its cost")
