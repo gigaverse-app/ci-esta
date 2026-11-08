@@ -18,6 +18,8 @@ from typing import Any
 
 import yaml
 
+from ci_esta.git import git
+
 WORKFLOWS = ".github/workflows/"
 #: A lane read from the planner's JSON output, by attribute or by index.
 LANE_REFERENCE = re.compile(
@@ -34,10 +36,6 @@ PATH_TOKEN = re.compile(r"[A-Za-z0-9_.@+\-]+(?:/[A-Za-z0-9_.@+\-]+)+|[A-Za-z0-9_
 #: Where an action refers to its own files.
 ACTION_PATH = re.compile(r"(?:\$\{\{\s*github\.action_path\s*\}\}|\$\{?GITHUB_ACTION_PATH\}?)/([^\s'\"`;|&)]+)")
 ALL = "*"
-
-
-def git(repo: Path, *args: str) -> bytes:
-    return subprocess.run(["git", "-C", str(repo), *args], capture_output=True, check=True).stdout
 
 
 def lane_references(text: str, planner: str | None = None) -> set[str]:
@@ -75,7 +73,7 @@ class WorkflowGraph:
         self.repo = repo
         self.revision = revision
         listing = git(repo, "ls-tree", "-r", "-z", "--name-only", revision)
-        self.files = {path.decode("utf-8", "surrogateescape") for path in listing.split(b"\0") if path}
+        self.files = {path for path in listing.split("\0") if path}
         self.directories = {str(parent) for path in self.files for parent in PurePosixPath(path).parents}
         self.documents: dict[str, dict[str, Any]] = {}
         self.jobs: dict[tuple[str, str], Job] = {}
@@ -95,7 +93,7 @@ class WorkflowGraph:
 
     def text(self, path: str) -> str | None:
         try:
-            return git(self.repo, "show", f"{self.revision}:{path}").decode("utf-8", "replace")
+            return git(self.repo, "show", f"{self.revision}:{path}")
         except subprocess.CalledProcessError:
             return None
 

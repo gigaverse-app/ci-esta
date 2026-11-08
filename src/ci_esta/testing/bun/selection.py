@@ -5,6 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
+from ci_esta.git import git
 from ci_esta.testing.bun.models import BunPolicy, Inventory, SelectionPlan, SelectionRequest
 
 OPAQUE_DEPENDENCY = re.compile(
@@ -18,10 +19,6 @@ def safe_path(value: str) -> bool:
     return (bool(value) and not value.startswith("/")
             and not any(char in value for char in "\\\n\r\0:")
             and not any(part in {".", ".."} for part in value.split("/")))
-
-
-def git(cwd: Path, *args: str) -> str:
-    return subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True).stdout
 
 
 def read_inventory(path: Path, cwd: Path) -> Inventory:

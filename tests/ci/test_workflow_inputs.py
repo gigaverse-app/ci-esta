@@ -4,11 +4,13 @@ import copy
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 import yaml
 
-from ci_esta.workflow_inputs import git, selection_proof, workflow_inputs
+from ci_esta.git import git
+from ci_esta.workflow_inputs import selection_proof, workflow_inputs
 
 
 @pytest.mark.parametrize(
@@ -77,22 +79,22 @@ def test_exact_test_groups_and_literal_dependency_proof():
 
 def test_cli_compares_real_git_and_refuses_incremental_evidence(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    git("init", "-q")
-    git("config", "user.name", "Tests")
-    git("config", "user.email", "test@example.invalid")
+    git(Path("."), "init", "-q")
+    git(Path("."), "config", "user.name", "Tests")
+    git(Path("."), "config", "user.email", "test@example.invalid")
     workflow = {"jobs": {"browser": {"runs-on": "linux"}, "python": {"runs-on": "linux"}}}
     source = tmp_path / "ci.yml"
     source.write_text(yaml.safe_dump(workflow))
-    git("add", ".")
-    git("commit", "-qm", "base")
-    base = git("rev-parse", "HEAD")
+    git(Path("."), "add", ".")
+    git(Path("."), "commit", "-qm", "base")
+    base = git(Path("."), "rev-parse", "HEAD").strip()
     workflow["jobs"]["browser"]["runs-on"] = "macos"
     source.write_text(yaml.safe_dump(workflow))
-    git("add", ".")
-    git("commit", "-qm", "change browser only")
+    git(Path("."), "add", ".")
+    git(Path("."), "commit", "-qm", "change browser only")
     report = {
-        "base": git("rev-parse", f"{base}^{{tree}}"),
-        "head": git("rev-parse", "HEAD^{tree}"),
+        "base": git(Path("."), "rev-parse", f"{base}^{{tree}}").strip(),
+        "head": git(Path("."), "rev-parse", "HEAD^{tree}").strip(),
         "mode": "none",
         "selected": [],
         "dependencies_unchanged": True,
