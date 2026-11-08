@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.7.0](https://github.com/gigaverse-app/ci-esta/compare/v1.6.5...v1.7.0) (2026-11-08)
+
+
+### Features
+
+* **planning:** Bun tests reach lanes through Bun's module graph ([#138](https://github.com/gigaverse-app/ci-esta/issues/138)) ([3f59022](https://github.com/gigaverse-app/ci-esta/commit/3f5902222cd1af82bc82aac3945a22d36d3ca630))
+* **planning:** plan lanes through a workflow graph ([#134](https://github.com/gigaverse-app/ci-esta/issues/134)) ([ad38587](https://github.com/gigaverse-app/ci-esta/commit/ad38587300f6a7fdff1d91e0d8ad00625af7805a))
+* **planning:** run package jobs when the package's inputs change ([#139](https://github.com/gigaverse-app/ci-esta/issues/139)) ([d0e7955](https://github.com/gigaverse-app/ci-esta/commit/d0e7955529dfa43b76aa6d9bb47233199f1194b3))
+
+
+### Bug fixes
+
+* **planning:** follow every repository import Bun hides from the Bun lane graph ([#140](https://github.com/gigaverse-app/ci-esta/issues/140)) ([3100361](https://github.com/gigaverse-app/ci-esta/commit/31003618da34789bc300c3b65538888629cbd275))
+* **resolve-lane-evidence:** never open bytecode caches while hashing shared tooling ([#135](https://github.com/gigaverse-app/ci-esta/issues/135)) ([0026b8e](https://github.com/gigaverse-app/ci-esta/commit/0026b8e0797459a9b5a7c51b3773a5f485372f40))
+
 ## [1.6.5](https://github.com/gigaverse-app/ci-esta/compare/v1.6.4...v1.6.5) (2026-11-08)
 
 
