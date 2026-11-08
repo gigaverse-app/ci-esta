@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.5](https://github.com/gigaverse-app/ci-esta/compare/v1.6.4...v1.6.5) (2026-11-08)
+
+
+### Bug fixes
+
+* **lint-ci-code:** fall back to the REST API when a release download fails ([#128](https://github.com/gigaverse-app/ci-esta/issues/128)) ([4b6fe8f](https://github.com/gigaverse-app/ci-esta/commit/4b6fe8f1a56b22a017cde1bb61aa2adb9ae366b0))
+
 ## [1.6.4](https://github.com/gigaverse-app/ci-esta/compare/v1.6.3...v1.6.4) (2026-11-08)
 
 
