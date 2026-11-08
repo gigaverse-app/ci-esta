@@ -11,6 +11,14 @@ from pathlib import Path
 from ci_esta.ci_observability.action import ActionConfig, run
 from ci_esta.ci_observability.models import ActionsJobGateSelectorV1, CiObservabilityReportV1, GateKind
 from ci_esta.ci_observability.report import render_markdown, render_prometheus
+from ci_esta.extras import requires_selection
+
+TOKEN_HELP = (
+    "ci-esta report: no GitHub token. Set GH_TOKEN or GITHUB_TOKEN to a token that can read the repository's "
+    "Actions runs (actions: read, contents: read; checks: read for gates).\n"
+    "With the GitHub CLI signed in: export GH_TOKEN=\"$(gh auth token)\"\n"
+    "The token is read from the environment only; it is never accepted as an argument or printed."
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -43,9 +51,10 @@ def main(argv: list[str] | None = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
     if argv[:1] == ["lanes"]:
-        from ci_esta.testing.lane_report import main as lanes
+        with requires_selection("ci-esta lanes"):
+            from ci_esta.testing.lane_report import main as lanes
 
-        return lanes(argv[1:])
+            return lanes(argv[1:])
     args = parser.parse_args(argv)
     if args.command == "adoption":
         from ci_esta.adoption import inspect
@@ -54,8 +63,9 @@ def main(argv: list[str] | None = None) -> int:
         print(report.model_dump_json(indent=2) if args.json else render_adoption(report))
         return 0
     if args.command == "check-workflow":
-        from ci_esta.testing.workflow_adoption import check
-        check(args.workflow, args.lanes, args.repo)
+        with requires_selection("ci-esta check-workflow"):
+            from ci_esta.testing.workflow_adoption import check
+            check(args.workflow, args.lanes, args.repo)
         print("Workflow lane and aggregate-gate contracts passed")
         return 0
     if args.command == "render":
@@ -67,7 +77,8 @@ def main(argv: list[str] | None = None) -> int:
     # Credentials stay in environment/process memory; the CLI never accepts or prints a token.
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN", "")
     if not token:
-        parser.error("Set GITHUB_TOKEN or GH_TOKEN with read access to the repository's Actions runs")
+        print(TOKEN_HELP, file=sys.stderr)
+        return 2
     return run(ActionConfig(
         repository=args.repository, github_token=token, api_url=args.api_url,
         run_id=args.run_id, run_attempt=args.run_attempt, commit_sha=args.commit_sha,
