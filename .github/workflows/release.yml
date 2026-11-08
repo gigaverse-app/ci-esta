@@ -25,6 +25,13 @@ jobs:
   checks:
     needs: validate-tag
     uses: ./.github/workflows/ci.yml
+    # A called workflow cannot start if its jobs request more than this grants
+    # (tests/ci/test_workflow_permissions.py); keep it at least ci.yml's union.
+    permissions:
+      contents: read
+      actions: read
+      checks: read
+      pull-requests: read
   publish:
     needs: checks
     runs-on: ubuntu-latest
