@@ -76,3 +76,19 @@ def test_an_extending_lane_file_is_checked_with_the_lanes_it_inherits(tmp_path):
     extends = tmp_path.parent / f"{tmp_path.name}-lanes.json"
     extends.write_text(json.dumps({"extends": "workflow", "lanes": {"docs": {"inputs": ["docs/**"]}}}))
     check(workflow, extends, repo)
+
+
+def test_existing_required_aggregate_keeps_its_name(tmp_path):
+    workflows = {"jobs": {
+        "select-tests": {}, "test": {"needs": "select-tests", "if": "fromJSON(needs.select-tests.outputs.lanes).core"},
+        "required": {"name": "All required checks", "needs": ["select-tests", "test"],
+                     "steps": [{"uses": "gigaverse-app/ci-esta/actions/validation-gate@v1", "with": {
+                         "needs": "${{ toJSON(needs) }}", "lanes": "${{ needs.select-tests.outputs.lanes || '{}' }}",
+                         "lane-jobs": '{"test":["core"]}'}}]}}}
+    lane_file = tmp_path / "lanes.json"
+    lane_file.write_text(json.dumps({"lanes": {"core": {}}}))
+    workflow = tmp_path / "ci.yml"
+    workflow.write_text(yaml.safe_dump(workflows))
+    check(workflow, lane_file, gate_name="All required checks")
+    with pytest.raises(ValueError, match="'Validation gate'"):
+        check(workflow, lane_file)

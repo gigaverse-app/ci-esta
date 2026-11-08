@@ -32,6 +32,8 @@ def main(argv: list[str] | None = None) -> int:
     audit.add_argument("--workflow", type=Path, required=True)
     audit.add_argument("--lanes", type=Path, help="lane file; omitted, lanes are inferred from the workflows")
     audit.add_argument("--repo", type=Path, default=Path("."))
+    audit.add_argument("--gate", default="Validation gate",
+                       help="The aggregate job's exact name; keep an existing required check's name")
     collect = commands.add_parser("report", help="Read a GitHub Actions run and save JSON, Markdown and Prometheus")
     collect.add_argument("--repository", required=True, help="owner/repository")
     collect.add_argument("--run-id", required=True, type=int)
@@ -65,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "check-workflow":
         with requires_selection("ci-esta check-workflow"):
             from ci_esta.testing.workflow_adoption import check
-            check(args.workflow, args.lanes, args.repo)
+            check(args.workflow, args.lanes, args.repo, args.gate)
         print("Workflow lane and aggregate-gate contracts passed")
         return 0
     if args.command == "render":

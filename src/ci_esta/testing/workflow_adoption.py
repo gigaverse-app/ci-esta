@@ -10,9 +10,14 @@ import yaml
 from ci_esta.testing.lane_inference import EXTENDS, resolve
 from ci_esta.workflow_graph import job_needs, lane_references, prerequisites
 
+DEFAULT_GATE = "Validation gate"
 
-def check(workflow: Path, lanes: Path | None, repo: Path = Path(".")) -> None:
-    """`lanes` is a lane file, complete or extending the workflow; None infers the lanes, as plan-work does."""
+
+def check(workflow: Path, lanes: Path | None, repo: Path = Path("."), gate_name: str = DEFAULT_GATE) -> None:
+    """
+    `lanes` is a lane file, complete or extending the workflow; None infers the lanes, as plan-work does.
+    `gate_name` is the aggregate job's display name: keep a repository's existing required check rather than renaming it.
+    """
     jobs = yaml.safe_load(workflow.read_text())["jobs"]
     document = json.loads(lanes.read_text()) if lanes is not None else None
     # A complete lane file names its lanes; an extending file or none needs the workflow's inferred lanes.
@@ -20,9 +25,9 @@ def check(workflow: Path, lanes: Path | None, repo: Path = Path(".")) -> None:
         configured = document["lanes"]
     else:
         configured = resolve(repo, "HEAD", "HEAD", lanes).config.lanes
-    gate_ids = [name for name, job in jobs.items() if job.get("name") == "Validation gate"]
+    gate_ids = [name for name, job in jobs.items() if job.get("name", name) == gate_name]
     if len(gate_ids) != 1:
-        raise ValueError("Exactly one stable Validation gate is required")
+        raise ValueError(f"Exactly one aggregate job named {gate_name!r} is required (pass --gate for another name)")
     gate_id = gate_ids[0]
     gate = jobs[gate_id]
     action = [step for step in gate.get("steps", []) if "/validation-gate" in step.get("uses", "")]
@@ -30,9 +35,7 @@ def check(workflow: Path, lanes: Path | None, repo: Path = Path(".")) -> None:
         raise ValueError("Use the shared validation-gate action")
     inputs = action[0].get("with", {})
     mapping = json.loads(inputs.get("lane-jobs", "{}"))
-    needs = gate.get("needs", [])
-    if isinstance(needs, str):
-        needs = [needs]
+    needs = job_needs(gate)
     if inputs.get("needs") != "${{ toJSON(needs) }}" or inputs.get("required"):
         raise ValueError("Selected-lane gates must validate all direct needs through lane-jobs")
     planner = inputs.get("planner", "select-tests")
