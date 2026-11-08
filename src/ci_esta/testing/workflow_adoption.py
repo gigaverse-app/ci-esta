@@ -8,7 +8,7 @@ from pathlib import Path
 import yaml
 
 from ci_esta.testing.lane_inference import EXTENDS, resolve
-from ci_esta.workflow_graph import lane_references
+from ci_esta.workflow_graph import job_needs, lane_references, prerequisites
 
 
 def check(workflow: Path, lanes: Path | None, repo: Path = Path(".")) -> None:
@@ -48,16 +48,6 @@ def check(workflow: Path, lanes: Path | None, repo: Path = Path(".")) -> None:
             raise ValueError(f"Gate lane mapping differs from execution routing for {name}")
     if set(mapping) - set(needs):
         raise ValueError("Gate mapping refers to a job outside its prerequisites")
-    visited = set()
-
-    def visit(name):
-        if name in visited:
-            return
-        visited.add(name)
-        parents = jobs[name].get("needs", [])
-        for parent in [parents] if isinstance(parents, str) else parents:
-            visit(parent)
-
-    visit(gate_id)
+    visited = prerequisites({name: job_needs(job) for name, job in jobs.items()}, [gate_id])
     if visited != set(jobs):
         raise ValueError(f"Validation jobs outside the aggregate gate: {sorted(set(jobs) - visited)}")

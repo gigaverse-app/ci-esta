@@ -14,6 +14,8 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, Field, ValidationError
 
+from ci_esta.workflow_graph import prerequisites
+
 Scalar = str | bool | int | float | None
 GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/tutorials/adoption-checklist/"
 PACKING_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/pack-matrix-jobs/"
@@ -149,16 +151,8 @@ def _summarize(source: str, parsed: _Source, raw: dict) -> WorkflowSummary:
         ))
     summary = WorkflowSummary(source=source, name=parsed.name or source, triggers=_triggers(raw), jobs=jobs)
     if summary.gates:
-        by_id = {job.id: job for job in jobs}
-        reached: set[str] = set()
-        pending = [need for gate in summary.gates for need in gate.needs]
-        while pending:
-            job_id = pending.pop()
-            if job_id not in reached and job_id in by_id:
-                reached.add(job_id)
-                pending.extend(by_id[job_id].needs)
-        gate_ids = {gate.id for gate in summary.gates}
-        summary.outside_gate = [job.id for job in jobs if job.id not in reached | gate_ids]
+        reached = prerequisites({job.id: job.needs for job in jobs}, [gate.id for gate in summary.gates])
+        summary.outside_gate = [job.id for job in jobs if job.id not in reached]
     return summary
 
 
