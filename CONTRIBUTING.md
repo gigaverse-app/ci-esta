@@ -95,11 +95,19 @@ remain complete checkpoints.
 | `tests` | Test suite, Python compatibility, runtime contracts, public-action smoke | `src/`, `scripts/`, `tests/`, `actions/README.md` (read by action tests) and the global inputs |
 | `package` | `uv build`, `twine check`, wheel and sdist smoke, the `distributions` artifact | `src/`, `scripts/ci/`, `pyproject.toml`, `uv.lock`, and the packaged `README.md` and `LICENSE` |
 
+CI and public-action smoke use this checkout's `actions/plan-work`, combining
+pytest-selective's dependency graph with CI-esta's workflow graph. Tests and
+reporting use the updated selector lock, and the compatible package range accepts
+the upcoming 1.x line as well as the published 0.4.2. Both workflows run a
+weekly full checkpoint on Monday; manual/called checkpoints and `test:full` also
+retain full execution, without receipt reuse.
+
 Both lanes also run for every global input: environment files, CI workflows,
 selector configuration and every non-Markdown file under `actions/` and
-`examples/`. The `*[!d]`, `*[!m]d` and `*[!.]md` patterns are fnmatch's way of
-saying "not `.md`", so a new script type is an input without a list update,
-while action and example READMEs are not. `graph.global_inputs` names the real
+`examples/`. The `*[!d]`, `*[!m]d` and `*[!.]md` patterns exclude `.md`, so a new
+script type is an input without a list update. Both direct and recursive `**/`
+patterns cover the released selector's fnmatch behavior and newer path-aware matching,
+while action and example READMEs are excluded. `graph.global_inputs` names the real
 test environment (`pyproject.toml`, `uv.lock`, `.python-version`) and replaces
 pytest-selective's default, which counts `documentation/requirements*.txt` as
 one. The `quality` job always lints; it builds only when `package` is selected.

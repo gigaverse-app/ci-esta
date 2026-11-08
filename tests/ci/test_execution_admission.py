@@ -70,7 +70,20 @@ def test_ordinary_pushes_do_not_force_full_tests():
         jobs = yaml.safe_load(path.read_text()).get("jobs", {})
         for job in jobs.values():
             for step in job.get("steps", []):
-                if "plan-lanes" in step.get("uses", "") or step.get("id") == "files":
+                if any(action in step.get("uses", "") for action in ("plan-lanes", "plan-work")) or step.get("id") == "files":
                     full = step.get("with", {}).get("full", "auto")
                     assert "github.event_name != 'pull_request'" not in str(full), path
                     assert full == "auto" or "workflow_dispatch" in str(full), path
+
+
+def test_dogfood_planners_have_weekly_full_checkpoints_without_receipt_reuse():
+    for name, planner in (("ci.yml", "plan"), ("public-actions.yml", "select-tests")):
+        workflow = yaml.safe_load((ROOT / ".github/workflows" / name).read_text())
+        assert workflow[True]["schedule"]
+        steps = workflow["jobs"][planner]["steps"]
+        selection = next(step for step in steps if step.get("id") in {"selection", "select"})
+        assert selection["uses"] == "./actions/plan-work"
+        assert selection.get("with", {}).get("full", "auto") == "auto"
+        evidence = next(step for step in steps if step.get("id") == "evidence")
+        assert set(re.findall(r"github.event_name == '([^']+)'", evidence["if"])) == {"pull_request", "push"}
+        assert "!contains(github.event.pull_request.labels.*.name, 'test:full')" in evidence["if"]

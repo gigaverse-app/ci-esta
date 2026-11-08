@@ -91,8 +91,8 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.2,<4" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "pytest", marker = "extra == 'pytest'", specifier = ">=8" },
-    { name = "pytest-selective", marker = "extra == 'pytest'", specifier = ">=0.4.1,<0.5.0" },
-    { name = "pytest-selective", marker = "extra == 'selection'", specifier = ">=0.4.1,<0.5.0" },
+    { name = "pytest-selective", marker = "extra == 'pytest'", specifier = ">=0.4.2,<2.0.0" },
+    { name = "pytest-selective", marker = "extra == 'selection'", specifier = ">=0.4.2,<2.0.0" },
     { name = "pyyaml", specifier = ">=6,<7" },
 ]
 provides-extras = ["selection", "pytest", "postgres"]
@@ -103,7 +103,7 @@ dev = [
     { name = "import-linter", specifier = ">=2.5,<3" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
     { name = "pytest", specifier = ">=8" },
-    { name = "pytest-selective", specifier = ">=0.4.1,<0.5.0" },
+    { name = "pytest-selective", specifier = ">=0.4.2,<2.0.0" },
     { name = "pytest-xdist", specifier = ">=3.6" },
     { name = "pyyaml", specifier = ">=6" },
     { name = "ruff", specifier = ">=0.14" },
@@ -632,16 +632,16 @@ wheels = [
 
 [[package]]
 name = "pytest-selective"
-version = "0.4.1"
+version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "pytest" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/69/274ff35735c1cb1e0acef63d88230770e7b2a973525776eb47f59b58200a/pytest_selective-0.4.1.tar.gz", hash = "sha256:b6850be67d8f8c6fe38c2f93d54107a60ae017239fd8a318de1593057bbb624b", size = 564900, upload-time = "2026-10-24T17:52:11.007Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ce/34/e7066f7b0d6128af6033c487b304b001c219319beb6a37a420bb5e0e981a/pytest_selective-0.4.2.tar.gz", hash = "sha256:4a5f048a52906939e5f6207e5f9d41af2efb995773a9eb88e36a894690847cf6", size = 571629, upload-time = "2026-11-07T23:16:27.872Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/58/f8412d0120992620c3e40488edd6a7b157a9e1a9509df3a1ffecb6c27bd5/pytest_selective-0.4.1-py3-none-any.whl", hash = "sha256:9f0e52004634b6c187138083ab3b826383f4fc6e577e77a1e06ba54f6acf9b38", size = 100003, upload-time = "2026-10-24T17:52:09.485Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/31/392d1da1028c0caf17c078b55cc8ff3efac43d66b1bab3abe13c2a1b406d/pytest_selective-0.4.2-py3-none-any.whl", hash = "sha256:5b9b8008d7e1817d2b223548b0bfd025b9d5b465aed4ba3e58ecf1241e4ec0a5", size = 100670, upload-time = "2026-11-07T23:16:26.601Z" },
 ]
 
 [[package]]
