@@ -90,6 +90,11 @@ partly proven lane runs in full:
 
 Evidence discovery uses `contents: read`, `actions: read`, and `checks: read`. Complete PR file collection also needs `pull-requests: read`. Do not run untrusted PR code with elevated credentials. These examples use the ordinary `pull_request` event, not `pull_request_target`.
 
+If another workflow calls this one with `workflow_call` (a release workflow that reruns CI on the tag, for
+example), the calling job must grant the same permissions. GitHub refuses to start a called workflow whose jobs
+request more than the caller grants, so the release fails at startup, with no job logs, the first time it runs
+after evidence reuse is adopted. pytest-quint-connect's v1.2.0 Publish failed this way.
+
 ## Reuse after a merge
 
 Set `reuse-after-merge: 'true'` and declare complete `input-paths` for jobs whose
