@@ -20,10 +20,8 @@ def request_from_env() -> RunRequest:
     return RunRequest(
         inventory_file=os.environ["BUN_TEST_INVENTORY"],
         policy_file=os.environ.get("BUN_TEST_POLICY") or ".github/test-selection.json",
-        base=os.environ.get("BUN_TEST_BASE", ""),
-        validated_head=os.environ.get("BUN_TEST_VALIDATED_HEAD", ""),
-        full=reason is not None,
-        checkpoint_reason=reason,
+        base=os.environ.get("BUN_TEST_BASE", ""), validated_head=os.environ.get("BUN_TEST_VALIDATED_HEAD", ""),
+        full=reason is not None, checkpoint_reason=reason,
         output_directory=Path(os.environ["BUN_TEST_OUTPUT"]),
         args=json.loads(os.environ.get("BUN_TEST_ARGS") or '["--isolate","--parallel"]'),
         shards=int(os.environ.get("BUN_TEST_SHARDS") or "1"),
@@ -54,10 +52,8 @@ def main() -> int:
             return result.exit_code
         if args.operation == "report" and not args.json_input:
             execution = BunExecution.model_validate_json(Path(os.environ["BUN_EXECUTION_FILE"]).read_text())
-            write_json(
-                Path(os.environ.get("BUN_WORK_REPORT") or "ci-work-selection.json"),
-                work_selection_report(execution, report_context()),
-            )
+            write_json(Path(os.environ.get("BUN_WORK_REPORT") or "ci-work-selection.json"),
+                       work_selection_report(execution, report_context()))
             return 0
         request = CommandInput.model_validate_json(sys.stdin.read())
         if args.operation == "plan":
@@ -67,9 +63,7 @@ def main() -> int:
         elif args.operation == "read-plan":
             if request.path is None:
                 parser.error("read-plan requires path")
-            value = read_test_selection(request.path, request.options or SelectionRequest()).model_dump(
-                by_alias=True, exclude_none=True
-            )
+            value = read_test_selection(request.path, request.options or SelectionRequest()).model_dump(by_alias=True, exclude_none=True)
         elif args.operation == "inventory":
             if request.path is None:
                 parser.error("inventory requires path")

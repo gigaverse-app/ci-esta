@@ -37,11 +37,7 @@ def plan_runner_pools(shard_count: int, shards_per_runner: int) -> list[RunnerPo
     # Consecutive, disjoint ranges retain the global count and cover the uneven
     # final pool too. Consumers execute these assignments rather than recomputing.
     return [
-        RunnerPool(
-            id=str(index),
-            shard_count=shard_count,
-            first_shard=first,
-            last_shard=min(first + shards_per_runner - 1, shard_count),
-        )
+        RunnerPool(id=str(index), shard_count=shard_count, first_shard=first,
+                   last_shard=min(first + shards_per_runner - 1, shard_count))
         for index, first in enumerate(range(1, shard_count + 1, shards_per_runner), start=1)
     ]

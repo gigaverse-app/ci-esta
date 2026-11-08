@@ -20,17 +20,12 @@ def main() -> None:
             run = client.get_run(int(os.environ["GITHUB_RUN_ID"]))
             history = Path(os.environ["RUNNER_TEMP"]) / f"{artifact_name(key)}-{run.id}-{run.run_attempt}.json"
             learned = learn_with_history(
-                reports,
-                history=history,
-                key=key,
-                output=output,
+                reports, history=history, key=key, output=output,
                 complete_files=os.environ.get("INPUT_COMPLETE_FILES") == "true",
                 # Keep reruns of an old checkout before newer source workflows,
                 # including reporting-only reruns that download earlier reports.
                 observed_at=run.created_at,
-                snapshots=action_histories(client, key),
-                run_id=run.id,
-                attempt=run.run_attempt,
+                snapshots=action_histories(client, key), run_id=run.id, attempt=run.run_attempt,
             )
             publish = (
                 os.environ.get("INPUT_HISTORY_PUBLISH", "true") == "true"
@@ -39,9 +34,7 @@ def main() -> None:
                 and os.environ.get("GITHUB_REF") == f"refs/heads/{history_branch()}"
             )
             with Path(os.environ["GITHUB_OUTPUT"]).open("a") as stream:
-                stream.write(
-                    f"history-path={history}\nhistory-name={artifact_name(key)}\npublish={str(publish).lower()}\n"
-                )
+                stream.write(f"history-path={history}\nhistory-name={artifact_name(key)}\npublish={str(publish).lower()}\n")
         finally:
             client.close()
     else:

@@ -28,7 +28,6 @@ class LocalShardRunConfig(ShardRange):
     failure_tail_lines: int = Field(default=200, ge=0)
     progress_interval_seconds: float = Field(default=60, gt=0)
 
-
 def _tail(path: Path, line_count: int) -> str:
     if line_count == 0:
         return ""
@@ -43,11 +42,8 @@ def _report(config: LocalShardRunConfig, shard_index: int, status: str, tail_lin
 
 
 def _wait_for_shards(
-    config: LocalShardRunConfig,
-    processes: list[tuple[int, subprocess.Popen[bytes]]],
-    origin: float,
-    starts: dict[int, float],
-    intervals: list[ShardInterval],
+    config: LocalShardRunConfig, processes: list[tuple[int, subprocess.Popen[bytes]]],
+    origin: float, starts: dict[int, float], intervals: list[ShardInterval],
 ) -> int:
     pending = dict(processes)
     failed = False
@@ -57,14 +53,8 @@ def _wait_for_shards(
             return_code = process.poll()
             if return_code is None:
                 continue
-            intervals.append(
-                ShardInterval(
-                    index=shard_index,
-                    start_seconds=starts[shard_index],
-                    end_seconds=time.monotonic() - origin,
-                    exit_code=return_code,
-                )
-            )
+            intervals.append(ShardInterval(index=shard_index, start_seconds=starts[shard_index],
+                                           end_seconds=time.monotonic() - origin, exit_code=return_code))
             passed = return_code == 0
             failed = failed or not passed
             status = "passed" if passed else f"failed (exit {return_code})"
@@ -88,12 +78,9 @@ def _write_measurements(config: LocalShardRunConfig, intervals: list[ShardInterv
             head = event.get("pull_request", {}).get("head", {}).get("sha", head)
         measurement = ShardPoolMeasurement(
             run_id=int(os.environ.get("GITHUB_RUN_ID", "0")),
-            run_attempt=int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")),
-            head_sha=head,
+            run_attempt=int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")), head_sha=head,
             pool=f"{os.environ.get('GITHUB_JOB', 'local')}:{min(config.shard_indices)}-{max(config.shard_indices)}",
-            configured_shards=config.shard_count,
-            cpu_count=os.cpu_count(),
-            shards=intervals,
+            configured_shards=config.shard_count, cpu_count=os.cpu_count(), shards=intervals,
         )
         (config.log_dir / "ci-esta-shards.json").write_text(measurement.model_dump_json(indent=2) + "\n")
     except Exception as error:

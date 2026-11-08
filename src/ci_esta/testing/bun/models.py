@@ -76,9 +76,7 @@ class BatchExecution(JsonContract):
 
 
 class BunExecution(JsonContract):
-    schema_version: Literal["ci-esta/bun-execution/v1"] = Field(
-        default="ci-esta/bun-execution/v1", alias="schema_version"
-    )
+    schema_version: Literal["ci-esta/bun-execution/v1"] = Field(default="ci-esta/bun-execution/v1", alias="schema_version")
     mode: Literal["full", "scoped", "none", "reused"]
     base: str = ""
     tested_sha: str
