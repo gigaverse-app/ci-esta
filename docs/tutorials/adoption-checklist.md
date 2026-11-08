@@ -92,7 +92,8 @@ ci-esta check-workflow --workflow .github/workflows/ci.yml \
 ```
 
 Run it in CI too, so job conditions, the gate's `lane-jobs` and the lane file cannot
-drift apart. It expects one job named `Validation gate` that uses the shared
+drift apart. Without `--lanes`, or with a lane file that extends the workflow, it checks
+against the lanes `plan-work` infers. It expects one job named `Validation gate` that uses the shared
 `validation-gate` action, with every other job in that workflow behind it. Put a
 deliberately non-blocking check, such as an optional plugin suite, in its own
 workflow with `paths:` filters instead. Observe runs with the reusable
