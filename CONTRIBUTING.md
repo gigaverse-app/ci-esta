@@ -88,6 +88,28 @@ history or failed planning must execute the full affected lanes and fail the
 required planning gate. Ordinary PRs and pushes use selection; manual/release/scheduled/full overrides
 remain complete checkpoints.
 
+[`.github/test-lanes.json`](.github/test-lanes.json) has two lanes:
+
+| Lane | Runs | Selected by |
+|---|---|---|
+| `tests` | Test suite, Python compatibility, runtime contracts, public-action smoke | `src/`, `scripts/`, `tests/`, `actions/README.md` (read by action tests) and the global inputs |
+| `package` | `uv build`, `twine check`, wheel and sdist smoke, the `distributions` artifact | `src/`, `scripts/ci/`, `pyproject.toml`, `uv.lock`, and the packaged `README.md` and `LICENSE` |
+
+Both lanes also run for every global input: environment files, CI workflows,
+selector configuration and every non-Markdown file under `actions/` and
+`examples/`. The `*[!d]`, `*[!m]d` and `*[!.]md` patterns are fnmatch's way of
+saying "not `.md`", so a new script type is an input without a list update,
+while action and example READMEs are not. `graph.global_inputs` names the real
+test environment (`pyproject.toml`, `uv.lock`, `.python-version`) and replaces
+pytest-selective's default, which counts `documentation/requirements*.txt` as
+one. The `quality` job always lints; it builds only when `package` is selected.
+
+So a change to `docs/`, `documentation/`, `mkdocs.yml` or an action or example
+README runs no tests and no build. A root `README.md` change runs only the
+`package` checks, because PyPI renders it. `tests/ci/test_repository_routing.py`
+pins this on real Git commits, and `tests/ci/test_execution_admission.py` fails
+if a test, build or smoke command loses its lane condition or names an unknown lane.
+
 ## Duplication audit
 
 The required `dry-lint` check accepts existing pairs recorded in `.dry-lint/baseline.json`
