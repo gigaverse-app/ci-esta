@@ -270,3 +270,68 @@ def test_ci_esta_lanes_lists_the_rules_in_force(repository, capsys):
     assert "| `python-environment` | pyproject.toml<br>**/pyproject.toml<br>uv.lock<br>… " in listing
     assert "| `bun-environment` |" in listing
     assert "| `schemas` | schemas/** | lane:live | lane file |" in listing
+
+
+JAVASCRIPT = """\
+name: CI
+on: [pull_request]
+jobs:
+  select-tests:
+    runs-on: ubuntu-latest
+    outputs:
+      lanes: ${{ steps.plan.outputs.lanes }}
+    steps:
+      - id: plan
+        uses: gigaverse-app/ci-esta/actions/plan-work@v1
+  counter:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).counter }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: counter
+    steps:
+      - run: node --test
+  viewer:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).viewer }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: node --test viewer/diff.test.mjs
+  web:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).web }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm ci && npm test
+        working-directory: web
+      - run: npx jest tests --ci
+        working-directory: web
+  unit:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).unit }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: pytest
+        working-directory: service
+"""
+
+
+def test_javascript_runners_and_working_directories_give_roots(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    write(tmp_path, ".github/workflows/ci.yml", JAVASCRIPT)
+    for path in ("counter/test/tally.test.js", "viewer/diff.test.mjs", "web/tests/app.test.js"):
+        write(tmp_path, path, "// test\n")
+    write(tmp_path, "service/tests/test_app.py", "def test_app(): pass\n")
+    base = commit(tmp_path)
+    config = infer_lanes(tmp_path, base, base)
+    assert {name: lane.roots for name, lane in config.lanes.items()} == {
+        # A runner with no path collects the tests under its working directory.
+        "counter": ["counter"],
+        # A named test file, from the repository root.
+        "viewer": ["viewer/diff.test.mjs"],
+        # `npm test` in a package directory, and a path relative to the step's working directory.
+        "web": ["web", "web/tests"],
+        # pytest with no path in a working directory collects that directory.
+        "unit": ["service"],
+    }

@@ -76,3 +76,15 @@ def test_an_extending_lane_file_is_checked_with_the_lanes_it_inherits(tmp_path):
     extends = tmp_path.parent / f"{tmp_path.name}-lanes.json"
     extends.write_text(json.dumps({"extends": "workflow", "lanes": {"docs": {"inputs": ["docs/**"]}}}))
     check(workflow, extends, repo)
+
+
+def test_check_workflow_reports_a_missing_gate_without_a_traceback(tmp_path, capsys):
+    from ci_esta.cli import main as cli
+
+    workflow = tmp_path / "ci.yml"
+    workflow.write_text("on: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps: []\n", encoding="utf-8")
+    lanes = tmp_path / "lanes.json"
+    lanes.write_text('{"lanes": {}}', encoding="utf-8")
+    assert cli(["check-workflow", "--workflow", str(workflow), "--lanes", str(lanes)]) == 2
+    assert "Exactly one stable Validation gate is required" in capsys.readouterr().err
+

@@ -55,7 +55,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "check-workflow":
         from ci_esta.testing.workflow_adoption import check
-        check(args.workflow, args.lanes, args.repo)
+        try:
+            check(args.workflow, args.lanes, args.repo)
+        except ValueError as error:
+            print(f"{args.workflow}: {error}", file=sys.stderr)
+            return 2
         print("Workflow lane and aggregate-gate contracts passed")
         return 0
     if args.command == "render":

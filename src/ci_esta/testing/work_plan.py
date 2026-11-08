@@ -68,6 +68,9 @@ def plan_work(
     try:
         before, after = WorkflowGraph(repo, base), WorkflowGraph(repo, head)
         reasons = changed_job_lanes(before, after, set(result.changed))
+    except DependencyDeclarationError:
+        # An authoring error to fix, as pytest-selective treats it, never a silent full run.
+        raise
     except Exception as error:  # noqa: BLE001 - an unreadable workflow must run work, never skip it
         reason = f"full-suite fallback: workflow graph unavailable: {error}"
         return result.model_copy(

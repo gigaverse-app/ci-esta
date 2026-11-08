@@ -43,9 +43,24 @@ pytest-selective selects at two granularities, and the sticky has a section for 
 **The lane file is optional.** Without `config`, `plan-work` reads the lanes from the
 workflow. The lanes are the names job conditions read (`fromJSON(needs.select-tests.outputs.lanes).unit`),
 and a lane's test roots are the paths its jobs pass to `pytest`, `python -m pytest`,
-`bun test` or `unittest discover -s`. A test command without paths, or a runner script
-such as `scripts/run_ci_tests.py`, collects pytest's `testpaths`. A lane whose jobs run
-no test command (a build, a smoke check) is selected through those jobs. The reviewed
+`unittest discover -s`, `bun test`, `node --test`, `vitest`, `jest` or `npm test`, read
+from the step's `working-directory`. A pytest command without paths, or a runner script
+such as `scripts/run_ci_tests.py`, collects pytest's `testpaths`; a JavaScript runner
+without paths collects its working directory, and Bun's module graph follows its tests'
+imports. A lane whose jobs run no test command (a build, a smoke check) is selected
+through the files those jobs execute: paths in their commands (relative to the working
+directory), local actions including the repository's own (`uses: ./`), reusable
+workflows, and what an executed file declares it reads by path, in pytest-selective's
+syntax:
+
+```python
+# scripts/check_install.py, run by the smoke job
+# gv:test-dependency: action.yml
+# gv:test-dependency: scripts/install.sh
+```
+
+Declarations are followed transitively, and one that matches no file fails the plan,
+as it does in pytest-selective. The reviewed
 pytest policy is the base commit's, so a pull request that changes how pytest collects
 runs every lane. A test no lane claims also runs every lane, so a wrong guess costs time,
 never coverage. Add a lane file when roots must be narrower than the commands show, or
