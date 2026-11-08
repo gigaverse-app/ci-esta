@@ -35,6 +35,41 @@ def test_receipt_covers_packaged_tools_and_ignores_generated_caches(tmp_path: Pa
     assert receipt() != first
 
 
+def test_receipt_never_opens_bytecode_caches(tmp_path: Path) -> None:
+    """
+    Python writes bytecode to `<name>.pyc.<id>` and renames it, so a concurrent import removes
+    cache entries while the receipt walks the tree. Here every cache path has already vanished.
+    """
+    action = tmp_path / "actions/resolve-lane-evidence"
+    action.mkdir(parents=True)
+    source = tmp_path / "src/ci_esta/tool.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("original")
+    script = """
+const fs = require('node:fs');
+for (const method of ['readdirSync', 'opendirSync', 'lstatSync', 'statSync', 'readFileSync']) {
+  const real = fs[method];
+  fs[method] = (target, ...rest) => {
+    if (String(target).includes('__pycache__')) {
+      throw Object.assign(new Error(`ENOENT: ${method} '${target}'`), { code: 'ENOENT' });
+    }
+    return real(target, ...rest);
+  };
+}
+console.log(require(process.argv[1]).validationReceipt(process.argv[2], 'tree-identity'));
+"""
+    without_caches = node(script, str(action))
+    assert without_caches.returncode == 0, without_caches.stderr
+    for cache in ("tool.cpython-311.pyc", "tool.cpython-311.pyc.140245"):
+        (source.parent / "__pycache__").mkdir(exist_ok=True)
+        (source.parent / "__pycache__" / cache).write_bytes(b"generated")
+
+    with_caches = node(script, str(action))
+
+    assert with_caches.returncode == 0, with_caches.stderr
+    assert with_caches.stdout == without_caches.stdout
+
+
 @pytest.mark.parametrize("paths", [[], ["."], ["a/../b"], ["/etc"], ["a\\b"], ["a//b"], ["a/./b"], ["a*"], [""]])
 def test_invalid_input_paths_cannot_produce_reusable_evidence(paths: list[str]) -> None:
     script = """
