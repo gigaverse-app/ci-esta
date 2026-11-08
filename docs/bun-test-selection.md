@@ -142,6 +142,46 @@ missing or forged reuse plans fall back to full. An explicit full override wins.
 Keep generated inventory/reports outside the worktree (for example RUNNER_TEMP).
 Unsupported runtime versions and missing inventory fail visibly.
 
+## Whole-lane planning
+
+The adapter above narrows files inside one `bun test` run. To skip whole jobs, use
+[`plan-work`](actions.md) with a lane file whose roots hold your Bun tests. Install Bun in
+the planning job first (`oven-sh/setup-bun`), because the planner asks Bun for its module graph:
+
+```yaml
+select-tests:
+  runs-on: ubuntu-latest
+  outputs:
+    lanes: ${{ steps.plan.outputs.lanes }}
+  steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - uses: oven-sh/setup-bun@v2
+    - id: plan
+      uses: gigaverse-app/ci-esta/actions/plan-work@v1
+      with:
+        config: .github/test-lanes.json
+```
+
+`bun build --metafile` lists what each test bundles: its imports followed transitively,
+including text and JSON imports. A changed file selects the lanes of the tests that bundle
+it, so a README no test imports selects nothing. CI changes reach lanes through the same
+workflow graph as Python lanes.
+
+| Change | Bun lanes |
+| --- | --- |
+| A module a test imports, directly or transitively | that test's lanes |
+| A file imported as text or JSON (`with { type: "text" }`) | that test's lanes |
+| A deleted test | its lane |
+| `package.json`, `bun.lock`, `bunfig.toml`, `tsconfig*.json` | every Bun lane |
+| A graph Bun cannot build, or no Bun on the runner | every Bun lane |
+| Documentation and data no test imports | nothing |
+
+A file read at runtime by path (`Bun.file("fixtures/x.json")`) is invisible to the module
+graph; import it, or list it in the lane's `inputs`. Inside a selected lane, `run-bun-tests`
+and `--changed` still narrow the files that run.
+
 ## Direct Python use
 
 ```python
