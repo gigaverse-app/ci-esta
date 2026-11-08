@@ -153,6 +153,22 @@ async function inventoryIdentity(github, shared, repo, ref, paths) {
   return `inventory-v1 ${digest(lines)}`;
 }
 
+// Regular files under `directory`, relative and sorted, never opening a `__pycache__`. Python
+// writes bytecode to a temporary name and renames it, so a concurrent import can remove an
+// entry between listing it and reading it; a cache must not be listed, let alone read.
+function sourceFiles(directory) {
+  const files = [];
+  const walk = (relative) => {
+    for (const entry of fs.readdirSync(path.join(directory, relative), {withFileTypes: true})) {
+      const child = path.join(relative, entry.name);
+      if (entry.isDirectory() && entry.name !== '__pycache__') walk(child);
+      else if (entry.isFile()) files.push(child);
+    }
+  };
+  walk('');
+  return files.sort();
+}
+
 function validationReceipt(actionPath, testedIdentity, executionContext = '', manifestOverrides = {}) {
   const root = path.resolve(actionPath, '../..');
   const hash = crypto.createHash('sha256').update(testedIdentity);
@@ -163,12 +179,9 @@ function validationReceipt(actionPath, testedIdentity, executionContext = '', ma
   // not just the consumer commit or the spelling of the shared ref.
   for (const directory of ['actions', '.github/workflows', 'scripts', 'src/ci_esta']) {
     if (!fs.existsSync(path.join(root, directory))) continue;
-    for (const entry of fs.readdirSync(path.join(root, directory), {recursive: true}).sort()) {
+    for (const entry of sourceFiles(path.join(root, directory))) {
       const relative = `${directory}/${entry.split(path.sep).join('/')}`;
-      const full = path.join(root, relative);
-      if (fs.lstatSync(full).isFile() && !relative.includes('__pycache__')) {
-        hash.update(relative).update('\0').update(fs.readFileSync(full)).update('\0');
-      }
+      hash.update(relative).update('\0').update(fs.readFileSync(path.join(root, relative))).update('\0');
     }
   }
   for (const manifest of ['pyproject.toml', 'uv.lock']) {

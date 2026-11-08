@@ -24,10 +24,10 @@ def receipt(root: Path, sha: str = "merge-a") -> str:
             str(root / "actions/resolve-lane-evidence"),
             sha,
         ],
-        check=True,
         capture_output=True,
         text=True,
     )
+    assert result.returncode == 0, result.stderr
     return result.stdout.strip()
 
 
@@ -140,7 +140,6 @@ new AsyncFunction("github", "context", "core", "require", "process", "getOctokit
     served = repository or Repository()
     result = subprocess.run(
         ["node", "-e", harness],
-        check=True,
         capture_output=True,
         text=True,
         env={
@@ -166,6 +165,7 @@ new AsyncFunction("github", "context", "core", "require", "process", "getOctokit
             "DEPENDENCY_TOKEN": token,
         },
     )
+    assert result.returncode == 0, result.stderr
     parsed = json.loads(result.stdout)
     return parsed["receipt"], parsed["warnings"]
 
@@ -377,9 +377,15 @@ def test_inventory_recipe_changes_invalidate_evidence(change: str) -> None:
 @pytest.mark.parametrize("inventory_paths", [(), ("uv.lock", "pyproject.toml")])
 def test_receipt_reads_each_immutable_git_object_only_once(inventory_paths: tuple[str, ...]) -> None:
     repository, merges = retag()
-    expected, expected_warnings = action_receipt(merges, MERGE, repository, token="dependency-token", inventory_paths=inventory_paths)
+    expected, expected_warnings = action_receipt(
+        merges, MERGE, repository, token="dependency-token", inventory_paths=inventory_paths
+    )
     actual, warnings = action_receipt(
-        merges, MERGE, repository, token="dependency-token", reject_duplicate_reads=True,
+        merges,
+        MERGE,
+        repository,
+        token="dependency-token",
+        reject_duplicate_reads=True,
         inventory_paths=inventory_paths,
     )
     assert warnings == expected_warnings
