@@ -22,6 +22,7 @@ from pytest_selective.ci import LaneConfig, LanePlan, plan
 from pytest_selective.impact_graph import DependencyDeclarationError
 from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
+from ci_esta.package_inputs import PackageInputsUnavailable, changed_package_inputs
 from ci_esta.testing.bun.graph import bun_lane_reasons
 from ci_esta.workflow_graph import ALL, WorkflowGraph, changed_job_lanes
 
@@ -38,7 +39,8 @@ def plan_work(
     if full or not result.changed or result.reason.startswith("full-suite fallback"):
         return result
     try:
-        reasons = changed_job_lanes(WorkflowGraph(repo, base), WorkflowGraph(repo, head), set(result.changed))
+        before, after = WorkflowGraph(repo, base), WorkflowGraph(repo, head)
+        reasons = changed_job_lanes(before, after, set(result.changed))
     except Exception as error:  # noqa: BLE001 - an unreadable workflow must run work, never skip it
         reason = f"full-suite fallback: workflow graph unavailable: {error}"
         return result.model_copy(
@@ -51,6 +53,15 @@ def plan_work(
     # Bun tests reach lanes through Bun's own module graph, built from the checked-out head.
     roots = {name: lane.roots for name, lane in config.lanes.items()}
     bun_reasons = bun_lane_reasons(repo, roots, set(result.changed), bun)
+    # A job that builds the package runs when the package's inputs change, as the build tools list them.
+    package_lanes = after.package_lanes()
+    if package_lanes - {lane for lane, selected in result.lanes.items() if selected}:
+        try:
+            found = changed_package_inputs(repo, after.files, set(result.changed))
+        except (PackageInputsUnavailable, ValueError, OSError) as error:
+            found = [f"full-suite fallback: package inputs unavailable: {error}"]
+        for reason in found:
+            reasons[reason] = package_lanes
     lanes = dict(result.lanes)
     evidence = {name: list(values) for name, values in result.lane_reasons.items()}
     for name in config.lanes:
