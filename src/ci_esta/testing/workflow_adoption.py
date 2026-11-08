@@ -1,11 +1,13 @@
 """Check consumer wiring against its actual workflow and selector configuration."""
+
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 
 import yaml
+
+from ci_esta.workflow_graph import lane_references
 
 
 def check(workflow: Path, lanes: Path) -> None:
@@ -33,8 +35,7 @@ def check(workflow: Path, lanes: Path) -> None:
         raise ValueError("Pass the declared planner's lane output with an empty-object fallback")
     for name in needs:
         condition = str(jobs[name].get("if", ""))
-        selected = set(re.findall(r"fromJSON\(needs\." + re.escape(planner) +
-                                   r"\.outputs\.lanes\)\.([a-zA-Z_][a-zA-Z_0-9]*)", condition))
+        selected = lane_references(condition, planner)
         declared = mapping.get(name, [])
         if set(declared) != selected or any(lane not in configured for lane in declared):
             raise ValueError(f"Gate lane mapping differs from execution routing for {name}")

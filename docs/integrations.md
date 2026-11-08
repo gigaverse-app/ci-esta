@@ -38,6 +38,30 @@ pytest-selective selects at two granularities, and the sticky has a section for 
 | Sticky section | 🎯 Test selection: files ran, why, test time saved | 🧪 Test lanes: lanes ran, why, runner time skipped |
 | "Saved" is measured against | The median of recent full-suite pytest timings, from `ci-full-suite-reference-v1` artifacts | Available matching job timings from the default branch's last green push run; an unobserved job has no measured saving |
 
+### Plan lanes from tests and workflows
+
+`gigaverse-app/ci-esta/actions/plan-work@v1` takes the same lane file and inputs as
+`plan-lanes` and returns the same `lanes` output and `test-lane-selection` artifact, so
+job conditions, the validation gate and the report need no change. It adds CI-esta's
+workflow graph to pytest-selective's affected tests:
+
+| Change | `plan-lanes` (built-in inputs) | `plan-work` |
+| --- | --- | --- |
+| A job gated on a lane (`fromJSON(needs.select-tests.outputs.lanes).unit`) | every lane | that job's lanes |
+| A job that gates no lane, such as lint | every lane | nothing; it always runs |
+| A script, local action or reusable workflow a gated job executes | every lane under `.github/`, nothing elsewhere | that job's lanes |
+| The planner job or the lane file it reads | every lane | every lane |
+| Workflow triggers, `env`, `permissions`, `concurrency` | every lane | every lane the workflow runs |
+| A pull-request template, `dependabot.yml`, an action's README | nothing for Markdown, every lane otherwise | nothing |
+| An unreadable workflow | every lane | every lane |
+
+Jobs depend on the repository paths they name in `run`, `with` and local `uses`,
+including paths an action names through `github.action_path`. A path built at runtime
+(`bash "$SCRIPTS/run.sh"`) is invisible; name it literally or declare it in a lane's
+`inputs`. Explicit `global_inputs` in the lane file are kept exactly, so the graph
+narrows CI changes only once you drop the `.github/` entries it replaces. Hand-written
+`ci.yml#job` inputs become unnecessary.
+
 Use both in a large repository: lanes decide which services start, and file selection narrows the biggest lane. gigaverse-backend plans its unit lane by file inside lane-level routing.
 
 The report reads the lane plan on every run and the file explanation only when it posts the sticky. A PR comment is posted only when `pull-request-number` is also supplied; without it the same Markdown goes to the job summary and artifact.
