@@ -62,6 +62,9 @@ including paths an action names through `github.action_path`. A path built at ru
 narrows CI changes only once you drop the `.github/` entries it replaces. Hand-written
 `ci.yml#job` inputs become unnecessary.
 
+Bun tests get the same lane planning. A lane whose roots hold `*.test.ts` or `*.spec.tsx`
+files is selected from Bun's own module graph ([Bun lanes](bun-test-selection.md#whole-lane-planning)).
+
 Use both in a large repository: lanes decide which services start, and file selection narrows the biggest lane. gigaverse-backend plans its unit lane by file inside lane-level routing.
 
 The report reads the lane plan on every run and the file explanation only when it posts the sticky. A PR comment is posted only when `pull-request-number` is also supplied; without it the same Markdown goes to the job summary and artifact.

@@ -22,10 +22,13 @@ from pytest_selective.ci import LaneConfig, LanePlan, plan
 from pytest_selective.impact_graph import DependencyDeclarationError
 from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
+from ci_esta.testing.bun.graph import bun_lane_reasons
 from ci_esta.workflow_graph import ALL, WorkflowGraph, changed_job_lanes
 
 
-def plan_work(repo: Path, config: LaneConfig, base: str, head: str, *, full: bool = False) -> LanePlan:
+def plan_work(
+    repo: Path, config: LaneConfig, base: str, head: str, *, full: bool = False, bun: str = "bun"
+) -> LanePlan:
     """pytest-selective's lane plan, with CI changes routed through the workflow graph."""
     if config.global_inputs is None:
         # The selector's built-in policy treats non-Markdown .github/ files as global inputs because
@@ -45,10 +48,14 @@ def plan_work(repo: Path, config: LaneConfig, base: str, head: str, *, full: boo
                 "lane_reasons": {name: [reason] for name in config.lanes},
             }
         )
+    # Bun tests reach lanes through Bun's own module graph, built from the checked-out head.
+    roots = {name: lane.roots for name, lane in config.lanes.items()}
+    bun_reasons = bun_lane_reasons(repo, roots, set(result.changed), bun)
     lanes = dict(result.lanes)
     evidence = {name: list(values) for name, values in result.lane_reasons.items()}
     for name in config.lanes:
         added = [reason for reason, selected in reasons.items() if ALL in selected or name in selected]
+        added += bun_reasons.get(name, [])
         if added:
             if not lanes[name]:
                 evidence[name] = []
@@ -67,10 +74,11 @@ def main(argv: list[str] | None = None) -> int:
         "--full", nargs="?", const="true", default="false", type=full_checkpoint_reason, metavar="auto|true|false"
     )
     parser.add_argument("--github-output", type=Path)
+    parser.add_argument("--bun", default="bun", help="Bun executable, for repositories with Bun tests")
     args = parser.parse_args(argv)
     try:
         config = LaneConfig.model_validate_json(args.config.read_text(encoding="utf-8"))
-        result = plan_work(args.repo, config, args.base, args.head, full=args.full is not None)
+        result = plan_work(args.repo, config, args.base, args.head, full=args.full is not None, bun=args.bun)
         if args.full is not None:
             result.reason = args.full
     except (ValueError, OSError, DependencyDeclarationError) as error:
