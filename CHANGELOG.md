@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.4](https://github.com/gigaverse-app/ci-esta/compare/v1.6.3...v1.6.4) (2026-11-08)
+
+
+### Bug fixes
+
+* **lint-ci-code:** cache checksum-pinned tool downloads and retry release-host errors ([#127](https://github.com/gigaverse-app/ci-esta/issues/127)) ([63a52f2](https://github.com/gigaverse-app/ci-esta/commit/63a52f2e079086dbdfbd89addf3a243697466d08))
+* **testing:** let a lane's filter empty a shard without failing it ([#125](https://github.com/gigaverse-app/ci-esta/issues/125)) ([5f21d93](https://github.com/gigaverse-app/ci-esta/commit/5f21d9306f27ecb43912771980f67a1489c5aba6))
+
 ## [1.6.3](https://github.com/gigaverse-app/ci-esta/compare/v1.6.2...v1.6.3) (2026-10-28)
 
 
