@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from pytest_selective.ci import Lane, LaneConfig
+from pytest_selective.impact_graph import DependencyDeclarationError
 from pytest_selective.impact_models import ImpactConfig
 
 from ci_esta.testing.work_plan import main, plan_work
@@ -206,3 +207,131 @@ def test_cli_writes_lane_outputs(repository, tmp_path_factory, capsys):
     )
     assert json.loads(capsys.readouterr().out)["lanes"] == {"unit": True, "live": False}
     assert 'lanes={"unit": true, "live": false}' in output.read_text(encoding="utf-8")
+
+
+DIRECTORIES = """\
+name: CI
+on: [pull_request]
+defaults:
+  run:
+    working-directory: tools
+jobs:
+  select-tests:
+    runs-on: ubuntu-latest
+    outputs:
+      lanes: ${{ steps.plan.outputs.lanes }}
+    steps:
+      - id: plan
+        uses: gigaverse-app/ci-esta/actions/plan-work@v1
+  dogfood:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).unit }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./
+  smoke:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).live }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: smoke
+    steps:
+      - run: bash check.sh
+      - run: python ../scripts/install_check.py
+        working-directory: tools
+"""
+ROOT_ACTION = """\
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: bash "${{ github.action_path }}/scripts/install.sh"
+"""
+
+
+@pytest.fixture
+def directories(repository: tuple[Path, str]) -> tuple[Path, str]:
+    """The root action, working directories and declared reads, on top of the repository fixture."""
+    repo, _ = repository
+    write(repo, ".github/workflows/ci.yml", DIRECTORIES)
+    write(repo, "action.yml", ROOT_ACTION)
+    write(repo, "scripts/install.sh", "pip install .\n")
+    write(repo, "smoke/check.sh", "echo ok\n")
+    write(repo, "smoke/README.md", "# Smoke\n")
+    write(repo, "tools/README.md", "# Tools\n")
+    # A script reads files by path; declarations say which, in pytest-selective's syntax, transitively.
+    write(repo, "scripts/install_check.py", "# gv:test-dependency: scripts/install.sh\nprint('check')\n")
+    write(repo, "scripts/install.sh", "# gv:test-dependency: config/*.toml\npip install .\n")
+    write(repo, "config/settings.toml", "debug = false\n")
+    return repo, commit(repo)
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        # `uses: ./` runs the repository's own action and the files it executes.
+        ("action.yml", {"unit": True, "live": False}),
+        # A path relative to the step's working directory, set by the job or the step.
+        ("smoke/check.sh", {"unit": False, "live": True}),
+        ("scripts/install_check.py", {"unit": False, "live": True}),
+        # Declared reads, followed through the declared file's own declarations.
+        ("scripts/install.sh", {"unit": True, "live": True}),
+        ("config/settings.toml", {"unit": True, "live": True}),
+        # A file nothing executes or declares, even inside a working directory, selects nothing.
+        ("smoke/README.md", {"unit": False, "live": False}),
+        ("tools/README.md", {"unit": False, "live": False}),
+    ],
+)
+def test_root_action_working_directories_and_declared_reads(directories, path, expected):
+    repo, base = directories
+    head = change(repo, path)
+    assert plan_work(repo, lanes_config(), base, head).lanes == expected
+
+
+def test_an_invalid_declaration_is_an_error_not_a_full_run(directories):
+    repo, base = directories
+    # A shell script: pytest-selective's own graph reads declarations only in Python files.
+    head = change(repo, "smoke/check.sh", new="# gv:test-dependency: missing/*.json\n")
+    with pytest.raises(DependencyDeclarationError, match="matches no tracked files"):
+        plan_work(repo, lanes_config(), base, head)
+
+
+LOCAL_PLANNER = """\
+name: CI
+on: [pull_request]
+jobs:
+  select-tests:
+    runs-on: ubuntu-latest
+    outputs:
+      lanes: ${{ steps.plan.outputs.lanes }}
+    steps:
+      - id: plan
+        uses: ./actions/plan-lanes
+  distributions:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).package }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: uv build
+      - if: ${{ fromJSON(needs.select-tests.outputs.lanes).tests }}
+        run: python scripts/smoke.py dist
+"""
+
+
+def test_a_local_planning_action_makes_its_job_the_planner_and_steps_do_not_widen_package_lanes(tmp_path):
+    from ci_esta.workflow_graph import ALL, WorkflowGraph
+
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    write(tmp_path, ".github/workflows/ci.yml", LOCAL_PLANNER)
+    write(
+        tmp_path,
+        "actions/plan-lanes/action.yml",
+        "runs:\n  using: composite\n  steps:\n    - shell: bash\n      run: python -m pytest_selective.ci --base x\n",
+    )
+    write(tmp_path, "scripts/smoke.py", "print('smoke')\n")
+    graph = WorkflowGraph(tmp_path, commit(tmp_path))
+    assert graph.jobs[(".github/workflows/ci.yml", "select-tests")].lanes == {ALL}
+    # The job-level condition decides when the package is built; the smoke step's condition is its own.
+    assert graph.jobs[(".github/workflows/ci.yml", "distributions")].lanes == {"package", "tests"}
+    assert graph.package_lanes() == {"package"}

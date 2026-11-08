@@ -2,8 +2,9 @@
 
 The lanes are the names the workflow's job conditions read from the planner's output. A lane's test
 roots are the paths its jobs pass to a test command (`pytest X`, `python -m pytest X`, `bun test X`,
-`unittest discover -s X`); a test command with no path takes pytest's `testpaths`, or the whole
-repository. A lane whose jobs run no test command (a build, a smoke check) is selected through the
+`node --test X`, `vitest X`, `jest X`, `unittest discover -s X`), relative to the step's working
+directory. A pytest command with no path takes pytest's `testpaths`, or the whole repository; a
+JavaScript runner with no path (`node --test`, `npm test`) takes its working directory. A lane whose jobs run no test command (a build, a smoke check) is selected through the
 jobs it gates. A test no lane claims still runs every lane, so a guess that misses errs toward work.
 
 The reviewed pytest policy is taken from the base commit: a pull request that changes how pytest
@@ -13,6 +14,7 @@ collects runs every lane, as a reviewed lane file would until its fingerprints w
 from __future__ import annotations
 
 import json
+import posixpath
 import re
 import shlex
 import tomllib
@@ -26,11 +28,16 @@ from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
 from ci_esta.git import git
 from ci_esta.testing.lane_rules import Rule, effective
-from ci_esta.workflow_graph import ALL, WorkflowGraph
+from ci_esta.workflow_graph import ALL, WorkflowGraph, run_steps
 
 #: The words that start a test command, and the arguments after them that are paths.
 TEST_COMMAND = re.compile(
-    r"(?:^|[\s;&|(])(?:uv run (?:--[\w-]+(?:[ =]\S+)? )*)?(pytest|python3? -m pytest|bun test)(?![\w-])(.*)"
+    r"(?:^|[\s;&|(])(?:uv run (?:--[\w-]+(?:[ =]\S+)? )*)?(pytest|python3? -m pytest)(?![\w-])(.*)"
+)
+#: JavaScript test runners: with no path they collect the tests under their working directory.
+JS_TEST_COMMAND = re.compile(
+    r"(?:^|[\s;&|(])(?:npx |bunx |pnpm exec |yarn )?(bun test|node --test|vitest(?: run)?|jest"
+    r"|(?:npm|pnpm|yarn|bun run) test|npm run test|npm t)(?![\w:-])(.*)"
 )
 UNITTEST = re.compile(r"python3? -m unittest discover\b.*?(?:-s|--start-directory)[ =](\S+)")
 #: A repository script that runs the tests (`python scripts/run_ci_tests.py`): it collects pytest's defaults.
@@ -57,8 +64,10 @@ VALUED_OPTIONS = {
 }
 
 
-def paths_after(arguments: str, files: set[str], directories: set[str]) -> list[str] | None:
-    """Repository paths among a test command's arguments; None when it names none."""
+def paths_after(
+    arguments: str, files: set[str], directories: set[str], directory: str | None = None
+) -> list[str] | None:
+    """Repository paths among a test command's arguments, read from `directory`; None when it names none."""
     try:
         words = shlex.split(arguments.split("&&")[0].split(";")[0].split("|")[0])
     except ValueError:
@@ -74,6 +83,8 @@ def paths_after(arguments: str, files: set[str], directories: set[str]) -> list[
         if word.startswith("-"):
             continue
         path = word.split("::")[0].removeprefix("./").rstrip("/")
+        if directory is not None:
+            path = posixpath.normpath(f"{directory}/{path}")
         if path in files or path in directories:
             found.append(path)
     return found or None
@@ -112,18 +123,18 @@ def infer(repo: Path, base: str, head: str) -> ResolvedLanes:
     for (path, name), job in graph.jobs.items():
         if not job.lanes or ALL in job.lanes:
             continue
-        commands = [
-            str(step.get("run", ""))
-            for step in graph.documents[path]["jobs"][name].get("steps", []) or []
-            if isinstance(step, dict)
-        ]
+        document = graph.documents[path]
         found: set[str] = set()
         evidence: list[str] = []
-        for command in commands:
+        for command, directory in run_steps(document, document["jobs"][name]):
             for line in command.splitlines():
                 named: list[str] = []
                 if match := TEST_COMMAND.search(line):
-                    named = paths_after(match.group(2), graph.files, directories) or default_roots(repo)
+                    named = paths_after(match.group(2), graph.files, directories, directory) or (
+                        [directory] if directory is not None else default_roots(repo)
+                    )
+                elif match := JS_TEST_COMMAND.search(line):
+                    named = paths_after(match.group(2), graph.files, directories, directory) or [directory or "."]
                 if match := UNITTEST.search(line):
                     named = [match.group(1).removeprefix("./").rstrip("/")]
                 elif (match := TEST_WRAPPER.search(line)) and match.group(1).removeprefix("./") in graph.files:
