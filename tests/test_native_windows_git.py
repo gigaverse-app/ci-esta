@@ -30,6 +30,20 @@ def test_native_git_discovery_preserves_the_installation(
     native.parent.mkdir(parents=True)
     if native_state != "missing":
         native.touch()
+    if os.name != "nt":
+        # Unix PowerShell executes absolute paths rather than the Windows function
+        # stubs below. Give the same process boundary a real executable there.
+        for executable in (launcher, native):
+            if executable.exists():
+                executable.write_text(
+                    "#!/bin/sh\n"
+                    'if [ "$1" = "--exec-path" ]; then printf "%s\\n" "$TEST_EXEC_PATH"\n'
+                    'elif [ "$0" = "$TEST_NATIVE" ] && [ "$TEST_NATIVE_STATE" = "different-version" ]; '
+                    'then echo "git version different"\n'
+                    'else echo "git version fixture"; fi\n',
+                    encoding="utf-8",
+                )
+                executable.chmod(0o755)
     linked_root = tmp_path / "current"
     if native_state == "linked":
         launcher = linked_root / launcher_dir / "git.exe"
