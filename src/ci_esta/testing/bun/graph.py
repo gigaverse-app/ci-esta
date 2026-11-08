@@ -1,12 +1,14 @@
 """Bun's module graph at planning time, for whole-lane selection.
 
-`bun build --metafile` lists every file each test bundles: its imports, followed transitively,
-including text and JSON imports. A changed file selects the lanes of the tests that bundle it, so a
-README no test imports selects nothing, with no documentation rule. `bun test --changed` still narrows
-the files inside a selected lane at execution time.
+Bun's bundler metafile lists every file each test bundles: its imports, followed transitively,
+including text, JSON, style and asset imports. A changed file selects the lanes of the tests that
+bundle it, so a README no test imports selects nothing, with no documentation rule. `bun test --changed`
+still narrows the files inside a selected lane at execution time.
 
-Bun's environment files (`package.json`, lockfiles, `bunfig.toml`, `tsconfig*.json`) reach every Bun
-lane until a lockfile differ maps them to packages. A graph Bun cannot build runs every Bun lane.
+A test preload declared in a `bunfig*.toml` runs before every test without being imported, so a change
+to it, or to anything it bundles, reaches every Bun lane. Bun's environment files (`package.json`,
+lockfiles, `bunfig*.toml`, `tsconfig*.json`) reach every Bun lane until a lockfile differ maps them to
+packages. A graph Bun cannot build runs every Bun lane.
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import tomllib
 from pathlib import Path, PurePosixPath
 
 from pytest_selective.impact_graph import within
@@ -25,7 +28,10 @@ from pytest_selective.impact_graph import within
 from ci_esta.git import git
 
 TEST_FILE = re.compile(r"[._](?:test|spec)\.[cm]?[jt]sx?$")
-ENVIRONMENT = re.compile(r"(?:^|/)(?:package\.json|bun\.lockb?|bunfig\.toml|tsconfig[^/]*\.json)$")
+ENVIRONMENT = re.compile(r"(?:^|/)(?:package\.json|bun\.lockb?|bunfig[^/]*\.toml|tsconfig[^/]*\.json)$")
+BUNFIG = re.compile(r"(?:^|/)bunfig[^/]*\.toml$")
+#: Files Bun parses for further imports; other inputs (styles, images, text) are leaves.
+MODULE = re.compile(r"\.(?:[cm]?[jt]sx?|json)$")
 
 
 def normalized(path: str) -> str:
@@ -52,21 +58,34 @@ RESOLUTION = (
 )
 
 
+def repository_path(path: str, repo: Path) -> str:
+    """The repository-relative form of an absolute path Bun reports.
+
+    Bun reports real paths, so a repository under a symlinked directory (Linux /tmp, macOS /var)
+    is resolved the same way.
+    """
+    return normalized(os.path.relpath(os.path.realpath(path), os.path.realpath(repo)))
+
+
+def resolve_relative(directory: str, specifier: str, files: set[str]) -> str | None:
+    """The tracked file a relative specifier names from `directory`, ignoring a `?query` suffix."""
+    base = posixpath.normpath(posixpath.join(directory, specifier.split("?")[0]))
+    return next((base + suffix for suffix in RESOLUTION if base + suffix in files), None)
+
+
 def build_imports(repo: Path, entries: list[str], bun: str) -> dict[str, list[dict[str, object]]]:
-    """Bun's metafile import edges for `entries`: each parsed file and the imports it declares."""
+    """Bun's metafile import edges for `entries`: each parsed file and the imports it declares.
+
+    `metafile.ts` reads the entries from a file, so no command-line limit caps their number. It adds
+    every import that names a repository file by more than a relative path, as an edge to the absolute
+    path Bun resolves: tsconfig `paths` aliases, query-suffixed imports (`./icon.svg?react`) and
+    workspace packages imported by name.
+    """
     with tempfile.TemporaryDirectory() as scratch:
-        metafile = Path(scratch) / "meta.json"
+        listed, metafile = Path(scratch) / "entries.json", Path(scratch) / "meta.json"
+        listed.write_text(json.dumps(entries), encoding="utf-8")
         subprocess.run(
-            [
-                bun,
-                "build",
-                *(f"./{entry}" for entry in entries),
-                "--target=bun",
-                "--packages=external",
-                "--root=.",
-                f"--outdir={Path(scratch) / 'dist'}",
-                f"--metafile={metafile}",
-            ],
+            [bun, "--no-install", str(Path(__file__).with_name("metafile.ts")), str(listed), str(metafile)],
             cwd=repo,
             check=True,
             capture_output=True,
@@ -75,19 +94,26 @@ def build_imports(repo: Path, entries: list[str], bun: str) -> dict[str, list[di
             errors="replace",
         )
         meta = json.loads(metafile.read_text(encoding="utf-8"))
-    return {normalized(path): value.get("imports", []) for path, value in meta.get("inputs", {}).items()}
+    imports = {normalized(path): list(value.get("imports", [])) for path, value in meta["inputs"].items()}
+    for importer, found in meta["resolved"].items():
+        # Replaces Bun's own record of the import, which names it by specifier.
+        declared = imports.setdefault(repository_path(importer, repo), [])
+        originals = {item["original"] for item in found}
+        declared[:] = [item for item in declared if item.get("path") not in originals]
+        declared.extend(found)
+    return imports
 
 
-def test_inputs(repo: Path, tests: list[str], bun: str, files: set[str]) -> dict[str, set[str]]:
-    """Each test file's transitive repository inputs, from Bun's import edges.
+def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> dict[str, set[str]]:
+    """Each entry file's transitive repository inputs, from Bun's import edges.
 
     Bun leaves an import it tree-shakes away unresolved (`external` with its relative specifier) and
     does not parse that module, so such modules are resolved here and built as further entry points
-    until no new file appears. Package and built-in imports are not repository files.
+    until no new file appears. Package and built-in imports are not repository files; an import Bun
+    resolved to a path the planner cannot map fails the graph rather than losing the edge.
     """
-    real_repo = os.path.realpath(repo)
     edges: dict[str, set[str]] = {}
-    pending = list(tests)
+    pending = list(entries)
     while pending:
         imports = build_imports(repo, pending, bun)
         pending = []
@@ -96,34 +122,56 @@ def test_inputs(repo: Path, tests: list[str], bun: str, files: set[str]) -> dict
             for item in declared:
                 specifier = str(item.get("path", ""))
                 if os.path.isabs(specifier):
-                    # Bun reports resolved real paths; a repository under a symlinked
-                    # directory (Linux /tmp, macOS /var) must be resolved the same way.
-                    targets.add(normalized(os.path.relpath(os.path.realpath(specifier), real_repo)))
+                    target = repository_path(specifier, repo)
                 elif not item.get("external") and normalized(specifier) in files:
                     # Bun 1.4 names an import of another entry point by its repository path.
-                    targets.add(normalized(specifier))
+                    target = normalized(specifier)
                 elif specifier.startswith("."):
                     # A relative specifier: an import Bun left unresolved, or (Bun 1.3) one to another entry point.
-                    base = posixpath.normpath(posixpath.join(posixpath.dirname(importer), specifier))
-                    resolved = next((base + suffix for suffix in RESOLUTION if base + suffix in files), None)
-                    if resolved is None:
+                    target = resolve_relative(posixpath.dirname(importer), specifier, files)
+                    if target is None:
                         raise ValueError(f"cannot resolve {specifier!r} imported by {importer}")
-                    targets.add(resolved)
-                    if resolved not in edges and resolved not in imports:
-                        pending.append(resolved)
+                elif item.get("external"):
+                    continue
+                else:
+                    # Bun resolved it, but to no path the planner can name: never drop the edge.
+                    raise ValueError(f"cannot map {specifier!r} imported by {importer}")
+                targets.add(target)
+                if target in files and target not in edges and target not in imports and MODULE.search(target):
+                    pending.append(target)
         pending = sorted(set(pending))
-    if missing := sorted(set(tests) - set(edges)):
-        raise ValueError(f"bun build reported no inputs for {', '.join(missing)}")
+    if missing := sorted(set(entries) - set(edges)):
+        raise ValueError(f"Bun reported no inputs for {', '.join(missing)}")
     graph = {}
-    for test in tests:
-        seen, queue = {test}, [test]
+    for entry in entries:
+        seen, queue = {entry}, [entry]
         while queue:
             for target in edges.get(queue.pop(), ()):
                 if target not in seen:
                     seen.add(target)
                     queue.append(target)
-        graph[test] = seen
+        graph[entry] = seen
     return graph
+
+
+def test_preloads(repo: Path, files: set[str]) -> list[str]:
+    """Repository files any `bunfig*.toml` preloads before tests, top-level or under `[test]`.
+
+    Which tests run under which configuration is a command-line choice the planner cannot see, so
+    every declared preload counts for every Bun test. A package preload is covered by the lockfile.
+    """
+    preloads = set()
+    for config in sorted(path for path in files if BUNFIG.search(path)):
+        settings = tomllib.loads((repo / config).read_text(encoding="utf-8"))
+        for section in (settings, settings.get("test", {})):
+            declared = section.get("preload", [])
+            for entry in [declared] if isinstance(declared, str) else declared:
+                path = resolve_relative(posixpath.dirname(config), entry, files)
+                if path is None and entry.startswith("."):
+                    raise ValueError(f"{config} preloads {entry!r}, which is not a tracked file")
+                if path is not None:
+                    preloads.add(path)
+    return sorted(preloads)
 
 
 def bun_lane_reasons(
@@ -156,11 +204,17 @@ def bun_lane_reasons(
     try:
         if executable is None:
             raise FileNotFoundError(f"{bun} is not installed")
-        graph = test_inputs(repo, present, executable, set(files)) if present else {}
+        preloads = test_preloads(repo, set(files))
+        entries = sorted(set(present) | set(preloads))
+        graph = test_inputs(repo, entries, executable, set(files)) if present else {}
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         detail = (getattr(error, "stderr", "") or str(error)).strip().splitlines()
         reason = f"full-suite fallback: Bun module graph unavailable: {detail[0] if detail else error}"
         return {name: [reason] for name in bun_lanes}
+    for preload in preloads if present else ():
+        if hit := sorted(graph[preload] & changed):
+            for name in bun_lanes:
+                reasons[name].append(f"Bun test preload: {preload} (bundles {', '.join(hit)})")
     for name in bun_lanes:
         for test in lane_tests[name]:
             if hit := sorted(graph[test] & changed):
