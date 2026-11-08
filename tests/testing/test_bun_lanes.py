@@ -181,3 +181,14 @@ def test_a_graph_bun_cannot_build_runs_every_bun_lane(repository, broken):
     result = plan_work(repo, lanes(), base, head, bun="no-such-bun" if broken == "executable" else "bun")
     assert result.lanes == {"unit": True, "feature": True}
     assert all("Bun module graph unavailable" in reasons[0] for reasons in result.lane_reasons.values())
+
+
+def test_the_bun_environment_rule_can_be_switched_off(repository):
+    from ci_esta.testing.lane_rules import effective
+
+    repo, base = repository
+    write(repo, "package.json", '{"name": "sample", "private": false}\n')
+    head = commit(repo)
+    assert plan_work(repo, lanes(), base, head).lanes == {"unit": True, "feature": True}
+    rules = effective([], ["bun-environment"])
+    assert plan_work(repo, lanes(), base, head, rules=rules).lanes == {"unit": False, "feature": False}

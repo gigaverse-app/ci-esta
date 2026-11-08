@@ -35,6 +35,9 @@ def render(resolved: ResolvedLanes, plan: LanePlan | None = None) -> str:
     lines = rows
     if plan is not None:
         lines = [f"**Plan:** {plan.reason}", "", *rows]
+    lines += ["", "| Rule | Watches | Selects | Origin |", "| --- | --- | --- | --- |"]
+    for rule in resolved.rules:
+        lines.append(f"| `{rule.name}` | {cell(rule.when, 3)} | {cell(rule.select)} | {rule.origin} |")
     return "\n".join(lines) + "\n"
 
 
@@ -64,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.base:
         from ci_esta.testing.work_plan import plan_work
 
-        plan = plan_work(args.repo, resolved.config, args.base, args.head)
+        plan = plan_work(args.repo, resolved.config, args.base, args.head, rules=resolved.rules)
     if args.json:
         payload = resolved.model_dump(mode="json")
         if plan is not None:

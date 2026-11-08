@@ -203,3 +203,70 @@ def test_the_plan_appends_a_readable_step_summary(repository, tmp_path_factory, 
     text = summary.read_text(encoding="utf-8")
     assert text.startswith("### Lane selection")
     assert "| `unit` | ⏭️ skipped |" in text
+
+
+def plan_with(repo: Path, base: str, path: str, content: str, document: dict, capsys) -> dict:
+    extends = lane_file(repo, {"extends": "workflow", **document})
+    write(repo, path, content)
+    head = commit(repo)
+    assert main(["--repo", str(repo), "--config", str(extends), "--base", base, "--head", head]) == 0
+    return json.loads(capsys.readouterr().out)
+
+
+def test_a_rule_selects_a_lane_when_its_files_change(repository, capsys):
+    repo, base = repository
+    rule = {"name": "schemas", "when": ["schemas/**"], "select": ["lane:live"], "reason": "loaded by name"}
+    result = plan_with(repo, base, "schemas/user.json", "{}", {"rules": [rule]}, capsys)
+    assert result["lanes"] == {"live": True, "smoke": False, "unit": False, "wrapped": False}
+    assert result["lane_reasons"]["live"] == ["rule schemas: schemas/user.json (loaded by name)"]
+
+
+def test_a_rule_can_select_the_lanes_a_job_runs(repository, capsys):
+    repo, base = repository
+    rule = {"name": "smoke-data", "when": ["fixtures/*.csv"], "select": ["job:.github/workflows/ci.yml#smoke"]}
+    result = plan_with(repo, base, "fixtures/rows.csv", "a,b\n", {"rules": [rule]}, capsys)
+    assert result["lanes"] == {"live": False, "smoke": True, "unit": False, "wrapped": False}
+
+
+def test_the_python_environment_rule_names_itself_and_can_be_narrowed(repository, capsys):
+    repo, base = repository
+    default = plan_with(repo, base, "requirements-docs.txt", "mkdocs\n", {}, capsys)
+    assert set(default["lanes"].values()) == {True}
+    assert "rule python-environment: requirements-docs.txt" in default["lane_reasons"]["unit"]
+    narrowed = {"name": "python-environment", "when": ["pyproject.toml", "uv.lock"], "select": ["all"]}
+    result = plan_with(repo, base, "requirements-docs.txt", "mkdocs==2\n", {"rules": [narrowed]}, capsys)
+    assert set(result["lanes"].values()) == {False}
+
+
+def test_a_built_in_rule_can_be_switched_off(repository, capsys):
+    repo, base = repository
+    result = plan_with(
+        repo, base, "requirements-docs.txt", "mkdocs\n", {"disable_rules": ["python-environment"]}, capsys
+    )
+    assert set(result["lanes"].values()) == {False}
+
+
+@pytest.mark.parametrize(
+    ("document", "message"),
+    [
+        ({"disable_rules": ["no-such-rule"]}, "disable_rules names no rule"),
+        ({"rules": [{"name": "a", "when": ["x"], "select": ["all"]}] * 2}, "named more than once"),
+        ({"rules": [{"name": "a", "when": ["x"], "select": ["everything"]}]}, "use all, package"),
+    ],
+)
+def test_invalid_rules_are_reported(repository, document, message):
+    repo, base = repository
+    with pytest.raises(ValueError, match=message):
+        resolve(repo, base, base, lane_file(repo, {"extends": "workflow", **document}))
+
+
+def test_ci_esta_lanes_lists_the_rules_in_force(repository, capsys):
+    repo, base = repository
+    extends = lane_file(
+        repo, {"extends": "workflow", "rules": [{"name": "schemas", "when": ["schemas/**"], "select": ["lane:live"]}]}
+    )
+    assert cli(["lanes", "--repo", str(repo), "--config", str(extends)]) == 0
+    listing = capsys.readouterr().out
+    assert "| `python-environment` | pyproject.toml<br>**/pyproject.toml<br>uv.lock<br>… " in listing
+    assert "| `bun-environment` |" in listing
+    assert "| `schemas` | schemas/** | lane:live | lane file |" in listing

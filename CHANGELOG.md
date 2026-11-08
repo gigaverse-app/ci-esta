@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.8.0](https://github.com/gigaverse-app/ci-esta/compare/v1.7.0...v1.8.0) (2026-11-08)
+
+
+### Features
+
+* **check-workflow:** check against inferred lanes when there is no lane file ([#146](https://github.com/gigaverse-app/ci-esta/issues/146)) ([3e8747d](https://github.com/gigaverse-app/ci-esta/commit/3e8747d288e37d05ff83e523cbfc0e2b9e291679))
+* **planning:** rules, with CI-esta's defaults as named rules you can replace ([#143](https://github.com/gigaverse-app/ci-esta/issues/143)) ([5437b18](https://github.com/gigaverse-app/ci-esta/commit/5437b1802b8f2e126ceaed678099531479736ddf))
+* **planning:** show where each lane comes from and override only what is wrong ([#142](https://github.com/gigaverse-app/ci-esta/issues/142)) ([01bd51a](https://github.com/gigaverse-app/ci-esta/commit/01bd51a4272d4d301bbe6770ac835a8d858a9bdc))
+
+
+### Bug fixes
+
+* **ci:** refresh self-adoption and support pytest-selective 1.x ([#145](https://github.com/gigaverse-app/ci-esta/issues/145)) ([ad7f1a2](https://github.com/gigaverse-app/ci-esta/commit/ad7f1a2128f5a6f79113191ac1e75052dd9fd74a))
+
 ## [1.7.0](https://github.com/gigaverse-app/ci-esta/compare/v1.6.5...v1.7.0) (2026-11-08)
 
 
