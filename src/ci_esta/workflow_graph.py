@@ -36,6 +36,12 @@ PATH_TOKEN = re.compile(r"[A-Za-z0-9_.@+\-]+(?:/[A-Za-z0-9_.@+\-]+)+|[A-Za-z0-9_
 #: Where an action refers to its own files.
 ACTION_PATH = re.compile(r"(?:\$\{\{\s*github\.action_path\s*\}\}|\$\{?GITHUB_ACTION_PATH\}?)/([^\s'\"`;|&)]+)")
 ALL = "*"
+#: Commands that build, check, install or publish the repository's own package.
+PACKAGE_COMMANDS = re.compile(
+    r"\buv build\b|\bpython3? -m build\b|\bpip wheel\b|\b(?:hatch|poetry|pdm|flit) build\b"
+    r"|\btwine (?:check|upload)\b|\bpip install (?:-e )?\.(?:\[|\s|$)|pypa/gh-action-pypi-publish"
+    r"|\b(?:npm|pnpm|yarn) (?:pack|publish)\b|\bbun (?:pm pack|publish)\b"
+)
 
 
 def lane_references(text: str, planner: str | None = None) -> set[str]:
@@ -49,6 +55,8 @@ class Job:
 
     lanes: set[str] = field(default_factory=set)
     inputs: set[str] = field(default_factory=set)
+    #: The job builds, checks, installs or publishes the package, so the package's inputs are its inputs too.
+    packages: bool = False
 
 
 def strings(value: Any) -> list[str]:
@@ -102,7 +110,8 @@ class WorkflowGraph:
         lanes = {lane for text in texts for lane in lane_references(text)}
         if any(PLANNERS.search(text) for text in texts):
             lanes = {ALL}
-        return Job(lanes=lanes, inputs=self.references(texts, set()))
+        packages = any(PACKAGE_COMMANDS.search(text) for text in texts)
+        return Job(lanes=lanes, inputs=self.references(texts, set()), packages=packages)
 
     def references(self, texts: list[str], seen: set[str], action_dir: str | None = None) -> set[str]:
         """Repository files named in `texts`, followed through local actions and reusable workflows."""
@@ -147,6 +156,10 @@ class WorkflowGraph:
         """A called workflow's own executed files; its jobs run inside the caller's job."""
         document = self.documents.get(path) or self.load(path)
         return self.references(strings(document.get("jobs", {})), seen)
+
+    def package_lanes(self) -> set[str]:
+        """Lanes gating a job that builds the package; a planner job is not one."""
+        return {lane for job in self.jobs.values() if job.packages and ALL not in job.lanes for lane in job.lanes}
 
     def lanes_of_workflow(self, path: str) -> set[str]:
         return {lane for (workflow, _), job in self.jobs.items() if workflow == path for lane in job.lanes}

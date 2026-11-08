@@ -62,6 +62,19 @@ including paths an action names through `github.action_path`. A path built at ru
 narrows CI changes only once you drop the `.github/` entries it replaces. Hand-written
 `ci.yml#job` inputs become unnecessary.
 
+**Package jobs.** A job that builds, checks, installs or publishes the package (`uv build`,
+`python -m build`, `twine check`, `pip install .`, `npm pack`, `bun publish`, the PyPA
+publish action, …) also runs when the package's inputs change, as the build tools list them:
+
+| Package | Inputs | Read by |
+| --- | --- | --- |
+| `pyproject.toml` with `[project]` and `[build-system]` | every file the wheel contains, mapped back to the repository, plus the `readme` and license files its metadata embeds | `uv build --wheel` |
+| `package.json` that is not `private` | every file `npm pack` would publish | `npm pack --dry-run` |
+
+So a README the wheel embeds runs the package build, while a docs page or a test does not, and
+the lane needs no hand-written inputs. A package the tools cannot build or list runs its jobs.
+A deleted file beside a package input runs them too.
+
 Bun tests get the same lane planning. A lane whose roots hold `*.test.ts` or `*.spec.tsx`
 files is selected from Bun's own module graph ([Bun lanes](bun-test-selection.md#whole-lane-planning)).
 
