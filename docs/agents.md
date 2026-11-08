@@ -3,18 +3,17 @@
 Give your coding agent this prompt from the repository you want to improve:
 
 ```text
-Read https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/skills/ci-esta/SKILL.md
-and use it to measure this repository's GitHub Actions bottlenecks. Implement
-the smallest useful improvement and verify it. For Python test selection,
-also use pytest-selective's skill. Preserve required gates and full checkpoints;
-report elapsed time, runner-seconds, run identities and remaining limitations.
+Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it.
 ```
 
-The [skill](../skills/ci-esta/SKILL.md) is portable Markdown. It starts with
-read-only measurement, distinguishes slow jobs from startup/admission overhead,
-then chooses routing, caching, supersession or carefully justified receipt reuse.
-CI-esta supports GitHub Actions for any application language. It does not turn a
-non-GitHub CI provider into GitHub Actions or require your application to use Python.
+That file is the [skill](../skills/ci-esta/SKILL.md), published byte for byte with
+each documentation build, so the procedure matches the documentation version it
+came from. It is one self-contained procedure: preflight the repository's
+conventions, measure completed runs, choose one optimization from a decision table,
+implement it, verify it on the same commit, open a draft pull request and stop for
+the human. CI-esta supports GitHub Actions for any application language. It does
+not turn a non-GitHub CI provider into GitHub Actions or require your application
+to use Python.
 
 ## Optional installation
 
@@ -27,8 +26,7 @@ npx skills add gigaverse-app/pytest-selective --skill pytest-selective
 ```
 
 The second skill is useful for Python pytest projects; skip it for other suites.
-You can also copy the complete `skills/ci-esta/` folder into your agent's skill
-directory, including `references/`. Review the source/revision when installing
+You can also copy `skills/ci-esta/` into your agent's skill directory. Review the source/revision when installing
 or updating. Skills ship in these Git repositories; installing the Python CLI
 does not automatically install instructions into your coding agent.
 
@@ -70,6 +68,5 @@ The skill neither signs up nor posts to external communities.
 
 The repository's `skills/` directory is the authoritative copy. A package upgrade
 does not refresh an agent's installed Markdown. Reinstall/update with your skill
-manager, or replace the complete skill folder (including `references/`) after
-reviewing the source revision. Compare that revision when an agent gives advice
+manager, or replace the skill folder after reviewing the source revision. Compare that revision when an agent gives advice
 that conflicts with the current quickstart. Preserve local customizations separately.

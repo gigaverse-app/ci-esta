@@ -1,0 +1,33 @@
+# CI-esta
+
+> CI-esta measures GitHub Actions runs (job and step timings, runner usage, the dependency critical path to the required check) and provides public actions to shorten them safely: validated uv environment caching, packing short matrix jobs onto fewer runners, duration-balanced test shards with completion checks, strict aggregate gates and optional reuse of completed work. It works for any application language; reporting reads completed runs as data and needs no hosted service.
+
+To set CI-esta up in a repository with a coding agent, give the agent this one prompt: "Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it." The agent measures a completed run, makes one change and proves it; merging, required checks and repository settings stay with a person.
+
+## Set it up
+
+- [Agent setup procedure (raw Markdown)](https://ci-esta.readthedocs.io/en/latest/agent-setup.md): the complete, self-contained procedure a coding agent follows to measure CI, make one verified improvement and open a pull request
+- [Quickstart](https://ci-esta.readthedocs.io/en/latest/docs/quickstart/): the reporting observer and environment cache by hand
+- [Measure your CI critical path](https://ci-esta.readthedocs.io/en/latest/docs/tutorials/measure-critical-path/): read one completed run with the CLI
+- [GitHub Actions reference](https://ci-esta.readthedocs.io/en/latest/docs/actions/): every public action and the pinning policy
+
+## Choose an optimization
+
+- [Pack short matrix jobs onto fewer runners](https://ci-esta.readthedocs.io/en/latest/docs/pack-matrix-jobs/): when per-job setup dominates many short jobs (tox, nox, uv)
+- [Cache Python environments](https://ci-esta.readthedocs.io/en/latest/docs/environment-cache/): when dependency installation dominates
+- [Balance tests with timing data](https://ci-esta.readthedocs.io/en/latest/docs/learned-test-timings/): when one test shard dominates
+- [Reuse successful job evidence](https://ci-esta.readthedocs.io/en/latest/docs/evidence-reuse/): when identical declared work already passed
+- [Validate skipped test lanes](https://ci-esta.readthedocs.io/en/latest/docs/selected-gates/): aggregate gates that fail on missing, failed or skipped work
+
+## Understand the numbers
+
+- [Workflow reports and metrics](https://ci-esta.readthedocs.io/en/latest/docs/github-actions-observability/): report fields, runner seconds and cost estimates
+- [Critical-path analysis](https://ci-esta.readthedocs.io/en/latest/docs/critical-path/): observed chain, execution path and slack
+- [Report before-and-after impact](https://ci-esta.readthedocs.io/en/latest/docs/measured-impact/)
+
+## Optional
+
+- [Adoption tutorial and checklist](https://ci-esta.readthedocs.io/en/latest/docs/tutorials/adoption-checklist/): every capability, staged
+- [Runner capacity and hang diagnostics](https://ci-esta.readthedocs.io/en/latest/docs/runners-and-diagnostics/)
+- [Benchmarks](https://ci-esta.readthedocs.io/en/latest/docs/benchmarks/2026-10-22/)
+- [Source code](https://github.com/gigaverse-app/ci-esta)

@@ -1,185 +1,268 @@
 ---
 name: ci-esta
-description: Measure and optimize GitHub Actions CI with CI-esta job/step reports, conservative evidence reuse and strict validation gates. Use for slow CI, repeated jobs, broad triggers or requests to prove CI savings; works with Python and non-Python application code.
+description: Set up CI-esta in a GitHub Actions repository from one prompt. Measure completed runs (time to the required check, runner time, critical path), make one change the data supports (pack short matrix jobs, cache environments, balance shards, fix gate gaps, route lanes), prove it with same-head controls and an unchanged test inventory, and open a pull request. Works for any application language.
 license: Apache-2.0
 ---
 
-# Find the work worth avoiding
+# Set up CI-esta in a repository
 
-## Keep reporting shared
+You are a coding agent improving the GitHub Actions CI of the repository you are working in. This file is the whole
+procedure. Follow it in order and open one pull request. Links are for depth only; you should not need them.
 
-Use the canonical `actions/NAME@v1` entry points and the shared report renderer.
-Declare one `sticky-workflow` owner when observing multiple workflows; a different
-sticky key deliberately creates another comment. The reusable reporting workflow
-owns PR-scoped publication serialization. Direct action callers share duplicate
-recovery but still need job serialization for strict ordering. Keep selection
-plans separate from observed execution. Both providers use the same selected,
-executed, reused, runner and estimated-cost fields and section layout. Keep
-unknown evidence visible as unavailable and retain file/lane/work-unit labels;
-never equate selected with executed or add overlapping inventories. Configure
-`runner-sku-rates-json` on direct or reusable reporting calls using maintained
-rates for the actual runner labels. Unknown pricing is not zero cost. Verify the required
-inputs have reached `@v1` before merging a consumer change.
+CI-esta reads completed runs as data and reports the time to the required check, summed runner time, per-job and
+per-step timings and the dependency critical path. Its public actions then shorten CI without weakening it. The
+human keeps merging, required-check settings, runner groups and secrets.
 
-Work in the user's target repository. CI-esta's hosted reporting and evidence
-actions target GitHub Actions, regardless of the application's language. If the
-target uses another CI provider, report that boundary and use its native timing
-data; do not migrate providers merely to apply this skill. Python pytest suites
-can use [pytest-selective](https://github.com/gigaverse-app/pytest-selective) with
-other runners as well.
+**Ground rules**
 
-## Public onboarding
+- Work on a new branch and open a draft pull request. The repository's AGENTS.md, CONTRIBUTING, pull request
+  template and AI or attribution policy win over this file on style, commit format and attribution.
+- Never print, log or commit a token. Credentials go in environment variables, never in arguments.
+- Never change repository settings, rulesets, required checks, runner groups or secrets. Stop and tell the human,
+  with the exact step, when the next move needs one.
+- Make **one** optimization (plus a gate fix if step 2 finds a gap). Keep every existing test, required check,
+  coverage threshold and full or scheduled run.
+- If a command fails, report the command and its error. Never work around a failure with `|| true`, a hand-written
+  completion receipt, a widened gate or a deleted test.
 
-Use the [quickstart](https://github.com/gigaverse-app/ci-esta/blob/main/docs/quickstart.md)
-and [public action API](https://github.com/gigaverse-app/ci-esta/blob/main/docs/actions.md).
-Prefer `gigaverse-app/ci-esta/actions/ci-observability@v1` for reporting and `actions/setup-cached-uv@v1` or
-other named public actions under `gigaverse-app/ci-esta/actions/NAME@REF`
-for setup/execution. Check that the selected release
-contains the entry point. Retain old paths for existing pinned consumers until
-upgrading; never present an unreleased path as available at an old tag.
-Actions install their own support tools. Add the Python package to the test
-environment only when invoking its CLI or pytest plugins.
+## 1. Preflight
 
-## Observe first
+Run these and note the answers. Every later step uses them.
 
-Run `ci-esta adoption --root .` for a read-only inventory before proposing changes.
-Inspect its source evidence and limitations; it does not execute scripts, expand
-remote workflows, prove successful adoption or enable optional features. Use the
-checklist for capabilities outside its checks. Prefer shared selector event/base
-defaults over copied expressions, preserve deliberate coverage/manual overrides,
-and forward `test_roots_json` directly between jobs. Verify these contracts have
-reached the consumed release before removing older consumer glue.
+```bash
+REPO=OWNER/NAME     # the repository the pull request goes to: check `git remote -v`; in a fork, the fork
+gh repo view --repo "$REPO" --json defaultBranchRef,visibility,owner -q '"\(.defaultBranchRef.name) \(.visibility) \(.owner.login)"'
+gh api "repos/$REPO/rules/branches/DEFAULT" --jq '.[] | select(.type == "required_status_checks") | .parameters'
+gh api "repos/$REPO/branches/DEFAULT/protection/required_status_checks" --jq .contexts   # 404: no classic protection
+grep -rhE '^\s*-?\s*uses:' .github/workflows | sort | uniq -c                              # how actions are pinned
+grep -rn "concurrency" -A2 .github/workflows                                                # cancel-in-progress groups
+ls AGENTS.md CLAUDE.md CONTRIBUTING.md AI_POLICY.md .github/AI_POLICY.md .github/pull_request_template.md \
+   .github/PULL_REQUEST_TEMPLATE* uv.lock tox.ini noxfile.py pyproject.toml .pre-commit-config.yaml 2>/dev/null
+grep -n "requires-python" pyproject.toml 2>/dev/null
+gh api "orgs/OWNER/actions/runner-groups" --jq '.runner_groups[] | {name, visibility, allows_public_repositories}'
+```
 
-Use the [staged adoption checklist](https://github.com/gigaverse-app/ci-esta/blob/main/docs/tutorials/adoption-checklist.md)
-to inventory the toolkit's capabilities. For each applicable stage, record its
-acceptance evidence, configuration overrides and rollback; mark others deferred
-or not applicable. Do not enable every action merely to finish a checklist.
+Pass `--repo "$REPO"` to every `gh` command. In a clone of a fork, `gh` otherwise picks the upstream repository.
 
-Inspect workflows, exact required job names, reusable workflows, current caches
-and a recent completed run. Separate slow test execution, installs/services,
-admission waits and overlapping superseded runs. Use the
-[reporting recipe](references/adoption.md) for read-only CLI collection or a
-completed-run observer. Use a compatible release tag and report the source run's ID,
-attempt and head, not the observer's own identity.
+- **Default branch** (`DEFAULT` below). Do not assume `main`.
+- **Required check.** The exact job name branch protection or a ruleset requires. Call it `GATE`. If both lookups
+  are empty or 403, ask the human which check is required; do not guess.
+- **Pinning policy.** If the workflows pin actions to 40-character commit SHAs (often because zizmor or an
+  organization policy requires it), pin every action you add the same way, with the release tag as a comment:
+  `uses: gigaverse-app/ci-esta/actions/plan-runner-pools@<sha> # v1.8.0`. Resolve a tag with
+  `gh api repos/OWNER/REPO/commits/TAG --jq .sha` (this returns the commit for annotated tags too). Pin a release
+  tag such as `v1.8.0`, not the moving `v1`. For an action the repository already uses, copy its existing pin.
+  Otherwise use `@v1` for CI-esta actions and the tags shown in this file.
+- **AI and attribution policy.** Read AI_POLICY.md, CONTRIBUTING and the pull request template. If they forbid
+  `Co-authored-by` lines, AI attribution or AI-written PRs, follow them exactly, or stop and tell the human.
+- **Project tooling.** `uv.lock` present: `setup-cached-uv` is available. No `uv.lock` (tox, nox, pip): keep the
+  existing Python setup steps; `setup-cached-uv` runs `uv sync --locked` and fails without a lock.
+- **Python floor.** CI-esta itself needs Python 3.11+. Actions install their own runtime, so the floor matters only
+  where CI-esta runs inside your environment: the pytest completion-receipt plugin. If the project tests versions
+  older than 3.11, use no receipts in those jobs (step 4).
+- **Visibility and runner groups.** For a public repository, larger runners work only if their runner group has
+  `allows_public_repositories: true`. A 403 means you cannot see the groups, not that there are none. If larger
+  runners are unavailable, measure standard-runner layouts only and record the reason.
+- **Concurrency.** Note any `cancel-in-progress` group keyed by branch or workflow; step 6 must dispatch runs one
+  at a time because of it.
 
-Use `ci-esta report --critical-path` and the named aggregate gate to compute the
-observed chain and execution-only CPM/slack from the source workflow at its
-commit. Read [critical-path analysis](https://github.com/gigaverse-app/ci-esta/blob/main/docs/critical-path.md).
-A Gantt or longest job alone is not a dependency critical path. Report unknown
-topology explicitly; delay includes scheduling and startup, not only runner queue.
+*Check:* every bullet above has a written answer.
 
-Keep reporting outside the validation dependency chain. The observer still uses
-runner time; moving it does not make that cost disappear. Do not configure sticky
-comments, publication or external telemetry unless the task authorizes them.
-Use ordinary read credentials in environment/process memory, never in arguments
-or committed reports.
+## 2. Install and inventory
 
-## Choose one optimization supported by the data
+```bash
+uv tool install 'ci-esta[selection]>=1.8,<2'   # or: pipx install 'ci-esta[selection]>=1.8,<2'
+ci-esta adoption --root .
+```
 
-- For Python dependency-based test or lane selection, use the pytest-selective
-  skill. CI-esta consumes its explanations; it does not implement another graph.
-  Name the aggregate job `Validation gate`, run `ci-esta check-workflow` in CI, keep
-  non-blocking checks in their own path-filtered workflow (the check requires every
-  job of the gated workflow behind the gate), and gate build, install-smoke and
-  routing-test jobs on lanes. Prove it with a documentation-only probe PR whose
-  executed jobs are only planning, lint, docs and the gate
-  ([audit](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/#audit-what-a-documentation-only-pull-request-still-runs)).
-- For a repository whose actual test command uses Bun, use the
-  [Bun adapter](https://github.com/gigaverse-app/ci-esta/blob/main/docs/bun-test-selection.md) and native `--changed=<base>`.
-  TypeScript does not imply Bun: inspect the runner first. Keep repository
-  discovery authoritative, declare contract-test dependencies and non-import inputs,
-  retain isolation/batching and full checkpoints, and compare actual inventories
-  and elapsed times on the same revision. Do not install pytest-selective into
-  a JavaScript project or copy a consumer's import graph/allowlist into CI-esta.
-- For broad workflow triggers in any language, map every test command to its inputs,
-  including routing contracts, package runtime smoke and separate action workflows.
-  Unreferenced documentation must execute zero tests. Keep metadata/documentation
-  validation separate from runtime tests. Add real change-based routing controls,
-  including relevant code/lock/workflow changes and unknown-input fallbacks.
-- For redundant PR revisions, check existing concurrency before adding it.
-  Scope supersession to the same PR/workflow; preserve deliberate full runs.
-- For installation/setup bottlenecks, verify cache keys cover locks, interpreter
-  and platform. Measure a warm and cold path before claiming general savings.
-- Use the shared `setup-cached-uv` action for exact environment identity, broken
-  restore repair and mandatory locked synchronization. Keep cache variants for
-  application ABI/system dependencies; never use a cache hit as test evidence.
-- Choose runner capacity and local process count separately. Benchmark one larger
-  runner, several standard runners or several larger pools against the existing
-  layout. Use the [complete shard recipe](https://github.com/gigaverse-app/ci-esta/tree/main/examples/pytest-shards)
-  and preserve every shard's completion checks. Do not turn 16 local workers into
-  16 hosted jobs accidentally. Larger runners have a different billing policy.
-- Learn file costs from successful JUnit with `ci-esta-pytest learn`; retain
-  separate lane/matrix artifacts. Follow the
-  [timing feedback tutorial](https://github.com/gigaverse-app/ci-esta/blob/main/docs/learned-test-timings.md).
-  Benchmark whole-file pools against existing xdist before adding runners.
-  Preserve service isolation, coverage and domain conformance checks.
-  For partial whole-file runs, opt in to retained history with a stable
-  OS/Python/lane `history-key` on `restore-test-timings` and `learn-test-timings`.
-  Confirm complete files and every planned shard before declaring `complete-files`.
-  Restore once before planning and pass that exact duration snapshot to matrix
-  workers; never independently refresh assignments in each worker. Keep default
-  trusted-branch publication and inventory fallback. Do not copy cache merging
-  into consumer scripts. Run the executable timing tutorial and verify partial,
-  stale and concurrent observations when adopting; explain opt-out by removing
-  history configuration, and use a new key for intentional resets.
-- Reuse completed lanes only when repeating the same declared work is the actual
-  bottleneck. A prior green workflow is not sufficient proof. A passing lane from
-  a partly failed workflow may be reusable when its own receipt and freshness
-  checks pass.
+If the shell says `ci-esta: command not found`, run `export PATH="$(uv tool dir --bin):$PATH"`. The `selection`
+extra is required for `ci-esta check-workflow`, `ci-esta lanes` and `ci-esta-pytest`; without it they exit and
+print this install command.
 
-## Evidence reuse is optional
+Expected: a pinning line, one line per workflow with its triggers, job count and aggregate gate candidate, the
+matrix and test jobs, `not behind the gate: ...` when some jobs cannot fail the gate, suggestions such as
+`gate-indirect` (a gate that reaches test jobs only through an `if: always()` job) or `matrix-setup`, and numbered
+next steps with the exact `gh run list` and `ci-esta report` commands. It reads files only and changes nothing.
 
-Read the [evidence-reuse guide](https://github.com/gigaverse-app/ci-esta/blob/main/docs/evidence-reuse.md)
-before adding it. Begin with whole-tree identity. Narrow `input-paths` only after
-reviewing source, tests, setup/workflows, locks and pinned external inputs; those
-paths are literal files/directories, not pytest-selective glob patterns.
+*Check:* the main workflow and `GATE` are identified, and the gate candidate matches `GATE`. If they differ, the
+required check is the authority; ask the human when unsure.
 
-Emit a completion receipt only after every required test and evidence validator
-passes. Keep the planner required, execute on uncertain proof, and use a strict
-aggregate gate with a boolean map matching its direct prerequisites. Missing,
-failed, cancelled or unexpectedly skipped work must not turn green. Preserve
-explicit reruns and scheduled/full validation. External services and changing
-state need their own policy; do not infer conformance from an unchanged Git tree.
+## 3. Measure
 
-Keep selection and receipt reuse separate: an ordinary PR/push rerun executes
-its selected scope without reusing a completion receipt. It does not request the
-full suite. Retain manual/scheduled/release checkpoints and explicit full inputs;
-`test:full` must be present in the saved triggering event. Show the planner's
-recorded reason in the sticky rather than inferring it from the attempt number.
+```bash
+export GH_TOKEN="$(gh auth token)"    # any token with actions:read and contents:read on the repository
+gh run list --repo "$REPO" --workflow WORKFLOW_FILE --branch DEFAULT --status success --limit 3 \
+  --json databaseId,headSha,attempt
+ci-esta report --repository "$REPO" --run-id RUN_ID --run-attempt 1 --gate 'GATE' --critical-path \
+  --output-dir report-RUN_ID
+```
 
-Verify eligible reuse plus changed-input, missing-proof and explicit-rerun
-execution controls. If that evidence cannot be collected within the task, ship
-useful reporting/routing improvements and leave reuse disabled with the reason.
+Report two or three successful attempt-1 runs: one run is noise. Each writes `report-RUN_ID/ci-observability.json`,
+`.md` and `.prom` and prints a one-line summary.
 
-## Deliver measured work
+Expected: `"collection_status": "complete"` and the gate `"matched": true` in the JSON. `unavailable` means the
+token or run ID is wrong; `matched: false` means `GATE` is not the job's exact name. Fix either before reading
+numbers. Read these fields ([all fields](https://ci-esta.readthedocs.io/en/latest/docs/github-actions-observability/#report-json-fields)):
 
-Use the [measured-impact recipe](https://github.com/gigaverse-app/ci-esta/blob/main/docs/measured-impact.md)
-when publishing savings or tuning caches. Lead the sticky with what ran, what was
-avoided and verified before/after evidence; keep Gantt/critical-path diagnostics
-collapsed. Separate historical benchmarks from the current run. For Bun, retain
-structured inventory, wall time, fallback and runtime evidence; never translate
-file-count reduction into measured time savings.
+| Field | Use it for |
+| --- | --- |
+| `provenance.run_id`, `.run_attempt`, `.head_sha` | The identity to cite with every number |
+| `required_gates[].elapsed_from_creation_seconds` | Time to the required check: what a PR author waits |
+| `runner_cost.raw_runner_seconds` | Summed job time: what the runners spend |
+| `latest_attempt_jobs[].wall_seconds` and `.steps[].wall_seconds` | Which jobs are long, and setup versus test steps |
+| `critical_path.execution_path`, `.execution_seconds` | The chain that decides the gate time; only it shortens the wait |
+| `workflow_job_admission_delay_seconds` | Waiting before jobs start, including runner queueing |
 
-Measure cache-key evaluation and save/restore overhead. Compute recursive input
-hashes once before installing dependencies, verify the actual installed-tool
-directory, and still execute locked synchronization/compiler checks. Audit broad
-label triggers while preserving intentional label-driven workflows and explicit
-full checkpoints and selective reruns. Check the exact branch-required job also fails when planning fails.
+*Check:* a baseline table with each run's ID, attempt, head, gate time, runner seconds and job count.
 
-Follow the task's existing PR/merge scope. Provide the changed config, regression
-evidence and a concise table of elapsed time, summed runner-seconds, job counts,
-run/attempt/head identities and preserved checks. For a causal selection claim,
-compare a successful selected run and full control on the same checked-out
-revision. Separate reporter overhead and cancelled attempts from the comparison;
-retain them when discussing total iteration cost. Rounded minutes/dollars are
-estimates, not billing records.
+## 4. Choose one optimization
 
-If API access is unavailable, prepare the local changes and exact collection
-command, explicitly marking live impact unmeasured. Do not substitute test-count
-reductions for measured time. The published
-[92.3% README routing result](https://github.com/gigaverse-app/ci-esta/blob/main/docs/benchmarks/2026-10-22.md)
-comes from pytest-selective and consumer input declarations, not receipt reuse.
+Pick the first row the measurements support, and say which numbers led there.
 
-For cross-language setup, tested-head/merge identity, main history and failure scenarios, use [the selection and evidence policy](https://github.com/gigaverse-app/ci-esta/blob/main/docs/test-selection-policy.md). Bun `full: auto` follows the same event contract as pytest-selective; use `validated-head` when the baseline is a recorded tested merge.
+| The report shows | Do | Recipe |
+| --- | --- | --- |
+| `gate-indirect` or test jobs `not behind the gate` | Put those jobs in the gate's `needs`; prove with a failing probe (step 6). Do this in addition to any row below. | [Gates](https://ci-esta.readthedocs.io/en/latest/docs/selected-gates/) |
+| Many short matrix jobs; each job's setup steps take about as long as its test steps | Pack several matrix entries per runner with `plan-runner-pools` (tox, nox or uv) | [Pack matrix jobs](https://ci-esta.readthedocs.io/en/latest/docs/pack-matrix-jobs/) |
+| Dependency installation dominates, and `uv.lock` exists | Replace Python, uv and install steps with `setup-cached-uv` | [Environment cache](https://ci-esta.readthedocs.io/en/latest/docs/environment-cache/) |
+| Dependency installation dominates, no `uv.lock` | Keep the setup; enable the existing tool's cache (`astral-sh/setup-uv` `enable-cache`, `setup-python` `cache`) | [Environment cache](https://ci-esta.readthedocs.io/en/latest/docs/environment-cache/) |
+| One long pytest job on the critical path | Duration-balanced file shards with completion checks (needs Python 3.11+ in that job for receipts; otherwise split by test directory or environment and gate each job) | [Shard recipe](https://github.com/gigaverse-app/ci-esta/blob/main/examples/pytest-shards/README.md) |
+| Unrelated jobs run on documentation-only PRs | Whole-lane selection with pytest-selective; keep the existing gate name | [Skip unrelated CI](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/) |
+| Overlapping runs for the same PR (`overlapping_prior_runner_cost`) | Add or scope a `concurrency` group to the PR and workflow; keep full and scheduled runs | [Critical path](https://ci-esta.readthedocs.io/en/latest/docs/critical-path/) |
+| Identical declared work repeats after it already passed | Completion-evidence reuse, only with eligible and changed-input controls | [Evidence reuse](https://ci-esta.readthedocs.io/en/latest/docs/evidence-reuse/) |
+| Nothing dominates, or the critical path is a single unavoidable job | Add only the reporting observer (step 5) and report what you found | |
 
-Keep shared CI policy, Git evidence, completion validation and report conversion in Python. An adopter using Bun or TypeScript does not require a JavaScript CI-esta implementation. Reuse the isolated locked tool runtime and pytest-selective checkpoint API; migrate Bun policy controls to the native Python API and the action's prepared runtime instead of adding JavaScript bridges.
+Runner capacity and process count are separate choices: do not turn 16 local workers into 16 hosted jobs, and
+remember larger runners are billed even for public repositories.
+
+*Check:* one row chosen, with the report numbers that justify it.
+
+## 5. Implement
+
+- Match the repository: its test runner (tox, nox, uv, pytest), its setup actions, its pinning policy, its job
+  names. Copy the recipe's commands, not its interpreter versions or paths.
+- **Keep the existing aggregate job and its name.** If the repository already has a required aggregate job, wire
+  new jobs into its `needs` and point the reporter at it. Add a new aggregate job (`validation-gate`) only when there
+  is none, and tell the human its name must become the required check.
+- **Same-head control.** When the change is the workflow layout itself, add a `workflow_dispatch` input that
+  reproduces the old layout (for example `entries-per-runner: '1'`), so step 6 can compare both on one commit.
+- **Reporting observer**, outside the gate. Save as `.github/workflows/observe-ci.yml`, with `CI` set to the
+  workflow's `name:` and `GATE` to the required job's exact name:
+
+```yaml
+name: CI report
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+permissions: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.id }}
+  cancel-in-progress: true
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read        # the observed run's jobs, steps and artifacts
+      checks: read         # check runs for the required gate
+      contents: read       # the observed workflow file, for its needs graph
+      pull-requests: read  # resolve the run's PR; no comment is posted
+    steps:
+      - uses: gigaverse-app/ci-esta/actions/ci-observability@v1
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
+          run-attempt: ${{ github.event.workflow_run.run_attempt }}
+          commit-sha: ${{ github.event.workflow_run.head_sha }}
+          required-gates-json: '[{"kind":"actions_job","job_name":"GATE"}]'
+          analyze-critical-path: 'true'
+          post-sticky: 'false'
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ci-report-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: |
+            ci-observability.json
+            ci-observability.md
+            ci-observability.prom
+          if-no-files-found: error
+```
+
+  It checks out and runs nothing from the observed run. If the repository runs zizmor, add
+  `# zizmor: ignore[dangerous-triggers]` above `workflow_run` with that reason. Post PR comments
+  (`post-sticky: 'true'`, `pull-requests: write`) only if the human asks for them.
+- Never add a sticky comment, external telemetry, evidence reuse or selection the task did not choose.
+
+*Check:* the repository's own workflow linters pass (`actionlint`, `zizmor` or pre-commit, whichever it uses), and
+`ci-esta check-workflow --workflow .github/workflows/FILE.yml --gate 'GATE'` passes if you added lanes.
+
+## 6. Verify
+
+Push the branch, then:
+
+1. **Same head, both layouts.** Dispatch the new workflow on the PR branch with the old-layout input and with the
+   new default, two or three runs each:
+   `gh workflow run WORKFLOW_FILE --repo "$REPO" --ref BRANCH -f entries-per-runner=1`. Dispatched runs on one
+   branch share the workflow's concurrency group, so wait for each run to finish before dispatching the next, or
+   the next one cancels it. Use the recent default-branch runs from step 3 for context; they ran a different head.
+2. **Report every run** with `ci-esta report ... --gate 'GATE' --critical-path`, as in step 3.
+3. **Inventory unchanged.** Compare what ran, entry by entry: tox environments (`--result-json`), nox sessions,
+   JUnit test counts, passed and skipped totals. A shorter run that ran fewer tests is not a result.
+4. **The gate still fails.** On a throwaway branch, add a test that fails in one job only (one Python version, one
+   shard) and confirm `GATE` fails. Run the same probe on the default-branch layout if you fixed a gate gap, to show
+   the difference. Delete the throwaway branches afterwards.
+5. **Ignore cancelled and rerun attempts** in the comparison; mention them when discussing total cost.
+
+The reporter itself runs only from the default branch (`workflow_run` uses the default branch's copy), so it does
+not run on this PR. The CLI produces the same report meanwhile.
+
+*Check:* a BEFORE/AFTER table with run links for every layout, an inventory table that matches, and the probe
+result.
+
+## 7. Open the pull request and stop
+
+Use the repository's pull request template and attribution rules. The body states what changed and why (BEFORE/AFTER
+of the job layout), the measured table, the inventory comparison, the probe, and what was not measured.
+
+Then stop and hand these to the human, by name:
+
+- Merge the pull request. The observer starts reporting only after it reaches `DEFAULT`.
+- Make the new aggregate job a required check, if you added one.
+- Runner-group or larger-runner changes, if larger runners were blocked.
+- PR comment permissions, if they want sticky reports.
+
+Never merge it yourself.
+
+## 8. Final report
+
+Reply with exactly these fields:
+
+```text
+Pull request: URL (draft)
+Change: one sentence; recipe used
+Baseline runs: RUN_ID/attempt/head ... (default branch, before)
+Candidate runs: RUN_ID/attempt/head ... per layout (same head)
+Time to GATE: before median (range) -> after median (range)
+Runner seconds: before median -> after median (raw_runner_seconds); rounded minutes before -> after
+Jobs: before -> after
+Inventory: unchanged / differences
+Gate probe: run link, result
+Not measured: item and why (for example larger runners blocked by runner-group policy)
+Human actions: merge; required check; settings
+```
+
+## Rules that keep the numbers honest
+
+- Keep the reporter outside the validation gate's dependencies; its runner time is still reported separately.
+- Never equate selected with executed, skipped tests with saved time, or a green old run with proof for new work.
+- Test selection and completion-receipt reuse are different savings; attribute each to what produced it.
+- Unknown timings and unknown prices stay unknown, never zero. Rounded minutes and dollars are estimates, not
+  invoices; use `runner-sku-rates-json` with real rates for larger runners.
+- Completion receipts are written by the pytest plugin after every required test, never by `echo $?`. An aggregate
+  gate fails on missing, failed, cancelled or unexpectedly skipped prerequisites.
+- If API access is unavailable, prepare the change and the exact `ci-esta report` commands and mark live impact
+  unmeasured. Do not substitute test counts for measured time.
+
+More depth: [quickstart](https://ci-esta.readthedocs.io/en/latest/docs/quickstart/),
+[action reference and pinning](https://ci-esta.readthedocs.io/en/latest/docs/actions/),
+[runner capacity](https://ci-esta.readthedocs.io/en/latest/docs/runners-and-diagnostics/),
+[selection and evidence policy](https://ci-esta.readthedocs.io/en/latest/docs/test-selection-policy/).

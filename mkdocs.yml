@@ -59,7 +59,13 @@ validation:
     unrecognized_links: warn
     anchors: warn
 extra:
+  # Copied verbatim into the built site for agents and crawlers (documentation/hooks.py on_post_build).
+  raw_files:
+    skills/ci-esta/SKILL.md: agent-setup.md
+  llms_txt: documentation/llms.txt
   published_sources:
+  - source: skills/ci-esta/SKILL.md
+    as: agent-setup.md
   - docs/tutorials/adoption-checklist.md
   - docs/tutorials/measure-critical-path.md
   - docs/actions.md
@@ -80,6 +86,7 @@ extra:
   - docs/learned-test-timings.md
   - docs/measured-impact.md
   - docs/non-python.md
+  - docs/pack-matrix-jobs.md
   - docs/postgres-client.md
   - docs/python-ci-tuning.md
   - docs/quickstart.md
@@ -91,11 +98,12 @@ extra:
 nav:
 - Home: index.md
 - Getting started:
+  - Set it up with a coding agent: agent-setup.md
   - Quickstart: docs/quickstart.md
   - Adoption tutorial and checklist: docs/tutorials/adoption-checklist.md
   - Measure your CI critical path: docs/tutorials/measure-critical-path.md
   - Plan a CI optimization: docs/ci-optimization.md
-  - Let your agent set it up: docs/agents.md
+  - Install the agent skill: docs/agents.md
 - Measure and diagnose:
   - Workflow reports and metrics: docs/github-actions-observability.md
   - Critical-path analysis: docs/critical-path.md
@@ -104,6 +112,7 @@ nav:
 - Optimize safely:
   - Selection and evidence policy: docs/test-selection-policy.md
   - Shorten blocking jobs: docs/critical-path-optimizations.md
+  - Pack short matrix jobs onto fewer runners: docs/pack-matrix-jobs.md
   - Cache Python environments: docs/environment-cache.md
   - Tune Python test execution: docs/python-ci-tuning.md
   - Balance tests with timing data: docs/learned-test-timings.md

@@ -2,6 +2,19 @@
 
 # CI-esta: make GitHub Actions faster, with evidence
 
+**Set it up with your coding agent.** Give Claude Code, Codex, Cursor or any coding agent in your repository this
+one prompt:
+
+```text
+Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it.
+```
+
+The agent checks your repository's conventions (required check, action pinning, AI policy, tox/nox/uv), measures
+completed runs, makes one change the numbers support, proves it on the same commit with an unchanged test inventory
+and a failing probe, and opens a draft pull request. Merging, required checks, runner groups and secrets stay with
+you. To do it by hand, start with the [quickstart](docs/quickstart.md) or
+[measure your first run](docs/tutorials/measure-critical-path.md).
+
 See the [selection and evidence policy](docs/test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
 
 [![Documentation](https://readthedocs.org/projects/ci-esta/badge/?version=latest)](https://ci-esta.readthedocs.io/en/latest/)
@@ -64,19 +77,12 @@ For Python execution commands and plugins, install `ci-esta[pytest]` in the test
 environment. Reporting and evidence actions also work with non-Python projects;
 [Bun users have a native selection adapter](docs/bun-test-selection.md).
 
-## Give your agent a concrete task
+## Agent setup in depth
 
-```text
-Read https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/skills/ci-esta/SKILL.md
-Measure a completed CI run and improve its largest avoidable cost. Use the public
-action entry points and tested quickstart examples. Compare one large runner with
-multiple runners if tests dominate. Keep required checks and full-suite coverage,
-and show the workflow changes, test inventory, elapsed time and runner usage.
-```
-
-[Install or update the portable skill](docs/agents.md). The skill, README and
-[quickstart](docs/quickstart.md) use the same recipes. Updating the Python package
-does not update an installed agent skill.
+The one prompt above fetches [the agent setup procedure](skills/ci-esta/SKILL.md),
+published byte for byte at `agent-setup.md` with an [`llms.txt`](https://ci-esta.readthedocs.io/en/latest/llms.txt)
+index. To install it as a skill instead, see [agent skill installation](docs/agents.md).
+Updating the Python package does not update an installed agent skill.
 
 ## Results you can inspect
 
@@ -112,8 +118,8 @@ selection, timing feedback, execution and measurement in order.
 - [Integrations](docs/integrations.md), [alternatives](docs/alternatives.md), and [revision-bound adoption audit](docs/adoption-audit.md)
 - [Contributing](CONTRIBUTING.md), [releases](RELEASING.md), and [source provenance](PROVENANCE.md)
 
-Install the standalone CLI with `pip install ci-esta`.
-Base reporting needs Python 3.11+ and neither pytest nor pytest-selective.
+Install the CLI with `uv tool install 'ci-esta[selection]>=1.8,<2'` (Python 3.11+).
+Base reporting alone (`pip install ci-esta`) needs neither pytest nor pytest-selective.
 For fixtures, schemas, source scanners, and subprocess helpers, follow the
 [pytest-selective sidecar tutorial](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/tutorials/sidecar-dependencies.md).
 Declare inputs at their readers so unrelated documentation does not select tests.
