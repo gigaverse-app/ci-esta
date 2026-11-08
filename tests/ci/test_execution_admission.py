@@ -1,7 +1,9 @@
-"""Every runtime test command must be admitted by dependency selection."""
+"""Every runtime test, build and smoke command must be admitted by dependency selection."""
 # gv:test-dependency: .github/workflows/ci.yml
 # gv:test-dependency: .github/workflows/public-actions.yml
 
+import json
+import re
 from pathlib import Path
 
 import yaml
@@ -17,6 +19,9 @@ RUNTIME = (
     "check_core_is_framework_free.py",
     "scripts/tutorial.py",
     "ci-esta-pytest",
+    # Package builds and metadata checks are selected work too, not unconditional quality.
+    "uv build",
+    "twine check",
 )
 
 
@@ -34,6 +39,16 @@ def test_runtime_commands_have_selection_and_failure_fallback():
                 admission = job.get("if", "") + " " + step.get("if", "")
                 assert "needs." in admission and "result != 'success'" in admission, (path.name, name, command)
                 assert "lanes" in admission, (path.name, name, command)
+
+
+def test_admission_names_only_configured_lanes():
+    # A misspelled lane reads as null, which silently skips the work it guards.
+    configured = set(json.loads((ROOT / ".github/test-lanes.json").read_text())["lanes"])
+    for name in ("ci.yml", "public-actions.yml"):
+        text = (ROOT / ".github/workflows" / name).read_text()
+        referenced = set(re.findall(r"outputs\.lanes(?: \|\| '\{\}')?\)\.([a-z_][a-z0-9_]*)", text))
+        assert referenced, name
+        assert referenced <= configured, (name, referenced - configured)
 
 
 def test_public_smoke_is_selected_and_requires_successful_planning():

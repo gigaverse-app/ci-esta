@@ -9,7 +9,12 @@
     ],
     "pytest_policy": {
       "pyproject.toml": "856d40c9bb45fd96cffc10034878b8c31c81079d5d98030d2605da606fee5668"
-    }
+    },
+    "global_inputs": [
+      "pyproject.toml",
+      "uv.lock",
+      ".python-version"
+    ]
   },
   "lanes": {
     "tests": {
@@ -19,7 +24,18 @@
       "inputs": [
         "src/**",
         "scripts/**",
-        "tests/**"
+        "tests/**",
+        "actions/README.md"
+      ]
+    },
+    "package": {
+      "inputs": [
+        "src/**",
+        "scripts/ci/**",
+        "pyproject.toml",
+        "uv.lock",
+        "README.md",
+        "LICENSE"
       ]
     }
   },
@@ -30,10 +46,14 @@
     ".python-version",
     ".gitattributes",
     ".github/test-lanes.json",
-    "actions/**",
+    "actions/*[!d]",
+    "actions/*[!m]d",
+    "actions/*[!.]md",
     ".github/workflows/ci.yml",
     "action.yml",
-    "examples/**",
+    "examples/*[!d]",
+    "examples/*[!m]d",
+    "examples/*[!.]md",
     ".github/workflows/public-actions.yml",
     ".github/validation-inputs.json"
   ]
