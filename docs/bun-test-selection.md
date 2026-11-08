@@ -164,23 +164,49 @@ select-tests:
         config: .github/test-lanes.json
 ```
 
-`bun build --metafile` lists what each test bundles: its imports followed transitively,
-including text and JSON imports. A changed file selects the lanes of the tests that bundle
-it, so a README no test imports selects nothing. CI changes reach lanes through the same
-workflow graph as Python lanes.
+Bun's bundler metafile lists what each test bundles: its imports followed transitively,
+including `require`, side-effect and dynamic `import()` calls with literal paths, and text,
+JSON, style and asset imports. A changed file selects the lanes of the tests that bundle it,
+so a README no test imports selects nothing. CI changes reach lanes through the same workflow
+graph as Python lanes.
+
+The planner needs no `node_modules`: packages stay external, and every import that names a
+repository file by more than a relative path is resolved with Bun's own resolver. That covers
+tsconfig `paths` aliases (`@/x`), Vite-style query imports (`./icon.svg?react`, `./dock.css?raw`,
+`@/hero.png?url`), whose file is the input, and workspace packages imported by name
+(`@scope/lib/util`), which only a `node_modules` link resolves at runtime. Without
+`node_modules`, a workspace package resolves from its directory, ignoring an `exports` map;
+an import that resolves neither way fails the graph rather than losing an edge. An untracked
+file in the checkout, such as generated code, never changes, but the files it imports still
+reach the tests that import it.
+
+A test preload (`preload` in any `bunfig*.toml`, top-level or under `[test]`) runs before every
+test without being imported. The planner cannot see which `--config` a lane passes, so a change to
+any preload, or to anything a preload bundles, reaches every Bun lane.
 
 | Change | Bun lanes |
 | --- | --- |
-| A module a test imports, directly or transitively | that test's lanes |
-| A file imported as text or JSON (`with { type: "text" }`) | that test's lanes |
+| A module a test imports, directly or transitively, by any of the paths above | that test's lanes |
+| A file imported as text, JSON, style or asset, with or without a `?query` | that test's lanes |
+| A test preload, or anything it bundles | every Bun lane |
 | A deleted test | its lane |
-| `package.json`, `bun.lock`, `bunfig.toml`, `tsconfig*.json` | every Bun lane |
+| `package.json`, `bun.lock`, `bunfig*.toml`, `tsconfig*.json` | every Bun lane |
 | A graph Bun cannot build, or no Bun on the runner | every Bun lane |
 | Documentation and data no test imports | nothing |
 
-A file read at runtime by path (`Bun.file("fixtures/x.json")`) is invisible to the module
-graph; import it, or list it in the lane's `inputs`. Inside a selected lane, `run-bun-tests`
-and `--changed` still narrow the files that run.
+One import Bun cannot resolve fails the whole graph, so every Bun lane runs: the test that holds
+it would fail anyway. A file read at runtime by path (`Bun.file("fixtures/x.json")`), a script a
+test spawns, or a computed `import(name)` is invisible to the module graph; import it, keep it
+under the lane's roots, or list it in the lane's `inputs`. A change under a lane's roots selects
+that lane whether or not a test imports it. Inside a selected lane, `run-bun-tests` and `--changed`
+still narrow the files that run.
+
+The graph is built in one `Bun.build()` call per round, with the entry list in a file rather
+than on the command line, so the number of tests has no command-line limit. On
+[web-app](https://github.com/gigaverse-app/gigaverse-web-app) at `deac0ab2a`, the graph over
+809 Bun test files and 3 preloads reached 3,260 files on a Windows workstation in 0.7 to
+0.8 s with Bun 1.4.2 (6.6 s on a cold first run) and 3.1 to 3.9 s with Bun 1.3.14. Both
+versions produced the same 110,474 edges.
 
 ## Direct Python use
 
