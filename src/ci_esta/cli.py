@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -35,6 +36,15 @@ def main(argv: list[str] | None = None) -> int:
     render.add_argument("report", type=Path)
     render.add_argument("--markdown", required=True, type=Path)
     render.add_argument("--prometheus", required=True, type=Path)
+    commands.add_parser(
+        "lanes", add_help=False, help="Show the lanes, where each came from, and why a plan runs or skips them"
+    )
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv[:1] == ["lanes"]:
+        from ci_esta.testing.lane_report import main as lanes
+
+        return lanes(argv[1:])
     args = parser.parse_args(argv)
     if args.command == "adoption":
         from ci_esta.adoption import inspect

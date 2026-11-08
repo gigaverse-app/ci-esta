@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from ci_esta.testing.lane_inference import infer_lanes
+from ci_esta.cli import main as cli
+from ci_esta.testing.lane_inference import infer_lanes, resolve
 from ci_esta.testing.work_plan import main
 from tests.testing.git_repo import commit, write
 
@@ -121,3 +122,84 @@ def test_a_workflow_that_reads_no_lane_asks_for_a_lane_file(tmp_path):
     base = commit(tmp_path)
     with pytest.raises(ValueError, match="add a lane file"):
         infer_lanes(tmp_path, base, base)
+
+
+def lane_file(repo: Path, document: dict) -> Path:
+    path = repo.parent / f"{repo.name}-lanes.json"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    return path
+
+
+def test_a_lane_file_that_extends_the_workflow_changes_only_what_it_names(repository):
+    repo, base = repository
+    extends = lane_file(
+        repo,
+        {
+            "extends": "workflow",
+            "lanes": {"live": {"roots": ["tests/live/test_live.py"]}, "docs": {"inputs": ["docs/**"]}},
+        },
+    )
+    resolved = resolve(repo, base, base, extends)
+    roots = {name: lane.roots for name, lane in resolved.config.lanes.items()}
+    assert roots["live"] == ["tests/live/test_live.py"]  # overridden
+    assert roots["unit"] == ["tests/unit"]  # still inferred
+    assert resolved.config.lanes["docs"].inputs == ["docs/**"]  # added
+    assert resolved.sources["live"] == [f"overridden by {extends.as_posix()}"]
+    assert resolved.sources["docs"] == [f"added by {extends.as_posix()}"]
+    assert resolved.sources["unit"] == [
+        "roots tests/unit from .github/workflows/ci.yml#unit: `uv run --no-sync pytest tests/unit -q --junitxml=report.xml`"
+    ]
+
+
+def test_a_complete_lane_file_is_used_as_written(repository):
+    repo, base = repository
+    complete = lane_file(
+        repo, {"graph": {"module_roots": ["src", "."], "test_roots": ["tests"]}, "lanes": {"all": {"roots": ["tests"]}}}
+    )
+    resolved = resolve(repo, base, base, complete)
+    assert list(resolved.config.lanes) == ["all"]
+    assert resolved.sources == {"all": [f"lane file {complete.as_posix()}"]}
+
+
+def test_an_extending_lane_file_rejects_unknown_keys(repository):
+    repo, base = repository
+    with pytest.raises(ValueError, match="unknown keys"):
+        resolve(repo, base, base, lane_file(repo, {"extends": "workflow", "lane": {}}))
+
+
+def test_ci_esta_lanes_shows_and_explains_the_lanes(repository, capsys):
+    repo, base = repository
+    write(repo, "scripts/smoke.sh", "echo changed\n")
+    head = commit(repo)
+    assert cli(["lanes", "--repo", str(repo)]) == 0
+    listing = capsys.readouterr().out
+    assert "| `smoke` | – | smoke | no test command; selected through .github/workflows/ci.yml#smoke |" in listing
+    assert cli(["lanes", "--repo", str(repo), "--base", base, "--head", head]) == 0
+    explained = capsys.readouterr().out
+    assert (
+        "| `smoke` | ✅ runs | workflow input: scripts/smoke.sh (run by .github/workflows/ci.yml#smoke) |" in explained
+    )
+    assert "| `unit` | ⏭️ skipped | no affected tests or changed inputs |" in explained
+
+
+def test_ci_esta_lanes_writes_a_lane_file_to_start_from(repository, tmp_path_factory):
+    repo, base = repository
+    target = tmp_path_factory.mktemp("out") / "test-lanes.json"
+    assert cli(["lanes", "--repo", str(repo), "--write", str(target)]) == 0
+    written = json.loads(target.read_text(encoding="utf-8"))
+    assert written["extends"] == "workflow"
+    assert written["lanes"]["unit"] == {"roots": ["tests/unit"]}
+    # The written file plans exactly like the workflow it came from.
+    assert resolve(repo, base, base, target).config.lanes == infer_lanes(repo, base, base).lanes
+
+
+def test_the_plan_appends_a_readable_step_summary(repository, tmp_path_factory, capsys):
+    repo, base = repository
+    write(repo, "README.md", "# Changed\n")
+    head = commit(repo)
+    summary = tmp_path_factory.mktemp("summary") / "summary.md"
+    assert main(["--repo", str(repo), "--base", base, "--head", head, "--summary", str(summary)]) == 0
+    capsys.readouterr()
+    text = summary.read_text(encoding="utf-8")
+    assert text.startswith("### Lane selection")
+    assert "| `unit` | ⏭️ skipped |" in text
