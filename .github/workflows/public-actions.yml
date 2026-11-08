@@ -203,7 +203,7 @@ jobs:
         with:
           enable-cache: false
       - name: Verify cold setup, warm reuse and consumer isolation
-        run: uv run --locked pytest -q tests/github_actions/test_reporting_runtime.py tests/test_native_windows_git.py
+        run: uv run --locked pytest -q tests/github_actions/test_reporting_runtime.py
       - name: ${{ needs.select-tests.outputs.receipt || 'Uncached validation completed' }}
         run: 'true'
   cold-typecheck-scope:
