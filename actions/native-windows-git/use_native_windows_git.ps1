@@ -14,7 +14,11 @@ $execPath = & $resolved --exec-path
 if ($LASTEXITCODE -ne 0) { throw 'Cannot discover the active Git installation' }
 $prefix = Split-Path (Split-Path $execPath -Parent) -Parent
 $native = [IO.Path]::GetFullPath((Join-Path $prefix 'bin/git.exe'))
-$installation = [IO.Path]::GetFullPath((Split-Path $directory -Parent)) + [IO.Path]::DirectorySeparatorChar
+$installationDirectory = Get-Item -LiteralPath (Split-Path $directory -Parent)
+# Package managers can expose the installation through a junction such as Scoop's current.
+$linkTarget = $installationDirectory.ResolveLinkTarget($true)
+if ($linkTarget) { $installationDirectory = $linkTarget }
+$installation = $installationDirectory.FullName + [IO.Path]::DirectorySeparatorChar
 # GIT_EXEC_PATH can point outside this installation; never adopt another Git.
 if (!$native.StartsWith($installation, [StringComparison]::OrdinalIgnoreCase) -or
     !(Test-Path -LiteralPath $native -PathType Leaf)) {
