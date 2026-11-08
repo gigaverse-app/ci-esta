@@ -1,11 +1,11 @@
 name: Plan complete lanes from tests and workflows
 description: >
-  Select CI lanes from pytest-selective's affected tests and CI-esta's workflow graph: a changed job or a
+  Select CI lanes, inferred from the workflow or read from a lane file, from affected tests and CI-esta's workflow graph: a changed job or a
   file a job executes selects that job's lanes, and documentation no job reads selects nothing.
 inputs:
   config:
-    description: Repository-owned lane file (the pytest-selective lane schema).
-    required: true
+    description: Optional lane file (the pytest-selective lane schema). Empty infers lanes from the workflows.
+    default: ''
   base:
     description: Base commit containing the complete change set.
     default: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -40,7 +40,7 @@ runs:
         PLAN_FULL: ${{ inputs.full }}
       run: |
         uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../..[selection]" \
-          python -m ci_esta.testing.work_plan --config "$PLAN_CONFIG" --base "$PLAN_BASE" \
+          python -m ci_esta.testing.work_plan ${PLAN_CONFIG:+--config "$PLAN_CONFIG"} --base "$PLAN_BASE" \
           --full "$PLAN_FULL" --github-output "$GITHUB_OUTPUT" | tee test-lanes.json
         {
           echo '### Lane selection'

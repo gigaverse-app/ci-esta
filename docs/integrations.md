@@ -40,6 +40,24 @@ pytest-selective selects at two granularities, and the sticky has a section for 
 
 ### Plan lanes from tests and workflows
 
+**The lane file is optional.** Without `config`, `plan-work` reads the lanes from the
+workflow. The lanes are the names job conditions read (`fromJSON(needs.select-tests.outputs.lanes).unit`),
+and a lane's test roots are the paths its jobs pass to `pytest`, `python -m pytest`,
+`bun test` or `unittest discover -s`. A test command without paths, or a runner script
+such as `scripts/run_ci_tests.py`, collects pytest's `testpaths`. A lane whose jobs run
+no test command (a build, a smoke check) is selected through those jobs. The reviewed
+pytest policy is the base commit's, so a pull request that changes how pytest collects
+runs every lane. A test no lane claims also runs every lane, so a wrong guess costs time,
+never coverage. Add a lane file when roots must be narrower than the commands show, or
+when jobs read a different planner output.
+
+| Repository on 2026-11-08 | Inferred from its workflow | Hand-written lane file |
+| --- | --- | --- |
+| dry-lint | `tests`: `tests`; `counter`, `viewer`, `package`, `dogfood`: their jobs | the same |
+| pytest-selective | `tests`: `tests`; `contracts`: `contracts/selection`; `package`: its job | `contracts` root one level wider |
+| pytest-quint-connect | `tests`: `tests`; `dogfood`: `dogfood`, `examples/lru_cache`; `routing`: `ci_tests`; `package`: `tests/test_release.py` | `dogfood` narrowed to one test file |
+| due | `contracts`, `typecheck`, `wheel` only | `library` and `integration` read `outputs.library`, not the lane map, so it keeps its lane file |
+
 `gigaverse-app/ci-esta/actions/plan-work@v1` takes the same lane file and inputs as
 `plan-lanes` and returns the same `lanes` output and `test-lane-selection` artifact, so
 job conditions, the validation gate and the report need no change. It adds CI-esta's

@@ -24,6 +24,7 @@ from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
 from ci_esta.package_inputs import PackageInputsUnavailable, changed_package_inputs
 from ci_esta.testing.bun.graph import bun_lane_reasons
+from ci_esta.testing.lane_inference import infer_lanes
 from ci_esta.workflow_graph import ALL, WorkflowGraph, changed_job_lanes
 
 
@@ -77,7 +78,7 @@ def plan_work(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--config", type=Path, help="lane file; omitted, lanes are inferred from the workflows")
     parser.add_argument("--repo", type=Path, default=Path("."))
     parser.add_argument("--base", required=True)
     parser.add_argument("--head", default="HEAD")
@@ -88,7 +89,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--bun", default="bun", help="Bun executable, for repositories with Bun tests")
     args = parser.parse_args(argv)
     try:
-        config = LaneConfig.model_validate_json(args.config.read_text(encoding="utf-8"))
+        config = (
+            LaneConfig.model_validate_json(args.config.read_text(encoding="utf-8"))
+            if args.config
+            else infer_lanes(args.repo, args.base, args.head)
+        )
         result = plan_work(args.repo, config, args.base, args.head, full=args.full is not None, bun=args.bun)
         if args.full is not None:
             result.reason = args.full
