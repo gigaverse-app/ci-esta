@@ -99,8 +99,11 @@ def test_inputs(repo: Path, tests: list[str], bun: str, files: set[str]) -> dict
                     # Bun reports resolved real paths; a repository under a symlinked
                     # directory (Linux /tmp, macOS /var) must be resolved the same way.
                     targets.add(normalized(os.path.relpath(os.path.realpath(specifier), real_repo)))
+                elif not item.get("external") and normalized(specifier) in files:
+                    # Bun 1.4 names an import of another entry point by its repository path.
+                    targets.add(normalized(specifier))
                 elif specifier.startswith("."):
-                    # A relative specifier: an import Bun left unresolved, or one to another entry point.
+                    # A relative specifier: an import Bun left unresolved, or (Bun 1.3) one to another entry point.
                     base = posixpath.normpath(posixpath.join(posixpath.dirname(importer), specifier))
                     resolved = next((base + suffix for suffix in RESOLUTION if base + suffix in files), None)
                     if resolved is None:
