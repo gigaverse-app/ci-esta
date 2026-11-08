@@ -632,16 +632,16 @@ wheels = [
 
 [[package]]
 name = "pytest-selective"
-version = "0.4.2"
+version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "pytest" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ce/34/e7066f7b0d6128af6033c487b304b001c219319beb6a37a420bb5e0e981a/pytest_selective-0.4.2.tar.gz", hash = "sha256:4a5f048a52906939e5f6207e5f9d41af2efb995773a9eb88e36a894690847cf6", size = 571629, upload-time = "2026-11-07T23:16:27.872Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/da/d0/116891bfabb0106f4a8f2eaa06e9976f4f3202e495536e1f139eda2d6497/pytest_selective-1.0.0.tar.gz", hash = "sha256:242f325c933010e31c8a4fb49e10c26fa5f60f7121c9d494b1744e2f0392ed93", size = 595441, upload-time = "2026-11-08T18:17:27.046Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/31/392d1da1028c0caf17c078b55cc8ff3efac43d66b1bab3abe13c2a1b406d/pytest_selective-0.4.2-py3-none-any.whl", hash = "sha256:5b9b8008d7e1817d2b223548b0bfd025b9d5b465aed4ba3e58ecf1241e4ec0a5", size = 100670, upload-time = "2026-11-07T23:16:26.601Z" },
+    { url = "https://files.pythonhosted.org/packages/ed/81/709f50cab26abdf41d9eaa2a5e293a1ff9b6941ad3bd01ac52120dae6fed/pytest_selective-1.0.0-py3-none-any.whl", hash = "sha256:a8106becb8179ec6d5d96e11a8419a0b7d6f9ea0b8cb3944df0c47c513f47a6e", size = 103707, upload-time = "2026-11-08T18:17:25.272Z" },
 ]
 
 [[package]]
