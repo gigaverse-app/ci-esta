@@ -20,14 +20,12 @@ import subprocess
 import tempfile
 from pathlib import Path, PurePosixPath
 
+from pytest_selective.impact_graph import within
+
 from ci_esta.git import git
 
 TEST_FILE = re.compile(r"[._](?:test|spec)\.[cm]?[jt]sx?$")
 ENVIRONMENT = re.compile(r"(?:^|/)(?:package\.json|bun\.lockb?|bunfig\.toml|tsconfig[^/]*\.json)$")
-
-
-def within(path: str, root: str) -> bool:
-    return root in {"", "."} or path == root or path.startswith(root.rstrip("/") + "/")
 
 
 def normalized(path: str) -> str:
@@ -87,6 +85,7 @@ def test_inputs(repo: Path, tests: list[str], bun: str, files: set[str]) -> dict
     does not parse that module, so such modules are resolved here and built as further entry points
     until no new file appears. Package and built-in imports are not repository files.
     """
+    real_repo = os.path.realpath(repo)
     edges: dict[str, set[str]] = {}
     pending = list(tests)
     while pending:
@@ -97,7 +96,9 @@ def test_inputs(repo: Path, tests: list[str], bun: str, files: set[str]) -> dict
             for item in declared:
                 specifier = str(item.get("path", ""))
                 if os.path.isabs(specifier):
-                    targets.add(normalized(os.path.relpath(specifier, repo)))
+                    # Bun reports resolved real paths; a repository under a symlinked
+                    # directory (Linux /tmp, macOS /var) must be resolved the same way.
+                    targets.add(normalized(os.path.relpath(os.path.realpath(specifier), real_repo)))
                 elif specifier.startswith("."):
                     # A relative specifier: an import Bun left unresolved, or one to another entry point.
                     base = posixpath.normpath(posixpath.join(posixpath.dirname(importer), specifier))
