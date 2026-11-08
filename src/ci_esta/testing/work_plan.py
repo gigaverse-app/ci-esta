@@ -140,7 +140,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, help="lane file; omitted, lanes are inferred from the workflows")
     parser.add_argument("--repo", type=Path, default=Path("."))
-    parser.add_argument("--base", required=True)
+    parser.add_argument("--base", required=True, help="base commit; empty or all zeros runs every lane")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument(
         "--full", nargs="?", const="true", default="false", type=full_checkpoint_reason, metavar="auto|true|false"
@@ -149,6 +149,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--bun", default="bun", help="Bun executable, for repositories with Bun tests")
     parser.add_argument("--summary", type=Path, help="append a readable table of the plan (step summary)")
     args = parser.parse_args(argv)
+    if not args.base.strip("0"):
+        # A branch's first push has no `before` (all zeros), and some callers pass nothing: compare against
+        # nothing, and run every lane.
+        args.full, args.base = "full run: no base commit to compare against", args.head
     try:
         resolved = resolve(args.repo, args.base, args.head, args.config)
         config = resolved.config
