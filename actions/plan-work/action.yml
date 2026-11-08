@@ -41,13 +41,8 @@ runs:
       run: |
         uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../..[selection]" \
           python -m ci_esta.testing.work_plan ${PLAN_CONFIG:+--config "$PLAN_CONFIG"} --base "$PLAN_BASE" \
-          --full "$PLAN_FULL" --github-output "$GITHUB_OUTPUT" | tee test-lanes.json
-        {
-          echo '### Lane selection'
-          echo '```json'
-          cat test-lanes.json
-          echo '```'
-        } >> "$GITHUB_STEP_SUMMARY"
+          --full "$PLAN_FULL" --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY" \
+          | tee test-lanes.json
     - if: ${{ inputs.artifact-name != '' }}
       uses: actions/upload-artifact@v7
       with:

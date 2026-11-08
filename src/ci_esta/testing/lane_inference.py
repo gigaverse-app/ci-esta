@@ -12,11 +12,13 @@ collects runs every lane, as a reviewed lane file would until its fingerprints w
 
 from __future__ import annotations
 
+import json
 import re
 import shlex
 import tomllib
 from pathlib import Path
 
+from pydantic import BaseModel
 from pytest_selective.ci import Lane, LaneConfig
 from pytest_selective.impact_graph import policy_fingerprints
 from pytest_selective.impact_models import GitTree, ImpactConfig
@@ -87,12 +89,23 @@ def default_roots(repo: Path) -> list[str]:
     return ["."]
 
 
-def infer_lanes(repo: Path, base: str, head: str) -> LaneConfig:
-    """A lane configuration read from the workflows at `head`."""
+class ResolvedLanes(BaseModel):
+    """The lanes a plan uses, and where each one came from, for people reading or debugging them."""
+
+    config: LaneConfig
+    #: Lane name to the facts that define it: the job and command a root came from, or the lane file.
+    sources: dict[str, list[str]]
+    #: Lane name to the workflow jobs its conditions gate.
+    jobs: dict[str, list[str]]
+
+
+def infer(repo: Path, base: str, head: str) -> ResolvedLanes:
+    """Lanes read from the workflows at `head`, with the job and command behind every root."""
     graph = WorkflowGraph(repo, head)
     directories = graph.directories
     roots: dict[str, set[str]] = {}
     jobs: dict[str, set[str]] = {}
+    sources: dict[str, list[str]] = {}
     for (path, name), job in graph.jobs.items():
         if not job.lanes or ALL in job.lanes:
             continue
@@ -102,23 +115,32 @@ def infer_lanes(repo: Path, base: str, head: str) -> LaneConfig:
             if isinstance(step, dict)
         ]
         found: set[str] = set()
+        evidence: list[str] = []
         for command in commands:
             for line in command.splitlines():
+                named: list[str] = []
                 if match := TEST_COMMAND.search(line):
-                    found.update(paths_after(match.group(2), graph.files, directories) or default_roots(repo))
+                    named = paths_after(match.group(2), graph.files, directories) or default_roots(repo)
                 if match := UNITTEST.search(line):
-                    found.add(match.group(1).removeprefix("./").rstrip("/"))
+                    named = [match.group(1).removeprefix("./").rstrip("/")]
                 elif (match := TEST_WRAPPER.search(line)) and match.group(1).removeprefix("./") in graph.files:
-                    found.update(default_roots(repo))
+                    named = default_roots(repo)
+                if named:
+                    found.update(named)
+                    evidence.append(f"roots {', '.join(named)} from {path}#{name}: `{line.strip()}`")
         for lane in job.lanes:
             roots.setdefault(lane, set()).update(found)
             jobs.setdefault(lane, set()).add(f"{path}#{name}")
+            sources.setdefault(lane, []).extend(evidence)
     if not roots:
         raise ValueError("no job condition reads a lane from the planner; add a lane file")
     lanes = {
         name: Lane(roots=sorted(roots[name]), inputs=[] if roots[name] else sorted(jobs[name]))
         for name in sorted(roots)
     }
+    for name, lane in lanes.items():
+        if not lane.roots:
+            sources[name] = [f"no test command; selected through {', '.join(lane.inputs)}"]
     test_roots = sorted({root for lane in lanes.values() for root in lane.roots}) or ["."]
     files = {
         line.split("\t", 1)[1]: line.split()[2]
@@ -128,8 +150,66 @@ def infer_lanes(repo: Path, base: str, head: str) -> LaneConfig:
     graph_config = ImpactConfig(module_roots=["src", "."], test_roots=test_roots)
     policy = policy_fingerprints(repo, GitTree(tree=base, files=files, links=[]))
     # Workflows reach lanes through the workflow graph, so only the environment defaults are global.
-    return LaneConfig(
+    config = LaneConfig(
         graph=graph_config.model_copy(update={"pytest_policy": policy}),
         lanes=lanes,
         global_inputs=list(DEFAULT_GLOBAL_INPUTS),
     )
+    return ResolvedLanes(
+        config=config,
+        sources={name: sorted(set(values), key=values.index) for name, values in sources.items()},
+        jobs={name: sorted(values) for name, values in jobs.items()},
+    )
+
+
+def infer_lanes(repo: Path, base: str, head: str) -> LaneConfig:
+    """A lane configuration read from the workflows at `head`."""
+    return infer(repo, base, head).config
+
+
+#: A lane file with this key extends the workflow's lanes instead of replacing them.
+EXTENDS = "extends"
+
+
+def resolve(repo: Path, base: str, head: str, lane_file: Path | None) -> ResolvedLanes:
+    """The lanes to plan with: inferred, a complete lane file, or inferred lanes a lane file extends.
+
+    A file with `"extends": "workflow"` lists only what differs from the workflow: lanes it names
+    replace the inferred lane of that name or add a new one, `graph` fields override the inferred
+    graph's, and `global_inputs` replaces the defaults. Any other lane file is complete, as before.
+    """
+    if lane_file is None:
+        return infer(repo, base, head)
+    document = json.loads(lane_file.read_text(encoding="utf-8"))
+    label = lane_file.as_posix()
+    if document.get(EXTENDS) is None:
+        config = LaneConfig.model_validate(document)
+        return ResolvedLanes(
+            config=config,
+            sources={name: [f"lane file {label}"] for name in config.lanes},
+            jobs={},
+        )
+    if document[EXTENDS] != "workflow":
+        raise ValueError(f'{label}: "extends" must be "workflow"')
+    unknown = set(document) - {EXTENDS, "lanes", "graph", "global_inputs"}
+    if unknown:
+        raise ValueError(f"{label}: unknown keys {sorted(unknown)}")
+    inferred = infer(repo, base, head)
+    lanes = dict(inferred.config.lanes)
+    sources = dict(inferred.sources)
+    for name, value in (document.get("lanes") or {}).items():
+        replaced = name in lanes
+        lanes[name] = Lane.model_validate(value)
+        sources[name] = [f"{'overridden' if replaced else 'added'} by {label}"]
+    graph = inferred.config.graph.model_copy(update=document.get("graph") or {})
+    roots = sorted({root for lane in lanes.values() for root in lane.roots})
+    if "test_roots" not in (document.get("graph") or {}) and roots:
+        graph = graph.model_copy(update={"test_roots": sorted(set(graph.test_roots) | set(roots))})
+    config = LaneConfig.model_validate(
+        {
+            "graph": graph.model_dump(),
+            "lanes": {name: lane.model_dump() for name, lane in lanes.items()},
+            "global_inputs": document.get("global_inputs", inferred.config.global_inputs),
+        }
+    )
+    return ResolvedLanes(config=config, sources=sources, jobs=inferred.jobs)

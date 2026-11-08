@@ -24,7 +24,8 @@ from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
 from ci_esta.package_inputs import PackageInputsUnavailable, changed_package_inputs
 from ci_esta.testing.bun.graph import bun_lane_reasons
-from ci_esta.testing.lane_inference import infer_lanes
+from ci_esta.testing.lane_inference import resolve
+from ci_esta.testing.lane_report import render
 from ci_esta.workflow_graph import ALL, WorkflowGraph, changed_job_lanes
 
 
@@ -87,13 +88,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--bun", default="bun", help="Bun executable, for repositories with Bun tests")
+    parser.add_argument("--summary", type=Path, help="append a readable table of the plan (step summary)")
     args = parser.parse_args(argv)
     try:
-        config = (
-            LaneConfig.model_validate_json(args.config.read_text(encoding="utf-8"))
-            if args.config
-            else infer_lanes(args.repo, args.base, args.head)
-        )
+        resolved = resolve(args.repo, args.base, args.head, args.config)
+        config = resolved.config
         result = plan_work(args.repo, config, args.base, args.head, full=args.full is not None, bun=args.bun)
         if args.full is not None:
             result.reason = args.full
@@ -101,6 +100,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Invalid lane configuration/dependency: {error}", file=sys.stderr)
         return 2
     print(result.model_dump_json(indent=2))
+    if args.summary:
+        with args.summary.open("a", encoding="utf-8") as summary:
+            summary.write("### Lane selection\n\n" + render(resolved, result) + "\n")
     if args.github_output:
         with args.github_output.open("a", encoding="utf-8") as output:
             for name, enabled in result.lanes.items():

@@ -51,6 +51,37 @@ runs every lane. A test no lane claims also runs every lane, so a wrong guess co
 never coverage. Add a lane file when roots must be narrower than the commands show, or
 when jobs read a different planner output.
 
+**See the lanes.** `ci-esta lanes` prints every lane: its test roots, the jobs it gates, and
+where it came from (the job and command a root was read from, or the lane file). Add
+`--base origin/main` to see what a change would run and why; the `plan-work` step summary
+shows the same table on every run.
+
+```text
+$ ci-esta lanes --base origin/main
+| Lane | Runs | Why | Tests (roots) | Jobs it gates | Defined by |
+| `smoke` | ✅ runs | workflow input: scripts/smoke.sh (run by .github/workflows/ci.yml#smoke) | – | smoke | no test command; selected through .github/workflows/ci.yml#smoke |
+| `unit` | ⏭️ skipped | no affected tests or changed inputs | tests/unit | unit | roots tests/unit from .github/workflows/ci.yml#unit: `pytest tests/unit -q` |
+```
+
+**Change only what is wrong.** A lane file with `"extends": "workflow"` lists only the lanes
+it adds or replaces; every other lane stays inferred and keeps following the workflow.
+`ci-esta lanes --write .github/test-lanes.json` writes every inferred lane as a starting
+point: delete the ones the workflow already gets right. For example, pytest-obligation's
+jobs pick tests by marker, so inference sees whole directories; two lanes narrow them:
+
+```json
+{
+  "extends": "workflow",
+  "lanes": {
+    "core": {"roots": ["package/tests/core", "integration_tests/core"]},
+    "redis": {"roots": ["package/tests/rq", "package/tests/celery_worker", "integration_tests/rq", "integration_tests/celery_worker"]}
+  }
+}
+```
+
+An extending file may also set `graph` fields (merged over the inferred graph) and
+`global_inputs`. A lane file without `extends` is complete and used exactly as written.
+
 | Repository on 2026-11-08 | Inferred from its workflow | Hand-written lane file |
 | --- | --- | --- |
 | dry-lint | `tests`: `tests`; `counter`, `viewer`, `package`, `dogfood`: their jobs | the same |
