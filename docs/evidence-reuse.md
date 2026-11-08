@@ -66,6 +66,26 @@ CI-esta cannot infer external dependencies, changed services, floating container
 
 Use `validation-gate` with the aggregate job's direct `needs` and a boolean `required` map containing exactly those job keys. A job must succeed, or be explicitly unneeded and skipped. Failed, cancelled, missing and unexpectedly skipped jobs fail the gate. Keep the planner itself required so a broken admission decision cannot turn the aggregate green.
 
+A gate in selected-lane mode (`lanes` plus `lane-jobs`) is what `ci-esta check-workflow`
+verifies, and the check refuses a `required` map. To reuse there, fold the proof into
+the planner's lane output instead: after `resolve-lane-evidence`, set a lane to `false`
+only when every job it covers is in `reused`, and publish that as the planner's
+`lanes` output. Job conditions, `lane-jobs` and the check stay unchanged, and a
+partly proven lane runs in full:
+
+```yaml
+- id: admit
+  env:
+    LANES: ${{ steps.plan.outputs.lanes }}
+    REUSED: ${{ steps.evidence.outputs.reused || '{}' }}
+    LANE_JOBS: '{"py311":"Tests (3.11)","py314":"Tests (3.14)"}'  # the evidence step's lanes input
+  run: |
+    lanes=$(jq -c --argjson jobs "$LANE_JOBS" --argjson reused "$REUSED" 'if [$jobs | keys[] | $reused[.] == true] | all then .tests = false else . end' <<<"$LANES")
+    echo "lanes=$lanes" >> "$GITHUB_OUTPUT"
+```
+
+[pytest-quint-connect](https://github.com/gigaverse-app/pytest-quint-connect/blob/main/.github/workflows/ci.yml) uses this for its seven test jobs.
+
 ## Permissions
 
 Evidence discovery uses `contents: read`, `actions: read`, and `checks: read`. Complete PR file collection also needs `pull-requests: read`. Do not run untrusted PR code with elevated credentials. These examples use the ordinary `pull_request` event, not `pull_request_target`.
@@ -80,6 +100,27 @@ workflow/job/receipt resolver; the merge event itself is never proof. Changed
 inputs, stale or missing completion receipts, newer contradictory runs, API
 uncertainty and explicit reruns execute fresh validation. No extra permissions
 beyond the existing read-only evidence permissions are needed.
+
+**Add the ownership marker; reuse after a merge depends on it.** GitHub often
+leaves a run's `pull_requests` empty, even for an ordinary same-repository PR.
+The push after the merge then rejects every PR run as "not associated with PR #N"
+and executes every lane, with no other symptom. Add this top-level step to the
+planning job; nested composite steps are not exposed by the jobs API:
+
+```yaml
+- name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
+  if: github.event_name == 'pull_request'
+  run: 'true'
+```
+
+This marker proves association only; the executed lane still needs its own
+successful completion receipt. `ci-esta adoption` reports `reuse-ownership-marker`
+when reuse after a merge is enabled without it, and `reuse-receipt` when no step
+records the receipt.
+
+The receipt binds the tested merge's inputs. A PR that was behind its base when
+it merged, because another PR changed a declared input in between, correctly
+executes fresh on the push.
 
 ## Root Python release versions
 
@@ -104,16 +145,3 @@ booleans and keep package build, version metadata, wheel and source-distribution
 installation checks mandatory. CI-esta's publishing workflow retains full
 exact-tag validation. Publishing, schedules and manual full checkpoints do not
 consume this evidence.
-
-GitHub can omit a merged PR from workflow-run metadata. To preserve ownership
-proof in that case, add this top-level workflow step to the planning job (nested
-composite steps are not exposed by the jobs API):
-
-```yaml
-- name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
-  if: github.event_name == 'pull_request'
-  run: 'true'
-```
-
-This marker proves association only; the executed lane still needs its own
-successful completion receipt.

@@ -16,6 +16,7 @@ GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/tutorials/adoption-checkl
 
 
 class _Step(BaseModel):
+    name: str = ""
     uses: str = ""
     run: str = ""
     inputs: dict[str, Scalar] = Field(default_factory=dict, alias="with")
@@ -56,10 +57,12 @@ class AdoptionReport(BaseModel):
     limitations: list[str] = Field(default_factory=list)
 
 
-def _inventory(root: Path) -> tuple[AdoptionReport, list[tuple[str, str]]]:
+def _inventory(root: Path) -> tuple[AdoptionReport, list[tuple[str, str]], list[tuple[str, str]]]:
     root = root.resolve()
     report = AdoptionReport()
     commands: list[tuple[str, str]] = []
+    # Top-level job step names only: the jobs API, which evidence reuse reads, does not expose composite steps.
+    job_steps: list[tuple[str, str]] = []
     visited: set[Path] = set()
 
     def visit(path: Path) -> None:
@@ -80,6 +83,7 @@ def _inventory(root: Path) -> tuple[AdoptionReport, list[tuple[str, str]]]:
         steps = [*parsed.runs.steps]
         for job in parsed.jobs.values():
             steps.extend([job, *job.steps])
+            job_steps.extend((source, step.name) for step in job.steps if step.name)
         for step in steps:
             if step.run:
                 commands.append((source, step.run))
@@ -87,7 +91,7 @@ def _inventory(root: Path) -> tuple[AdoptionReport, list[tuple[str, str]]]:
                 continue
             report.actions.append(ActionUse(source=source, uses=step.uses, inputs={
                 name: value for name, value in step.inputs.items()
-                if name in {"full", "config", "history-key", "durations"}
+                if name in {"full", "config", "history-key", "durations", "reuse-after-merge"}
             }))
             if step.uses.startswith(("./", "$/")):
                 local = root / step.uses[2:]
@@ -102,11 +106,11 @@ def _inventory(root: Path) -> tuple[AdoptionReport, list[tuple[str, str]]]:
         visit(path)
     if not report.files:
         report.limitations.append("No .github/workflows/*.yml or *.yaml files found")
-    return report, commands
+    return report, commands, job_steps
 
 
 def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
-    report, commands = _inventory(root)
+    report, commands, job_steps = _inventory(root)
 
     def uses(*names: str) -> list[ActionUse]:
         return [item for item in report.actions if item.uses.split("@", 1)[0] in names]
@@ -132,6 +136,13 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
         advise("bun-reporting", "Consider run-bun-tests for selection and evidence, or report-bun-tests around an existing executor. Keep the project's Bun runner and policy.", bun)
     if report.files and not (ci("ci-observability") or uses("gigaverse-app/ci-esta/.github/workflows/report.yml")):
         advise("reporting", "No shared completed-run reporter found. Start with a read-only report and exact required gate names before adding execution optimizations.", report.files[:1])
+    evidence = ci("resolve-lane-evidence")
+    if evidence and not any(re.search(r"outputs\.receipt(?![a-z_-])", name) for _, name in job_steps):
+        advise("reuse-receipt", "resolve-lane-evidence is wired, but no job step is named after its receipt output. Without a final successful step named with the receipt, no run can ever be reused.", [item.source for item in evidence])
+    after_merge = [item for item in evidence if str(item.inputs.get("reuse-after-merge", "")).lower() == "true"]
+    marker = re.compile(r"PR evidence #\$\{\{\s*github\.event\.pull_request\.number\s*\}\}")
+    if after_merge and not any(marker.search(name) for _, name in job_steps):
+        advise("reuse-ownership-marker", "Reuse after a merge is enabled, but no top-level job step is named 'PR evidence #<number> head <sha>'. GitHub often omits a run's pull request, and without the marker the push after a merge rejects every PR run and reruns all lanes.", [item.source for item in after_merge])
     learned = ci("learn-test-timings")
     restored = ci("restore-test-timings")
     if learned and not restored and (ci("plan-pytest-shards", "plan-runner-pools") or file_selectors):
