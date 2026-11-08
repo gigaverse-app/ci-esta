@@ -46,11 +46,12 @@ The report reads the lane plan on every run and the file explanation only when i
 
 1. **Measure first.** Add the completed-run observer with your exact gate names. Its slowest-job and slowest-step tables say whether time goes to tests, setup or services, which decides the granularity.
 2. **Pick the granularity.** Many service-backed jobs: lanes. One dominant pytest suite: files. Both: lanes outside, files inside the largest lane.
-3. **Declare what imports cannot show.** Data files, subprocess entry points, external checkouts and settings read at runtime belong in lane `inputs` or reader-owned declarations. Lock files and workflows stay global inputs that run everything.
+3. **Declare what imports cannot show.** Data files, subprocess entry points, external checkouts and settings read at runtime belong in lane `inputs` or reader-owned declarations. Lock files stay global inputs that run everything; name workflows per job (`ci.yml#tests`) so editing a lint job does not run every lane.
 4. **Keep required checks honest.** A skipped job never reports. CI-esta's `validation-gate` accepts a skip only when planning succeeded and explicitly skipped it; a failed planner runs the complete suite.
 5. **Turn on the sticky.** Set `post-sticky: true`, grant `pull-requests: write`, and pass `sticky-key` when one observer reports several workflows. `plan-lanes` uploads the lane plan, so the lane section needs no extra step.
 6. **Keep full checkpoints.** Manual/scheduled/release events, `test:full` in the triggering event, and conservative planner fallbacks retain full work. Ordinary PRs, pushes and their reruns remain selective. Use explicit `full: 'true'` when another workflow needs a complete checkpoint.
-7. **Reuse evidence last.** Selection asks "what might this change affect?"; [evidence reuse](evidence-reuse.md) asks "did this exact declared work already pass?" Keep conservative fallbacks at both layers.
+7. **Audit a documentation-only pull request.** Gate every build, install smoke and routing-test job on a lane too, then confirm a docs-only probe PR executes none of them. [The audit](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/#audit-what-a-documentation-only-pull-request-still-runs) lists the traps.
+8. **Reuse evidence last.** Selection asks "what might this change affect?"; [evidence reuse](evidence-reuse.md) asks "did this exact declared work already pass?" Keep conservative fallbacks at both layers.
 
 Use the [selected-lane aggregate gate](selected-gates.md) to keep optional jobs
 and required statuses consistent. CI-esta's own workflow now combines
