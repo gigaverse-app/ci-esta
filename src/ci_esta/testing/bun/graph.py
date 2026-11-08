@@ -23,12 +23,12 @@ import tempfile
 import tomllib
 from pathlib import Path, PurePosixPath
 
-from pytest_selective.impact_graph import within
+from pytest_selective.impact_graph import matches, within
 
 from ci_esta.git import git
+from ci_esta.testing.lane_rules import BUN_ENVIRONMENT_FILES
 
 TEST_FILE = re.compile(r"[._](?:test|spec)\.[cm]?[jt]sx?$")
-ENVIRONMENT = re.compile(r"(?:^|/)(?:package\.json|bun\.lockb?|bunfig[^/]*\.toml|tsconfig[^/]*\.json)$")
 BUNFIG = re.compile(r"(?:^|/)bunfig[^/]*\.toml$")
 #: Files Bun parses for further imports; other inputs (styles, images, text) are leaves.
 MODULE = re.compile(r"\.(?:[cm]?[jt]sx?|json)$")
@@ -189,9 +189,16 @@ def test_preloads(repo: Path, files: set[str]) -> list[str]:
 
 
 def bun_lane_reasons(
-    repo: Path, lanes: dict[str, list[str]], changed: set[str], bun: str = "bun"
+    repo: Path,
+    lanes: dict[str, list[str]],
+    changed: set[str],
+    bun: str = "bun",
+    environment: list[str] | None = BUN_ENVIRONMENT_FILES,
 ) -> dict[str, list[str]]:
-    """Reasons each lane with Bun tests is selected; lanes without Bun tests are absent."""
+    """Reasons each lane with Bun tests is selected; lanes without Bun tests are absent.
+
+    `environment` is the bun-environment rule's patterns; a change to one runs every Bun lane.
+    """
     files = [path for path in git(repo, "ls-files", "-z").split("\0") if path]
     deleted = changed - set(files)
     tests = sorted(path for path in files if TEST_FILE.search(PurePosixPath(path).name))
@@ -208,10 +215,10 @@ def bun_lane_reasons(
     reasons: dict[str, list[str]] = {
         name: [f"deleted test: {path}" for path in lane_deleted[name]] for name in bun_lanes
     }
-    environment = sorted(path for path in changed if ENVIRONMENT.search(path))
-    if environment:
+    fired = sorted(path for path in changed if environment is not None and matches(path, environment))
+    if fired:
         for name in bun_lanes:
-            reasons[name].extend(f"Bun environment: {path}" for path in environment)
+            reasons[name].extend(f"rule bun-environment: {path}" for path in fired)
         return reasons
     executable = shutil.which(bun)
     present = sorted({test for name in bun_lanes for test in lane_tests[name]})

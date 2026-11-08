@@ -82,6 +82,34 @@ jobs pick tests by marker, so inference sees whole directories; two lanes narrow
 An extending file may also set `graph` fields (merged over the inferred graph) and
 `global_inputs`. A lane file without `extends` is complete and used exactly as written.
 
+**Rules: when these files change, run that.** Anything the graphs cannot see is a rule in
+the extending file. A rule names the files it watches and what it selects: `all`,
+`lane:NAME`, `job:WORKFLOW#JOB` (the lanes that job runs) or `package` (the lanes of the jobs
+that build the package). Patterns match like gitignore. The plan names the rule that
+selected each lane (`rule schemas: schemas/user.json (loaded by name)`).
+
+```json
+{
+  "extends": "workflow",
+  "rules": [
+    {"name": "schemas", "when": ["schemas/**"], "select": ["lane:integration"], "reason": "loaded by name"},
+    {"name": "python-environment", "when": ["pyproject.toml", "uv.lock"], "select": ["all"]}
+  ],
+  "disable_rules": ["bun-environment"]
+}
+```
+
+CI-esta's own defaults are rules too, listed by `ci-esta lanes` with origin `built-in`:
+
+| Built-in rule | Watches | Selects |
+| --- | --- | --- |
+| `python-environment` | `pyproject.toml`, lockfiles, requirements and pytest configuration | every lane |
+| `bun-environment` | `package.json`, `bun.lock`, `bunfig*.toml`, `tsconfig*.json` | every lane with Bun tests |
+
+Give a rule the same name to replace a default; the example above narrows
+`python-environment` so a documentation site's `requirements.txt` runs nothing. List a name in
+`disable_rules` to switch one off. A lane's `inputs` keep working and select their lane.
+
 | Repository on 2026-11-08 | Inferred from its workflow | Hand-written lane file |
 | --- | --- | --- |
 | dry-lint | `tests`: `tests`; `counter`, `viewer`, `package`, `dogfood`: their jobs | the same |
