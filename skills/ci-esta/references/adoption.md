@@ -26,7 +26,9 @@ Copy the [complete public-action observer](https://github.com/gigaverse-app/ci-e
 Adapt the source workflow name and exact required job names. The `actions/ci-observability` action uses
 `run-id`, `run-attempt` and `commit-sha` from the completed source run. Check
 [entry-point availability](https://github.com/gigaverse-app/ci-esta/blob/main/docs/actions.md)
-before selecting a release pin. The optional reusable workflow remains documented
+before selecting a release pin. After wiring lanes, run `ci-esta check-workflow` and
+a documentation-only probe PR; only planning, lint, docs and the gate may execute
+([audit](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/#audit-what-a-documentation-only-pull-request-still-runs)). The optional reusable workflow remains documented
 in the [reporting guide](https://github.com/gigaverse-app/ci-esta/blob/main/docs/github-actions-observability.md).
 
 For read-only reporting set `post-sticky: 'false'` and `pull-requests: read`.

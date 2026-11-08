@@ -91,6 +91,19 @@ ci-esta check-workflow --workflow .github/workflows/ci.yml \
   --lanes .github/test-lanes.json
 ```
 
+Run it in CI too, so job conditions, the gate's `lane-jobs` and the lane file cannot
+drift apart. It expects one job named `Validation gate` that uses the shared
+`validation-gate` action, with every other job in that workflow behind it. Put a
+deliberately non-blocking check, such as an optional plugin suite, in its own
+workflow with `paths:` filters instead. Observe runs with the reusable
+`report.yml@v1` and the same gate name.
+
+Then open a documentation-only probe PR and read which jobs executed. Only planning,
+cheap lint and link checks, the documentation build and the gate should run. A build,
+install smoke or routing-test job outside any lane, or a lane input that also matches
+READMEs, still starts runners. The
+[documentation-only audit](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/#audit-what-a-documentation-only-pull-request-still-runs) lists the traps found across the gigaverse-app adopters.
+
 **Done when:** real Git-change controls exercise both admission and the required
 gate. **Rollback:** force full selection while repairing declarations; do not
 consume an old plan after a failed command.

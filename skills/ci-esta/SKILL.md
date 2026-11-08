@@ -78,6 +78,12 @@ or committed reports.
 
 - For Python dependency-based test or lane selection, use the pytest-selective
   skill. CI-esta consumes its explanations; it does not implement another graph.
+  Name the aggregate job `Validation gate`, run `ci-esta check-workflow` in CI, keep
+  non-blocking checks in their own path-filtered workflow (the check requires every
+  job of the gated workflow behind the gate), and gate build, install-smoke and
+  routing-test jobs on lanes. Prove it with a documentation-only probe PR whose
+  executed jobs are only planning, lint, docs and the gate
+  ([audit](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/#audit-what-a-documentation-only-pull-request-still-runs)).
 - For a repository whose actual test command uses Bun, use the
   [Bun adapter](https://github.com/gigaverse-app/ci-esta/blob/main/docs/bun-test-selection.md) and native `--changed=<base>`.
   TypeScript does not imply Bun: inspect the runner first. Keep repository
