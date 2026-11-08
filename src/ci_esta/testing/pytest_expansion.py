@@ -16,7 +16,6 @@ from pathlib import PurePosixPath as PurePosixPath
 
 import pytest_selective.pytest_expansion as _implementation
 from pytest_selective.pytest_expansion import ACTIVATION as ACTIVATION
-from pytest_selective.pytest_expansion import GIT_LOCATION_ENV as GIT_LOCATION_ENV
 from pytest_selective.pytest_expansion import MARKER as MARKER
 from pytest_selective.pytest_expansion import MODULE_DECLARATIONS as MODULE_DECLARATIONS
 from pytest_selective.pytest_expansion import PYTHON_SOURCES as PYTHON_SOURCES

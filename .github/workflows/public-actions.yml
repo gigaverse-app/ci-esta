@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '43 3 * * 1'
 permissions:
   contents: read
   actions: read
@@ -21,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0
       - id: select
-        uses: gigaverse-app/pytest-selective/actions/plan-lanes@v1
+        uses: ./actions/plan-work
         with:
           config: .github/test-lanes.json
           artifact-name: public-action-selection

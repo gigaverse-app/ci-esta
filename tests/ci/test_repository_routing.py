@@ -1,10 +1,14 @@
 """Exercise the shipped lane config on committed real Git changes."""
+# gv:test-dependency: .github/test-lanes.json
+# gv:test-dependency: .github/workflows/ci.yml
+# gv:test-dependency: .github/workflows/public-actions.yml
 import subprocess
 from pathlib import Path
 
 import pytest
-from pytest_selective.ci import LaneConfig, plan
+from pytest_selective.ci import LaneConfig
 
+from ci_esta.testing.work_plan import plan_work as plan
 from tests.testing.git_repo import commit, write
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,9 +26,13 @@ def lanes_for(tmp_path: Path, *paths: str) -> dict[str, bool]:
     write(tmp_path, "tests/test_example.py", "from example import VALUE\ndef test_value(): assert VALUE")
     # A second test keeps a one-test change from counting as "all graph test files affected".
     write(tmp_path, "tests/test_other.py", "def test_other(): pass")
+    for path in paths:
+        if path.startswith(".github/workflows/"):
+            write(tmp_path, path, (ROOT / path).read_text())
     base = commit(tmp_path)
     for path in paths:
-        write(tmp_path, path, "# change\n")
+        content = (ROOT / path).read_text() if path.startswith(".github/workflows/") else ""
+        write(tmp_path, path, content + "\n# change\n")
     head = commit(tmp_path)
     config = LaneConfig.model_validate_json((ROOT / ".github/test-lanes.json").read_text())
     assert all(plan(tmp_path, config, "f" * 40, head).lanes.values())
@@ -37,6 +45,9 @@ def lanes_for(tmp_path: Path, *paths: str) -> dict[str, bool]:
     ("actions/setup-cached-uv/helper.py", True, True),
     ("actions/new-action/index.ts", True, True),
     ("actions/new-action/extensionless", True, True),
+    ("actions/new-action/nested/helper.py", True, True),
+    ("examples/nested/project/bun.lock", True, True),
+    ("examples/nested/project/README.md", False, False),
     ("actions/README.md", True, False),
     ("actions/service-container/README.md", False, False),
     ("examples/gigaverse-ci-drill.yaml", True, True),

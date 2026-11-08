@@ -49,11 +49,17 @@
     "actions/*[!d]",
     "actions/*[!m]d",
     "actions/*[!.]md",
+    "actions/**/*[!d]",
+    "actions/**/*[!m]d",
+    "actions/**/*[!.]md",
     ".github/workflows/ci.yml",
     "action.yml",
     "examples/*[!d]",
     "examples/*[!m]d",
     "examples/*[!.]md",
+    "examples/**/*[!d]",
+    "examples/**/*[!m]d",
+    "examples/**/*[!.]md",
     ".github/workflows/public-actions.yml",
     ".github/validation-inputs.json"
   ]

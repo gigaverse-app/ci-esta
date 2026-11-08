@@ -15,6 +15,8 @@ on:
         description: Isolated history scope for the example; use the same key for all three runs.
         default: manual-timing-example
   workflow_call:
+  schedule:
+    - cron: '23 3 * * 1'
 
 permissions:
   contents: read
@@ -51,7 +53,7 @@ jobs:
           pr-number: ${{ github.event.pull_request.number }}
           expected-head-sha: ${{ github.event.pull_request.head.sha }}
       - uses: ./actions/collect-pr-changes
-      - uses: gigaverse-app/pytest-selective/actions/plan-lanes@v1
+      - uses: ./actions/plan-work
         id: selection
         with:
           config: .github/test-lanes.json
