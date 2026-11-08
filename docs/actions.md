@@ -67,6 +67,7 @@ a stable `history-key`. See the [executable retention tutorial](learned-test-tim
 | `gigaverse-app/ci-esta/actions/report-bun-tests@v1` | [report-bun-tests](../actions/report-bun-tests/action.yml) |
 | `gigaverse-app/ci-esta/actions/run-bun-tests@v1` | [run-bun-tests](../actions/run-bun-tests/action.yml) |
 | `gigaverse-app/ci-esta/actions/semgrep-scan@v1` | [semgrep-scan](../actions/semgrep-scan/action.yml) |
+| `gigaverse-app/ci-esta/actions/plan-work@v1` | [plan-work](../actions/plan-work/action.yml) |
 | `gigaverse-app/ci-esta/actions/semgrep-scan-ci-code@v1` | [semgrep-scan-ci-code](../actions/semgrep-scan-ci-code/action.yml) |
 | `gigaverse-app/ci-esta/actions/setup-cached-uv@v1` | [setup-cached-uv](../actions/setup-cached-uv/action.yml) |
 | `gigaverse-app/ci-esta/actions/setup-python-uv@v1` | [setup-python-uv](../actions/setup-python-uv/action.yml) |

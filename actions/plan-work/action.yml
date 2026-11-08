@@ -1,0 +1,58 @@
+name: Plan complete lanes from tests and workflows
+description: >
+  Select CI lanes from pytest-selective's affected tests and CI-esta's workflow graph: a changed job or a
+  file a job executes selects that job's lanes, and documentation no job reads selects nothing.
+inputs:
+  config:
+    description: Repository-owned lane file (the pytest-selective lane schema).
+    required: true
+  base:
+    description: Base commit containing the complete change set.
+    default: ${{ github.event.pull_request.base.sha || github.event.before }}
+  full:
+    description: 'auto preserves selection on PR/push reruns and runs full for manual/scheduled/release checkpoints or test:full. Override with true or false.'
+    default: auto
+  artifact-name:
+    description: Upload the lane plan under this name for CI-esta's report. Empty skips the upload.
+    default: test-lane-selection
+outputs:
+  lanes:
+    description: JSON object mapping lane names to booleans.
+    value: ${{ steps.plan.outputs.lanes }}
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v10.0.1
+      with:
+        enable-cache: false
+    - uses: actions/cache@v5
+      continue-on-error: true
+      with:
+        path: .test-impact
+        key: ci-esta-plan-work-${{ runner.os }}-${{ github.sha }}-${{ github.run_attempt }}
+        restore-keys: ci-esta-plan-work-${{ runner.os }}-
+    - id: plan
+      shell: bash
+      env:
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+        PLAN_CONFIG: ${{ inputs.config }}
+        PLAN_BASE: ${{ inputs.base }}
+        PLAN_FULL: ${{ inputs.full }}
+      run: |
+        uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../..[selection]" \
+          python -m ci_esta.testing.work_plan --config "$PLAN_CONFIG" --base "$PLAN_BASE" \
+          --full "$PLAN_FULL" --github-output "$GITHUB_OUTPUT" | tee test-lanes.json
+        {
+          echo '### Lane selection'
+          echo '```json'
+          cat test-lanes.json
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+    - if: ${{ inputs.artifact-name != '' }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: test-lanes.json
+        if-no-files-found: error
+        # A rerun of the job replaces its plan instead of failing on the existing name.
+        overwrite: true

@@ -16,6 +16,8 @@ from typing import Any
 
 import yaml
 
+from ci_esta.git import git
+
 
 def workflow_inputs(document: dict[str, Any], lane: str) -> dict[str, Any]:
     """Keep a job, workflow settings, and prerequisites supplying execution data.
@@ -50,17 +52,13 @@ def workflow_inputs(document: dict[str, Any], lane: str) -> dict[str, Any]:
     return {**{key: value for key, value in document.items() if key != "jobs"}, "jobs": selected}
 
 
-def git(*args: str) -> str:
-    return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout.strip()
-
-
 def changed_lanes(
     base: str, head: str, *, workflow: str, lanes: dict[str, str], merge_base: str | None = None
 ) -> dict[str, bool]:
     """Compare the complete range, optionally retaining a pre-shallow-fetch base."""
-    merge_base = merge_base or git("merge-base", base, head)
-    before = yaml.safe_load(git("show", f"{merge_base}:{workflow}"))
-    after = yaml.safe_load(git("show", f"{head}:{workflow}"))
+    merge_base = merge_base or git(Path("."), "merge-base", base, head).strip()
+    before = yaml.safe_load(git(Path("."), "show", f"{merge_base}:{workflow}"))
+    after = yaml.safe_load(git(Path("."), "show", f"{head}:{workflow}"))
     return {key: workflow_inputs(before, lane) != workflow_inputs(after, lane) for key, lane in lanes.items()}
 
 
@@ -90,11 +88,11 @@ def selection_proof(report: Any, *, base_tree: str, head_tree: str, tests: dict[
 def dependency_proof(
     base: str, head: str, report_path: Path, *, tests: dict[str, list[str]], merge_base: str | None = None
 ) -> dict[str, bool]:
-    merge_base = merge_base or git("merge-base", base, head)
+    merge_base = merge_base or git(Path("."), "merge-base", base, head).strip()
     return selection_proof(
         json.loads(report_path.read_text()),
-        base_tree=git("rev-parse", f"{merge_base}^{{tree}}"),
-        head_tree=git("rev-parse", f"{head}^{{tree}}"),
+        base_tree=git(Path("."), "rev-parse", f"{merge_base}^{{tree}}").strip(),
+        head_tree=git(Path("."), "rev-parse", f"{head}^{{tree}}").strip(),
         tests=tests,
     )
 
