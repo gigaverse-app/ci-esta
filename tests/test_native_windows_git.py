@@ -17,7 +17,7 @@ pytestmark = pytest.mark.skipif(PWSH is None, reason="PowerShell is required to 
 
 @pytest.mark.parametrize("prefix", ["ucrt64", "mingw64", "clangarm64", "mingw32"])
 @pytest.mark.parametrize("launcher_dir", ["bin", "cmd"])
-@pytest.mark.parametrize("native_state", ["matching", "missing", "different-version", "external"])
+@pytest.mark.parametrize("native_state", ["matching", "missing", "different-version", "external", "linked"])
 def test_native_git_discovery_preserves_the_installation(
     tmp_path: Path, prefix: str, launcher_dir: str, native_state: str
 ) -> None:
@@ -30,12 +30,19 @@ def test_native_git_discovery_preserves_the_installation(
     native.parent.mkdir(parents=True)
     if native_state != "missing":
         native.touch()
+    linked_root = tmp_path / "current"
+    if native_state == "linked":
+        launcher = linked_root / launcher_dir / "git.exe"
     result_path = tmp_path / "result.json"
     wrapper = tmp_path / "exercise.ps1"
     wrapper.write_text(
         """
 $ErrorActionPreference = 'Stop'
 $originalPath = $env:PATH
+if ($env:TEST_NATIVE_STATE -eq 'linked') {
+    $kind = if ($IsWindows) { 'Junction' } else { 'SymbolicLink' }
+    New-Item -ItemType $kind -Path $env:TEST_LINK -Target $env:TEST_ROOT | Out-Null
+}
 function Get-Command { param($Name, $CommandType) [pscustomobject]@{ Source = $env:TEST_LAUNCHER } }
 # Only process execution is substituted; path discovery and file checks are real.
 Set-Item -LiteralPath "Function:$env:TEST_LAUNCHER" -Value {
@@ -58,6 +65,8 @@ try { . $env:TEST_SCRIPT } catch { $failed = $true }
         env={
             **os.environ,
             "TEST_LAUNCHER": str(launcher),
+            "TEST_LINK": str(linked_root),
+            "TEST_ROOT": str(root),
             "TEST_NATIVE": str(native),
             "TEST_EXEC_PATH": str(native_root / prefix / "libexec/git-core"),
             "TEST_NATIVE_STATE": native_state,
@@ -71,8 +80,9 @@ try { . $env:TEST_SCRIPT } catch { $failed = $true }
     )
     observed = json.loads(result_path.read_text(encoding="utf-8-sig"))
     assert observed["failed"] == (native_state == "different-version"), result.stdout + result.stderr
-    assert observed["changed"] == (native_state == "matching"), result.stdout + result.stderr
-    if native_state == "matching":
+    expected_native = native_state in {"matching", "linked"}
+    assert observed["changed"] == expected_native, result.stdout + result.stderr
+    if expected_native:
         assert Path(observed["first"]) == native.parent
         assert Path((tmp_path / "github-path").read_text(encoding="utf-8-sig").strip()) == native.parent
     else:
