@@ -48,3 +48,4 @@ Point the completed-run observer at `Validation gate`, rather than at optional
 matrix cells. Set `analyze-critical-path: true` to report the dependency path to
 that stable gate. Intentional skips then remain truthful and the observer has
 a well-defined completion target for both full and docs-only runs.
+

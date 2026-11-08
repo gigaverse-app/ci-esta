@@ -36,3 +36,4 @@ failed tests. Cancellation before `start` leaves no container to remove.
 For existing images on a warm runner, prefetch can add overhead; measure the
 whole job and the health wait on representative selections. This action does
 not infer whether a selected test needs Redis or remove any validation gate.
+

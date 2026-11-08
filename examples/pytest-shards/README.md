@@ -41,3 +41,4 @@ are paid even for public repositories. [Capacity and billing notes](../../docs/r
 The [example execution test](../../tests/testing/test_shard_example.py) runs this
 runner with real pytest and the actual planner/supervisor/completion verifier,
 including a failing test and missing completion evidence.
+
