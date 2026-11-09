@@ -153,15 +153,20 @@ test("an unavailable comparison is retried until the deployment deadline and rep
 });
 
 test("a request cut off by the deployment deadline keeps the last comparison failure in the report", async (t) => {
+  let now = 0;
+  t.mock.method(Date, "now", () => now);
   let requests = 0;
-  const url = await server(t, (_request, response) => {
-    if (++requests === 1) response.end(html(newSha));
-  });
-  await assert.rejects(readDeployedBuild(url, {
+  // Drive the polling boundary directly: HTTP startup under suite load must not
+  // consume the deadline before this test has recorded a comparison failure.
+  await assert.rejects(waitForRevision(async () => {
+    if (++requests === 1) return newSha;
+    now = 600;
+    throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+  }, {
     expectedSha: oldSha, pollMs: 1, timeoutMs: 600,
     compareCommits() { throw new Error("GitHub HTTP 502"); },
   }), /was not deployed.*commit comparison failed: GitHub HTTP 502/);
-  assert.ok(requests > 1);
+  assert.equal(requests, 2);
 });
 
 test("an unknown comparison result cannot silently suppress the smoke", async (t) => {
