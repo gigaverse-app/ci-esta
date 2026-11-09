@@ -41,3 +41,5 @@ def plan_runner_pools(shard_count: int, shards_per_runner: int) -> list[RunnerPo
                    last_shard=min(first + shards_per_runner - 1, shard_count))
         for index, first in enumerate(range(1, shard_count + 1, shards_per_runner), start=1)
     ]
+
+# Source-file selection measurement; behavior is unchanged.
