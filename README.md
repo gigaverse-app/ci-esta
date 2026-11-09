@@ -137,14 +137,16 @@ defaults. Optional configuration contains only exceptional metadata and profile
 overrides; existing selectors remain authoritative for work IDs.
 
 <!-- dry-lint-progress:start -->
-[![dry-lint cleanup progress](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fgigaverse-app%2Fci-esta%2Fmain%2F.dry-lint%2Fprogress.json)](https://github.com/gigaverse-app/dry-lint)
+<a href="https://github.com/gigaverse-app/dry-lint"><picture><source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&amp;key=cfe8d51e3678507c54e1b07ca48075c79bc0ce43b98f12b051d8d66f002901c9&amp;name=gigaverse-app%2Fci-esta&amp;cleaned=5&amp;remaining=15&amp;dismissed=0"><img alt="dry-lint in gigaverse-app/ci-esta: new duplicates kept out of its pull requests, 5 old duplicates cleaned up, 15 remaining" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?key=cfe8d51e3678507c54e1b07ca48075c79bc0ce43b98f12b051d8d66f002901c9&amp;name=gigaverse-app%2Fci-esta&amp;cleaned=5&amp;remaining=15&amp;dismissed=0" width="100%"></picture></a>
 
-**Cleaning up duplication with dry-lint.** CI checks new changes against the accepted backlog.
+**Reviewed duplication debt** · Counts from the committed baselines.
 
-| Duplicate pairs cleaned | Remaining | Dismissed |
-| ---: | ---: | ---: |
-| 0 | 20 | 0 |
+| Accepted pairs | Remaining | Retired | Dismissed |
+| :-- | --: | --: | --: |
+| Functions | 15 | 5 | 0 |
+| Models | Not initialized | — | — |
 
-[Accepted backlog](.dry-lint/baseline.json). Counts cover judged pairs in the configured scope, not lines of code; dismissals do not count as cleanup.
-[Read the audit](https://github.com/gigaverse-app/ci-esta/actions/workflows/dry-lint-audit.yml) to choose the next refactor.
+[Accepted backlog](.dry-lint/baseline.json) · [Weekly audit](https://github.com/gigaverse-app/ci-esta/actions/workflows/dry-lint-audit.yml)
+
+Retired means a side was removed, or (functions only) the judge now finds the pair separate. It is not a count of refactors. Dismissals stay separate; an uninitialized model baseline is unknown.
 <!-- dry-lint-progress:end -->
