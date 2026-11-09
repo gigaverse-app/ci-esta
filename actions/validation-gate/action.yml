@@ -32,10 +32,4 @@ runs:
         VALIDATION_LANE_JOBS: ${{ inputs.lane-jobs }}
       with:
         script: |
-          const { validateGate, selectedRequirements } = require(`${process.env.GITHUB_ACTION_PATH}/gate.cjs`);
-          const needs = JSON.parse(process.env.VALIDATION_NEEDS);
-          const required = process.env.VALIDATION_REQUIRED.trim()
-            ? JSON.parse(process.env.VALIDATION_REQUIRED)
-            : selectedRequirements(needs, process.env.VALIDATION_PLANNER,
-                JSON.parse(process.env.VALIDATION_LANES), JSON.parse(process.env.VALIDATION_LANE_JOBS));
-          validateGate(needs, required);
+          require(`${process.env.GITHUB_ACTION_PATH}/gate.cjs`).run(process.env, core);

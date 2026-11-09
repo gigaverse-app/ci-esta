@@ -15,19 +15,15 @@ from ci_esta.workflow_graph import job_needs, lane_references, prerequisites
 DEFAULT_GATE = "Validation gate"
 
 
-def check(workflow: Path, lanes: Path | None, repo: Path = Path("."), gate_name: str = DEFAULT_GATE) -> None:
+def check(workflow: Path, lanes: Path | None, repo: Path = Path("."), gate_name: str = DEFAULT_GATE) -> str:
     """
     `lanes` is a lane file, complete or extending the workflow; None infers the lanes, as plan-work does.
     `gate_name` is the aggregate job's display name: keep a repository's existing required check rather than renaming it.
+    A workflow with no lane conditions and no lane file has a plain gate: every job must reach it, and no lanes apply.
+    Returns what was checked.
     """
     parsed = yaml.safe_load(workflow.read_text())
     jobs = parsed["jobs"]
-    document = json.loads(lanes.read_text()) if lanes is not None else None
-    # A complete lane file names its lanes; an extending file or none needs the workflow's inferred lanes.
-    if document is not None and EXTENDS not in document:
-        configured = document["lanes"]
-    else:
-        configured = resolve(repo, "HEAD", "HEAD", lanes).config.lanes
     gate_ids = [name for name, job in jobs.items() if job.get("name", name) == gate_name]
     if len(gate_ids) != 1:
         raise ValueError(f"Exactly one aggregate job named {gate_name!r} is required (pass --gate for another name)")
@@ -40,7 +36,17 @@ def check(workflow: Path, lanes: Path | None, repo: Path = Path("."), gate_name:
     mapping = json.loads(inputs.get("lane-jobs", "{}"))
     needs = job_needs(gate)
     if inputs.get("needs") != "${{ toJSON(needs) }}" or inputs.get("required"):
-        raise ValueError("Selected-lane gates must validate all direct needs through lane-jobs")
+        raise ValueError("The gate must validate all direct needs: needs: ${{ toJSON(needs) }}, without required")
+    if lanes is None and not mapping and not any(lane_references(str(job.get("if", ""))) for job in jobs.values()):
+        # A plain gate: no job is selected by lanes, so every job must reach the gate and succeed.
+        _check_every_job_reaches(jobs, gate_id)
+        return "Aggregate-gate contract passed: every job reaches the gate (no lanes)"
+    document = json.loads(lanes.read_text()) if lanes is not None else None
+    # A complete lane file names its lanes; an extending file or none needs the workflow's inferred lanes.
+    if document is not None and EXTENDS not in document:
+        configured = document["lanes"]
+    else:
+        configured = resolve(repo, "HEAD", "HEAD", lanes).config.lanes
     planner = inputs.get("planner", "select-tests")
     if planner not in needs:
         raise ValueError("The planner must be a direct gate prerequisite")
@@ -54,10 +60,15 @@ def check(workflow: Path, lanes: Path | None, repo: Path = Path("."), gate_name:
             raise ValueError(f"Gate lane mapping differs from execution routing for {name}")
     if set(mapping) - set(needs):
         raise ValueError("Gate mapping refers to a job outside its prerequisites")
+    _check_every_job_reaches(jobs, gate_id)
+    _check_reuse_coverage(parsed.get("env") or {}, jobs, planner)
+    return "Workflow lane and aggregate-gate contracts passed"
+
+
+def _check_every_job_reaches(jobs: dict, gate_id: str) -> None:
     visited = prerequisites({name: job_needs(job) for name, job in jobs.items()}, [gate_id])
     if visited != set(jobs):
         raise ValueError(f"Validation jobs outside the aggregate gate: {sorted(set(jobs) - visited)}")
-    _check_reuse_coverage(parsed.get("env") or {}, jobs, planner)
 
 
 ENV_REFERENCE = re.compile(r"^\$\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}$")

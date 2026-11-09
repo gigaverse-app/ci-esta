@@ -181,3 +181,49 @@ def test_default_job_names_follow_githubs_matrix_naming(tmp_path):
     jobs.update({"py311-ubuntu-latest": "test (3.11, ubuntu-latest)", "py311-windows-latest": "test (3.11, windows-latest)"})
     workflow["env"]["TEST_LANE_JOBS"] = json.dumps(jobs)
     check_reuse(tmp_path, workflow)
+
+
+def plain_gate_workflow(gate_needs: list[str]) -> dict:
+    """A Validation gate with no planner and no lanes, as agent setup adds to a workflow with none."""
+    return {"on": "pull_request", "jobs": {
+        "tests": {"runs-on": "ubuntu-latest", "strategy": {"matrix": {"python": ["3.12", "3.13"]}},
+                  "steps": [{"run": "tox -e py${{ matrix.python }}"}]},
+        "typing": {"runs-on": "ubuntu-latest", "steps": [{"run": "tox -e typing"}]},
+        "gate": {"name": "Validation gate", "needs": gate_needs, "if": "${{ !cancelled() }}",
+                 "runs-on": "ubuntu-latest",
+                 "steps": [{"uses": "gigaverse-app/ci-esta/actions/validation-gate@v1",
+                            "with": {"needs": "${{ toJSON(needs) }}"}}]}}}
+
+
+def test_a_plain_gate_without_lanes_passes_when_every_job_reaches_it(tmp_path, capsys):
+    from ci_esta.cli import main as cli
+
+    workflow = tmp_path / "ci.yml"
+    workflow.write_text(yaml.safe_dump(plain_gate_workflow(["tests", "typing"])), encoding="utf-8")
+    assert cli(["check-workflow", "--workflow", str(workflow), "--repo", str(tmp_path)]) == 0
+    assert "every job reaches the gate (no lanes)" in capsys.readouterr().out
+
+
+def test_a_plain_gate_still_rejects_a_job_outside_it(tmp_path):
+    workflow = tmp_path / "ci.yml"
+    workflow.write_text(yaml.safe_dump(plain_gate_workflow(["tests"])), encoding="utf-8")
+    with pytest.raises(ValueError, match=r"outside the aggregate gate: \['typing'\]"):
+        check(workflow, None, tmp_path)
+
+
+def test_a_plain_gate_must_pass_every_need_to_the_action(tmp_path):
+    document = plain_gate_workflow(["tests", "typing"])
+    document["jobs"]["gate"]["steps"][0]["with"] = {"needs": "${{ toJSON(needs.tests) }}"}
+    workflow = tmp_path / "ci.yml"
+    workflow.write_text(yaml.safe_dump(document), encoding="utf-8")
+    with pytest.raises(ValueError, match="must validate all direct needs"):
+        check(workflow, None, tmp_path)
+
+
+def test_a_lane_condition_without_a_gate_mapping_is_not_a_plain_gate(tmp_path):
+    repo, workflow = gated_repository(tmp_path)
+    document = yaml.safe_load(workflow.read_text())
+    document["jobs"]["gate"]["steps"][0]["with"].pop("lane-jobs")
+    workflow.write_text(yaml.safe_dump(document))
+    with pytest.raises(ValueError, match="mapping differs"):
+        check(workflow, None, repo)

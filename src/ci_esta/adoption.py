@@ -105,12 +105,20 @@ class WorkflowSummary(BaseModel):
         return any(job.test_commands for job in self.jobs)
 
 
+NO_RETENTION = "no shared history-key found"
+# The rendered line explains the term: the inventory is often the first CI-esta output a reader sees.
+RETENTION_HELP = (
+    "a history-key keeps learned test timings across runs for timing-balanced pytest shards;"
+    " nothing else needs one"
+)
+
+
 class AdoptionReport(BaseModel):
     files: list[str] = Field(default_factory=list)
     actions: list[ActionUse] = Field(default_factory=list)
     workflows: list[WorkflowSummary] = Field(default_factory=list)
     suggestions: list[Suggestion] = Field(default_factory=list)
-    retention: str = "no shared history-key found"
+    retention: str = NO_RETENTION
     pinning: str = "no external actions found"
     project_files: list[str] = Field(default_factory=list)
     next_steps: list[str] = Field(default_factory=list)
@@ -349,7 +357,8 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
 
 
 def render(report: AdoptionReport) -> str:
-    lines = [f"Inspected {len(report.files)} local workflow/action files; timing retention: {report.retention}."]
+    retention = f"{report.retention} ({RETENTION_HELP})" if report.retention == NO_RETENTION else report.retention
+    lines = [f"Inspected {len(report.files)} local workflow/action files; timing retention: {retention}."]
     lines.append(f"Action pinning: {report.pinning}.")
     if report.project_files:
         note = "" if "uv.lock" in report.project_files else (
