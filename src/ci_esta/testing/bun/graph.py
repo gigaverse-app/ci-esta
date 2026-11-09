@@ -25,8 +25,8 @@ from pathlib import Path, PurePosixPath
 
 from pytest_selective.impact_graph import matches, within
 
-from ci_esta.git import git
-from ci_esta.testing.bun.models import TEST_FILE
+from ci_esta.git import tracked_files
+from ci_esta.testing.bun.discovery import test_files
 from ci_esta.testing.lane_rules import BUN_ENVIRONMENT_FILES
 
 BUNFIG = re.compile(r"(?:^|/)bunfig[^/]*\.toml$")
@@ -222,14 +222,14 @@ def bun_lane_reasons(
 
     `environment` is the bun-environment rule's patterns; a change to one runs every Bun lane.
     """
-    files = [path for path in git(repo, "ls-files", "-z").split("\0") if path]
+    files = tracked_files(repo)
     deleted = changed - set(files)
-    tests = sorted(path for path in files if TEST_FILE.search(PurePosixPath(path).name))
+    tests = test_files(files)
     lane_tests = {
         name: [test for test in tests if any(within(test, root) for root in roots)] for name, roots in lanes.items()
     }
     lane_deleted = {
-        name: sorted(path for path in deleted if TEST_FILE.search(path) and any(within(path, root) for root in roots))
+        name: [path for path in test_files(deleted) if any(within(path, root) for root in roots)]
         for name, roots in lanes.items()
     }
     bun_lanes = [name for name in lanes if lane_tests[name] or lane_deleted[name]]

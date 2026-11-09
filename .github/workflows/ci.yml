@@ -41,8 +41,8 @@ jobs:
       reused: ${{ steps.evidence.outputs.reused }}
       lanes: ${{ steps.selection.outputs.lanes }}
       release-only: ${{ steps.evidence.outputs.release-only }}
-      mode: ${{ steps.files.outputs.mode }}
-      files: ${{ steps.files.outputs.test_roots_json }}
+      mode: ${{ steps.files.outputs.mode || 'none' }}
+      files: ${{ steps.files.outputs.test_roots_json || '[]' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -62,11 +62,13 @@ jobs:
         with:
           config: .github/test-lanes.json
       - name: Derive file selection from the shared lane inputs
+        if: ${{ fromJSON(steps.selection.outputs.lanes).tests }}
         run: >-
-          uv run --no-project --python 3.14 --with '.[selection]'
-          pytest-selective file-config --lanes .github/test-lanes.json --output "$RUNNER_TEMP/test-impact.json"
+          bash scripts/ci/tool-runtime.sh pytest_selective.impact_cli
+          file-config --lanes .github/test-lanes.json --output "$RUNNER_TEMP/test-impact.json"
       - uses: ./actions/test-impact
         id: files
+        if: ${{ fromJSON(steps.selection.outputs.lanes).tests }}
         with:
           config: ${{ runner.temp }}/test-impact.json
           full-roots: tests
