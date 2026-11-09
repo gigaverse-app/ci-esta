@@ -468,6 +468,7 @@ def sticky_snapshot(report: CiObservabilityReportV1) -> StickySnapshotV1:
         run_id=report.provenance.run_id,
         run_attempt=report.provenance.run_attempt,
         completed_gates=sum(gate.completed_at is not None for gate in report.required_gates),
+        gate_identities=tuple(sorted(f"{gate.kind}:{gate.identity}" for gate in report.required_gates)),
         observed_at=report.provenance.observed_at,
     )
 

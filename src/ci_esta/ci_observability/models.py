@@ -374,19 +374,19 @@ class StickySnapshotV1(BaseModel):
     run_attempt: int
     completed_gates: int
     observed_at: datetime
+    #: None reads legacy snapshots that did not identify their gate configuration.
+    gate_identities: tuple[str, ...] | None = None
 
     def supersedes(self, other: "StickySnapshotV1") -> bool:
-        return (
-            self.run_id,
-            self.run_attempt,
-            self.completed_gates,
-            self.observed_at,
-        ) > (
-            other.run_id,
-            other.run_attempt,
-            other.completed_gates,
-            other.observed_at,
-        )
+        source, previous_source = (self.run_id, self.run_attempt), (other.run_id, other.run_attempt)
+        if source != previous_source:
+            return source > previous_source
+        if self.gate_identities != other.gate_identities:
+            # Counts from different required-gate configurations are not comparable.
+            # An unidentified snapshot cannot restore the configuration a newer report replaced.
+            return self.gate_identities is not None and self.observed_at > other.observed_at
+        return (self.completed_gates, self.observed_at) > (other.completed_gates, other.observed_at)
+
 
 
 class CiObservabilityReportV1(BaseModel):
