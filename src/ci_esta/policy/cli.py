@@ -73,6 +73,11 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("choose one inventory source: work, lanes or inventory")
         if args.lanes:
             lane_data = yaml.safe_load(Path(args.lanes).read_text(encoding="utf-8"))
+            if isinstance(lane_data, dict) and "extends" in lane_data:
+                raise ValueError(
+                    "an extending lane file lists only what differs from the workflow; pass the plan-work "
+                    "output (test-lanes.json), which names every lane"
+                )
             if not isinstance(lane_data, dict) or not isinstance(lane_data.get("lanes"), dict):
                 raise ValueError("lanes source must contain a lanes mapping")
             inventory = policy.inventory(lane_data["lanes"])
