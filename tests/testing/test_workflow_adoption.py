@@ -227,3 +227,38 @@ def test_a_lane_condition_without_a_gate_mapping_is_not_a_plain_gate(tmp_path):
     workflow.write_text(yaml.safe_dump(document))
     with pytest.raises(ValueError, match="mapping differs"):
         check(workflow, None, repo)
+
+
+@pytest.mark.parametrize(
+    "condition",
+    ["${{ github.event_name == 'push' }}", "contains(github.event.pull_request.labels.*.name, 'docs')", "failure()"],
+)
+def test_a_plain_gate_rejects_a_job_its_condition_can_skip(tmp_path, condition):
+    # The plain gate requires every job to succeed, so a skip fails it on every run that takes the skip.
+    document = plain_gate_workflow(["tests", "typing"])
+    document["jobs"]["typing"]["if"] = condition
+    workflow = tmp_path / "ci.yml"
+    workflow.write_text(yaml.safe_dump(document), encoding="utf-8")
+    with pytest.raises(ValueError, match=r"conditions can skip them, which fails the gate: typing \(if: "):
+        check(workflow, None, tmp_path)
+
+
+@pytest.mark.parametrize("condition", ["always()", "${{ success() }}", "${{ !cancelled() }}"])
+def test_a_plain_gate_accepts_a_condition_that_only_waits_for_needs(tmp_path, condition):
+    document = plain_gate_workflow(["tests", "typing"])
+    document["jobs"]["typing"]["if"] = condition
+    workflow = tmp_path / "ci.yml"
+    workflow.write_text(yaml.safe_dump(document), encoding="utf-8")
+    assert "every job reaches the gate (no lanes)" in check(workflow, None, tmp_path)
+
+
+def test_a_lane_gate_rejects_an_unmapped_job_its_condition_can_skip(tmp_path):
+    repo, workflow = gated_repository(tmp_path)
+    document = yaml.safe_load(workflow.read_text())
+    unconditional = next(
+        name for name, job in document["jobs"].items() if "if" not in job and job.get("name") != "Validation gate"
+    )
+    document["jobs"][unconditional]["if"] = "${{ github.event_name == 'push' }}"
+    workflow.write_text(yaml.safe_dump(document))
+    with pytest.raises(ValueError, match=f"which fails the gate: {unconditional} "):
+        check(workflow, None, repo)
