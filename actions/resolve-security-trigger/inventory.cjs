@@ -1,4 +1,4 @@
-const { inventoryIdentity, validationReceipt } = require('../resolve-lane-evidence/inputs.cjs');
+const { inventoryIdentity, implementationReceipt } = require('../resolve-lane-evidence/inputs.cjs');
 const { resolveIncrementalPrBase } = require('../resolve-incremental-pr-base/resolve.cjs');
 
 // Inventory owns its evidence. A source scan's incremental base cannot prove that
@@ -11,7 +11,7 @@ async function resolveInventory({ github, shared, context, core, actionPath, pat
       inventoryIdentity(github, shared, context.repo, pr.head.sha, paths),
       inventoryIdentity(github, shared, context.repo, pr.base.sha, paths),
     ]);
-    const receipt = validationReceipt(actionPath, head);
+    const receipt = implementationReceipt(actionPath, head);
     if (head === base) return { changed: false, receipt };
     if (Number(process.env.GITHUB_RUN_ATTEMPT) !== 1) return { changed: true, receipt };
     const proof = await resolveIncrementalPrBase({

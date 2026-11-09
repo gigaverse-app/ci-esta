@@ -1,5 +1,4 @@
 const {execFileSync} = require('node:child_process');
-const fs = require('node:fs');
 const path = require('node:path');
 
 async function hasContradiction(github, context, sha, event, branch) {
@@ -32,7 +31,7 @@ async function mergedPullRequest({github, context, sha, branch, attempt, core}) 
 }
 
 async function proofTarget({github, context, core, actionPath, paths, sha, attempt, afterMerge, releaseVersion}) {
-  const ordinary = {pr:context.payload.pull_request, sha, manifests:{}, releaseOnly:false};
+  const ordinary = {pr:context.payload.pull_request, sha, releaseOnly:false};
   if (attempt !== 1 || !paths.length) return ordinary;
   const push = afterMerge && context.eventName === 'push' && context.ref?.startsWith('refs/heads/');
   if (push) ordinary.pr = await mergedPullRequest({github,context,core,sha,
@@ -46,8 +45,7 @@ async function proofTarget({github, context, core, actionPath, paths, sha, attem
       if (!version.version_only || (!push && await hasContradiction(github,context,pr.head.sha,'pull_request',pr.head.ref))) return ordinary;
       const source = await mergedPullRequest({github,context,core,sha:base,branch:pr.base.ref,attempt});
       if (!source) return ordinary;
-      const localAction = fs.realpathSync(path.resolve(actionPath,'../..')) === fs.realpathSync(process.cwd());
-      return {pr:source,sha:base,manifests:localAction?version.manifests:{},releaseOnly:true};
+      return {pr:source,sha:base,releaseOnly:true};
     } catch (error) {
       core.warning(`Release version proof unavailable: ${error.message}; execute fresh validation.`);
     }

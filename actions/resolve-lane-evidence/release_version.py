@@ -56,7 +56,6 @@ def classify(base, head):
         status, name = change.split("\t")
         if status != "M" or name not in allowed:
             return {"version_only": False}
-    manifests = {}
     values = []
     for ref in (base, head):
         files = {name: git("show", f"{ref}:{name}") for name in allowed - {"CHANGELOG.md"}}
@@ -73,12 +72,10 @@ def classify(base, head):
         manifest["."] = "<project-version>"
         values.append((version, project_text(files["pyproject.toml"], version),
                        lock_text(files["uv.lock"], project["name"], version), manifest))
-        if ref == base:
-            manifests = {name: files[name] for name in ("pyproject.toml", "uv.lock")}
     old, new = values
     if tuple(map(int, new[0].split("."))) <= tuple(map(int, old[0].split("."))) or old[1:] != new[1:]:
         return {"version_only": False}
-    return {"version_only": True, "manifests": manifests, "version": new[0]}
+    return {"version_only": True, "version": new[0]}
 
 
 if __name__ == "__main__":
