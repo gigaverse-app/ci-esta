@@ -194,7 +194,7 @@ def _inventory(root: Path) -> tuple[AdoptionReport, list[tuple[str, str]], list[
                 continue
             report.actions.append(ActionUse(source=source, uses=step.uses, inputs={
                 name: value for name, value in step.inputs.items()
-                if name in {"full", "config", "history-key", "durations", "reuse-after-merge"}
+                if name in {"full", "config", "history-key", "durations", "reuse-after-merge", "reuse-version-only-release"}
             }))
             if step.uses.startswith(("./", "$/")):
                 local = root / step.uses[2:]
@@ -307,6 +307,12 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
     marker = re.compile(r"PR evidence #\$\{\{\s*github\.event\.pull_request\.number\s*\}\}")
     if after_merge and not any(marker.search(name) for _, name in job_steps):
         advise("reuse-ownership-marker", "Reuse after a merge is enabled, but no top-level job step is named 'PR evidence #<number> head <sha>'. GitHub often omits a run's pull request, and without the marker the push after a merge rejects every PR run and reruns all lanes.", [item.source for item in after_merge])
+    version_only = [item for item in evidence if str(item.inputs.get("reuse-version-only-release", "")).lower() == "true"]
+    releasers = {item.source for item in uses("googleapis/release-please-action")}
+    on_push = sorted(flow.source for flow in report.workflows
+                     if flow.source in releasers and "push" in flow.triggers and "workflow_run" not in flow.triggers)
+    if version_only and on_push:
+        advise("release-refresh-timing", "Version-only release reuse is enabled, but Release Please refreshes the release PR on push. The release PR's CI then starts while main's CI on the same code is still running, finds no receipt and reruns every lane. Run Release Please from workflow_run after main's CI succeeds.", [*on_push, *(item.source for item in version_only)])
     learned = ci("learn-test-timings")
     restored = ci("restore-test-timings")
     if learned and not restored and (ci("plan-pytest-shards", "plan-runner-pools") or file_selectors):
