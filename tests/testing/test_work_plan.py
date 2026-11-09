@@ -355,6 +355,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: python -m sample.report --check
+      - run: bash scripts/runtime.sh sample.wrapped
   live:
     needs: select-tests
     if: ${{ fromJSON(needs.select-tests.outputs.lanes).live }}
@@ -405,6 +406,8 @@ def entries(tmp_path: Path) -> tuple[Path, str]:
     write(tmp_path, "src/sample/cli.py", "from sample.commands import main\n")
     write(tmp_path, "src/sample/commands.py", "def main(): pass\n")
     write(tmp_path, "src/sample/unused.py", "VALUE = 1\n")
+    write(tmp_path, "src/sample/wrapped.py", "from sample.deep import VALUE\n")
+    write(tmp_path, "src/sample/deep.py", "VALUE = 1\n")
     write(tmp_path, "tests/unit/test_nothing.py", "def test_nothing(): pass\n")
     write(tmp_path, "tests/live/test_nothing_else.py", "def test_nothing_else(): pass\n")
     return tmp_path, commit(tmp_path)
@@ -418,6 +421,8 @@ def entries(tmp_path: Path) -> tuple[Path, str]:
         # `"$PY" -m sample.runner`, in an action that names its own directory through `env`.
         ("src/sample/engine.py", {"unit": False, "live": True}),
         ("scripts/runtime.sh", {"unit": False, "live": True}),
+        # A module name a wrapper script receives as an argument.
+        ("src/sample/deep.py", {"unit": True, "live": False}),
         # A console script of the repository runs its module.
         ("src/sample/commands.py", {"unit": False, "live": True}),
         # Package code no job runs and no test imports selects nothing.
