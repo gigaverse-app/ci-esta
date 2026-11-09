@@ -14,11 +14,14 @@ ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_SITE = "https://ci-esta.readthedocs.io/en/latest/"
 SOURCE_URIS: dict[str, str] = {}
 ASSET_VERSIONS: dict[str, str] = {}
+# Each page's Markdown with its links rewritten for the site, published beside the page as `<page>.md`.
+RAW_PAGES: dict[str, str] = {}
 
 
 def on_files(files, config):
     SOURCE_URIS.clear()
     ASSET_VERSIONS.clear()
+    RAW_PAGES.clear()
     for file in files:
         if file.abs_src_path and Path(file.abs_src_path).is_relative_to(ROOT):
             SOURCE_URIS[Path(file.abs_src_path).relative_to(ROOT).as_posix()] = file.src_uri
@@ -78,15 +81,23 @@ def on_page_markdown(markdown, page, config, files):
     for index in range(0, len(parts), 2):
         parts[index] = re.sub(r"(\]\()([^\s)]+)([^)]*\))", lambda m: m[1] + rewrite(m[2]) + m[3], parts[index])
         parts[index] = re.sub(r"^(\[[^]]+\]:\s*)(\S+)", lambda m: m[1] + rewrite(m[2]), parts[index], flags=re.M)
+    RAW_PAGES[page.file.src_uri] = "".join(parts)
     return "".join(parts)
 
 
 def on_post_build(config):
     """
-    Raw files for agents and crawlers, from the same sources as the pages: the agent setup procedure, verbatim, so the
-    page a person reads and the file an agent fetches never differ, and llms.txt, pointed at this build's own URL.
+    Raw files for agents and crawlers, from the same sources as the pages: every page's Markdown beside it, the agent
+    setup procedure verbatim, so the page a person reads and the file an agent fetches never differ, and llms.txt,
+    pointed at this build's own URL.
     """
     site = Path(config.site_dir)
+    # Agents that read one raw file follow its links as `.md` too: publish every page's Markdown at its source URI.
+    # Links in it were rewritten to other pages' `.md` URIs or to the repository, so they resolve for the raw copy.
+    for uri, markdown in RAW_PAGES.items():
+        if uri not in config.extra["raw_files"].values():
+            (site / uri).parent.mkdir(parents=True, exist_ok=True)
+            (site / uri).write_bytes(markdown.encode("utf-8"))
     for source, target in config.extra["raw_files"].items():
         shutil.copyfile(ROOT / source, site / target)
     llms = (ROOT / config.extra["llms_txt"]).read_text(encoding="utf-8")

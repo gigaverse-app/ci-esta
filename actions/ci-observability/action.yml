@@ -139,6 +139,8 @@ runs:
       uses: astral-sh/setup-uv@v10.0.1
       with:
         enable-cache: false
+        # Runs from the action's own path; the job may have no checkout.
+        ignore-empty-workdir: true
 
     - name: Render CI observability report
       id: report

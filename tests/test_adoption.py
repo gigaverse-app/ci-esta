@@ -50,6 +50,10 @@ jobs:
     assert {item["id"] for item in report["suggestions"]} >= {"checkpoint-policy", "timing-feedback", "reporting"}
     assert report["retention"] == "no shared history-key found"
     assert list(tmp_path.rglob("*")) == before
+    rendered = subprocess.run([sys.executable, "-m", "ci_esta.cli", "adoption", "--root", str(tmp_path)],
+                              capture_output=True, text=True, check=True).stdout
+    # The text readers see first says what a history-key is and that only timing-balanced shards need one.
+    assert "timing retention: no shared history-key found (a history-key keeps learned test timings" in rendered
     assert all(item["evidence"] for item in report["suggestions"])
 
 
