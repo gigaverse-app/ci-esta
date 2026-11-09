@@ -120,7 +120,7 @@ def test_a_workflow_that_reads_no_lane_asks_for_a_lane_file(tmp_path):
         tmp_path, ".github/workflows/ci.yml", "on: push\njobs:\n  test:\n    runs-on: x\n    steps: [{run: pytest}]\n"
     )
     base = commit(tmp_path)
-    with pytest.raises(ValueError, match="add a lane file"):
+    with pytest.raises(ValueError, match="name lanes in a lane file"):
         infer_lanes(tmp_path, base, base)
 
 
@@ -335,3 +335,141 @@ def test_javascript_runners_and_working_directories_give_roots(tmp_path):
         # pytest with no path in a working directory collects that directory.
         "unit": ["service"],
     }
+
+
+COMMANDS = """\
+name: CI
+on: [pull_request]
+jobs:
+  select-tests:
+    runs-on: ubuntu-latest
+    outputs:
+      lanes: ${{ steps.plan.outputs.lanes }}
+    steps:
+      - id: plan
+        uses: gigaverse-app/ci-esta/actions/plan-work@v1
+  adopter:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).adopter }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./test
+        with:
+          working-directory: examples/adopter
+  demo:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).demo }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: cd demos/shop && pytest -q
+      - run: uv run --directory demos/blog pytest tests
+      - run: demos/saleor/run.sh -n 4
+  upstream:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).upstream }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: example/other
+          path: .upstream/other
+      - run: pytest
+        working-directory: .upstream/other
+      - uses: gigaverse-app/ci-esta/actions/pytest-shards@v1
+        with:
+          pytest-command: pytest package/tests
+  bun:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).bun }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
+        with:
+          inventory: inventory.json
+"""
+TEST_ACTION = """\
+inputs:
+  working-directory:
+    default: "."
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: uv run pytest -m due_work
+"""
+
+
+@pytest.fixture
+def commands(tmp_path: Path) -> tuple[Path, str]:
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    write(tmp_path, ".github/workflows/ci.yml", COMMANDS)
+    write(tmp_path, "test/action.yml", TEST_ACTION)
+    # A nested project: its own pyproject, a src layout, and tests importing it by name.
+    write(tmp_path, "package/pyproject.toml", '[project]\nname = "kit"\nversion = "1"\n')
+    write(tmp_path, "package/src/kit/__init__.py")
+    write(tmp_path, "package/src/kit/core.py", "VALUE = 1\n")
+    write(tmp_path, "package/tests/test_core.py", "from kit.core import VALUE\ndef test_core(): assert VALUE\n")
+    for path in ("examples/adopter", "demos/shop", "demos/blog/tests", "demos/saleor"):
+        write(tmp_path, f"{path}/test_it.py", "def test_it(): pass\n")
+    write(
+        tmp_path, "demos/saleor/run.sh", '#!/usr/bin/env bash\n# Runs pytest.\nexec "$VENV/bin/python" -m pytest "$@"\n'
+    )
+    write(tmp_path, "web/sum.test.ts", "// test\n")
+    return tmp_path, commit(tmp_path)
+
+
+def test_roots_come_from_actions_scripts_and_directories(commands):
+    repo, base = commands
+    config = infer_lanes(repo, base, base)
+    assert {name: lane.roots for name, lane in config.lanes.items()} == {
+        # A local composite action's step, with the caller's input filled in.
+        "adopter": ["examples/adopter"],
+        # `cd DIR &&`, `uv run --directory DIR`, and a shell script's own pytest, which collects its directory.
+        "demo": ["demos/blog/tests", "demos/saleor", "demos/shop"],
+        # Commands in another repository's checkout are left out; a command-valued action input counts.
+        "upstream": ["package/tests"],
+        # An action that runs the repository's Bun tests from an inventory.
+        "bun": ["."],
+    }
+    # A nested project's src layout resolves its imports.
+    assert config.graph.module_roots[:2] == ["package/src", "package"]
+
+
+def test_a_nested_src_layout_reaches_its_tests(commands, capsys):
+    repo, base = commands
+    write(repo, "package/src/kit/core.py", "VALUE = 2\n")
+    lanes = plan(repo, base, commit(repo), capsys)
+    assert lanes["upstream"] is True
+    assert lanes["demo"] is False
+
+
+def test_an_extending_lane_file_can_start_a_workflow_without_lane_conditions(tmp_path):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    write(
+        tmp_path, ".github/workflows/ci.yml", "on: push\njobs:\n  test:\n    runs-on: x\n    steps: [{run: pytest}]\n"
+    )
+    write(tmp_path, "tests/test_it.py", "def test_it(): pass\n")
+    base = commit(tmp_path)
+    resolved = resolve(
+        tmp_path, base, base, lane_file(tmp_path, {"extends": "workflow", "lanes": {"unit": {"roots": ["tests"]}}})
+    )
+    assert resolved.config.lanes["unit"].roots == ["tests"]
+    assert resolved.sources["unit"][0].startswith("added by ")
+
+
+@pytest.mark.parametrize("base", ["", "0000000000000000000000000000000000000000"])
+def test_a_missing_base_runs_every_lane(repository, capsys, base):
+    repo, head = repository
+    assert main(["--repo", str(repo), "--base", base, "--head", head]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert set(result["lanes"].values()) == {True}
+    assert result["reason"] == "full run: no base commit to compare against"
+
+
+def test_ci_esta_lanes_reports_errors_without_a_traceback(tmp_path, capsys):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    write(tmp_path, ".github/workflows/ci.yml", "on: push\njobs:\n  test:\n    runs-on: x\n    steps: []\n")
+    commit(tmp_path)
+    assert cli(["lanes", "--repo", str(tmp_path)]) == 2
+    assert "no job condition reads a lane" in capsys.readouterr().err
