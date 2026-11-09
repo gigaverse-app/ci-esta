@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.12.0](https://github.com/gigaverse-app/ci-esta/compare/v1.11.0...v1.12.0) (2026-11-09)
+
+
+### Features
+
+* **ci:** share weekly checkpoints and reduce repeated validation work ([a5ea6bf](https://github.com/gigaverse-app/ci-esta/commit/a5ea6bf101be3c7ebd9ba5730362ab7f8ddb54cb))
+
+
+### Bug fixes
+
+* **bun:** build the module graph of a React Native app ([#170](https://github.com/gigaverse-app/ci-esta/issues/170)) ([e5d96ae](https://github.com/gigaverse-app/ci-esta/commit/e5d96ae68a07237488587aa70850702a7e00e1f4))
+* **docs:** install CI-esta 1.11 or newer everywhere ([#171](https://github.com/gigaverse-app/ci-esta/issues/171)) ([3967b7d](https://github.com/gigaverse-app/ci-esta/commit/3967b7d23a558a0e02943ddccd257bc0b8eaf109))
+* **plan-work:** install Bun when the repository has Bun tests ([#166](https://github.com/gigaverse-app/ci-esta/issues/166)) ([28f88a9](https://github.com/gigaverse-app/ci-esta/commit/28f88a93ad6023de006412e1a2bae8976abb4623))
+* **reuse:** keep proof across CI-esta releases and accept trusted default-branch runs ([#172](https://github.com/gigaverse-app/ci-esta/issues/172)) ([686ffc1](https://github.com/gigaverse-app/ci-esta/commit/686ffc16286ae289b158bb8b50af4c13133baaa8))
+
+
+### Performance
+
+* **ci:** skip redundant planning and share workflow discovery ([147cde6](https://github.com/gigaverse-app/ci-esta/commit/147cde60185471b9c747f6ab88084f27f154ac9c))
+
 ## [1.11.0](https://github.com/gigaverse-app/ci-esta/compare/v1.10.0...v1.11.0) (2026-11-09)
 
 
