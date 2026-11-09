@@ -20,6 +20,8 @@ import tomllib
 import zipfile
 from pathlib import Path
 
+from pytest_selective.impact_graph import within
+
 
 class PackageInputsUnavailable(Exception):
     """The build tools could not list a package's inputs."""
@@ -39,15 +41,11 @@ def project_directory(manifest: str) -> str:
     return posixpath.dirname(manifest)
 
 
-def under(path: str, directory: str) -> bool:
-    return not directory or path.startswith(directory + "/")
-
-
 def python_inputs(repo: Path, manifest: str, files: set[str]) -> set[str]:
     """Files a wheel of this `pyproject.toml` is built from, plus the metadata files it embeds."""
     project = tomllib.loads((repo / manifest).read_text(encoding="utf-8")).get("project", {})
     directory = project_directory(manifest)
-    local = sorted(path for path in files if under(path, directory))
+    local = sorted(path for path in files if within(path, directory or "."))
     uv = shutil.which("uv")
     if uv is None:
         raise PackageInputsUnavailable("uv is not installed")

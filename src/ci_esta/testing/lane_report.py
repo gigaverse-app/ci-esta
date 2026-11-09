@@ -58,6 +58,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--write", type=Path, help="save the lanes as a lane file that extends the workflow")
     parser.add_argument("--json", action="store_true", help="print the resolved lanes as JSON")
     args = parser.parse_args(argv)
+    try:
+        return report(args)
+    except (ValueError, OSError) as error:
+        print(f"ci-esta lanes: {error}", file=sys.stderr)
+        return 2
+
+
+def report(args: argparse.Namespace) -> int:
     resolved = resolve(args.repo, args.base or args.head, args.head, args.config)
     if args.write:
         args.write.parent.mkdir(parents=True, exist_ok=True)

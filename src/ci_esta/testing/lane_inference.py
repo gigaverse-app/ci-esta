@@ -18,7 +18,7 @@ import posixpath
 import re
 import shlex
 import tomllib
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from pydantic import BaseModel, Field
 from pytest_selective.ci import Lane, LaneConfig
@@ -28,7 +28,7 @@ from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
 from ci_esta.git import git
 from ci_esta.testing.lane_rules import Rule, effective
-from ci_esta.workflow_graph import ALL, WorkflowGraph, run_steps
+from ci_esta.workflow_graph import ALL, WorkflowGraph, inside
 
 #: The words that start a test command, and the arguments after them that are paths.
 TEST_COMMAND = re.compile(
@@ -42,6 +42,12 @@ JS_TEST_COMMAND = re.compile(
 UNITTEST = re.compile(r"python3? -m unittest discover\b.*?(?:-s|--start-directory)[ =](\S+)")
 #: A repository script that runs the tests (`python scripts/run_ci_tests.py`): it collects pytest's defaults.
 TEST_WRAPPER = re.compile(r"\bpython3? (?:-\S+ )*(\S*run\w*tests?\w*\.py)\b")
+#: A shell script a command runs; its own test commands give the roots.
+SHELL_SCRIPT = re.compile(r"(?:^|[\s;&|(])(?:bash |sh |exec )?((?:\.{0,2}/)?[\w.@+-]+(?:/[\w.@+-]+)*\.sh)\b")
+#: `cd DIR && ...` or `cd DIR; ...` before a command.
+CHANGE_DIRECTORY = re.compile(r"^\s*cd\s+(['\"]?)([^'\"\s;&|]+)\1\s*(?:&&|;)\s*(.*)$")
+#: `uv run --directory DIR`, which runs the command inside DIR.
+UV_DIRECTORY = re.compile(r"\buv (?:run )?(?:--[\w-]+(?:[ =]\S+)? )*?--directory[ =](['\"]?)([^'\"\s]+)\1")
 #: Options whose next word is a value, not a test path.
 VALUED_OPTIONS = {
     "-c",
@@ -90,6 +96,76 @@ def paths_after(
     return found or None
 
 
+def joined(directory: str | None, path: str) -> str | None:
+    """`path` read from `directory`, as a repository path; None for the root."""
+    if path.startswith(("$", "~", "/")):
+        return directory
+    value = inside(directory or ".", path)
+    return None if value == "." else value
+
+
+def line_roots(line: str, directory: str | None, graph: WorkflowGraph, repo: Path, nested: bool = False) -> list[str]:
+    """The test roots one command line runs, read from `directory`; a shell script is read once, not recursively."""
+    while match := CHANGE_DIRECTORY.match(line):
+        directory, line = joined(directory, match[2]), match[3]
+    if match := UV_DIRECTORY.search(line):
+        directory = joined(directory, match[2])
+    files, directories = graph.files, graph.directories
+    if match := UNITTEST.search(line):
+        return [joined(directory, match.group(1)) or "."]
+    if match := TEST_COMMAND.search(line):
+        return paths_after(match.group(2), files, directories, directory) or (
+            [directory] if directory is not None else default_roots(repo)
+        )
+    if match := JS_TEST_COMMAND.search(line):
+        return paths_after(match.group(2), files, directories, directory) or [directory or "."]
+    if (match := TEST_WRAPPER.search(line)) and match.group(1).removeprefix("./") in files:
+        return default_roots(repo)
+    if not nested and (match := SHELL_SCRIPT.search(line)):
+        script = next(
+            (path for path in (joined(directory, match[1]), joined(None, match[1])) if path in files),
+            None,
+        )
+        if script is not None:
+            here = posixpath.dirname(script) or None
+            for inner in (graph.text(script) or "").splitlines():
+                if not inner.lstrip().startswith("#") and (found := line_roots(inner, directory, graph, repo, True)):
+                    # A runner with no path in a script collects the script's own directory.
+                    defaults = [directory] if directory is not None else default_roots(repo)
+                    return [here or "."] if found == defaults and here is not None else found
+    return []
+
+
+def module_roots(graph: WorkflowGraph) -> list[str]:
+    """Where imports resolve: each project's source layout, pytest's `pythonpath` and Ruff's `src`, then `src` and `.`."""
+    found: list[str] = []
+    for pyproject in sorted(path for path in graph.files if PurePosixPath(path).name == "pyproject.toml"):
+        project = posixpath.dirname(pyproject)
+        try:
+            document = tomllib.loads(graph.text(pyproject) or "")
+        except tomllib.TOMLDecodeError:
+            continue
+        tool = document.get("tool", {}) if isinstance(document.get("tool"), dict) else {}
+        pytest_options = tool.get("pytest", {}).get("ini_options", tool.get("pytest", {}))
+        hatch = tool.get("hatch", {}).get("build", {}).get("targets", {}).get("wheel", {})
+        setuptools = tool.get("setuptools", {})
+        find = setuptools.get("packages", {}).get("find", {}) if isinstance(setuptools.get("packages"), dict) else {}
+        candidates = [
+            "src",
+            *(pytest_options.get("pythonpath", []) if isinstance(pytest_options.get("pythonpath"), list) else []),
+            *(tool.get("ruff", {}).get("src", []) if isinstance(tool.get("ruff", {}).get("src"), list) else []),
+            *(posixpath.dirname(str(package)) for package in hatch.get("packages", []) or []),
+            *(setuptools.get("package-dir", {}) or {}).values(),
+            *(find.get("where", []) or []),
+            ".",
+        ]
+        for candidate in candidates:
+            root = posixpath.normpath(f"{project or '.'}/{str(candidate).strip('/') or '.'}")
+            if (root == "." or root in graph.directories) and root not in found:
+                found.append(root)
+    return [*found, *(root for root in ("src", ".") if root not in found)]
+
+
 def default_roots(repo: Path) -> list[str]:
     """pytest's `testpaths`, as a test command without paths collects them, or the whole repository."""
     pyproject = repo / "pyproject.toml"
@@ -113,41 +189,34 @@ class ResolvedLanes(BaseModel):
     rules: list[Rule] = Field(default_factory=lambda: effective([], []))
 
 
-def infer(repo: Path, base: str, head: str) -> ResolvedLanes:
-    """Lanes read from the workflows at `head`, with the job and command behind every root."""
+def infer(repo: Path, base: str, head: str, extra: dict[str, Lane] | None = None) -> ResolvedLanes:
+    """Lanes read from the workflows at `head`, with the job and command behind every root.
+
+    `extra` lanes (from an extending lane file) let a workflow with no lane conditions yet start from them.
+    """
     graph = WorkflowGraph(repo, head)
-    directories = graph.directories
     roots: dict[str, set[str]] = {}
     jobs: dict[str, set[str]] = {}
     sources: dict[str, list[str]] = {}
     for (path, name), job in graph.jobs.items():
         if not job.lanes or ALL in job.lanes:
             continue
-        document = graph.documents[path]
         found: set[str] = set()
         evidence: list[str] = []
-        for command, directory in run_steps(document, document["jobs"][name]):
+        for command, directory in graph.commands(path, name):
             for line in command.splitlines():
-                named: list[str] = []
-                if match := TEST_COMMAND.search(line):
-                    named = paths_after(match.group(2), graph.files, directories, directory) or (
-                        [directory] if directory is not None else default_roots(repo)
-                    )
-                elif match := JS_TEST_COMMAND.search(line):
-                    named = paths_after(match.group(2), graph.files, directories, directory) or [directory or "."]
-                if match := UNITTEST.search(line):
-                    named = [match.group(1).removeprefix("./").rstrip("/")]
-                elif (match := TEST_WRAPPER.search(line)) and match.group(1).removeprefix("./") in graph.files:
-                    named = default_roots(repo)
-                if named:
+                if named := line_roots(line, directory, graph, repo):
                     found.update(named)
                     evidence.append(f"roots {', '.join(named)} from {path}#{name}: `{line.strip()}`")
         for lane in job.lanes:
             roots.setdefault(lane, set()).update(found)
             jobs.setdefault(lane, set()).add(f"{path}#{name}")
             sources.setdefault(lane, []).extend(evidence)
-    if not roots:
-        raise ValueError("no job condition reads a lane from the planner; add a lane file")
+    if not roots and not extra:
+        raise ValueError(
+            "no job condition reads a lane from the planner: gate jobs with "
+            "`fromJSON(needs.<planner>.outputs.lanes).<lane>`, or name lanes in a lane file"
+        )
     lanes = {
         name: Lane(roots=sorted(roots[name]), inputs=[] if roots[name] else sorted(jobs[name]))
         for name in sorted(roots)
@@ -155,13 +224,15 @@ def infer(repo: Path, base: str, head: str) -> ResolvedLanes:
     for name, lane in lanes.items():
         if not lane.roots:
             sources[name] = [f"no test command; selected through {', '.join(lane.inputs)}"]
+    for name, lane in (extra or {}).items():
+        lanes.setdefault(name, lane)
     test_roots = sorted({root for lane in lanes.values() for root in lane.roots}) or ["."]
     files = {
         line.split("\t", 1)[1]: line.split()[2]
         for line in git(repo, "ls-tree", "-r", base).splitlines()
         if "\t" in line
     }
-    graph_config = ImpactConfig(module_roots=["src", "."], test_roots=test_roots)
+    graph_config = ImpactConfig(module_roots=module_roots(graph), test_roots=test_roots)
     policy = policy_fingerprints(repo, GitTree(tree=base, files=files, links=[]))
     # Workflows reach lanes through the workflow graph, so only the environment defaults are global.
     config = LaneConfig(
@@ -208,11 +279,12 @@ def resolve(repo: Path, base: str, head: str, lane_file: Path | None) -> Resolve
     unknown = set(document) - {EXTENDS, "lanes", "graph", "global_inputs", "rules", "disable_rules"}
     if unknown:
         raise ValueError(f"{label}: unknown keys {sorted(unknown)}")
-    inferred = infer(repo, base, head)
+    named = {name: Lane.model_validate(value) for name, value in (document.get("lanes") or {}).items()}
+    inferred = infer(repo, base, head, extra=named)
     lanes = dict(inferred.config.lanes)
     sources = dict(inferred.sources)
     for name, value in (document.get("lanes") or {}).items():
-        replaced = name in lanes
+        replaced = name in inferred.jobs
         lanes[name] = Lane.model_validate(value)
         sources[name] = [f"{'overridden' if replaced else 'added'} by {label}"]
     graph = inferred.config.graph.model_copy(update=document.get("graph") or {})

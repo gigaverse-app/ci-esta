@@ -41,6 +41,12 @@ DECLARATION_LINE = re.compile(r"^\s*(?:#|//)(.*gv:test-dependency.*)$")
 #: Where an action refers to its own files.
 ACTION_PATH = re.compile(r"(?:\$\{\{\s*github\.action_path\s*\}\}|\$\{?GITHUB_ACTION_PATH\}?)/([^\s'\"`;|&)]+)")
 ALL = "*"
+#: An action input inside a composite action's step.
+INPUT_EXPRESSION = re.compile(r"\$\{\{\s*inputs\.([A-Za-z0-9_-]+)\s*\}\}")
+#: Inputs of another repository's action that hold a command (`pytest-command`, `run`, `script`).
+COMMAND_INPUT = re.compile(r"(?:^|-)(?:command|run|script)s?$")
+#: Actions that run the repository's Bun tests from an inventory they discover.
+BUN_TEST_ACTIONS = re.compile(r"/actions/run-bun-tests@")
 #: Commands that build, check, install or publish the repository's own package.
 PACKAGE_COMMANDS = re.compile(
     r"\buv build\b|\bpython3? -m build\b|\bpip wheel\b|\b(?:hatch|poetry|pdm|flit) build\b"
@@ -101,6 +107,27 @@ def run_steps(document: dict[str, Any], job: Any) -> list[tuple[str, str | None]
         if isinstance(step, dict) and isinstance(step.get("run"), str):
             directory = working_directory(document, job, step)
             found.append((step["run"], None if directory in {None, "."} else directory))
+    return found
+
+
+def directory_of(value: object) -> str | None:
+    """A repository directory from a `working-directory` value; None for the root or a run-time expression."""
+    if not isinstance(value, str) or "${{" in value:
+        return None
+    directory = posixpath.normpath(value.strip().removeprefix("./"))
+    return None if directory == "." else directory
+
+
+def foreign_checkouts(job: Any) -> list[str]:
+    """Directories where a job checks out another repository; commands there run its files, not ours."""
+    steps = job.get("steps") if isinstance(job, dict) else None
+    found = []
+    for step in steps if isinstance(steps, list) else []:
+        if not isinstance(step, dict) or not str(step.get("uses", "")).startswith("actions/checkout@"):
+            continue
+        options = step.get("with") if isinstance(step.get("with"), dict) else {}
+        if options.get("repository") and (directory := directory_of(options.get("path"))):
+            found.append(directory)
     return found
 
 
@@ -203,6 +230,77 @@ class WorkflowGraph:
                 seen.add(candidate)
                 found |= self.action(candidate, seen)
         return found
+
+    def commands(self, workflow: str, name: str) -> list[tuple[str, str | None]]:
+        """Each command a job runs, with the repository directory it runs in (None for the root).
+
+        Its own `run` steps; the `run` steps of local composite actions it uses, with their inputs
+        filled in; command-valued inputs of other actions (`pytest-command`); and `bun test` for an
+        action that runs the repository's Bun tests. Commands inside another repository's checkout
+        are left out.
+        """
+        document = self.documents[workflow]
+        job = document["jobs"][name]
+        found = run_steps(document, job)
+        steps = job.get("steps") if isinstance(job, dict) else None
+        for step in steps if isinstance(steps, list) else []:
+            if not isinstance(step, dict) or not isinstance(step.get("uses"), str):
+                continue
+            uses = step["uses"]
+            options = step.get("with") if isinstance(step.get("with"), dict) else {}
+            directory = directory_of(options.get("working-directory"))
+            if BUN_TEST_ACTIONS.search(uses):
+                found.append(("bun test", directory))
+            elif uses.startswith("./"):
+                found.extend(self.composite_commands(posixpath.normpath(uses.removeprefix("./") or "."), options))
+            else:
+                found.extend(
+                    (value, directory)
+                    for key, value in options.items()
+                    if isinstance(value, str) and COMMAND_INPUT.search(str(key))
+                )
+        from pytest_selective.impact_graph import within
+
+        foreign = foreign_checkouts(job)
+        return [
+            (command, directory)
+            for command, directory in found
+            if directory is None or not any(within(directory, path) for path in foreign)
+        ]
+
+    def composite_commands(self, directory: str, options: dict[str, Any]) -> list[tuple[str, str | None]]:
+        """The `run` steps of a local composite action, with the caller's inputs or their defaults filled in."""
+        metadata = next(
+            (
+                inside(directory, name)
+                for name in ("action.yml", "action.yaml")
+                if inside(directory, name) in self.files
+            ),
+            None,
+        )
+        if metadata is None:
+            return []
+        document = yaml.safe_load(self.text(metadata) or "") or {}
+        if not isinstance(document, dict):
+            return []
+        declared = document.get("inputs") if isinstance(document.get("inputs"), dict) else {}
+        values = {
+            str(key): str(options.get(key, spec.get("default", "") if isinstance(spec, dict) else ""))
+            for key, spec in declared.items()
+        }
+
+        def filled(text: object) -> object:
+            if not isinstance(text, str):
+                return text
+            return INPUT_EXPRESSION.sub(lambda match: values.get(match[1], match[0]), text)
+
+        runs = document.get("runs") if isinstance(document.get("runs"), dict) else {}
+        steps = runs.get("steps") if isinstance(runs.get("steps"), list) else []
+        return [
+            (str(filled(step["run"])), directory_of(filled(step.get("working-directory"))))
+            for step in steps
+            if isinstance(step, dict) and isinstance(step.get("run"), str)
+        ]
 
     def declared(self, path: str) -> set[str]:
         """Files `path` declares it reads, and theirs in turn, in pytest-selective's syntax; an invalid one raises."""
