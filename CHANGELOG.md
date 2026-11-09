@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.1](https://github.com/gigaverse-app/ci-esta/compare/v1.14.0...v1.14.1) (2026-11-09)
+
+
+### Bug fixes
+
+* **report:** refresh sticky reports after gate configuration changes ([fb029e1](https://github.com/gigaverse-app/ci-esta/commit/fb029e10f88866d362825a02c1c1677bab701346))
+
 ## [1.14.0](https://github.com/gigaverse-app/ci-esta/compare/v1.13.0...v1.14.0) (2026-11-09)
 
 
