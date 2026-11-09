@@ -21,7 +21,23 @@ validation-gate:
         lane-jobs: '{"tests":["unit"]}'
 ```
 
-Here `tests` must execute the complete unit lane when selected. `metadata` and
+Without test selection, pass only `needs`. Every direct prerequisite must then
+succeed; a skipped, failed or cancelled job fails the gate, and no planner is
+involved:
+
+```yaml
+validation-gate:
+  name: Validation gate
+  needs: [tests, typing]
+  if: ${{ !cancelled() }}
+  runs-on: ubuntu-latest
+  steps:
+    - uses: gigaverse-app/ci-esta/actions/validation-gate@v1
+      with:
+        needs: ${{ toJSON(needs) }}
+```
+
+In the lane example, `tests` must execute the complete unit lane when selected. `metadata` and
 `select-tests` remain mandatory because they are not optional entries in
 `lane-jobs`. A job requiring several lanes can list them all; it is optional
 only when every corresponding value is the boolean `false`. The existing

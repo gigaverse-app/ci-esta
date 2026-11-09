@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/gigaverse-app/ci-esta/compare/v1.10.0...v1.11.0) (2026-11-09)
+
+
+### Features
+
+* agent setup round 2, from a second adoption trial ([#167](https://github.com/gigaverse-app/ci-esta/issues/167)) ([a0453ae](https://github.com/gigaverse-app/ci-esta/commit/a0453aef2bab0ba39a89a89541f2cf5432b8c44a))
+
 ## [1.10.0](https://github.com/gigaverse-app/ci-esta/compare/v1.9.1...v1.10.0) (2026-11-09)
 
 

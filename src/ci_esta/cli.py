@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 from datetime import datetime, timezone
+from importlib.metadata import version
 from pathlib import Path
 
 from ci_esta.ci_observability.action import ActionConfig, run
@@ -23,6 +24,7 @@ TOKEN_HELP = (
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CI-esta: GitHub Actions timing, cost estimates and evidence")
+    parser.add_argument("--version", action="version", version=f"ci-esta {version('ci-esta')}")
     commands = parser.add_subparsers(dest="command", required=True)
     adoption = commands.add_parser("adoption", help="Read-only adoption inventory and suggestions; never changes CI")
     adoption.add_argument("--root", type=Path, default=Path("."))

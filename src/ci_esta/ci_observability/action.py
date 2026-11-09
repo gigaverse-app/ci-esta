@@ -484,6 +484,8 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
                 "schema_version": report.schema_version,
                 "collection_status": report.collection_status,
                 "run_id": report.provenance.run_id,
+                # Say why a report is partial where the reader looks first.
+                **({"collection_errors": report.collection_errors} if report.collection_errors else {}),
             }
         )
     )
