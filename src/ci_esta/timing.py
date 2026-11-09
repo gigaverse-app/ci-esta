@@ -25,9 +25,12 @@ def span_seconds(starts: Iterable[float], ends: Iterable[float]) -> float | None
     return None if first is None or last is None or last < first else last - first
 
 
-def format_duration(seconds: float | None, *, rounded: bool = False, hours: bool = True) -> str:
+def format_duration(seconds: float | None, *, rounded: bool = False, hours: bool = True,
+                    style: Literal["elapsed", "runner"] = "elapsed") -> str:
     if seconds is None:
         return "unavailable"
+    if style == "runner":
+        return f"{seconds / 60:.0f} runner-min" if seconds >= 60 else f"{seconds:.0f} runner-s"
     minutes, secs = divmod(round(seconds) if rounded else int(seconds), 60)
     if hours and minutes >= 60:
         whole_hours, minutes = divmod(minutes, 60)

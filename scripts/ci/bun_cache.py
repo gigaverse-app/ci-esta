@@ -6,7 +6,7 @@ import sys
 import time
 from pathlib import Path
 
-# The helper is stdlib-only; the same source is included beside wheel resources.
+# The helper is stdlib-only. Source actions use src; installed wheels already expose the package.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from ci_esta.github_outputs import append_outputs
 

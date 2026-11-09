@@ -198,7 +198,7 @@ class GitHubActionsClient:
 
         return expand(self._repository, run.head_sha, run.path, "", ())
 
-    def _workflow_source(self, repository: str, ref: str, path: str) -> dict[str, Any]:
+    def _workflow_source(self, repository: str, ref: str, path: str) -> dict[str | bool, Any]:
         if not re.fullmatch(r"\.github/workflows/[\w.-]+\.ya?ml", path):
             raise ValueError("Unsupported reusable workflow path")
         headers = {}
@@ -271,7 +271,7 @@ class GitHubActionsClient:
         response.raise_for_status()
         return GitHubRepositoryV1.model_validate_json(response.content).default_branch
 
-    def workflow_source(self, workflow: str, ref: str) -> dict[str, Any]:
+    def workflow_source(self, workflow: str, ref: str) -> dict[str | bool, Any]:
         return self._workflow_source(self._repository, ref, f".github/workflows/{workflow}")
 
     def dispatch_workflow(self, workflow: str, request: WorkflowDispatch) -> None:

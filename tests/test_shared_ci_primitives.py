@@ -35,3 +35,26 @@ def test_elapsed_keeps_zero_but_does_not_invent_missing_or_reversed_time():
     assert elapsed_seconds(start, start - timedelta(seconds=1)) is None
     with pytest.raises(ValueError):
         elapsed_seconds(start, None, strict=True)
+
+
+@pytest.mark.parametrize("seconds, expected", [(0, "0 runner-s"), (59, "59 runner-s"), (90, "2 runner-min")])
+def test_runner_units_preserve_rounded_cost_presentation(seconds, expected):
+    from ci_esta.timing import format_duration
+    assert format_duration(seconds, style="runner") == expected
+
+
+def test_drill_reads_jobs_after_the_first_api_page(monkeypatch):
+    from urllib.parse import parse_qs, urlparse
+
+    from ci_esta import drill
+
+    pages = []
+    def api(path):
+        number = int(parse_qs(urlparse(path).query)["page"][0])
+        pages.append(number)
+        return {"jobs": [{"id": index} for index in (range(100) if number == 1 else [100])]}
+    monkeypatch.setattr(drill, "_api", api)
+    profile = drill.ConsumerProfile(repository="example/repo", workflow="ci.yml", plan_job="plan", pytest_job="tests",
+                                    touch_path="src/feature.py", broad_path="pyproject.toml", always_runs=())
+    assert [job["id"] for job in drill._jobs(profile, {"id": 1})] == list(range(101))
+    assert pages == [1, 2]

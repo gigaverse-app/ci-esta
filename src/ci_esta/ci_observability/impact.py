@@ -5,13 +5,14 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ci_esta.ci_observability import markdown
+from ci_esta.measurements import MeasurementIdentity
 from ci_esta.timing import elapsed_seconds
 
 
-class RunReference(BaseModel):
+class RunReference(MeasurementIdentity):
+    """A hosted benchmark requires a real run and commit, unlike optional local measurements."""
     model_config = ConfigDict(frozen=True, extra="forbid")
     run_id: int = Field(gt=0)
-    run_attempt: int = Field(ge=1)
     head_sha: str = Field(pattern=r"^[0-9a-f]{40}$")
 
 

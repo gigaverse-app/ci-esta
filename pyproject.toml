@@ -48,8 +48,6 @@ include = ["actions", "src", "tests", "scripts", ".github", "docs", "examples", 
 [tool.hatch.build.targets.wheel.force-include]
 "actions" = "ci_esta/_resources/actions"
 "scripts/ci" = "ci_esta/_resources/scripts/ci"
-"src/ci_esta/github_outputs.py" = "ci_esta/_resources/src/ci_esta/github_outputs.py"
-"src/ci_esta/__init__.py" = "ci_esta/_resources/src/ci_esta/__init__.py"
 "pyproject.toml" = "ci_esta/_resources/pyproject.toml"
 "uv.lock" = "ci_esta/_resources/uv.lock"
 
