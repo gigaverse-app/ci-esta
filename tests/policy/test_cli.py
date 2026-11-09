@@ -53,6 +53,16 @@ def test_invalid_selector_output_removes_stale_plan(tmp_path, affected):
     assert not (tmp_path / "plan.json").exists()
 
 
+def test_an_extending_lane_file_points_at_the_planner_output(tmp_path, capsys):
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps({"profiles": {"legacy": {"occasions": ["pr"], "include": ["*"]}}}))
+    lanes = tmp_path / "test-lanes.json"
+    lanes.write_text(json.dumps({"extends": "workflow", "rules": []}))
+    args = ["--policy", str(path), "--profile", "legacy", "--occasion", "pr", "--revision", "abc"]
+    assert main([*args, "--output", str(tmp_path / "plan.json"), "--lanes", str(lanes)]) == 2
+    assert "pass the plan-work output" in capsys.readouterr().err
+
+
 @pytest.mark.parametrize("use_defaults", [False, True])
 def test_actual_action_shell_calls_shipped_planner(tmp_path, use_defaults):
     args = configure(tmp_path)

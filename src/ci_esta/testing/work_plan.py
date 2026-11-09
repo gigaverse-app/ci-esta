@@ -161,8 +161,12 @@ def python_entry_lanes(
             if normalized_name(name) in index.modules
             for path in index.resolve(name)
         }
-        # A changed file the job names is a workflow input already; here only what reaches it by import counts.
-        entries = (modules | {path for path in job.inputs if path.endswith(".py")}) - changed
+        # A changed file the job names is a workflow input already; a module it runs by name is not, so a
+        # change to that module selects the job here, as does anything the module imports.
+        named = {path for path in job.inputs if path.endswith(".py")}
+        for entry in sorted(modules & set(changed)):
+            reasons.setdefault(f"workflow input: {entry} (run by {label})", set()).update(job.lanes)
+        entries = (modules | named) - changed
         for entry in sorted(entries & impacted):
             closure = reachable(edges, {entry})
             via = sorted(path for path in changed if path in closure or contents_node(path) in closure)

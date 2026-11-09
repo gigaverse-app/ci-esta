@@ -425,6 +425,9 @@ def entries(tmp_path: Path) -> tuple[Path, str]:
         ("src/sample/deep.py", {"unit": True, "live": False}),
         # A console script of the repository runs its module.
         ("src/sample/commands.py", {"unit": False, "live": True}),
+        # The module a job runs by name, changed itself.
+        ("src/sample/report.py", {"unit": True, "live": False}),
+        ("src/sample/runner.py", {"unit": False, "live": True}),
         # Package code no job runs and no test imports selects nothing.
         ("src/sample/unused.py", {"unit": False, "live": False}),
     ],
