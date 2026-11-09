@@ -205,6 +205,12 @@ removes redundant comments from the same bot or authenticated user. Other people
 malformed duplicate snapshots are preserved. A failed save never deletes the
 other report. This recovery is not a cross-workflow lock.
 
+When the required-gate configuration changes, a newer report can replace the old
+report even if the new aggregate gate replaces several individual gates. Within
+one gate configuration, a partial observation cannot replace a more complete one.
+Older runs and attempts cannot overwrite a newer source run. Existing snapshot
+markers without gate identities remain readable.
+
 Install these inputs only after the release containing them is available at
 `@v1`. Automatic `workflow_run` observers load their definition from the default
 branch; changing a PR branch does not update that observer until merge.

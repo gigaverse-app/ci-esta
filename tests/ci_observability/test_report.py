@@ -380,6 +380,7 @@ def test_report_separates_latest_topology_from_all_attempt_runner_cost() -> None
     assert "transitive DAG" in markdown
     assert STICKY_MARKER in markdown
     assert sticky_snapshot(report).completed_gates == 2
+    assert sticky_snapshot(report).gate_identities == (f"actions_job:{GATE_RUNNER}", f"commit_status:{STATUS_CONTEXT}")
 
     metrics = render_prometheus(report)
     assert 'gate_conclusion="success",schema_version="v1"' in metrics

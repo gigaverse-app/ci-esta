@@ -12,9 +12,10 @@ MARKER = sticky_marker("CI")
 AUTHOR = {"id": 42, "login": "github-actions[bot]", "type": "Bot"}
 
 
-def body(run):
-    snapshot = StickySnapshotV1(run_id=run, run_attempt=1, completed_gates=1,
-                                observed_at=datetime(2026, 10, 23, tzinfo=timezone.utc))
+def body(run, **snapshot_fields):
+    snapshot = StickySnapshotV1.model_validate({
+        "run_id": run, "run_attempt": 1, "completed_gates": 1,
+        "observed_at": datetime(2026, 10, 23, tzinfo=timezone.utc), **snapshot_fields})
     return f"report {run}\n{MARKER}\n<!-- ci-observability-snapshot {snapshot.model_dump_json()} -->", snapshot
 
 
@@ -47,10 +48,10 @@ class Comments:
         self.comments.pop(identifier, None)
         return httpx.Response(204)
 
-    def publish(self, run):
+    def publish(self, run, **snapshot_fields):
         client = GitHubActionsClient("example/repo", "token", transport=httpx.MockTransport(self.request))
         try:
-            content, snapshot = body(run)
+            content, snapshot = body(run, **snapshot_fields)
             return client.upsert_sticky(7, MARKER, content, snapshot)
         finally:
             client.close()
@@ -101,3 +102,38 @@ def test_user_token_updates_its_own_sticky_without_editing_another_humans_quote(
     assert len(api.comments) == 2
     assert api.comments[1] == quote
     assert api.comments[identifier]["body"] == body(300)[0]
+
+
+@pytest.mark.parametrize("prior_gates", [None, ("actions_job:Validation gate", "actions_job:test", "actions_job:checks", "actions_job:run-maestro-es5")])
+def test_new_gate_configuration_replaces_stale_report_without_changing_permalink(prior_gates):
+    previous = body(100, completed_gates=4, gate_identities=prior_gates)[0]
+    api = Comments(comment(1, 100, body=previous))
+    current = {"gate_identities": ("actions_job:Validation gate",),
+               "observed_at": datetime(2026, 10, 24, tzinfo=timezone.utc)}
+    assert api.publish(100, **current) == 1
+    assert api.comments[1]["body"] == body(100, **current)[0]
+    assert list(api.comments) == [1]
+
+
+@pytest.mark.parametrize("replacement", [
+    {"gate_identities": ("actions_job:Validation gate",), "completed_gates": 0,
+     "observed_at": datetime(2026, 10, 25, tzinfo=timezone.utc)},
+    {"gate_identities": ("actions_job:old gate",), "completed_gates": 4},
+    {"gate_identities": None, "completed_gates": 4,
+     "observed_at": datetime(2026, 10, 25, tzinfo=timezone.utc)},
+])
+def test_partial_stale_or_legacy_observer_cannot_replace_current_gate_report(replacement):
+    previous = body(100, gate_identities=("actions_job:Validation gate",),
+                    observed_at=datetime(2026, 10, 24, tzinfo=timezone.utc))[0]
+    api = Comments(comment(1, 100, body=previous))
+    assert api.publish(100, **replacement) == 1
+    assert api.comments[1]["body"] == previous
+
+
+@pytest.mark.parametrize("run,attempt", [(99, 9), (100, 0)])
+def test_changed_gate_configuration_cannot_rewind_the_source_run_or_attempt(run, attempt):
+    previous = body(100, gate_identities=("actions_job:Validation gate",))[0]
+    api = Comments(comment(1, 100, body=previous))
+    api.publish(run, run_attempt=attempt, gate_identities=("actions_job:older gate",), completed_gates=4,
+                observed_at=datetime(2026, 10, 25, tzinfo=timezone.utc))
+    assert api.comments[1]["body"] == previous
