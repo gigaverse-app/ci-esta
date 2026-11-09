@@ -420,7 +420,7 @@ def entries(tmp_path: Path) -> tuple[Path, str]:
         ("src/sample/format.py", {"unit": True, "live": False}),
         # `"$PY" -m sample.runner`, in an action that names its own directory through `env`.
         ("src/sample/engine.py", {"unit": False, "live": True}),
-        ("scripts/runtime.sh", {"unit": False, "live": True}),
+        ("scripts/runtime.sh", {"unit": True, "live": True}),
         # A module name a wrapper script receives as an argument.
         ("src/sample/deep.py", {"unit": True, "live": False}),
         # A console script of the repository runs its module.
