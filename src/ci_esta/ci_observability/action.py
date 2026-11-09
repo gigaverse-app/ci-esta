@@ -11,6 +11,8 @@ from pathlib import Path
 from time import perf_counter
 from typing import TYPE_CHECKING
 
+from ci_esta.github_outputs import append_outputs
+
 if TYPE_CHECKING:
     from pytest_selective.impact_models import SelectionExplanation
 
@@ -148,12 +150,8 @@ def _write_outputs(config: ActionConfig, report_json: str, markdown: str, promet
         with Path(summary_path).open("a") as summary:
             summary.write(markdown + "\n")
 
-    output_path = os.environ.get("GITHUB_OUTPUT")
-    if output_path:
-        with Path(output_path).open("a") as output:
-            output.write(f"report-file={config.report_output}\n")
-            output.write(f"markdown-file={config.markdown_output}\n")
-            output.write(f"prometheus-file={config.prometheus_output}\n")
+    append_outputs(**{"report-file": str(config.report_output), "markdown-file": str(config.markdown_output),
+                      "prometheus-file": str(config.prometheus_output)})
 
 
 def _write_reference(config: ActionConfig, reference: FullSuiteReferenceV1) -> None:

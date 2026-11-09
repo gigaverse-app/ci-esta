@@ -1,6 +1,7 @@
 """Every runtime test, build and smoke command must be admitted by dependency selection."""
 # gv:test-dependency: .github/workflows/ci.yml
 # gv:test-dependency: .github/workflows/public-actions.yml
+# gv:test-dependency: .github/workflows/weekly-checkpoint.yml
 
 import json
 import re
@@ -14,6 +15,7 @@ RUNTIME = (
     "-m unittest",
     "node --test",
     "run_ci_tests.py",
+    "pytest-selective execute-plan",
     "smoke_distribution.py",
     "check_wheel.py",
     "check_core_is_framework_free.py",
@@ -95,9 +97,14 @@ def test_ordinary_pushes_do_not_force_full_tests():
 
 
 def test_dogfood_planners_have_weekly_full_checkpoints_without_receipt_reuse():
+    checkpoint = yaml.safe_load((ROOT / ".github/workflows/weekly-checkpoint.yml").read_text())
+    assert checkpoint[True]["schedule"]
+    dispatch = checkpoint["jobs"]["dispatch"]["steps"][-1]
+    assert dispatch["uses"] == "./actions/weekly-checkpoint"
+    assert set(json.loads(dispatch["with"]["workflows"])) == {"ci.yml", "public-actions.yml"}
     for name, planner in (("ci.yml", "plan"), ("public-actions.yml", "select-tests")):
         workflow = yaml.safe_load((ROOT / ".github/workflows" / name).read_text())
-        assert workflow[True]["schedule"]
+        assert "workflow_dispatch" in workflow[True] and "schedule" not in workflow[True]
         steps = workflow["jobs"][planner]["steps"]
         selection = next(step for step in steps if step.get("id") in {"selection", "select"})
         assert selection["uses"] == "./actions/plan-work"

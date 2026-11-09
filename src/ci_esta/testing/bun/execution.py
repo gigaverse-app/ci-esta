@@ -1,16 +1,17 @@
 """Run native Bun batches and require measured completion before reporting success."""
 
-import json
 import math
 import os
 import re
 import subprocess
 import sys
 import time
+from functools import partial
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from ci_esta.github_outputs import append_outputs
 from ci_esta.testing.bun.models import BatchExecution, BunExecution, ReportContext, RunRequest
 from ci_esta.testing.bun.report import work_selection_report
 from ci_esta.testing.bun.selection import plan_affected_tests, read_inventory, read_test_selection
@@ -30,17 +31,10 @@ def write_json(path: Path, value: BaseModel) -> None:
     path.write_text(value.model_dump_json(by_alias=True, exclude_none=False, indent=2) + "\n")
 
 
-def append_outputs(**values: str | bool | int) -> None:
-    if path := os.environ.get("GITHUB_OUTPUT"):
-        with Path(path).open("a") as output:
-            for key, value in values.items():
-                output.write(f"{key}={str(value).lower() if isinstance(value, bool) else value}\n")
 
 
-def report_context() -> ReportContext:
-    event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text()) if os.environ.get("GITHUB_EVENT_PATH") else {}
-    return ReportContext(run_id=int(os.environ["GITHUB_RUN_ID"]), attempt=int(os.environ["GITHUB_RUN_ATTEMPT"]),
-                         head_sha=event.get("pull_request", {}).get("head", {}).get("sha") or os.environ["GITHUB_SHA"])
+
+report_context = partial(ReportContext.from_environment, required=True)
 
 
 def _execute_batch(request: RunRequest, index: int, files: list[str], affected: bool, base: str) -> BatchExecution:

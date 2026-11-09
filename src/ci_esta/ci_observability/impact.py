@@ -1,15 +1,18 @@
 """Explicit benchmark pairs, measured from GitHub rather than supplied savings numbers."""
+from functools import partial
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ci_esta.ci_observability import markdown
+from ci_esta.measurements import MeasurementIdentity
+from ci_esta.timing import elapsed_seconds
 
 
-class RunReference(BaseModel):
+# Hosted benchmarks require a real run and commit; local measurements can lack them.
+class RunReference(MeasurementIdentity):
     model_config = ConfigDict(frozen=True, extra="forbid")
     run_id: int = Field(gt=0)
-    run_attempt: int = Field(ge=1)
     head_sha: str = Field(pattern=r"^[0-9a-f]{40}$")
 
 
@@ -43,10 +46,7 @@ class ImpactResult(BaseModel):
     error: str | None = None
 
 
-def _seconds(start, end):
-    if start is None or end is None or end < start:
-        raise ValueError("measurement timestamps unavailable or invalid")
-    return (end - start).total_seconds()
+_seconds = partial(elapsed_seconds, strict=True)
 
 
 def _measure(request, run, jobs):

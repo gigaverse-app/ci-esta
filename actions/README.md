@@ -18,6 +18,7 @@ Each piece is matched to the shape of the shared work:
 
 | Piece | Kind | Reused by |
 |-------|------|-----------|
+| [`weekly-checkpoint`](../docs/weekly-checkpoints.md) | composite action + CLI | Scheduled full validation with configurable workflows, ref and inputs |
 | [`setup-cached-bun`](../docs/environment-cache.md#bun-dependency-downloads) | composite action | Pinned Bun, locked installation and measured dependency downloads |
 | [`report-cache`](../docs/environment-cache.md#other-download-build-and-tool-caches) | composite action | Caller-owned compiler and tool caches with exact/fallback outcomes |
 | [`run-bun-tests`](../docs/bun-test-selection.md) | composite action + standalone JS API | Bun source selection with repository-owned inventory and always-run contracts |

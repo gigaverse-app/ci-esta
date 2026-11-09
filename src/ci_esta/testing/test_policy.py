@@ -4,6 +4,7 @@ import json
 import re
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -13,12 +14,9 @@ from ci_esta.resources import source_root
 from ci_esta.testing.gha_expressions import evaluate_value
 
 
-def plan_workflow(workflow: Path, job: str, context: dict, *, step: str = "policy") -> ExecutionPlan:
-    """Render action defaults and workflow expressions; fail on invalid routing.
-
-    Event fields and upstream selector outputs are the test boundaries. The
-    production workflow, action defaults and planner determine the result.
-    """
+def workflow_inputs(workflow: Path, job: str, context: dict[str, Any], *, step: str = "policy",
+                    root: Path | None = None) -> dict[str, str]:
+    """Resolve the real action defaults, expressions and repository paths once."""
     document = yaml.safe_load(workflow.read_text(encoding="utf-8"))
     call = next(item for item in document["jobs"][job]["steps"] if item.get("id") == step)
     if "/plan-test-policy@" not in call.get("uses", ""):
@@ -34,16 +32,27 @@ def plan_workflow(workflow: Path, job: str, context: dict, *, step: str = "polic
 
         return re.sub(r"\$\{\{.*?\}\}", replace, str(value), flags=re.DOTALL)
 
-    root = workflow.resolve().parents[2]
+    root = root or workflow.resolve().parents[2]
+    rendered = {key: render(value) for key, value in inputs.items()}
+    for key in ("policy", "lanes", "inventory"):
+        if rendered.get(key):
+            rendered[key] = str(root / rendered[key])
+    return rendered
+
+
+def plan_workflow(workflow: Path, job: str, context: dict[str, Any], *, step: str = "policy") -> ExecutionPlan:
+    """Render action defaults and workflow expressions; fail on invalid routing.
+
+    Event fields and upstream selector outputs are the test boundaries. The
+    production workflow, action defaults and planner determine the result.
+    """
+    inputs = workflow_inputs(workflow, job, context, step=step)
     with tempfile.TemporaryDirectory() as directory:
         destination = Path(directory) / "plan.json"
         args = ["--output", str(destination), "--github-output", ""]
         for key, value in inputs.items():
             if key == "output":
                 continue
-            value = render(value)
-            if key in {"policy", "lanes", "inventory"} and value:
-                value = str(root / value)
             args.extend([f"--{key}", value])
         if main(args) != 0:
             raise AssertionError("Production policy inputs failed planning")

@@ -4,7 +4,6 @@ Run independent shard commands concurrently inside one CI runner.
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import time
@@ -12,7 +11,7 @@ from pathlib import Path
 
 from pydantic import Field
 
-from ci_esta.measurements import ShardInterval, ShardPoolMeasurement
+from ci_esta.measurements import MeasurementIdentity, ShardInterval, ShardPoolMeasurement
 from ci_esta.testing.runner_pools import ShardRange
 
 
@@ -72,13 +71,9 @@ def _wait_for_shards(
 def _write_measurements(config: LocalShardRunConfig, intervals: list[ShardInterval]) -> None:
     """Best effort telemetry never changes the child-process verdict."""
     try:
-        head = os.environ.get("GITHUB_SHA", "")
-        if event_path := os.environ.get("GITHUB_EVENT_PATH"):
-            event = json.loads(Path(event_path).read_text())
-            head = event.get("pull_request", {}).get("head", {}).get("sha", head)
+        identity = MeasurementIdentity.from_environment()
         measurement = ShardPoolMeasurement(
-            run_id=int(os.environ.get("GITHUB_RUN_ID", "0")),
-            run_attempt=int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")), head_sha=head,
+            **identity.model_dump(),
             pool=f"{os.environ.get('GITHUB_JOB', 'local')}:{min(config.shard_indices)}-{max(config.shard_indices)}",
             configured_shards=config.shard_count, cpu_count=os.cpu_count(), shards=intervals,
         )

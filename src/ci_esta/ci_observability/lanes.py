@@ -12,12 +12,15 @@ path and reason goes through `markdown`.
 
 from __future__ import annotations
 
+from functools import partial
+
 from pytest_selective.ci import LanePlan
 
 from ci_esta.ci_observability import markdown
 from ci_esta.ci_observability.brand import SELECTIVE_URL, Badge, quantity
 from ci_esta.ci_observability.job_names import job_family
 from ci_esta.ci_observability.models import GitHubJobV1, GitHubRunV1, LaneSelectionSectionV1, SkippedLaneReferenceV1
+from ci_esta.timing import format_duration
 
 #: Reasons listed per lane before the rest are counted: GitHub caps a comment at 65,536 characters.
 LISTED_REASONS = 3
@@ -62,9 +65,7 @@ def skipped_reference(
     )
 
 
-def _minutes(seconds: float) -> str:
-    minutes = seconds / 60
-    return f"{minutes:.0f} runner-min" if minutes >= 1 else f"{seconds:.0f} runner-s"
+_minutes = partial(format_duration, style="runner")
 
 
 def ran_lanes(plan: LanePlan) -> list[str]:

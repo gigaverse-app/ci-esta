@@ -13,6 +13,7 @@ from ci_esta.ci_observability.enrichment.backend.models import (
     RUNNER_TEST_SHARD_PREFIX,
     BackendExtensions,
 )
+from ci_esta.timing import span_seconds
 
 
 class SharedObservedJob(BaseModel):
@@ -75,13 +76,16 @@ def _runner_lane_seconds(report: SharedReport) -> float | None:
     ]
     if not jobs:
         return None
-    return max(job.end_offset_seconds or 0 for job in jobs) - min(job.start_offset_seconds or 0 for job in jobs)
+    return span_seconds(
+        (value for job in jobs if (value := job.start_offset_seconds) is not None),
+        (value for job in jobs if (value := job.end_offset_seconds) is not None),
+    )
 
 
 def _elapsed_span_seconds(report: SharedReport) -> float | None:
     starts = [job.start_offset_seconds for job in report.latest_attempt_jobs if job.start_offset_seconds is not None]
     ends = [job.end_offset_seconds for job in report.latest_attempt_jobs if job.end_offset_seconds is not None]
-    return max(ends) - min(starts) if starts and ends else None
+    return span_seconds(starts, ends)
 
 
 def _legacy_core_lane_seconds(report: SharedReport) -> float | None:

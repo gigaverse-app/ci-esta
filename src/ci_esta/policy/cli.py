@@ -9,6 +9,7 @@ from pathlib import Path
 import yaml
 from pydantic import TypeAdapter
 
+from ci_esta.github_outputs import append_outputs
 from ci_esta.policy import ExecutionPlan, Policy, Request, Work, plan
 from ci_esta.policy.defaults import profile_for_run
 
@@ -33,11 +34,8 @@ def write_outputs(result: ExecutionPlan, output: str) -> None:
         "profile": result.request.profile,
         "plan": result.model_dump(mode="json"),
     }
-    if output:
-        with Path(output).open("a", encoding="utf-8") as stream:
-            for key, value in values.items():
-                encoded = value if isinstance(value, str) else json.dumps(value, separators=(",", ":"))
-                stream.write(f"{key}={encoded}\n")
+    append_outputs(output, **{key: value if isinstance(value, str) else json.dumps(value, separators=(",", ":"))
+                                    for key, value in values.items()})
 
 
 def main(argv: list[str] | None = None) -> int:

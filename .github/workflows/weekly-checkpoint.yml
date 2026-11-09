@@ -1,0 +1,20 @@
+name: Weekly full checkpoint
+on:
+  schedule:
+    - cron: '23 3 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: weekly-full-checkpoint
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./actions/weekly-checkpoint
+        with:
+          workflows: '["ci.yml", "public-actions.yml"]'
