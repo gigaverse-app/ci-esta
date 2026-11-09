@@ -9,8 +9,8 @@ Start with a report if you do not know the bottleneck. If repeated dependency
 installation is already the problem, replace those setup steps directly. Use
 [the public action version policy](actions.md#availability-and-pinning): the
 root/short paths below use `@v1` for automatic compatible 1.x upgrades.
-If your project pins actions to commit SHAs, pin these the same way
-([resolve a tag to its SHA](actions.md#availability-and-pinning)).
+Keep `@v1` even if other actions are SHA-pinned; pin these to a SHA only when your
+tooling rejects tags ([pinning policy](actions.md#availability-and-pinning)).
 
 ## Report a completed workflow
 

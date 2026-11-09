@@ -24,6 +24,7 @@ from ci_esta.ci_observability.models import (
     SelectionSectionV1,
 )
 from ci_esta.ci_observability.report import (
+    NO_GATE,
     STICKY_MARKER,
     build_report,
     build_unavailable_report,
@@ -537,7 +538,8 @@ def test_active_skipped_reversed_and_missing_gate_data_are_explicit() -> None:
     )
 
     assert report.collection_status == CollectionStatus.PARTIAL
-    assert report.collection_errors == ["required gate metadata was not provided"]
+    assert report.collection_errors == [NO_GATE]
+    assert "--gate" in NO_GATE
     assert report.runner_cost.raw_runner_seconds == 200.0
     assert report.runner_cost.estimated_rounded_runner_minutes == 4
     assert report.latest_attempt_jobs[0].timing_status == "accrued"
@@ -941,3 +943,29 @@ def test_the_sticky_marker_stays_out_of_the_visible_footer() -> None:
         "<sub>[Reading this report](https://github.com/gigaverse-app/ci-esta/blob/main/docs/github-actions-observability.md) "
         f"· [run {RUN_ID}](https://github.com/{REPOSITORY}/actions/runs/{RUN_ID}) · schema `ci-observability/v1`</sub>",
     ]
+
+
+def test_longest_runner_wait_is_reported_beside_the_first_job_admission() -> None:
+    """The itsdangerous trial: Linux started in 2 s while Mac waited 4 minutes for a runner."""
+    def queued(name: str, job_id: int, created: int, started: int | None, ended: int | None,
+               conclusion: str = "success") -> GitHubJobV1:
+        at = lambda seconds: CREATED_AT + timedelta(seconds=seconds) if seconds is not None else None  # noqa: E731
+        return GitHubJobV1(id=job_id, name=name, status="completed", conclusion=conclusion,
+                           created_at=at(created), started_at=at(started), completed_at=at(ended))
+
+    first_attempt = _run().model_copy(update={"run_attempt": 1})
+    jobs = [queued("3.13", 1, 1, 3, 20), queued("Mac", 2, 1, 247, 270), queued("Docs", 3, 1, None, None, "skipped")]
+    report = build_report(repository=REPOSITORY, pull_request_number=None, run=first_attempt, latest_jobs=jobs,
+                          billing_jobs=jobs, commit_statuses=[], gate_selectors=[], observed_at=OBSERVED_AT)
+    assert report.workflow_job_admission_delay_seconds == 3
+    assert [job.queue_seconds for job in report.latest_attempt_jobs] == [2, 246, None]
+    assert (report.longest_job_queue_name, report.longest_job_queue_seconds) == ("Mac", 246)
+    assert "| Mac · 4m 6s |" in render_markdown(report)
+    assert "ci_longest_job_queue_seconds" in render_prometheus(report)
+
+    # Without Mac's queue time the maximum is unknown, not the 2 s of the jobs that have one.
+    jobs[1] = jobs[1].model_copy(update={"created_at": None})
+    report = build_report(repository=REPOSITORY, pull_request_number=None, run=first_attempt, latest_jobs=jobs,
+                          billing_jobs=jobs, commit_statuses=[], gate_selectors=[], observed_at=OBSERVED_AT)
+    assert report.latest_attempt_jobs[1].queue_seconds is None
+    assert report.longest_job_queue_seconds is None and report.longest_job_queue_name is None
