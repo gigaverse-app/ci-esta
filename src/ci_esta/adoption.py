@@ -25,6 +25,8 @@ BUN_TESTS = re.compile(r"\bbun\s+test\b")
 # Jobs that still run after a failed prerequisite; a gate reached only through one can miss that failure.
 RUNS_AFTER_FAILURE = re.compile(r"always\(\)|!\s*cancelled\(\)|failure\(\)")
 GATE_ACTIONS = ("re-actors/alls-green", "gigaverse-app/ci-esta/actions/validation-gate")
+# Planners whose output decides which entries share a runner; a matrix read from one is already packed.
+PACKING_ACTIONS = ("gigaverse-app/ci-esta/actions/plan-runner-pools", "gigaverse-app/ci-esta/actions/plan-pytest-shards")
 SHA_REF = re.compile(r"@[0-9a-f]{40}$")
 
 
@@ -80,6 +82,8 @@ class JobSummary(BaseModel):
     matrix_size: int | None = None
     matrix: bool = False
     test_commands: list[str] = Field(default_factory=list)
+    #: The job whose plan-runner-pools or plan-pytest-shards output builds this job's matrix, if any.
+    packed_by: str | None = None
     #: `if: always()`, `!cancelled()` or `failure()`: the job runs, and can succeed, after a prerequisite failed.
     runs_after_failure: bool = False
     gate_candidate: bool = False
@@ -138,6 +142,8 @@ def _matrix_size(matrix: dict[str, object] | str | None) -> int | None:
 
 def _summarize(source: str, parsed: _Source, raw: dict) -> WorkflowSummary:
     jobs = []
+    planners = {job_id for job_id, job in parsed.jobs.items()
+                if any(step.uses.startswith(PACKING_ACTIONS) for step in job.steps)}
     for job_id, job in parsed.jobs.items():
         needs = [job.needs] if isinstance(job.needs, str) else list(job.needs)
         commands = [command for step in job.steps if step.run for command in PYTHON_TESTS.findall(step.run)]
@@ -145,8 +151,10 @@ def _summarize(source: str, parsed: _Source, raw: dict) -> WorkflowSummary:
         aggregates = any(step.uses.startswith(GATE_ACTIONS) for step in job.steps)
         after_failure = bool(RUNS_AFTER_FAILURE.search(str(job.condition or "")))
         matrix = job.strategy.matrix if job.strategy else None
+        packed_by = next((need for need in needs if need in planners
+                          and re.search(rf"needs\.{re.escape(need)}\.outputs\.", str(matrix))), None)
         jobs.append(JobSummary(
-            id=job_id, name=job.name or job_id, needs=needs, matrix=matrix is not None,
+            id=job_id, name=job.name or job_id, needs=needs, matrix=matrix is not None, packed_by=packed_by,
             matrix_size=_matrix_size(matrix), test_commands=sorted(set(commands)), runs_after_failure=after_failure,
             gate_candidate=aggregates or (after_failure and len(needs) >= 2),
         ))
@@ -291,7 +299,8 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
                            f"green. Add {', '.join(hidden)} to the gate's needs and prove it with a failing probe.",
                            [flow.source], GATE_GUIDE)
         for job in flow.jobs:
-            if job.test_commands and job.matrix and (job.matrix_size is None or job.matrix_size >= 3):
+            if (job.test_commands and job.matrix and not job.packed_by
+                    and (job.matrix_size is None or job.matrix_size >= 3)):
                 size = "a run-time matrix" if job.matrix_size is None else f"{job.matrix_size} matrix jobs"
                 advise("matrix-setup", f"{flow.source}: '{job.id}' runs {', '.join(job.test_commands)} in {size}. "
                        "If the report shows per-job setup comparable to test time, pack several matrix entries per "
@@ -348,6 +357,8 @@ def render(report: AdoptionReport) -> str:
             facts = []
             if job.matrix:
                 facts.append("run-time matrix" if job.matrix_size is None else f"matrix of {job.matrix_size}")
+            if job.packed_by:
+                facts.append(f"packed by '{job.packed_by}'")
             if job.test_commands:
                 facts.append("runs " + ", ".join(job.test_commands))
             if facts:

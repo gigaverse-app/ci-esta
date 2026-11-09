@@ -207,6 +207,46 @@ def test_report_names_the_gate_its_blind_spots_and_the_measurement_to_run(tmp_pa
     assert "--workflow ci.yml" in measure and "--gate 'All required checks'" in measure
 
 
+PACKED = """
+name: Tests
+on: [pull_request]
+jobs:
+  plan:
+    outputs:
+      pools: ${{ steps.pools.outputs.pools }}
+    steps:
+      - id: pools
+        uses: gigaverse-app/ci-esta/actions/plan-runner-pools@v1
+        with: {shards: '4', shards-per-runner: '2'}
+  tests-linux:
+    name: ${{ join(matrix.pool.versions, ', ') }}
+    needs: %s
+    strategy:
+      matrix:
+        pool: ${{ fromJSON(needs.%s.outputs.pools) }}
+    steps:
+      - run: uv run --locked tox run-parallel -e "$ENVS"
+"""
+
+
+def test_matrix_already_packed_by_plan_runner_pools_is_not_told_to_pack(tmp_path):
+    write(tmp_path, ".github/workflows/tests.yaml", PACKED % ("plan", "plan"))
+    report = audit(tmp_path)
+    job = next(job for job in report["workflows"][0]["jobs"] if job["id"] == "tests-linux")
+    assert job["packed_by"] == "plan"
+    assert "matrix-setup" not in {item["id"] for item in report["suggestions"]}
+    text = subprocess.run([sys.executable, "-m", "ci_esta.cli", "adoption", "--root", str(tmp_path)],
+                          capture_output=True, text=True).stdout
+    assert "tests-linux: run-time matrix; packed by 'plan'; runs tox" in text
+
+
+def test_matrix_from_an_unrelated_job_output_is_still_a_packing_candidate(tmp_path):
+    workflow = (PACKED % ("[plan, versions]", "versions")).replace("jobs:\n", "jobs:\n  versions: {}\n", 1)
+    write(tmp_path, ".github/workflows/tests.yaml", workflow)
+    report = audit(tmp_path)
+    assert "matrix-setup" in {item["id"] for item in report["suggestions"]}
+
+
 def test_gate_that_needs_its_test_jobs_directly_has_no_blind_spot(tmp_path):
     write(tmp_path, ".github/workflows/ci.yml", TOX_CI.replace("needs: [coverage, lint]", "needs: [tests, coverage, lint]"))
     report = audit(tmp_path)
