@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.14.0](https://github.com/gigaverse-app/ci-esta/compare/v1.13.0...v1.14.0) (2026-11-09)
+
+
+### Features
+
+* **planning:** support filename lanes and correct workflow input ownership ([9018f39](https://github.com/gigaverse-app/ci-esta/commit/9018f39c16abdef8383bb00d2d8732fe9e2a0122))
+
+
+### Bug fixes
+
+* **check-workflow:** reject jobs the gate requires but their conditions can skip ([#190](https://github.com/gigaverse-app/ci-esta/issues/190)) ([13ab0b4](https://github.com/gigaverse-app/ci-esta/commit/13ab0b492f2ab29d305f777fc15c2a241cdda6fb))
+* **plan-work:** handle a missing base, plan against the tested merge, and read pytest-selective runners ([#185](https://github.com/gigaverse-app/ci-esta/issues/185)) ([310b0bf](https://github.com/gigaverse-app/ci-esta/commit/310b0bfe9239ae996022f1034db127400c3656bb))
+* **plan-work:** require pytest-selective 1.3 for the tested-merge base and prove it ([#188](https://github.com/gigaverse-app/ci-esta/issues/188)) ([e47eb84](https://github.com/gigaverse-app/ci-esta/commit/e47eb84f7a27cb2bc8445f6b15b76c367ab4b56e))
+* **planning:** read lanes from conditions that give the planner output a fallback ([#183](https://github.com/gigaverse-app/ci-esta/issues/183)) ([67fe170](https://github.com/gigaverse-app/ci-esta/commit/67fe170f266880cfd1b11cb96184b6890d4e3916))
+* **planning:** select a job when the module it runs by name changes ([0ab88ce](https://github.com/gigaverse-app/ci-esta/commit/0ab88cefb92004f0e4b79580b39288a5ef1b7d76))
+
 ## [1.13.0](https://github.com/gigaverse-app/ci-esta/compare/v1.12.0...v1.13.0) (2026-11-09)
 
 
