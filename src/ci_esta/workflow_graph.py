@@ -19,6 +19,8 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+import tomllib
+
 import yaml
 
 from ci_esta.git import git
@@ -41,6 +43,8 @@ DECLARATION_LINE = re.compile(r"^\s*(?:#|//)(.*gv:test-dependency.*)$")
 #: Where an action refers to its own files.
 ACTION_PATH = re.compile(r"(?:\$\{\{\s*github\.action_path\s*\}\}|\$\{?GITHUB_ACTION_PATH\}?)/([^\s'\"`;|&)]+)")
 ALL = "*"
+#: `python -m MODULE`: the job runs that module, and so everything it imports.
+PYTHON_MODULE = re.compile(r"\bpython(?:3(?:\.\d+)?)?\b[^\n;&|]*?\s-m\s+([A-Za-z_][\w.]*)")
 #: An action input inside a composite action's step.
 INPUT_EXPRESSION = re.compile(r"\$\{\{\s*inputs\.([A-Za-z0-9_-]+)\s*\}\}")
 #: Inputs of another repository's action that hold a command (`pytest-command`, `run`, `script`).
@@ -70,6 +74,8 @@ class Job:
     packages: bool = False
     #: The lanes the job-level condition reads; a step's own condition gates only that step.
     job_lanes: set[str] = field(default_factory=set)
+    #: Python modules the job runs (`python -m X`, a console script), directly or through its local actions.
+    modules: set[str] = field(default_factory=set)
 
 
 def strings(value: Any) -> list[str]:
@@ -181,6 +187,10 @@ class WorkflowGraph:
         self.declarations: dict[str, set[str]] = {}
         #: Metadata of local actions that plan lanes (`uses: ./actions/plan-lanes`).
         self.planning_actions: set[str] = set()
+        #: Each local action's metadata and the commands its `runs` holds.
+        self.action_texts: dict[str, list[str]] = {}
+        #: The repository's console scripts (`[project.scripts]`), name to module.
+        self.scripts = self.console_scripts()
         self.jobs: dict[tuple[str, str], Job] = {}
         for path in sorted(self.files):
             if is_workflow(path):
@@ -226,7 +236,36 @@ class WorkflowGraph:
             lanes = {ALL}
         condition = job.get("if") if isinstance(job, dict) else None
         job_lanes = lane_references(str(condition)) if condition is not None else set()
-        return Job(lanes=lanes, inputs=inputs, packages=packages, job_lanes=job_lanes & lanes or lanes)
+        commands = [*texts, *(text for path in sorted(inputs) for text in self.action_texts.get(path, []))]
+        return Job(
+            lanes=lanes,
+            inputs=inputs,
+            packages=packages,
+            job_lanes=job_lanes & lanes or lanes,
+            modules=self.modules(commands),
+        )
+
+    def console_scripts(self) -> dict[str, str]:
+        """Every tracked project's `[project.scripts]`, as name to module."""
+        found: dict[str, str] = {}
+        for path in sorted(path for path in self.files if PurePosixPath(path).name == "pyproject.toml"):
+            try:
+                project = tomllib.loads(self.text(path) or "").get("project", {})
+            except tomllib.TOMLDecodeError:
+                continue
+            scripts = project.get("scripts") if isinstance(project, dict) else None
+            for name, target in (scripts if isinstance(scripts, dict) else {}).items():
+                found[str(name)] = str(target).split(":", 1)[0].strip()
+        return found
+
+    def modules(self, commands: list[str]) -> set[str]:
+        """Python modules `commands` run: `python -m X`, or a console script of this repository."""
+        found = {match for text in commands for match in PYTHON_MODULE.findall(text)}
+        for name, module in self.scripts.items():
+            script = re.compile(rf"(?:^|[\s;&|(`'\"]){re.escape(name)}(?=[\s;&|)`'\"]|$)", re.MULTILINE)
+            if any(script.search(text) for text in commands):
+                found.add(module)
+        return found
 
     def references(self, texts: list[str], seen: set[str], action_dir: str | None = None) -> set[str]:
         """Repository files named in `texts`, followed through local actions and reusable workflows."""
@@ -352,6 +391,7 @@ class WorkflowGraph:
                 ]
                 if any(PLANNERS.search(text) for text in texts):
                     self.planning_actions.add(metadata)
+                self.action_texts[metadata] = texts
                 image = runs.get("image") if isinstance(runs, dict) else None
                 if isinstance(image, str) and not image.startswith("docker://"):
                     entry_points.append(inside(directory, image))
