@@ -8,8 +8,8 @@ It is for ordinary independent pytest files in `tests/` in a uv project.
 2. Copy [workflow.yml](workflow.yml) to `.github/workflows/tests.yml` and
    [run_shard.py](run_shard.py) to `.github/scripts/run_shard.py` in your project.
 3. Use your Python version, dependency groups, test roots and default branch.
-   The example uses `@v1`; if your workflows pin actions to commit SHAs, pin
-   these the same way ([pinning policy](../../docs/actions.md#availability-and-pinning)).
+   The example uses `@v1`; keep it unless your tooling rejects tags
+   ([pinning policy](../../docs/actions.md#availability-and-pinning)).
    The completion-receipt plugin runs inside pytest, so the test job needs
    Python 3.11+ and a `uv.lock` for `setup-cached-uv`. For older interpreters,
    [pack whole environments per runner](../../docs/pack-matrix-jobs.md) instead.
