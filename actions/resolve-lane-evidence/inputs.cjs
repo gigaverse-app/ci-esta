@@ -169,14 +169,28 @@ function sourceFiles(directory) {
   return files.sort();
 }
 
-function validationReceipt(actionPath, testedIdentity, executionContext = '', manifestOverrides = {}) {
-  const root = path.resolve(actionPath, '../..');
-  const hash = crypto.createHash('sha256').update(testedIdentity);
+// What a receipt claims: these consumer inputs, with this execution context, passed. Bump it
+// whenever that meaning changes (what is hashed, or how proof is admitted), so receipts written
+// under the old meaning stop matching. CI-esta's own files are deliberately not hashed: a CI-esta
+// release does not make an earlier pass of the consumer's inputs untrue, and binding them threw
+// away every adopter's proof each time `v1` moved, several times a day. What a run selected is
+// already bound through the execution context.
+const RECEIPT_FORMAT = 'ci-esta-receipt-v2';
+
+function validationReceipt(testedIdentity, executionContext = '') {
+  const hash = crypto.createHash('sha256').update(RECEIPT_FORMAT).update('\0').update(testedIdentity);
   if (executionContext !== '') {
     hash.update('\0execution-context-v1\0').update(JSON.stringify(executionContext)).update('\0');
   }
-  // PR<N> refs move. Bind proof to the downloaded shared implementation,
-  // not just the consumer commit or the spelling of the shared ref.
+  return `Validated inputs ${hash.digest('hex')}`;
+}
+
+// A scan's proof does depend on CI-esta's own code: a new scanner or rule set must rescan
+// unchanged inputs. Bind it to the downloaded shared implementation, not the spelling of the
+// shared ref, which moves (PR<N>, v1).
+function implementationReceipt(actionPath, testedIdentity) {
+  const root = path.resolve(actionPath, '../..');
+  const hash = crypto.createHash('sha256').update(testedIdentity);
   for (const directory of ['actions', '.github/workflows', 'scripts', 'src/ci_esta']) {
     if (!fs.existsSync(path.join(root, directory))) continue;
     for (const entry of sourceFiles(path.join(root, directory))) {
@@ -186,9 +200,9 @@ function validationReceipt(actionPath, testedIdentity, executionContext = '', ma
   }
   for (const manifest of ['pyproject.toml', 'uv.lock']) {
     const full = path.join(root, manifest);
-    if (fs.existsSync(full)) hash.update(manifest).update('\0').update(manifestOverrides[manifest] ?? fs.readFileSync(full)).update('\0');
+    if (fs.existsSync(full)) hash.update(manifest).update('\0').update(fs.readFileSync(full)).update('\0');
   }
   return `Validated inputs ${hash.digest('hex')}`;
 }
 
-module.exports = { testedIdentity, inventoryIdentity, validationReceipt };
+module.exports = { testedIdentity, inventoryIdentity, validationReceipt, implementationReceipt, RECEIPT_FORMAT };

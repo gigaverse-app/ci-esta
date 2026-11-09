@@ -22,8 +22,8 @@ const input = JSON.parse(process.env.CONTEXT_CASE);
 const {validationReceipt} = require(process.env.GITHUB_ACTION_PATH + '/inputs.cjs');
 const {strictGithub} = require(process.env.GITHUB_REST_FAKE);
 const head = 'f'.repeat(40), base = '0'.repeat(40), merge = 'a'.repeat(40);
-const previous = validationReceipt(process.env.GITHUB_ACTION_PATH, `commit ${merge}`, input.prior);
-const other = validationReceipt(process.env.GITHUB_ACTION_PATH, `commit ${merge}`, 'different failed scope');
+const previous = validationReceipt(`commit ${merge}`, input.prior);
+const other = validationReceipt(`commit ${merge}`, 'different failed scope');
 const now = Date.now();
 const run = (id, conclusion, sha) => ({id, workflow_id:55, head_sha:sha, status:'completed',
   conclusion, run_attempt:1, event:'pull_request', pull_requests:[{number:42}],

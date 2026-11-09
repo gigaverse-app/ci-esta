@@ -34,6 +34,14 @@ def test_cli_help_describes_report_and_render() -> None:
     assert "report" in result.stdout and "render" in result.stdout
 
 
+def test_cli_version_names_the_installed_release() -> None:
+    from importlib.metadata import version
+
+    result = subprocess.run([sys.executable, "-m", "ci_esta.cli", "--version"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == f"ci-esta {version('ci-esta')}"
+
+
 def run_without_selection(module: str, *args: str, env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
     """Run a CLI as a base install sees it: pytest-selective and pytest cannot be imported."""
     code = (

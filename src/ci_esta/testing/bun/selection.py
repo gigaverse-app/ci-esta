@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 from ci_esta.git import git
-from ci_esta.testing.bun.models import BunPolicy, Inventory, SelectionPlan, SelectionRequest
+from ci_esta.testing.bun.models import TEST_FILE, BunPolicy, Inventory, SelectionPlan, SelectionRequest
 
 OPAQUE_DEPENDENCY = re.compile(
     r"\b(?:Bun\s*\.\s*file|readFile(?:Sync)?|import\s*\.\s*meta\s*\.\s*glob)\b"
@@ -27,7 +27,7 @@ def read_inventory(path: Path, cwd: Path) -> Inventory:
         raise ValueError("Duplicate inventory entries")
     for file in inventory.files:
         target = cwd / file
-        if (not safe_path(file) or not re.search(r"[._](?:test|spec)\.[cm]?[jt]sx?$", file)
+        if (not safe_path(file) or not TEST_FILE.search(file)
                 or target.is_symlink() or not target.is_file()):
             raise ValueError(f"Invalid test file: {file}")
     if not set(inventory.always_run_files).issubset(inventory.files):

@@ -21,7 +21,7 @@ ci-esta checkpoint init
 If CI-esta is not installed, generate it with uv without adding a project dependency:
 
 ```sh
-uvx --from 'ci-esta>=1.11,<2' ci-esta checkpoint init
+uvx --from 'ci-esta>=1.12,<2' ci-esta checkpoint init
 ```
 
 This creates `.github/workflows/weekly-checkpoint.yml` without overwriting an
