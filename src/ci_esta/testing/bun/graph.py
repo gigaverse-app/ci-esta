@@ -32,6 +32,10 @@ from ci_esta.testing.lane_rules import BUN_ENVIRONMENT_FILES
 BUNFIG = re.compile(r"(?:^|/)bunfig[^/]*\.toml$")
 #: Files Bun parses for further imports; other inputs (styles, images, text) are leaves.
 MODULE = re.compile(r"\.(?:[cm]?[jt]sx?|json)$")
+#: Runtime built-ins, never repository files.
+BUILTIN = re.compile(r"^(?:bun|node):")
+#: A line of Bun's output that says why the graph failed, rather than a warning before it.
+FAILURE = re.compile(r"\berror\b|could not|cannot|panic", re.IGNORECASE)
 
 
 def normalized(path: str) -> str:
@@ -81,17 +85,19 @@ def resolve_relative(directory: str, specifier: str, files: set[str], untracked:
     return next((base + suffix for suffix in RESOLUTION if checked_out(base + suffix, files, untracked)), None)
 
 
-def build_imports(repo: Path, entries: list[str], bun: str) -> dict[str, list[dict[str, object]]]:
+def build_imports(repo: Path, entries: list[str], bun: str, files: set[str]) -> dict[str, list[dict[str, object]]]:
     """Bun's metafile import edges for `entries`: each parsed file and the imports it declares.
 
-    `metafile.ts` reads the entries from a file, so no command-line limit caps their number. It adds
-    every import that names a repository file by more than a relative path, as an edge to the absolute
-    path Bun resolves: tsconfig `paths` aliases, query-suffixed imports (`./icon.svg?react`) and
-    workspace packages imported by name.
+    `metafile.ts` reads the entries, and the tracked `files` it finds `moduleSuffixes` variants
+    among, from a file, so no command-line limit caps their number. It adds every import that names
+    a repository file by more than a relative path, as edges to the absolute paths Bun resolves:
+    tsconfig `paths` aliases, query-suffixed imports (`./icon.svg?react`), workspace packages and
+    local dependencies imported by name, and React Native platform files (`./Button` naming
+    `Button.ios.tsx` and `Button.android.tsx`).
     """
     with tempfile.TemporaryDirectory() as scratch:
         listed, metafile = Path(scratch) / "entries.json", Path(scratch) / "meta.json"
-        listed.write_text(json.dumps(entries), encoding="utf-8")
+        listed.write_text(json.dumps({"entries": entries, "files": sorted(files)}), encoding="utf-8")
         subprocess.run(
             [bun, "--no-install", str(Path(__file__).with_name("metafile.ts")), str(listed), str(metafile)],
             cwd=repo,
@@ -117,18 +123,24 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
 
     Bun leaves an import it tree-shakes away unresolved (`external` with its relative specifier) and
     does not parse that module, so such modules are resolved here and built as further entry points
-    until no new file appears. Package and built-in imports are not repository files; an import Bun
-    resolved to a path the planner cannot map fails the graph rather than losing the edge.
+    until no new file appears. Package and built-in imports (`bun:test`, and `bun:wrap`, which Bun
+    adds for a module using `require`) are not repository files, nor is a relative path into
+    `node_modules`, which the lockfile covers; an import Bun resolved to a path the planner cannot
+    map fails the graph rather than losing the edge.
     """
     edges: dict[str, set[str]] = {}
     pending = list(entries)
     while pending:
-        imports = build_imports(repo, pending, bun)
+        imports = build_imports(repo, pending, bun, files)
         pending = []
         for importer, declared in imports.items():
             targets = edges.setdefault(importer, set())
             for item in declared:
                 specifier = str(item.get("path", ""))
+                if BUILTIN.match(specifier) or (
+                    specifier.startswith(".") and "node_modules" in PurePosixPath(normalized(specifier)).parts
+                ):
+                    continue
                 if os.path.isabs(specifier):
                     target = repository_path(specifier, repo)
                 elif not item.get("external") and checked_out(normalized(specifier), files, repo):
@@ -166,6 +178,17 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
                     queue.append(target)
         graph[entry] = seen
     return graph
+
+
+def failure(error: Exception) -> str:
+    """Why the graph failed: the first line of Bun's output that reads as an error, else its last lines.
+
+    Bun prints warnings, such as its own about tsconfig `moduleSuffixes`, before the error that
+    failed the build, so the first line alone can hide it.
+    """
+    lines = [line.strip() for line in (getattr(error, "stderr", "") or str(error)).splitlines() if line.strip()]
+    found = next((line for line in lines if FAILURE.search(line)), None)
+    return found or " | ".join(lines[-3:]) or repr(error)
 
 
 def test_preloads(repo: Path, files: set[str]) -> list[str]:
@@ -229,8 +252,7 @@ def bun_lane_reasons(
         entries = sorted(set(present) | set(preloads))
         graph = test_inputs(repo, entries, executable, set(files)) if present else {}
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
-        detail = (getattr(error, "stderr", "") or str(error)).strip().splitlines()
-        reason = f"full-suite fallback: Bun module graph unavailable: {detail[0] if detail else error}"
+        reason = f"full-suite fallback: Bun module graph unavailable: {failure(error)}"
         return {name: [reason] for name in bun_lanes}
     for preload in preloads if present else ():
         if hit := sorted(graph[preload] & changed):
