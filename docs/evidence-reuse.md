@@ -2,7 +2,7 @@
 
 See the [selection and evidence policy](test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
 
-A skipped job is not proof that its work passed. CI-esta reuses a lane only when a prior successful job carries a matching completion receipt. The receipt binds the tested inputs and the downloaded CI-esta implementation. An unavailable API or uncertain proof runs more work.
+A skipped job is not proof that its work passed. CI-esta reuses a lane only when a prior successful job carries a matching completion receipt. The receipt binds the tested inputs, the execution context and a receipt-format version. It does not bind CI-esta's own code: a CI-esta release does not make an earlier pass of your inputs untrue, so `v1` moving keeps your proof. A change in what a receipt means bumps the format and retires old receipts. An unavailable API or uncertain proof runs more work.
 
 ## Start with the whole tree
 
@@ -127,6 +127,17 @@ The receipt binds the tested merge's inputs. A PR that was behind its base when
 it merged, because another PR changed a declared input in between, correctly
 executes fresh on the push.
 
+## Proof from the default branch
+
+A pull request's runs prove a lane only for that pull request. The default
+branch's own push runs execute its merged, trusted workflow, so CI-esta also
+accepts a successful first-attempt push run from the last 24 hours whose job
+carries the identical receipt: the same inputs, execution context and format.
+The newest such run decides, so a newer failure of that job for those inputs
+revokes older proof. This covers a release whose base pull request changed only
+documentation and so never ran the lane, while an earlier push proved the same
+inputs.
+
 ## Root Python release versions
 
 `reuse-version-only-release: 'true'` additionally recognizes a strict Release
@@ -138,10 +149,10 @@ editable root package in `uv.lock`, the matching `.` release manifest entry, and
 versions and comments, remains significant. Unknown or inconsistent edits retain
 full validation.
 
-This mode binds runtime proof to the validated base's exact inputs and, for a
-local first-party action, its old project-version manifests. It still requires
-a fresh matching completion receipt from the PR merged at that base; merely
-recognizing a version bump cannot skip anything. A previous unsuccessful run of
+This mode binds runtime proof to the validated base's exact inputs. It still
+requires a fresh matching completion receipt, from the PR merged at that base or
+from a default-branch push run (below); merely recognizing a version bump cannot
+skip anything. A previous unsuccessful run of
 the release head prevents reaching back to that base proof.
 
 The `release-only` output describes the recognized release transition, not a

@@ -19,7 +19,7 @@ def test_receipt_covers_packaged_tools_and_ignores_generated_caches(tmp_path: Pa
     source = tmp_path / "src/ci_esta/tool.py"
     source.parent.mkdir(parents=True)
     source.write_text("original")
-    script = "console.log(require(process.argv[1]).validationReceipt(process.argv[2], 'tree-identity'))"
+    script = "console.log(require(process.argv[1]).implementationReceipt(process.argv[2], 'tree-identity'))"
 
     def receipt() -> str:
         result = node(script, str(action))
@@ -56,7 +56,7 @@ for (const method of ['readdirSync', 'opendirSync', 'lstatSync', 'statSync', 're
     return real(target, ...rest);
   };
 }
-console.log(require(process.argv[1]).validationReceipt(process.argv[2], 'tree-identity'));
+console.log(require(process.argv[1]).implementationReceipt(process.argv[2], 'tree-identity'));
 """
     without_caches = node(script, str(action))
     assert without_caches.returncode == 0, without_caches.stderr

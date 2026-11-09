@@ -46,8 +46,6 @@ def test_only_the_project_version_and_release_metadata_can_reuse_base_proof(tmp_
     result = subprocess.run(["python3", str(SCRIPT), base, head], cwd=tmp_path, check=True, capture_output=True, text=True)
     value = json.loads(result.stdout)
     assert value["version_only"] is expected
-    if expected:
-        assert value["manifests"] == {"pyproject.toml": project, "uv.lock": lock}
 
 
 def test_release_normalization_keeps_every_non_version_tool_input(tmp_path):
@@ -58,19 +56,21 @@ def test_release_normalization_keeps_every_non_version_tool_input(tmp_path):
     write(tmp_path, "actions/resolve-lane-evidence/helper.cjs", "original")
     write(tmp_path, "pyproject.toml", project)
     write(tmp_path, "uv.lock", lock)
-    script = "const m=require(process.argv[1]); console.log(m.validationReceipt(process.argv[2], 'base-inputs', '', JSON.parse(process.argv[3])))"
+    module = action / "inputs.cjs"
+    module.write_text(SCRIPT.with_name("inputs.cjs").read_text(encoding="utf-8"), encoding="utf-8")
+    script = "const m=require(process.argv[1]); console.log(m.validationReceipt('base-inputs', ''))"
 
-    def receipt(overrides):
-        return subprocess.check_output(["node", "-e", script, str(SCRIPT.with_name("inputs.cjs")), str(action), json.dumps(overrides)], text=True)
+    def receipt():
+        return subprocess.check_output(["node", "-e", script, str(module)], text=True)
 
-    before = receipt({})
+    # A lane receipt names the adopter's inputs, so CI-esta's own release (its version bump, or
+    # any change to its files) leaves it alone; no manifest normalization is needed.
+    before = receipt()
     write(tmp_path, "pyproject.toml", project.replace("1.5.1", "1.6.0"))
     write(tmp_path, "uv.lock", lock.replace("1.5.1", "1.6.0"))
-    assert receipt({}) != before
-    overrides = {"pyproject.toml": project, "uv.lock": lock}
-    assert receipt(overrides) == before
+    assert receipt() == before
     write(tmp_path, "actions/resolve-lane-evidence/helper.cjs", "changed")
-    assert receipt(overrides) != before
+    assert receipt() == before
 
 
 @pytest.mark.parametrize("event", ["pull_request", "push"])
