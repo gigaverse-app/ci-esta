@@ -254,6 +254,7 @@ def react_native(tmp_path: Path) -> tuple[Path, str]:
             "export const load = (name: string) => require(String(name));\n",
             {"unit": False, "feature": True},
         ),
+        # Nothing imports it; this also needs the whole graph, the same-stem tests included, to build.
         ("README.md", "# Changed\n", {"unit": False, "feature": False}),
     ],
 )
