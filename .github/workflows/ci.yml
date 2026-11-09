@@ -53,6 +53,10 @@ jobs:
           pr-number: ${{ github.event.pull_request.number }}
           expected-head-sha: ${{ github.event.pull_request.head.sha }}
       - uses: ./actions/collect-pr-changes
+      # The lane graph includes Bun tests, so planning needs their runtime too.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: examples/bun-cache/.bun-version
       - uses: ./actions/plan-work
         id: selection
         with:
