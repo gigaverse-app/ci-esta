@@ -6,6 +6,8 @@ the Publish call did not grant.
 """
 # gv:test-dependency: .github/workflows/ci.yml
 # gv:test-dependency: .github/workflows/release.yml
+import json
+import re
 from pathlib import Path
 
 import yaml
@@ -55,3 +57,23 @@ def test_publish_call_grants_its_permissions_explicitly() -> None:
     for name, job in publish["jobs"].items():
         if job.get("uses") == CI:
             assert "permissions" in job, f"release.yml job {name!r} relies on inherited permissions"
+
+
+def test_dispatch_only_jobs_stay_off_when_publish_calls_ci() -> None:
+    """
+    Publish re-dispatched on a tag calls ci.yml with workflow_call. Inside the call `github.event_name`
+    is still the caller's workflow_dispatch, while ci.yml's own dispatch inputs are empty. A condition
+    such as `inputs.timing-example != 'off'` is then true, the optional example ran, and v1.12.0's
+    Publish could not succeed.
+    """
+    workflow = yaml.safe_load((WORKFLOWS / "ci.yml").read_text(encoding="utf-8"))
+    risky = {
+        name: job["if"]
+        for name, job in workflow["jobs"].items()
+        if re.search(r"inputs\.[\w-]+\s*!=", str(job.get("if", "")))
+    }
+    assert not risky, f"an empty dispatch input satisfies these conditions under workflow_call: {risky}"
+    example = workflow["jobs"]["timing-example"]["if"]
+    triggers = workflow.get("on", workflow.get(True))  # YAML 1.1 reads the `on` key as true
+    modes = [mode for mode in triggers["workflow_dispatch"]["inputs"]["timing-example"]["options"] if mode != "off"]
+    assert json.dumps(modes, separators=(",", ":")) in example.replace("'", '"')
