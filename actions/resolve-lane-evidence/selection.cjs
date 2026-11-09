@@ -26,4 +26,22 @@ function pendingMatrix(keys, reused) {
   return pending.length ? pending : keys;
 }
 
-module.exports = { executionScope, pendingMatrix };
+// A planner's lane booleans after reuse: a lane becomes false only when every evidence key it
+// lists is proven. A lane that lists no keys, an unknown key or partial proof keeps its plan,
+// so it runs in full. `ci-esta check-workflow` verifies each lane's keys name every job the
+// lane gates, matrix cells included; without that check an unlisted job could be skipped.
+function admittedLanes(planned, laneKeys, reused, evidenceLanes) {
+  const plan = object(planned);
+  const proof = object(reused);
+  const known = object(evidenceLanes);
+  const admitted = {...plan};
+  for (const [lane, keys] of Object.entries(object(laneKeys))) {
+    if (!Array.isArray(keys) || !keys.length || keys.some(key => typeof key !== 'string' || !(key in known))) {
+      throw new Error(`lane-keys.${lane} must list keys of lanes`);
+    }
+    if (plan[lane] === true && keys.every(key => proof[key] === true)) admitted[lane] = false;
+  }
+  return admitted;
+}
+
+module.exports = { executionScope, pendingMatrix, admittedLanes };

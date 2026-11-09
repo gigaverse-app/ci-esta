@@ -320,6 +320,9 @@ def test_marker_inside_a_composite_action_does_not_count(tmp_path):
 def test_lane_evidence_without_a_receipt_step_is_flagged(tmp_path):
     assert "reuse-receipt" in reuse_suggestions(tmp_path, MARKER, "")
     assert "reuse-receipt" not in reuse_suggestions(tmp_path, MARKER, RECEIPT)
+    # A receipt published under another output name, like pytest-selective's contract-receipt, still counts.
+    named = RECEIPT.replace("outputs.receipt", "outputs.contract-receipt")
+    assert "reuse-receipt" not in reuse_suggestions(tmp_path, MARKER, named)
 
 
 def test_reuse_without_merge_reuse_needs_no_marker(tmp_path):

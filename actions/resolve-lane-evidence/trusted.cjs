@@ -18,11 +18,14 @@ async function trustedPushProof({github, context, core, jobName, receipt, maxAge
   };
   const {data: current} = await read(`run:${context.runId}`, () =>
     github.rest.actions.getWorkflowRun({...context.repo, run_id: context.runId}));
+  const oldest = Date.now() - maxAgeHours * 3600 * 1000;
+  // Ask only for the window that can prove anything; the branch's whole history grows without bound.
+  const since = new Date(oldest - 3600 * 1000).toISOString();
   const runs = await read(`push-runs:${current.workflow_id}:${branch}`, () =>
     github.paginate(github.rest.actions.listWorkflowRuns, {
-      ...context.repo, workflow_id: current.workflow_id, branch, event: 'push', status: 'completed', per_page: 50,
+      ...context.repo, workflow_id: current.workflow_id, branch, event: 'push', status: 'completed',
+      created: `>=${since}`, per_page: 100,
     }));
-  const oldest = Date.now() - maxAgeHours * 3600 * 1000;
   const candidates = runs
     .filter((run) => run.id !== context.runId && run.run_attempt === 1 && Date.parse(run.updated_at) >= oldest)
     .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at));

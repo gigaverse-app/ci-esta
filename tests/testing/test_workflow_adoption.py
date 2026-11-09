@@ -103,3 +103,81 @@ def test_check_workflow_reports_a_missing_gate_without_a_traceback(tmp_path, cap
     lanes.write_text('{"lanes": {}}', encoding="utf-8")
     assert cli(["check-workflow", "--workflow", str(workflow), "--lanes", str(lanes)]) == 2
     assert "Exactly one aggregate job named 'Validation gate'" in capsys.readouterr().err
+
+
+def reuse_workflow(matrix_os: list[str], lane_keys: dict, lanes_input: str = "${{ env.TEST_LANE_JOBS }}") -> dict:
+    test_jobs = {
+        f"py311-{os}": f"Test (Python 3.11, {os})" for os in ("ubuntu-latest", "windows-latest")
+    } | {"minimum": "pytest-minimum"}
+    gate_jobs = '{"test":["tests"],"pytest-minimum":["tests"]}'
+    return {
+        "env": {"TEST_LANE_JOBS": json.dumps(test_jobs)},
+        "jobs": {
+            "select-tests": {"steps": [
+                {"id": "plan", "uses": "gigaverse-app/pytest-selective/actions/plan-lanes@v1"},
+                {"id": "evidence", "uses": "gigaverse-app/ci-esta/actions/resolve-lane-evidence@v1", "with": {
+                    "lanes": lanes_input, "planned-lanes": "${{ steps.plan.outputs.lanes }}",
+                    "lane-keys": json.dumps(lane_keys)}},
+            ]},
+            "test": {
+                "name": "Test (Python ${{ matrix.python }}, ${{ matrix.os }})",
+                "needs": "select-tests", "if": "fromJSON(needs.select-tests.outputs.lanes).tests",
+                "strategy": {"matrix": {"python": ["3.11"], "os": matrix_os}},
+            },
+            "pytest-minimum": {"needs": "select-tests", "if": "fromJSON(needs.select-tests.outputs.lanes).tests"},
+            "gate": {"name": "Validation gate", "needs": ["select-tests", "test", "pytest-minimum"],
+                     "steps": [{"uses": "gigaverse-app/ci-esta/actions/validation-gate@v1", "with": {
+                         "needs": "${{ toJSON(needs) }}", "lanes": "${{ needs.select-tests.outputs.lanes || '{}' }}",
+                         "lane-jobs": gate_jobs}}]},
+        },
+    }
+
+
+ALL_KEYS = {"tests": ["py311-ubuntu-latest", "py311-windows-latest", "minimum"]}
+
+
+def check_reuse(tmp_path, workflow: dict) -> None:
+    lane_file = tmp_path / "lanes.json"
+    lane_file.write_text(json.dumps({"lanes": {"tests": {}}}))
+    path = tmp_path / "ci.yml"
+    path.write_text(yaml.safe_dump(workflow, sort_keys=False))
+    check(path, lane_file)
+
+
+def test_lane_keys_naming_every_gated_job_and_matrix_cell_pass(tmp_path):
+    check_reuse(tmp_path, reuse_workflow(["ubuntu-latest", "windows-latest"], ALL_KEYS))
+
+
+def test_a_matrix_cell_missing_from_lane_keys_is_rejected(tmp_path):
+    # Adding macOS without listing it would let a failing macOS cell be skipped as proven.
+    with pytest.raises(ValueError, match=r"omit jobs it gates: \['Test \(Python 3.11, macos-latest\)'\]"):
+        check_reuse(tmp_path, reuse_workflow(["ubuntu-latest", "windows-latest", "macos-latest"], ALL_KEYS))
+
+
+def test_a_gated_job_missing_from_lane_keys_is_rejected(tmp_path):
+    keys = {"tests": ["py311-ubuntu-latest", "py311-windows-latest"]}
+    with pytest.raises(ValueError, match=r"omit jobs it gates: \['pytest-minimum'\]"):
+        check_reuse(tmp_path, reuse_workflow(["ubuntu-latest", "windows-latest"], keys))
+
+
+def test_unknown_keys_and_unreadable_maps_are_rejected(tmp_path):
+    with pytest.raises(ValueError, match="must list keys of lanes"):
+        check_reuse(tmp_path, reuse_workflow(["ubuntu-latest", "windows-latest"], {"tests": ["nope"]}))
+    with pytest.raises(ValueError, match="literal JSON"):
+        check_reuse(tmp_path, reuse_workflow(["ubuntu-latest"], ALL_KEYS, lanes_input="${{ steps.x.outputs.lanes }}"))
+
+
+def test_a_dynamic_matrix_cannot_be_verified_and_is_rejected(tmp_path):
+    workflow = reuse_workflow(["ubuntu-latest", "windows-latest"], ALL_KEYS)
+    workflow["jobs"]["test"]["strategy"]["matrix"] = "${{ fromJSON(needs.select-tests.outputs.matrix) }}"
+    with pytest.raises(ValueError, match="static matrix"):
+        check_reuse(tmp_path, workflow)
+
+
+def test_default_job_names_follow_githubs_matrix_naming(tmp_path):
+    workflow = reuse_workflow(["ubuntu-latest", "windows-latest"], ALL_KEYS)
+    del workflow["jobs"]["test"]["name"]
+    jobs = json.loads(workflow["env"]["TEST_LANE_JOBS"])
+    jobs.update({"py311-ubuntu-latest": "test (3.11, ubuntu-latest)", "py311-windows-latest": "test (3.11, windows-latest)"})
+    workflow["env"]["TEST_LANE_JOBS"] = json.dumps(jobs)
+    check_reuse(tmp_path, workflow)
