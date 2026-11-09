@@ -45,6 +45,13 @@ def code(value: str) -> str:
     return f"{fence}{padding}{value}{padding}{fence}"
 
 
+def code_list(values: list[str], limit: int) -> str:
+    """Bound a list of escaped code spans and count the omitted entries."""
+    listed = ", ".join(code(value) for value in values[:limit])
+    remaining = len(values) - limit
+    return f"{listed} and {remaining:,} more" if remaining > 0 else listed
+
+
 def html_code(value: str) -> str:
     """Inline code inside an HTML block such as <summary>, where GitHub renders no Markdown."""
     escaped = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
