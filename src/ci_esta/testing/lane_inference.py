@@ -28,7 +28,7 @@ from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
 from ci_esta.git import git
 from ci_esta.testing.lane_rules import Rule, effective
-from ci_esta.workflow_graph import ALL, WorkflowGraph
+from ci_esta.workflow_graph import ALL, WorkflowGraph, inside
 
 #: The words that start a test command, and the arguments after them that are paths.
 TEST_COMMAND = re.compile(
@@ -100,7 +100,7 @@ def joined(directory: str | None, path: str) -> str | None:
     """`path` read from `directory`, as a repository path; None for the root."""
     if path.startswith(("$", "~", "/")):
         return directory
-    value = posixpath.normpath(f"{directory or '.'}/{path.removeprefix('./')}")
+    value = inside(directory or ".", path)
     return None if value == "." else value
 
 

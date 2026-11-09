@@ -118,10 +118,6 @@ def directory_of(value: object) -> str | None:
     return None if directory == "." else directory
 
 
-def within_directory(path: str, directory: str) -> bool:
-    return path == directory or path.startswith(directory.rstrip("/") + "/")
-
-
 def foreign_checkouts(job: Any) -> list[str]:
     """Directories where a job checks out another repository; commands there run its files, not ours."""
     steps = job.get("steps") if isinstance(job, dict) else None
@@ -263,11 +259,13 @@ class WorkflowGraph:
                     for key, value in options.items()
                     if isinstance(value, str) and COMMAND_INPUT.search(str(key))
                 )
+        from pytest_selective.impact_graph import within
+
         foreign = foreign_checkouts(job)
         return [
             (command, directory)
             for command, directory in found
-            if directory is None or not any(within_directory(directory, path) for path in foreign)
+            if directory is None or not any(within(directory, path) for path in foreign)
         ]
 
     def composite_commands(self, directory: str, options: dict[str, Any]) -> list[tuple[str, str | None]]:
