@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.9.0](https://github.com/gigaverse-app/ci-esta/compare/v1.8.0...v1.9.0) (2026-11-09)
+
+
+### Features
+
+* **adoption:** flag lane reuse that can never fire ([#147](https://github.com/gigaverse-app/ci-esta/issues/147)) ([0a93e6d](https://github.com/gigaverse-app/ci-esta/commit/0a93e6dc76f2bec75f66b00e7d4a2bef00495120))
+* one-prompt agent setup, and fixes from a real adoption trial ([#152](https://github.com/gigaverse-app/ci-esta/issues/152)) ([40258b7](https://github.com/gigaverse-app/ci-esta/commit/40258b7376b630d8f4fad66722f4e452709059e2))
+
+
+### Bug fixes
+
+* **planning:** follow working directories, the repository's own action, declared reads and JavaScript runners ([#149](https://github.com/gigaverse-app/ci-esta/issues/149)) ([d8a6b0c](https://github.com/gigaverse-app/ci-esta/commit/d8a6b0cf783da79343a054c4e10cc95820dcfb4f))
+* **windows:** discover native Git after the UCRT64 migration ([#148](https://github.com/gigaverse-app/ci-esta/issues/148)) ([e0ef53c](https://github.com/gigaverse-app/ci-esta/commit/e0ef53c9b0c5f4df521fb7b503edda1996cb4346))
+
 ## [1.8.0](https://github.com/gigaverse-app/ci-esta/compare/v1.7.0...v1.8.0) (2026-11-08)
 
 
