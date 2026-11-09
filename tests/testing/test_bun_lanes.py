@@ -8,6 +8,7 @@ import pytest
 from pytest_selective.ci import Lane, LaneConfig
 from pytest_selective.impact_models import ImpactConfig
 
+from ci_esta.testing.bun.graph import failure
 from ci_esta.testing.work_plan import plan_work
 from tests.testing.git_repo import commit, write
 
@@ -181,6 +182,112 @@ def test_a_graph_bun_cannot_build_runs_every_bun_lane(repository, broken):
     result = plan_work(repo, lanes(), base, head, bun="no-such-bun" if broken == "executable" else "bun")
     assert result.lanes == {"unit": True, "feature": True}
     assert all("Bun module graph unavailable" in reasons[0] for reasons in result.lane_reasons.values())
+
+
+@pytest.fixture
+def react_native(tmp_path: Path) -> tuple[Path, str]:
+    """A React Native-style app without node_modules: platform files, local modules, package paths."""
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    write(tmp_path, "package.json", '{"name": "app", "private": true, "dependencies": {"stats": "./modules/stats"}}\n')
+    # Bun warns that it does not support `moduleSuffixes`, and its resolver ignores them.
+    write(
+        tmp_path,
+        "tsconfig.json",
+        '{\n  // JSONC, as tsconfig allows\n  "compilerOptions": {\n    "paths": {"@/*": ["./src/*"]},\n'
+        '    "moduleSuffixes": [".ios", ".android", ".native", ""],\n  },\n}\n',
+    )
+    write(tmp_path, "modules/stats/package.json", '{"name": "stats", "main": "src/index.ts"}\n')
+    write(tmp_path, "modules/stats/src/index.ts", "export const stats = 1;\n")
+    # Each platform has its own file, and no unsuffixed one exists.
+    for platform in ("ios", "android"):
+        write(tmp_path, f"src/auth/Signin.provider.{platform}.ts", f"export const provider = '{platform}';\n")
+        write(tmp_path, f"src/video/view/index.{platform}.tsx", f"export const View = '{platform}';\n")
+    write(
+        tmp_path, "src/auth/login.ts", "import { provider } from './Signin.provider';\nexport const login = provider;\n"
+    )
+    # An aliased platform import, which Bun would otherwise keep external and drop.
+    write(tmp_path, "src/video/track.ts", "import { View } from '@/video/view';\nexport const track = View;\n")
+    # A path into an uninstalled package's sources.
+    write(
+        tmp_path,
+        "src/chart.ts",
+        "import { line } from '../node_modules/chart-kit/src/line';\nexport const chart = line;\n",
+    )
+    # A computed `require`, for which Bun records a `bun:wrap` import.
+    write(tmp_path, "src/load.ts", "export const load = (name: string) => require(name);\n")
+    # Two tests share `[dir]/[name]`: Bun's default output naming gives both the same path.
+    write(
+        tmp_path,
+        "tests/unit/login.contract.test.ts",
+        TEST.format(imports="import { login } from '../../src/auth/login';\nexport const used = login;"),
+    )
+    write(
+        tmp_path,
+        "tests/unit/login.contract.test.tsx",
+        TEST.format(imports="import { track } from '../../src/video/track';\nexport const used = track;"),
+    )
+    write(
+        tmp_path,
+        "tests/feature/stats.test.ts",
+        TEST.format(
+            imports="import { stats } from 'stats';\nimport { chart } from '../../src/chart';\n"
+            "import { load } from '../../src/load';\nexport const used = [stats, chart, load];"
+        ),
+    )
+    write(tmp_path, "README.md", "# App\n")
+    return tmp_path, commit(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("path", "content", "expected"),
+    [
+        # Every platform variant of a `moduleSuffixes` import, of a file or a directory's index.
+        ("src/auth/Signin.provider.ios.ts", "export const provider = 'iOS';\n", {"unit": True, "feature": False}),
+        ("src/auth/Signin.provider.android.ts", "export const provider = 'A';\n", {"unit": True, "feature": False}),
+        ("src/video/view/index.android.tsx", "export const View = 'A';\n", {"unit": True, "feature": False}),
+        # A local dependency imported by name, with no node_modules link.
+        ("modules/stats/src/index.ts", "export const stats = 2;\n", {"unit": False, "feature": True}),
+        # Modules importing a package path and the `bun:wrap` built-in are ordinary edges.
+        ("src/chart.ts", "export const chart = 2;\n", {"unit": False, "feature": True}),
+        (
+            "src/load.ts",
+            "export const load = (name: string) => require(String(name));\n",
+            {"unit": False, "feature": True},
+        ),
+        ("README.md", "# Changed\n", {"unit": False, "feature": False}),
+    ],
+)
+def test_react_native_imports_reach_lanes_without_node_modules(react_native, path, content, expected):
+    repo, base = react_native
+    write(repo, path, content)
+    result = plan_work(repo, lanes(), base, commit(repo))
+    assert result.lanes == expected, result.lane_reasons
+    assert not any("fallback" in reason for reasons in result.lane_reasons.values() for reason in reasons)
+
+
+def test_a_failed_graph_names_the_error_not_the_warning_before_it(react_native):
+    repo, base = react_native
+    write(repo, "src/auth/login.ts", "import { gone } from './missing';\nexport const login = gone;\n")
+    result = plan_work(repo, lanes(), base, commit(repo))
+    [reason] = result.lane_reasons["unit"]
+    assert reason.startswith("full-suite fallback: Bun module graph unavailable: error: ")
+    assert "./missing" in reason, reason
+    # On a large app, Bun also logs its `moduleSuffixes` warning, first: the reason skips it.
+    stderr = (
+        "warning: moduleSuffixes is not supported yet (tsconfig.json:24)\n"
+        'error: Could not resolve: "./missing" (src/auth/login.ts:1)\n'
+    )
+    assert failure(subprocess.CalledProcessError(1, "bun", stderr=stderr)) == (
+        'error: Could not resolve: "./missing" (src/auth/login.ts:1)'
+    )
+    # Bun's own output from before this formatting, and a crash with no error line.
+    old = 'BuildMessage: moduleSuffixes is not supported yet\nResolveMessage: Could not resolve: "./missing"\n'
+    assert (
+        failure(subprocess.CalledProcessError(1, "bun", stderr=old)) == 'ResolveMessage: Could not resolve: "./missing"'
+    )
+    assert failure(subprocess.CalledProcessError(3, "bun", stderr="starting\nstep 1\nstep 2\nkilled\n")) == (
+        "step 1 | step 2 | killed"
+    )
 
 
 def test_the_bun_environment_rule_can_be_switched_off(repository):

@@ -174,11 +174,22 @@ The planner needs no `node_modules`: packages stay external, and every import th
 repository file by more than a relative path is resolved with Bun's own resolver. That covers
 tsconfig `paths` aliases (`@/x`), Vite-style query imports (`./icon.svg?react`, `./dock.css?raw`,
 `@/hero.png?url`), whose file is the input, and workspace packages imported by name
-(`@scope/lib/util`), which only a `node_modules` link resolves at runtime. Without
-`node_modules`, a workspace package resolves from its directory, ignoring an `exports` map;
-an import that resolves neither way fails the graph rather than losing an edge. An untracked
-file in the checkout, such as generated code, never changes, but the files it imports still
-reach the tests that import it.
+(`@scope/lib/util`), which only a `node_modules` link resolves at runtime. A local dependency
+declared by path in `package.json` (`"stats": "./modules/stats"`, `file:` or `link:`) is treated
+like a workspace package. Without `node_modules`, such a package resolves from its directory,
+ignoring an `exports` map; an import that resolves neither way fails the graph rather than losing
+an edge. An untracked file in the checkout, such as generated code, never changes, but the files
+it imports still reach the tests that import it.
+
+React Native platform files work too. Bun ignores tsconfig `compilerOptions.moduleSuffixes`, so
+the planner applies the suffixes the root `tsconfig.json` declares (an `extends` chain is not
+followed): `./Signin.provider`, with only `Signin.provider.ios.ts` and `Signin.provider.android.ts`
+on disk, makes both files inputs of the importing test, as does an aliased or directory import
+(`@/video/view` naming `view/index.ios.tsx`). When an unsuffixed file also exists, it and every
+suffixed variant are inputs. A relative path into `node_modules`
+(`../../node_modules/pkg/src/file.js`) names a package file, so like a bare package import it is
+covered by the lockfile and needs no install. Bun's `bun:` and `node:` built-ins, including the
+`bun:wrap` import Bun records for a computed `require`, are not files.
 
 A test preload (`preload` in any `bunfig*.toml`, top-level or under `[test]`) runs before every
 test without being imported. The planner cannot see which `--config` a lane passes, so a change to
@@ -195,7 +206,8 @@ any preload, or to anything a preload bundles, reaches every Bun lane.
 | Documentation and data no test imports | nothing |
 
 One import Bun cannot resolve fails the whole graph, so every Bun lane runs: the test that holds
-it would fail anyway. A file read at runtime by path (`Bun.file("fixtures/x.json")`), a script a
+it would fail anyway. The fallback reason quotes the first line of Bun's output that reads as an
+error, such as `error: Could not resolve: "./missing" (src/a.ts:1)`, not a warning printed before it. A file read at runtime by path (`Bun.file("fixtures/x.json")`), a script a
 test spawns, or a computed `import(name)` is invisible to the module graph; import it, keep it
 under the lane's roots, or list it in the lane's `inputs`. A change under a lane's roots selects
 that lane whether or not a test imports it. Inside a selected lane, `run-bun-tests` and `--changed`
