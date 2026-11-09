@@ -24,6 +24,9 @@ human keeps merging, required-check settings, runner groups and secrets.
   coverage threshold and full or scheduled run.
 - If a command fails, report the command and its error. Never work around a failure with `|| true`, a hand-written
   completion receipt, a widened gate or a deleted test.
+- If a job already fails on the default branch, link a failing default-branch run as proof. Then either fix it in a
+  separate commit that the pull request names and that the BEFORE/AFTER comparison leaves out, or leave it failing
+  and report it. Never fold such a fix silently into the measured change.
 
 ## 1. Preflight
 
@@ -31,28 +34,43 @@ Run these and note the answers. Every later step uses them.
 
 ```bash
 REPO=OWNER/NAME     # the repository the pull request goes to: check `git remote -v`; in a fork, the fork
-gh repo view --repo "$REPO" --json defaultBranchRef,visibility,owner -q '"\(.defaultBranchRef.name) \(.visibility) \(.owner.login)"'
-gh api "repos/$REPO/rules/branches/DEFAULT" --jq '.[] | select(.type == "required_status_checks") | .parameters'
-gh api "repos/$REPO/branches/DEFAULT/protection/required_status_checks" --jq .contexts   # 404: no classic protection
+gh repo view "$REPO" --json defaultBranchRef,visibility,owner -q '"\(.defaultBranchRef.name) \(.visibility) \(.owner.login)"'
+DEFAULT="$(gh repo view "$REPO" --json defaultBranchRef -q .defaultBranchRef.name)"
+gh api "repos/$REPO/rules/branches/$DEFAULT" --jq '.[] | select(.type == "required_status_checks") | .parameters'
+gh api "repos/$REPO/branches/$DEFAULT/protection/required_status_checks" --jq .contexts  # 404: no classic protection
 grep -rhE '^\s*-?\s*uses:' .github/workflows | sort | uniq -c                              # how actions are pinned
-grep -rn "concurrency" -A2 .github/workflows                                                # cancel-in-progress groups
-ls AGENTS.md CLAUDE.md CONTRIBUTING.md AI_POLICY.md .github/AI_POLICY.md .github/pull_request_template.md \
-   .github/PULL_REQUEST_TEMPLATE* uv.lock tox.ini noxfile.py pyproject.toml .pre-commit-config.yaml 2>/dev/null
+grep -rnE "concurrency|paths-ignore|paths:" -A2 .github/workflows                          # cancellation, path filters
+grep -rln zizmor .github .pre-commit-config.yaml 2>/dev/null                                # rejects tag references
+ls .github/workflows AGENTS.md CLAUDE.md CONTRIBUTING.md AI_POLICY.md .github/AI_POLICY.md \
+   .github/pull_request_template.md .github/PULL_REQUEST_TEMPLATE* uv.lock tox.ini noxfile.py pyproject.toml \
+   .pre-commit-config.yaml 2>/dev/null
 grep -n "requires-python" pyproject.toml 2>/dev/null
 gh api "orgs/OWNER/actions/runner-groups" --jq '.runner_groups[] | {name, visibility, allows_public_repositories}'
 ```
 
-Pass `--repo "$REPO"` to every `gh` command. In a clone of a fork, `gh` otherwise picks the upstream repository.
+In a clone of a fork, `gh` defaults to the upstream repository, so name `$REPO` every time: `--repo "$REPO"` for
+`gh run`, `gh workflow` and `gh pr`; as the argument of `gh repo view`; in the path of `gh api`.
 
-- **Default branch** (`DEFAULT` below). Do not assume `main`.
-- **Required check.** The exact job name branch protection or a ruleset requires. Call it `GATE`. If both lookups
-  are empty or 403, ask the human which check is required; do not guess.
-- **Pinning policy.** If the workflows pin actions to 40-character commit SHAs (often because zizmor or an
-  organization policy requires it), pin every action you add the same way, with the release tag as a comment:
-  `uses: gigaverse-app/ci-esta/actions/plan-runner-pools@<sha> # v1.8.0`. Resolve a tag with
-  `gh api repos/OWNER/REPO/commits/TAG --jq .sha` (this returns the commit for annotated tags too). Pin a release
-  tag such as `v1.8.0`, not the moving `v1`. For an action the repository already uses, copy its existing pin.
-  Otherwise use `@v1` for CI-esta actions and the tags shown in this file.
+- **Default branch** (`$DEFAULT` below). Do not assume `main`.
+- **Required check** (`GATE`), decided by this one rule:
+  1. A ruleset or branch protection names a check: `GATE` is that exact job name.
+  2. The lookups fail with 403 (you cannot read the settings): run `gh pr checks NUMBER --repo "$REPO" --required`
+     on any open pull request. If that is empty too, ask the human which check is required; do not guess.
+  3. Nothing is required and the main workflow has an aggregate job (`ci-esta adoption` lists it as the gate
+     candidate): `GATE` is that job. Tell the human to make it required.
+  4. Nothing is required and there is no aggregate job: add one named `Validation gate` in step 5, use it as `GATE`,
+     and tell the human to make it required.
+
+  A required check in a workflow with `paths-ignore` or `paths` never reports on a pull request that touches only
+  the ignored files, so GitHub blocks that pull request waiting for it. Before you tell the human to make a gate
+  required, make sure its workflow runs on every pull request: remove the path filter from that workflow, or select
+  lanes with pytest-selective so the gate always runs and judges the skipped work.
+- **Pinning policy.** Reference CI-esta actions by the major tag, `gigaverse-app/ci-esta/actions/NAME@v1`, so
+  releases reach the repository without edits, even when its other actions are SHA-pinned. Use
+  `@<sha> # vX.Y.Z` only when the repository's own tooling rejects tags: zizmor (its `unpinned-uses` audit) or an
+  all-SHA policy enforced in CI. Resolve the sha of the latest release with
+  `gh api repos/gigaverse-app/ci-esta/commits/vX.Y.Z --jq .sha`. For third-party actions (checkout, setup-python,
+  upload-artifact), copy the reference the repository already uses, SHA or tag.
 - **AI and attribution policy.** Read AI_POLICY.md, CONTRIBUTING and the pull request template. If they forbid
   `Co-authored-by` lines, AI attribution or AI-written PRs, follow them exactly, or stop and tell the human.
 - **Project tooling.** `uv.lock` present: `setup-cached-uv` is available. No `uv.lock` (tox, nox, pip): keep the
@@ -75,23 +93,32 @@ uv tool install 'ci-esta[selection]>=1.9,<2'   # or: pipx install 'ci-esta[selec
 ci-esta adoption --root .
 ```
 
-If the shell says `ci-esta: command not found`, run `export PATH="$(uv tool dir --bin):$PATH"`. The `selection`
-extra is required for `ci-esta check-workflow`, `ci-esta lanes` and `ci-esta-pytest`; without it they exit and
-print this install command.
+If the shell says `ci-esta: command not found`, add uv's tool directory to `PATH` for this shell:
+
+```bash
+export PATH="$(uv tool dir --bin):$PATH"                  # Linux, macOS
+export PATH="$(cygpath -u "$(uv tool dir --bin)"):$PATH"  # Git Bash on Windows
+$env:PATH = "$(uv tool dir --bin);$env:PATH"              # PowerShell
+```
+
+Or skip the install and prefix each command with `uvx --from 'ci-esta[selection]>=1.9,<2'`, for example
+`uvx --from 'ci-esta[selection]>=1.9,<2' ci-esta adoption --root .`. The `selection` extra is required for
+`ci-esta check-workflow`, `ci-esta lanes` and `ci-esta-pytest`; without it they exit and print the install command.
 
 Expected: a pinning line, one line per workflow with its triggers, job count and aggregate gate candidate, the
 matrix and test jobs, `not behind the gate: ...` when some jobs cannot fail the gate, suggestions such as
 `gate-indirect` (a gate that reaches test jobs only through an `if: always()` job) or `matrix-setup`, and numbered
 next steps with the exact `gh run list` and `ci-esta report` commands. It reads files only and changes nothing.
 
-*Check:* the main workflow and `GATE` are identified, and the gate candidate matches `GATE`. If they differ, the
-required check is the authority; ask the human when unsure.
+*Check:* the main workflow and `GATE` are identified by the rule in step 1. With a required check, it is `GATE`
+even when the gate candidate differs. Without one, `GATE` is the gate candidate, or `Validation gate` when the
+output says `aggregate gate: none found`.
 
 ## 3. Measure
 
 ```bash
 export GH_TOKEN="$(gh auth token)"    # any token with actions:read and contents:read on the repository
-gh run list --repo "$REPO" --workflow WORKFLOW_FILE --branch DEFAULT --status success --limit 3 \
+gh run list --repo "$REPO" --workflow WORKFLOW_FILE --branch "$DEFAULT" --status success --limit 3 \
   --json databaseId,headSha,attempt
 ci-esta report --repository "$REPO" --run-id RUN_ID --run-attempt 1 --gate 'GATE' --critical-path \
   --output-dir report-RUN_ID
@@ -100,9 +127,16 @@ ci-esta report --repository "$REPO" --run-id RUN_ID --run-attempt 1 --gate 'GATE
 Report two or three successful attempt-1 runs: one run is noise. Each writes `report-RUN_ID/ci-observability.json`,
 `.md` and `.prom` and prints a one-line summary.
 
+If the default branch has no successful run of the workflow (common in a new fork), make the baseline yourself:
+open a throwaway draft pull request from `$DEFAULT` that changes one file the workflow does not ignore, and push an
+empty commit (`git commit --allow-empty`) for each further run, until two or three attempt-1 runs succeed. That is
+the unchanged workflow on your runners. Runs in the upstream repository are context only, never the baseline.
+Close the throwaway pull request and delete its branch afterwards. If `GATE` is a `Validation gate` you have not
+added yet, report the baseline with `--gate` naming the job that finishes last.
+
 Expected: `"collection_status": "complete"` and the gate `"matched": true` in the JSON. `unavailable` means the
-token or run ID is wrong; `matched: false` means `GATE` is not the job's exact name. Fix either before reading
-numbers. Read these fields ([all fields](https://ci-esta.readthedocs.io/en/latest/docs/github-actions-observability/#report-json-fields)):
+token or run ID is wrong; `matched: false` means `GATE` is not the job's exact name; `partial` lists its reasons in
+`collection_errors` and in the summary line. Fix these before reading numbers. Read these fields ([all fields](https://ci-esta.readthedocs.io/en/latest/docs/github-actions-observability/#report-json-fields)):
 
 | Field | Use it for |
 | --- | --- |
@@ -111,13 +145,15 @@ numbers. Read these fields ([all fields](https://ci-esta.readthedocs.io/en/lates
 | `runner_cost.raw_runner_seconds` | Summed job time: what the runners spend |
 | `latest_attempt_jobs[].wall_seconds` and `.steps[].wall_seconds` | Which jobs are long, and setup versus test steps |
 | `critical_path.execution_path`, `.execution_seconds` | The chain that decides the gate time; only it shortens the wait |
-| `workflow_job_admission_delay_seconds` | Waiting before jobs start, including runner queueing |
+| `workflow_job_admission_delay_seconds` | Waiting before the *first* job starts; other jobs can wait longer |
+| `longest_job_queue_seconds`, `longest_job_queue_name` | The longest wait for a runner, such as a macOS job |
 
 *Check:* a baseline table with each run's ID, attempt, head, gate time, runner seconds and job count.
 
 ## 4. Choose one optimization
 
-Pick the first row the measurements support, and say which numbers led there.
+Apply the first row whenever it holds; it fixes the gate, in addition to any optimization. Of the other rows,
+take the first one from the top whose condition the measurements support, and say which numbers led there.
 
 | The report shows | Do | Recipe |
 | --- | --- | --- |
@@ -125,7 +161,7 @@ Pick the first row the measurements support, and say which numbers led there.
 | Many short matrix jobs; each job's setup steps take about as long as its test steps | Pack several matrix entries per runner with `plan-runner-pools` (tox, nox or uv) | [Pack matrix jobs](https://ci-esta.readthedocs.io/en/latest/docs/pack-matrix-jobs/) |
 | Dependency installation dominates, and `uv.lock` exists | Replace Python, uv and install steps with `setup-cached-uv` | [Environment cache](https://ci-esta.readthedocs.io/en/latest/docs/environment-cache/) |
 | Dependency installation dominates, no `uv.lock` | Keep the setup; enable the existing tool's cache (`astral-sh/setup-uv` `enable-cache`, `setup-python` `cache`) | [Environment cache](https://ci-esta.readthedocs.io/en/latest/docs/environment-cache/) |
-| One long pytest job on the critical path | Duration-balanced file shards with completion checks (needs Python 3.11+ in that job for receipts; otherwise split by test directory or environment and gate each job) | [Shard recipe](https://github.com/gigaverse-app/ci-esta/blob/main/examples/pytest-shards/README.md) |
+| One long pytest job on the critical path | Duration-balanced file shards with completion checks (needs Python 3.11+ in that job for receipts; otherwise split by test directory or environment and gate each job) | [Shard recipe](https://github.com/gigaverse-app/ci-esta/blob/v1/examples/pytest-shards/README.md) |
 | Unrelated jobs run on documentation-only PRs | Whole-lane selection with pytest-selective; keep the existing gate name | [Skip unrelated CI](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/) |
 | Overlapping runs for the same PR (`overlapping_prior_runner_cost`) | Add or scope a `concurrency` group to the PR and workflow; keep full and scheduled runs | [Critical path](https://ci-esta.readthedocs.io/en/latest/docs/critical-path/) |
 | Identical declared work repeats after it already passed | Completion-evidence reuse, only with eligible and changed-input controls | [Evidence reuse](https://ci-esta.readthedocs.io/en/latest/docs/evidence-reuse/) |
@@ -134,19 +170,39 @@ Pick the first row the measurements support, and say which numbers led there.
 Runner capacity and process count are separate choices: do not turn 16 local workers into 16 hosted jobs, and
 remember larger runners are billed even for public repositories.
 
+Packing adds a `plan` job that runs before the packed tests, one after the other (about 10 s in the itsdangerous
+trial), so time to `GATE` can grow by a few seconds while runner seconds fall. Packing succeeds when runner seconds
+fall and the median time to `GATE` stays inside the old layout's same-head range. Report both numbers either way,
+including a small gate-time cost.
+
 *Check:* one row chosen, with the report numbers that justify it.
 
 ## 5. Implement
 
 - Match the repository: its test runner (tox, nox, uv, pytest), its setup actions, its pinning policy, its job
-  names. Copy the recipe's commands, not its interpreter versions or paths.
-- **Keep the existing aggregate job and its name.** If the repository already has a required aggregate job, wire
-  new jobs into its `needs` and point the reporter at it. Add a new aggregate job (`validation-gate`) only when there
-  is none, and tell the human its name must become the required check.
+  names and its workflow file extension (`.yml` or `.yaml`; name new files the same way). Copy the recipe's
+  commands, not its interpreter versions, paths or environment names. For tox, list the environments with
+  `tox list` and select them by their own names, for example `-e py3.13,py3.12`; `-f 3.13` matches only
+  environments with a `3.13` factor, such as `3.13-tests`, not `py3.13`.
+- **Keep the existing aggregate job and its name.** If `GATE` is an aggregate job, wire new jobs into its `needs`.
+  If step 1 chose a new `Validation gate`, add it to the workflow that runs the tests, needing every job that must
+  pass:
+
+```yaml
+  validation-gate:
+    name: Validation gate
+    needs: [tests, typing]   # every validation job in this workflow
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gigaverse-app/ci-esta/actions/validation-gate@v1
+        with:
+          needs: ${{ toJSON(needs) }}   # every need must succeed; failed, cancelled or skipped jobs fail the gate
+```
 - **Same-head control.** When the change is the workflow layout itself, add a `workflow_dispatch` input that
   reproduces the old layout (for example `entries-per-runner: '1'`), so step 6 can compare both on one commit.
-- **Reporting observer**, outside the gate. Save as `.github/workflows/observe-ci.yml`, with `CI` set to the
-  workflow's `name:` and `GATE` to the required job's exact name:
+- **Reporting observer**, outside the gate. Save as `.github/workflows/observe-ci.yml` (`.yaml` if the
+  repository uses that), with `CI` set to the workflow's `name:` and `GATE` to the required job's exact name:
 
 ```yaml
 name: CI report
@@ -207,8 +263,9 @@ Push the branch, then:
 2. **Report every run** with `ci-esta report ... --gate 'GATE' --critical-path`, as in step 3.
 3. **Inventory unchanged.** Compare what ran, entry by entry: tox environments (`--result-json`), nox sessions,
    JUnit test counts, passed and skipped totals. A shorter run that ran fewer tests is not a result.
-4. **The gate still fails.** On a throwaway branch, add a test that fails in one job only (one Python version, one
-   shard) and confirm `GATE` fails. Run the same probe on the default-branch layout if you fixed a gate gap, to show
+4. **The gate still fails.** On a throwaway branch, add a test that fails in exactly one job: one CPython version
+   that runs nowhere else (for example `assert sys.version_info[:2] != (3, 12)`), not PyPy and not a version that
+   another operating system also runs. Confirm `GATE` fails; every extra failing job costs another rerun. Run the same probe on the default-branch layout if you fixed a gate gap, to show
    the difference. Delete the throwaway branches afterwards.
 5. **Ignore cancelled and rerun attempts** in the comparison; mention them when discussing total cost.
 

@@ -109,10 +109,21 @@ such as trove classifiers, read them from that job's output instead of `env`.
 
 The job must fail when any entry fails. Never append `|| true`.
 
-**tox.** Repeated `-f` selects the union of factors, so `-f 3.10 -f 3.11` runs
-every `3.10-*` and `3.11-*` environment. `tox run-parallel` runs them
-concurrently and exits non-zero if any fails; `--result-json` records the
-environments that ran, for the inventory comparison.
+**tox.** Run `tox list` first and select the environments by the names your
+`tox.ini` or `pyproject.toml` defines. The example's environments are composed
+from factors (`3.10-tests`, `3.10-docs`), and repeated `-f` selects the union of
+factors, so `-f 3.10 -f 3.11` runs every `3.10-*` and `3.11-*` environment. A
+factor must be a whole dash-separated part of the name: `-f 3.10` does not match
+`py3.10`. For environments named `py3.10`, `py3.11`, pass them with `-e`:
+
+```bash
+envs=$(jq -r 'map("py" + .) | join(",")' <<< "$VERSIONS")
+uvx --with tox-uv tox run-parallel --parallel auto --parallel-no-spinner \
+  --result-json "tox-results-$POOL.json" -e "$envs"
+```
+
+`tox run-parallel` runs them concurrently and exits non-zero if any fails;
+`--result-json` records the environments that ran, for the inventory comparison.
 
 **nox.** `--python` takes several interpreters; sessions run one after another
 and nox exits non-zero if any fails:
