@@ -31,11 +31,8 @@ LANE_REFERENCE = re.compile(
     r"needs\.([A-Za-z_][A-Za-z0-9_-]*)\.outputs\.lanes\s*\)\s*"
     r"(?:\.\s*([A-Za-z_][A-Za-z0-9_]*)|\[\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]\s*\])"
 )
-#: Steps that decide which lanes run; their job's change can change every lane.
-PLANNERS = re.compile(
-    r"pytest-selective(?:/actions/(?:plan-lanes|test-impact))?@|pytest_selective\.ci\b"
-    r"|ci-esta/actions/plan-work@|ci_esta\.testing\.work_plan\b"
-)
+#: A job other jobs read lanes from: the planner. Its change can change every lane.
+PLANNER_REFERENCE = re.compile(r"needs\.([A-Za-z_][A-Za-z0-9_-]*)\.outputs\.lanes\b")
 #: A repository path inside a command line, an input or an action reference.
 PATH_TOKEN = re.compile(r"[A-Za-z0-9_.@+\-]+(?:/[A-Za-z0-9_.@+\-]+)+|[A-Za-z0-9_\-]+\.[A-Za-z0-9]+")
 #: A line whose comment declares a file the script reads: pytest-selective's declaration syntax.
@@ -185,8 +182,6 @@ class WorkflowGraph:
         self.directories = {str(parent) for path in self.files for parent in PurePosixPath(path).parents}
         self.documents: dict[str, dict[str, Any]] = {}
         self.declarations: dict[str, set[str]] = {}
-        #: Metadata of local actions that plan lanes (`uses: ./actions/plan-lanes`).
-        self.planning_actions: set[str] = set()
         #: Each local action's metadata and the commands its `runs` holds.
         self.action_texts: dict[str, list[str]] = {}
         #: The repository's console scripts (`[project.scripts]`), name to module.
@@ -198,6 +193,14 @@ class WorkflowGraph:
                 self.documents[path] = document
                 for name, job in document["jobs"].items():
                     self.jobs[(path, str(name))] = self.describe(document, job)
+                # The planner is the job whose `lanes` output other jobs read, or that declares one; using a
+                # planning action to test it (a smoke job) does not make a job the planner.
+                read = {match for text in strings(document["jobs"]) for match in PLANNER_REFERENCE.findall(text)}
+                for name, job in document["jobs"].items():
+                    outputs = job.get("outputs") if isinstance(job, dict) else None
+                    if str(name) in read or (isinstance(outputs, dict) and "lanes" in outputs):
+                        self.jobs[(path, str(name))].lanes = {ALL}
+                        self.jobs[(path, str(name))].job_lanes = {ALL}
 
     def load(self, path: str) -> dict[str, Any]:
         # Malformed YAML raises, so the planner falls back to every lane.
@@ -215,8 +218,6 @@ class WorkflowGraph:
     def describe(self, document: dict[str, Any], job: Any) -> Job:
         texts = strings(job)
         lanes = {lane for text in texts for lane in lane_references(text)}
-        if any(PLANNERS.search(text) for text in texts):
-            lanes = {ALL}
         packages = any(PACKAGE_COMMANDS.search(text) for text in texts)
         # A command in a working directory names its files relative to that directory.
         relative = [
@@ -232,8 +233,6 @@ class WorkflowGraph:
                 # `uses: ./` is the repository's own action, which no path token names.
                 seen.add(directory)
                 inputs |= self.action(directory, seen)
-        if inputs & self.planning_actions:
-            lanes = {ALL}
         condition = job.get("if") if isinstance(job, dict) else None
         job_lanes = lane_references(str(condition)) if condition is not None else set()
         commands = [*texts, *(text for path in sorted(inputs) for text in self.action_texts.get(path, []))]
@@ -389,8 +388,6 @@ class WorkflowGraph:
                     for key in ("main", "pre", "post")
                     if isinstance(runs, dict) and isinstance(runs.get(key), str)
                 ]
-                if any(PLANNERS.search(text) for text in texts):
-                    self.planning_actions.add(metadata)
                 self.action_texts[metadata] = texts
                 image = runs.get("image") if isinstance(runs, dict) else None
                 if isinstance(image, str) and not image.startswith("docker://"):
