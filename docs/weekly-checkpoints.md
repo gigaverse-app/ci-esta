@@ -18,6 +18,12 @@ Generate the small schedule wrapper from your repository root:
 ci-esta checkpoint init
 ```
 
+If CI-esta is not installed, generate it with uv without adding a project dependency:
+
+```sh
+uvx --from 'ci-esta>=1.11,<2' ci-esta checkpoint init
+```
+
 This creates `.github/workflows/weekly-checkpoint.yml` without overwriting an
 existing file. Commit it to the default branch. The defaults are Monday at
 03:17 UTC, `ubuntu-latest`, a five-minute dispatcher timeout, `ci.yml` on the
