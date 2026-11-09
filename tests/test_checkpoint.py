@@ -5,7 +5,7 @@ import json
 import httpx
 import pytest
 
-from ci_esta.checkpoint import Checkpoint, dispatch
+from ci_esta.checkpoint import Checkpoint, dispatch, main
 from ci_esta.ci_observability.github import GitHubActionsClient
 
 
@@ -62,3 +62,16 @@ def test_dry_run_checks_inputs_without_dispatching():
 def test_invalid_target_lists_are_rejected(workflows):
     with pytest.raises(ValueError):
         Checkpoint(workflows=workflows)
+
+
+def test_init_has_usable_defaults_and_preserves_existing_work(tmp_path):
+    import yaml
+    output = tmp_path / "workflows/weekly.yml"
+    assert main(["init", "--output", str(output)]) == 0
+    original = output.read_text()
+    workflow = yaml.safe_load(original)
+    assert workflow["on"]["schedule"] == [{"cron": "17 3 * * 1"}]
+    assert workflow["permissions"] == {"contents": "read", "actions": "write"}
+    with pytest.raises(FileExistsError):
+        main(["init", "--output", str(output), "--ref", "other"])
+    assert output.read_text() == original

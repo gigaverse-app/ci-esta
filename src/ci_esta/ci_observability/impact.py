@@ -9,8 +9,8 @@ from ci_esta.measurements import MeasurementIdentity
 from ci_esta.timing import elapsed_seconds
 
 
+# Hosted benchmarks require a real run and commit; local measurements can lack them.
 class RunReference(MeasurementIdentity):
-    """A hosted benchmark requires a real run and commit, unlike optional local measurements."""
     model_config = ConfigDict(frozen=True, extra="forbid")
     run_id: int = Field(gt=0)
     head_sha: str = Field(pattern=r"^[0-9a-f]{40}$")
