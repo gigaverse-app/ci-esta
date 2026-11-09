@@ -522,3 +522,36 @@ def test_a_pull_request_merge_is_planned_against_the_base_it_was_built_on(reposi
     assert tested == {"live": True, "smoke": False, "unit": False, "wrapped": True}
     # Without the PR head, main's own change reads as the PR's: the smoke lane runs too.
     assert plan(repo, base, head, capsys)["smoke"] is True
+
+
+@pytest.mark.parametrize(
+    "filename, contents",
+    [
+        ("pytest.ini", "[pytest]\npythonpath = app\n"),
+        ("setup.cfg", "[tool:pytest]\npythonpath = app\n"),
+    ],
+)
+def test_nested_pytest_pythonpath_resolves_application_imports(commands, capsys, filename, contents):
+    repo, _ = commands
+    write(repo, f"demos/shop/{filename}", contents)
+    write(repo, "demos/shop/app/shop/value.py", "VALUE = 1\n")
+    write(repo, "demos/shop/test_it.py", "from shop.value import VALUE\ndef test_it(): assert VALUE\n")
+    base = commit(repo)
+    config = infer_lanes(repo, base, base)
+    assert "demos/shop/app" in config.graph.module_roots
+    write(repo, "demos/shop/app/shop/value.py", "VALUE = 2\n")
+    assert plan(repo, base, commit(repo), capsys)["demo"] is True
+
+
+@pytest.mark.parametrize("extends", [True, False])
+def test_json_reports_the_replaced_rule_that_planning_uses(repository, capsys, extends):
+    repo, base = repository
+    replacement = {"name": "python-environment", "when": ["uv.lock"], "select": ["all"]}
+    document = {"extends": "workflow"} if extends else infer_lanes(repo, base, base).model_dump()
+    document["rules"] = [replacement]
+    config = lane_file(repo, document)
+    assert cli(["lanes", "--repo", str(repo), "--config", str(config), "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    rule = next(item for item in payload["rules"] if item["name"] == "python-environment")
+    assert rule["when"] == ["uv.lock"]
+    assert rule["origin"] == "lane file"

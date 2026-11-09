@@ -29,6 +29,10 @@ def committed_changes(tmp_path: Path, *paths: str) -> tuple[str, str]:
     write(tmp_path, "tests/test_example.py", "from example import VALUE\ndef test_value(): assert VALUE")
     # A second test keeps a one-test change from counting as "all graph test files affected".
     write(tmp_path, "tests/test_other.py", "def test_other(): pass")
+    # The observer executes this local reusable workflow. Keep that invocation valid
+    # even though this fixture contains only the workflows relevant to the change.
+    if ".github/workflows/observe-ci.yml" in paths:
+        write(tmp_path, ".github/workflows/report.yml", (ROOT / ".github/workflows/report.yml").read_text())
     for path in paths:
         if path.startswith(".github/workflows/"):
             write(tmp_path, path, (ROOT / path).read_text())

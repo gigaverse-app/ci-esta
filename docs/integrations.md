@@ -105,6 +105,33 @@ jobs pick tests by marker, so inference sees whole directories; two lanes narrow
 
 An extending file may also set `graph` fields (merged over the inferred graph) and
 `global_inputs`. A lane file without `extends` is complete and used exactly as written.
+Both forms accept `rules` and `disable_rules`; `ci-esta lanes --json` reports the effective
+replacement with origin `lane file`.
+
+Lanes sharing roots can partition tests by filename, for Python and Bun alike:
+
+```json
+{
+  "extends": "workflow",
+  "lanes": {
+    "unit": {"roots": ["src"], "exclude_patterns": ["*.integration.test.*"]},
+    "integration": {"roots": ["src"], "test_patterns": ["*.integration.test.*"]}
+  }
+}
+```
+
+These are pytest-selective's canonical lane filters, matched against repository-relative
+paths after the roots constrain membership. Their defaults include every test and exclude
+none. Dependencies still select every lane holding an affected test; deleted tests retain
+their lane, and an affected test claimed by no lane triggers conservative execution.
+Explicit inputs and full checkpoints bypass filename membership.
+
+Python module roots include `pythonpath` from nested `pytest.ini`, `.pytest.ini`,
+`setup.cfg` and `tox.ini`, relative to that config's directory. Workflow commands resolve
+paths in their own working directory, including literal `cd` and `uv --directory`
+overrides. Commands inside a foreign checkout do not execute this repository's same-named
+files. A workflow YAML passed to `check-workflow` is a read input; only a reusable-workflow
+`uses` invocation executes its jobs.
 
 **Rules: when these files change, run that.** Anything the graphs cannot see is a rule in
 the extending file. A rule names the files it watches and what it selects: `all`,

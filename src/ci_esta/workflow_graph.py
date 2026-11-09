@@ -25,6 +25,11 @@ import yaml
 
 from ci_esta.git import git
 
+#: `cd DIR && ...` or `cd DIR; ...` before a command.
+CHANGE_DIRECTORY = re.compile(r"^\s*cd\s+(['\"]?)([^'\"\s;&|]+)\1\s*(?:&&|;)\s*(.*)$")
+#: `uv run --directory DIR`, which runs the command inside DIR.
+UV_DIRECTORY = re.compile(r"\buv (?:run )?(?:--[\w-]+(?:[ =]\S+)? )*?--directory[ =](['\"]?)([^'\"\s]+)\1")
+
 WORKFLOWS = ".github/workflows/"
 #: A lane read from the planner's JSON output, by attribute or by index, with or without a fallback
 #: for a planner that produced none (`fromJSON(needs.plan.outputs.lanes || '{}').tests`).
@@ -198,6 +203,39 @@ def inside(directory: str, relative: str) -> str:
     return posixpath.normpath(f"{directory}/{relative.removeprefix('./')}")
 
 
+def joined(directory: str | None, path: str) -> str | None:
+    """`path` read from `directory`, as a repository path; None for the root."""
+    if path.startswith(("$", "~", "/")):
+        return directory
+    value = inside(directory or ".", path)
+    return None if value == "." else value
+
+
+def command_context(line: str, directory: str | None) -> tuple[str, str | None]:
+    """A command and its directory after literal shell/uv directory overrides."""
+    while match := CHANGE_DIRECTORY.match(line):
+        directory, line = joined(directory, match[2]), match[3]
+    if match := UV_DIRECTORY.search(line):
+        directory = joined(directory, match[2])
+        # Consume the override so callers can safely normalize an already-normalized command.
+        start, end = match.span()
+        line = line[:start] + "uv run " + line[end:].lstrip()
+    return line, directory
+
+
+def command_lines(commands: list[tuple[str, str | None]]) -> list[tuple[str, str | None]]:
+    """Resolve each shell line in its step's directory, retaining literal standalone `cd` changes."""
+    found = []
+    for command, directory in commands:
+        for line in command.splitlines():
+            if line.strip().startswith("cd ") and not any(token in line for token in ("&&", ";", "|")):
+                directory = joined(directory, line.strip()[3:].strip().strip("\"'"))
+                continue
+            line, current = command_context(line, directory)
+            found.append((line, current))
+    return found
+
+
 class WorkflowGraph:
     """The jobs of every workflow at one revision, with the files each executes."""
 
@@ -242,19 +280,36 @@ class WorkflowGraph:
         except subprocess.CalledProcessError:
             return None
 
-    def describe(self, document: dict[str, Any], job: Any) -> Job:
+    def describe(self, document: dict[str, Any], job: Any, seen: set[str] | None = None) -> Job:
         texts = strings(job)
         lanes = {lane for text in texts for lane in lane_references(text)}
         packages = any(PACKAGE_COMMANDS.search(text) for text in texts)
-        # A command in a working directory names its files relative to that directory.
-        relative = [
-            posixpath.normpath(f"{directory}/{token.removeprefix('./')}")
-            for command, directory in run_steps(document, job)
-            if directory is not None
-            for token in PATH_TOKEN.findall(command)
+        # A run's paths belong to its working directory, never to a same-named root file.
+        # Keep non-command settings (env, action inputs) in the repository's coordinate system.
+        metadata = dict(job) if isinstance(job, dict) else {}
+        metadata["steps"] = [
+            {key: value for key, value in step.items() if key != "run"}
+            for step in metadata.get("steps", [])
+            if isinstance(step, dict)
         ]
-        seen: set[str] = set()
-        inputs = self.references([*texts, *relative], seen)
+        seen = set() if seen is None else seen
+        inputs = self.references(strings(metadata), seen)
+        from pytest_selective.impact_graph import within
+
+        foreign = foreign_checkouts(job)
+        commands = []
+        for command, directory in command_lines(run_steps(document, job)):
+            if any(within(directory or ".", path) for path in foreign):
+                continue
+            commands.append(command)
+            inputs |= self.references([command], seen, working_dir=directory)
+        # Only `uses` executes a reusable workflow. Reading its YAML is a direct input.
+        uses = job.get("uses") if isinstance(job, dict) else None
+        if isinstance(uses, str) and uses.startswith("./"):
+            called = uses.removeprefix("./")
+            if is_workflow(called) and called not in seen:
+                seen.add(called)
+                inputs |= self.reusable(called, seen)
         for directory in local_actions(job):
             if directory == "." and directory not in seen:
                 # `uses: ./` is the repository's own action, which no path token names.
@@ -262,7 +317,7 @@ class WorkflowGraph:
                 inputs |= self.action(directory, seen)
         condition = job.get("if") if isinstance(job, dict) else None
         job_lanes = lane_references(str(condition)) if condition is not None else set()
-        commands = [*texts, *(text for path in sorted(inputs) for text in self.action_texts.get(path, []))]
+        commands += [*strings(metadata), *(text for path in sorted(inputs) for text in self.action_texts.get(path, []))]
         return Job(
             lanes=lanes,
             inputs=inputs,
@@ -293,20 +348,21 @@ class WorkflowGraph:
                 found.add(module)
         return found
 
-    def references(self, texts: list[str], seen: set[str], action_dir: str | None = None) -> set[str]:
+    def references(
+        self, texts: list[str], seen: set[str], action_dir: str | None = None, *, working_dir: str | None = None
+    ) -> set[str]:
         """Repository files named in `texts`, followed through local actions and reusable workflows."""
         found: set[str] = set()
         candidates = [token.removeprefix("./") for text in texts for token in PATH_TOKEN.findall(text)]
+        if working_dir is not None:
+            candidates = [inside(working_dir, candidate) for candidate in candidates]
         if action_dir is not None:
             candidates += [inside(action_dir, relative) for text in texts for relative in ACTION_PATH.findall(text)]
         for candidate in candidates:
             candidate = candidate.rstrip(".,")
             if candidate in self.files:
                 found.add(candidate)
-                if is_workflow(candidate) and candidate not in seen:
-                    seen.add(candidate)
-                    found |= self.reusable(candidate, seen)
-                elif candidate not in seen:
+                if not is_workflow(candidate) and candidate not in seen:
                     seen.add(candidate)
                     found |= self.declared(candidate)
             elif candidate in self.directories and candidate not in seen:
@@ -347,7 +403,7 @@ class WorkflowGraph:
         foreign = foreign_checkouts(job)
         return [
             (command, directory)
-            for command, directory in found
+            for command, directory in command_lines(found)
             if directory is None or not any(within(directory, path) for path in foreign)
         ]
 
@@ -427,7 +483,7 @@ class WorkflowGraph:
     def reusable(self, path: str, seen: set[str]) -> set[str]:
         """A called workflow's own executed files; its jobs run inside the caller's job."""
         document = self.documents.get(path) or self.load(path)
-        return self.references(strings(document.get("jobs", {})), seen)
+        return set().union(*(self.describe(document, job, seen).inputs for job in document["jobs"].values()))
 
     def package_lanes(self) -> set[str]:
         """Lanes gating a job that builds the package, by its job-level condition; a planner job is not one."""
@@ -474,19 +530,27 @@ def matrix_combinations(matrix: object) -> list[dict] | None:
         return None
     include, exclude = matrix.get("include", []), matrix.get("exclude", [])
     axes = {key: values for key, values in matrix.items() if key not in {"include", "exclude"}}
-    if not isinstance(include, list) or not isinstance(exclude, list) or not all(
-            isinstance(values, list) and values for values in axes.values()) or not all(
-            isinstance(entry, dict) for entry in [*include, *exclude]):
+    if (
+        not isinstance(include, list)
+        or not isinstance(exclude, list)
+        or not all(isinstance(values, list) and values for values in axes.values())
+        or not all(isinstance(entry, dict) for entry in [*include, *exclude])
+    ):
         return None
     combinations = [dict(zip(axes, values)) for values in itertools.product(*axes.values())] if axes else []
-    combinations = [combination for combination in combinations
-                    if not any(all(combination.get(key) == value for key, value in entry.items())
-                               for entry in exclude)]
+    combinations = [
+        combination
+        for combination in combinations
+        if not any(all(combination.get(key) == value for key, value in entry.items()) for entry in exclude)
+    ]
     originals = list(combinations)
     for entry in include:
         # An include extends every original combination it does not contradict, or else adds its own.
-        extended = [combination for combination in originals
-                    if all(combination[key] == value for key, value in entry.items() if key in axes)]
+        extended = [
+            combination
+            for combination in originals
+            if all(combination[key] == value for key, value in entry.items() if key in axes)
+        ]
         for combination in extended:
             combination.update(entry)
         if not extended:

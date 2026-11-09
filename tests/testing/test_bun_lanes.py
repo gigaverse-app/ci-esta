@@ -300,3 +300,68 @@ def test_the_bun_environment_rule_can_be_switched_off(repository):
     assert plan_work(repo, lanes(), base, head).lanes == {"unit": True, "feature": True}
     rules = effective([], ["bun-environment"])
     assert plan_work(repo, lanes(), base, head, rules=rules).lanes == {"unit": False, "feature": False}
+
+
+@pytest.mark.parametrize(
+    "changed, expected",
+    [
+        ("src/unit.ts", {"unit": True, "feature": False}),
+        ("src/integration.ts", {"unit": False, "feature": True}),
+        ("src/shared.ts", {"unit": True, "feature": True}),
+        ("README.md", {"unit": False, "feature": False}),
+    ],
+)
+@pytest.mark.parametrize("delete", [False, True])
+def test_bun_lanes_share_canonical_filename_membership(tmp_path, changed, expected, delete):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    for name in ("unit", "integration", "shared"):
+        write(tmp_path, f"src/{name}.ts", "export const value = 1;\n")
+    for name in ("unit", "integration"):
+        write(
+            tmp_path,
+            f"tests/value.{name}.test.ts",
+            TEST.format(imports=f"import {{ value }} from '../src/{name}'; import '../src/shared';"),
+        )
+    write(tmp_path, "README.md", "docs\n")
+    config = LaneConfig(
+        graph=ImpactConfig(module_roots=["."], test_roots=["tests"]),
+        lanes={
+            "unit": Lane(roots=["tests"], exclude_patterns=["*.integration.test.ts"]),
+            "feature": Lane(roots=["tests"], test_patterns=["*.integration.test.ts"]),
+        },
+    )
+    base = commit(tmp_path)
+    if delete:
+        (tmp_path / changed).unlink()
+    else:
+        write(tmp_path, changed, (tmp_path / changed).read_text() + "// changed\n")
+    result = plan_work(tmp_path, config, base, commit(tmp_path))
+    # An unresolved deleted source makes Bun's graph unavailable, so it retains both lanes.
+    if delete and changed.startswith("src/"):
+        assert all(result.lanes.values())
+    else:
+        assert result.lanes == expected, result.lane_reasons
+
+
+@pytest.mark.parametrize("change", ["test", "delete", "dependency", "environment", "preload"])
+def test_unclaimed_filtered_bun_test_cannot_silently_disappear(repository, change):
+    repo, _ = repository
+    config = lanes()
+    config.lanes["unit"].exclude_patterns = ["*a.test.ts"]
+    if change == "preload":
+        write(repo, "bunfig.toml", '[test]\npreload = ["./setup.ts"]\n')
+        write(repo, "setup.ts", "globalThis.ready = true;\n")
+    base = commit(repo)
+    if change == "delete":
+        (repo / "tests/unit/a.test.ts").unlink()
+    elif change == "dependency":
+        write(repo, "src/a.ts", "export const a = 2;\n")
+    elif change == "environment":
+        write(repo, "package.json", '{"name": "changed"}\n')
+    elif change == "preload":
+        write(repo, "setup.ts", "globalThis.ready = false;\n")
+    else:
+        write(repo, "tests/unit/a.test.ts", TEST.format(imports="// changed"))
+    result = plan_work(repo, config, base, commit(repo))
+    assert all(result.lanes.values()), result.lane_reasons
+    assert any("unmapped affected Bun test" in reason for reason in result.lane_reasons["unit"])

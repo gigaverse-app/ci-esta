@@ -23,6 +23,7 @@ import tempfile
 import tomllib
 from pathlib import Path, PurePosixPath
 
+from pytest_selective.ci import Lane
 from pytest_selective.impact_graph import matches, within
 
 from ci_esta.git import tracked_files
@@ -213,7 +214,7 @@ def test_preloads(repo: Path, files: set[str]) -> list[str]:
 
 def bun_lane_reasons(
     repo: Path,
-    lanes: dict[str, list[str]],
+    lanes: dict[str, Lane],
     changed: set[str],
     bun: str = "bun",
     environment: list[str] | None = BUN_ENVIRONMENT_FILES,
@@ -222,29 +223,41 @@ def bun_lane_reasons(
 
     `environment` is the bun-environment rule's patterns; a change to one runs every Bun lane.
     """
+
+    def unmapped_reasons(paths: set[str]) -> dict[str, list[str]]:
+        reason = "full-suite fallback: unmapped affected Bun test: " + ", ".join(sorted(paths))
+        return {name: [reason] for name in lanes}
+
     files = tracked_files(repo)
     deleted = changed - set(files)
     tests = test_files(files)
-    lane_tests = {
-        name: [test for test in tests if any(within(test, root) for root in roots)] for name, roots in lanes.items()
+    candidates = {
+        test
+        for test in [*tests, *test_files(deleted)]
+        if any(within(test, root) for lane in lanes.values() for root in lane.roots)
     }
+    unclaimed = {test for test in candidates if not any(lane.contains_test(test) for lane in lanes.values())}
+    if removed := unclaimed & deleted:
+        return unmapped_reasons(removed)
+    lane_tests = {name: [test for test in tests if lane.contains_test(test)] for name, lane in lanes.items()}
     lane_deleted = {
-        name: [path for path in test_files(deleted) if any(within(path, root) for root in roots)]
-        for name, roots in lanes.items()
+        name: [path for path in test_files(deleted) if lane.contains_test(path)] for name, lane in lanes.items()
     }
     bun_lanes = [name for name in lanes if lane_tests[name] or lane_deleted[name]]
-    if not bun_lanes:
+    if not bun_lanes and not unclaimed:
         return {}
     reasons: dict[str, list[str]] = {
         name: [f"deleted test: {path}" for path in lane_deleted[name]] for name in bun_lanes
     }
     fired = sorted(path for path in changed if environment is not None and matches(path, environment))
     if fired:
+        if unclaimed:
+            return unmapped_reasons(unclaimed)
         for name in bun_lanes:
             reasons[name].extend(f"rule bun-environment: {path}" for path in fired)
         return reasons
     executable = shutil.which(bun)
-    present = sorted({test for name in bun_lanes for test in lane_tests[name]})
+    present = sorted({test for name in bun_lanes for test in lane_tests[name]} | unclaimed)
     try:
         if executable is None:
             raise FileNotFoundError(f"{bun} is not installed")
@@ -253,7 +266,10 @@ def bun_lane_reasons(
         graph = test_inputs(repo, entries, executable, set(files)) if present else {}
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         reason = f"full-suite fallback: Bun module graph unavailable: {failure(error)}"
-        return {name: [reason] for name in bun_lanes}
+        return {name: [reason] for name in (lanes if unclaimed else bun_lanes)}
+    preload_changed = any(graph[path] & changed for path in preloads if present)
+    if unmapped := {test for test in unclaimed if preload_changed or graph[test] & changed}:
+        return unmapped_reasons(unmapped)
     for preload in preloads if present else ():
         if hit := sorted(graph[preload] & changed):
             for name in bun_lanes:
