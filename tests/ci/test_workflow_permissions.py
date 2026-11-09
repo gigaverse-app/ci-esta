@@ -8,7 +8,10 @@ the Publish call did not grant.
 # gv:test-dependency: .github/workflows/release.yml
 from pathlib import Path
 
+import pytest
 import yaml
+
+from ci_esta.testing.gha_expressions import evaluate
 
 WORKFLOWS = Path(__file__).resolve().parents[2] / ".github/workflows"
 LEVEL = {"none": 0, "read": 1, "write": 2}
@@ -55,3 +58,13 @@ def test_publish_call_grants_its_permissions_explicitly() -> None:
     for name, job in publish["jobs"].items():
         if job.get("uses") == CI:
             assert "permissions" in job, f"release.yml job {name!r} relies on inherited permissions"
+
+
+@pytest.mark.parametrize("event", ["workflow_dispatch", "release"])
+@pytest.mark.parametrize("mode", [None, "", "off", "alpha", "beta", "verify"])
+def test_optional_timing_example_requires_an_explicit_manual_mode(event: str, mode: str | None) -> None:
+    # A manual Publish call inherits workflow_dispatch but supplies no CI inputs.
+    inputs = {} if mode is None else {"timing-example": mode}
+    context = {"github": {"event_name": event}, "inputs": inputs}
+    condition = workflow("ci.yml")["jobs"]["timing-example"]["if"]
+    assert evaluate(condition, context) == (event == "workflow_dispatch" and mode in {"alpha", "beta", "verify"})

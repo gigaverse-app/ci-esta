@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   timing-example:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.timing-example != 'off' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.timing-example || 'off') != 'off' }}
     uses: ./.github/workflows/timing-history-example.yml
     with:
       mode: ${{ inputs.timing-example }}
