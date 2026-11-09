@@ -105,6 +105,10 @@ To run a complete checkpoint after a CI change, select **CI** in GitHub Actions
 and choose **Run workflow**. Retrying an ordinary PR run preserves its selection;
 use the manual checkpoint when you need full-suite evidence.
 
+Both planning jobs install Bun before inspecting the mixed Python/JavaScript test
+graph. Keep that runtime available: without it, the safe fallback runs the test
+lanes even when only documentation changed.
+
 Both lanes also run for every global input: environment files, CI workflows,
 selector configuration and every non-Markdown file under `actions/` and
 `examples/`. The `*[!d]`, `*[!m]d` and `*[!.]md` patterns exclude `.md`, so a new
