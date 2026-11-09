@@ -98,12 +98,12 @@ function repositoryFiles(specifier: string, directory: string): string[] {
 
 const resolved: Record<string, { path: string; kind: string; original: string }[]> = {};
 const recorded = new Set<string>();
-function record(importer: string, specifier: string, kind: string, found?: string[]): void {
+function record(importer: string, specifier: string, kind: string): void {
   const key = JSON.stringify([importer, specifier]);
   if (recorded.has(key)) return;
   recorded.add(key);
   const query = specifier.indexOf("?");
-  for (const file of found ?? repositoryFiles(query < 0 ? specifier : specifier.slice(0, query), dirname(importer))) {
+  for (const file of repositoryFiles(query < 0 ? specifier : specifier.slice(0, query), dirname(importer))) {
     (resolved[importer] ??= []).push({ path: file, kind, original: specifier });
   }
 }
