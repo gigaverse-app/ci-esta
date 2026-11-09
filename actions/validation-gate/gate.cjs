@@ -15,11 +15,19 @@ function validateGate(needs, required) {
 }
 
 function selectedRequirements(needs, planner, lanes, laneJobs) {
-  if (!needs[planner] || !lanes || typeof lanes !== 'object' || Array.isArray(lanes) ||
+  if (!lanes || typeof lanes !== 'object' || Array.isArray(lanes) ||
       !laneJobs || typeof laneJobs !== 'object' || Array.isArray(laneJobs)) {
-    throw new Error('A direct planner prerequisite and explicit lane/job maps are required.');
+    throw new Error('Lane and job maps must be JSON objects.');
   }
+  // Without lane-jobs no job is optional: every direct prerequisite must succeed,
+  // and no planner is involved. A lane mapping makes skips possible, so it needs one.
   const required = Object.fromEntries(Object.keys(needs).map(name => [name, true]));
+  if (!Object.keys(laneJobs).length) {
+    return required;
+  }
+  if (!needs[planner]) {
+    throw new Error(`lane-jobs needs the planner '${planner}' as a direct prerequisite; set the planner input to the job that produced the lanes.`);
+  }
   for (const [job, inputs] of Object.entries(laneJobs)) {
     if (!(job in needs) || job === planner || !Array.isArray(inputs) || !inputs.length ||
         inputs.some(lane => typeof lane !== 'string' || !lane)) {

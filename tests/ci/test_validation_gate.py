@@ -59,3 +59,25 @@ def test_selected_lane_gate_cannot_ignore_metadata_or_an_unmapped_job():
     validateGate(needs, selectedRequirements(needs,'select-tests',{unit:false},{tests:['unit']}));
     """
     assert subprocess.run(["node", "-e", script, str(GATE)], capture_output=True).returncode != 0
+
+
+def _plain_gate(needs: dict[str, dict[str, str]], lane_jobs: str = "{}") -> subprocess.CompletedProcess:
+    """The action's own default inputs: no `required`, planner `select-tests`, lanes `{}`."""
+    script = """
+    const {validateGate, selectedRequirements}=require(process.argv[1]);
+    const needs=JSON.parse(process.argv[2]);
+    validateGate(needs, selectedRequirements(needs, 'select-tests', {}, JSON.parse(process.argv[3])));
+    """
+    return subprocess.run(["node", "-e", script, str(GATE), json.dumps(needs), lane_jobs],
+                          capture_output=True, text=True)
+
+
+@pytest.mark.parametrize("result", ["success", "failure", "cancelled", "skipped", ""])
+def test_plain_gate_without_planner_requires_every_need_to_succeed(result):
+    needs = {"tests": {"result": "success"}, "typing": {"result": result}}
+    assert (_plain_gate(needs).returncode == 0) == (result == "success")
+
+
+def test_lane_mapping_still_requires_its_planner():
+    run = _plain_gate({"tests": {"result": "skipped"}}, '{"tests":["unit"]}')
+    assert run.returncode != 0 and "planner 'select-tests'" in run.stderr
