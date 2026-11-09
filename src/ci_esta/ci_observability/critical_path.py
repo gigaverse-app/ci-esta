@@ -5,6 +5,7 @@ about runner queue causes. Execution CPM holds measured job durations constant.
 """
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from fnmatch import fnmatchcase
 from graphlib import CycleError, TopologicalSorter
@@ -37,6 +38,11 @@ class CriticalPathResult(BaseModel):
     nodes: list[PathNode] = Field(default_factory=list)
 
 
+def _literal_length(pattern: str) -> int:
+    """Characters a pattern matches literally; `[*]` is one escaped character."""
+    return sum(token not in ("*", "?") for token in re.findall(r"\[[^]]*\]|.", pattern))
+
+
 def analyze(created_at: datetime | None, jobs: list[GitHubJobV1],
             dependencies: dict[str, list[str]], gates: list[str]) -> CriticalPathResult:
     """Reject ambiguous/incomplete evidence while leaving the ordinary report useful."""
@@ -54,6 +60,17 @@ def _analyze(created_at, jobs, dependencies, gates):
     by_name = {job.name: job for job in jobs}
     if len(by_name) != len(jobs) or len({job.run_attempt for job in jobs}) != 1:
         raise ValueError("Duplicate job names or mixed run attempts")
+    # Each observed job belongs to the most specific pattern it matches: a literal
+    # name beats an expression wildcard such as `${{ matrix.name }}`.
+    owners, ambiguous = {}, {}
+    for name in by_name:
+        candidates = [pattern for pattern in dependencies if fnmatchcase(name, pattern)]
+        best = max(map(_literal_length, candidates), default=0)
+        top = [pattern for pattern in candidates if _literal_length(pattern) == best]
+        if len(top) == 1:
+            owners[name] = top[0]
+        elif top:
+            ambiguous[name] = top
     # A report can run immediately after the gate, before GitHub has created
     # downstream publishing jobs. Only the gate's complete ancestry is needed.
     required_patterns = set()
@@ -69,15 +86,16 @@ def _analyze(created_at, jobs, dependencies, gates):
         pending.extend(dependencies[pattern])
     dependencies = {pattern: parents for pattern, parents in dependencies.items()
                     if pattern in required_patterns}
-    matches = {pattern: sorted(name for name in by_name if fnmatchcase(name, pattern))
+    for name, patterns in ambiguous.items():
+        if required_patterns.intersection(patterns):
+            raise ValueError(f"Overlapping job patterns for {name}")
+    matches = {pattern: sorted(name for name, owner in owners.items() if owner == pattern)
                for pattern in dependencies}
     if any(not names for names in matches.values()):
         raise ValueError("A declared job pattern did not match observed jobs")
     expanded = {}
     for pattern, names in matches.items():
         for name in names:
-            if name in expanded:
-                raise ValueError(f"Overlapping job patterns for {name}")
             parents = dependencies[pattern]
             if any(parent not in matches for parent in parents):
                 raise ValueError(f"Undeclared prerequisite for {name}")
