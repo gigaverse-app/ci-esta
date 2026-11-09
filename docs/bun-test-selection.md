@@ -145,8 +145,13 @@ Unsupported runtime versions and missing inventory fail visibly.
 ## Whole-lane planning
 
 The adapter above narrows files inside one `bun test` run. To skip whole jobs, use
-[`plan-work`](actions.md) with a lane file whose roots hold your Bun tests. Install Bun in
-the planning job first (`oven-sh/setup-bun`), because the planner asks Bun for its module graph:
+[`plan-work`](actions.md); its lanes come from your workflow, or from a lane file whose
+roots hold your Bun tests. The planner asks Bun for its module graph, so `plan-work`
+installs Bun itself when the repository has Bun-style test files (`*.test.ts`,
+`*_spec.mjs`, ...) and no `bun` is on `PATH`, pinned by `.bun-version`, `.tool-versions` or
+`packageManager` in `package.json` when one exists. Without Bun the planner cannot see
+which tests a change reaches and runs every lane holding Bun tests, even for a
+documentation change:
 
 ```yaml
 select-tests:
@@ -157,12 +162,12 @@ select-tests:
     - uses: actions/checkout@v7
       with:
         fetch-depth: 0
-    - uses: oven-sh/setup-bun@v2
     - id: plan
       uses: gigaverse-app/ci-esta/actions/plan-work@v1
-      with:
-        config: .github/test-lanes.json
 ```
+
+Install Bun before `plan-work` yourself (`oven-sh/setup-bun`) only to pin a version kept
+somewhere else; `plan-work` then uses that one.
 
 Bun's bundler metafile lists what each test bundles: its imports followed transitively,
 including `require`, side-effect and dynamic `import()` calls with literal paths, and text,
