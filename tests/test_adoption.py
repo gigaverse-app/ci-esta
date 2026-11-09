@@ -277,3 +277,38 @@ def test_lane_evidence_without_a_receipt_step_is_flagged(tmp_path):
 def test_reuse_without_merge_reuse_needs_no_marker(tmp_path):
     write(tmp_path, ".github/workflows/ci.yml", (REUSE_PLANNER % ("", RECEIPT)).replace("reuse-after-merge: 'true'", "reuse-after-merge: 'false'"))
     assert "reuse-ownership-marker" not in {item["id"] for item in audit(tmp_path)["suggestions"]}
+
+
+RELEASE_PLEASE = """
+on:
+%s
+jobs:
+  release-please:
+    steps:
+      - uses: googleapis/release-please-action@v4
+"""
+ON_PUSH = "  push:\n    branches: [main]"
+AFTER_CI = "  workflow_run:\n    workflows: [CI]\n    branches: [main]\n    types: [completed]"
+
+
+def release_suggestions(tmp_path: Path, trigger: str, version_only: bool = True) -> set[str]:
+    planner = REUSE_PLANNER % (MARKER, RECEIPT)
+    if version_only:
+        planner = planner.replace("reuse-after-merge: 'true'", "reuse-after-merge: 'true'\n          reuse-version-only-release: 'true'")
+    write(tmp_path, ".github/workflows/ci.yml", planner)
+    write(tmp_path, ".github/workflows/release-please.yml", RELEASE_PLEASE % trigger)
+    return {item["id"] for item in audit(tmp_path)["suggestions"]}
+
+
+def test_version_only_reuse_with_release_please_on_push_is_flagged(tmp_path):
+    # pytest-quint-connect #36 refreshed the release PR on every push to main. Its CI then raced main's CI on the
+    # same code, found no receipt, and the 1.2.1 release PR reran all seven test jobs that main proved minutes later.
+    assert "release-refresh-timing" in release_suggestions(tmp_path, ON_PUSH)
+
+
+def test_release_please_after_main_ci_needs_nothing(tmp_path):
+    assert "release-refresh-timing" not in release_suggestions(tmp_path, AFTER_CI)
+
+
+def test_release_please_on_push_without_version_only_reuse_is_fine(tmp_path):
+    assert "release-refresh-timing" not in release_suggestions(tmp_path, ON_PUSH, version_only=False)

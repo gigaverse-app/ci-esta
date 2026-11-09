@@ -150,3 +150,11 @@ booleans and keep package build, version metadata, wheel and source-distribution
 installation checks mandatory. CI-esta's publishing workflow retains full
 exact-tag validation. Publishing, schedules and manual full checkpoints do not
 consume this evidence.
+
+**Refresh the release PR after main's CI, not on push.** The proof is the merged
+base's completion receipt, which exists only once `main`'s CI has finished on that
+commit. If Release Please runs on `push`, the release PR's CI starts while `main`'s
+CI on the same code is still running, finds no receipt, and executes every lane.
+Trigger Release Please with `workflow_run` after a successful push CI on `main`.
+`ci-esta adoption` reports `release-refresh-timing` when version-only reuse is
+enabled and Release Please runs on push.
