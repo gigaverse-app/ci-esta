@@ -22,6 +22,10 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # The lane graph includes Bun tests, so planning needs their runtime too.
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: examples/bun-cache/.bun-version
       - id: select
         # No lane file: each smoke job is its own lane, selected by the files and Python modules it runs.
         uses: ./actions/plan-work
