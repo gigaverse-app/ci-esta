@@ -58,7 +58,10 @@ It checks that the gate covers all workflow jobs and that its lane mapping
 matches the execution conditions and configured lane names. This validator
 supports the documented `fromJSON(needs.<planner>.outputs.lanes).<lane>` consumer
 pattern; different admission policies need their own tests. It does not infer
-conformance guarantees from a green status.
+conformance guarantees from a green status. A workflow with no lane conditions,
+checked without `--lanes`, has a plain gate: the validator then checks only that
+the gate uses the shared action with `needs: ${{ toJSON(needs) }}` and that every
+job reaches it, so you can run it right after adding a `Validation gate`.
 
 Point the completed-run observer at `Validation gate`, rather than at optional
 matrix cells. Set `analyze-critical-path: true` to report the dependency path to

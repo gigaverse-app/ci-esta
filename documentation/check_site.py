@@ -117,6 +117,22 @@ def main():
             repository = re.fullmatch(r"https://github\.com/gigaverse-app/ci-esta/(?:blob|tree)/[^/]+/([^#?]+)", link)
             if repository:
                 assert (root / repository[1]).exists(), f"{source} links to missing repository file {link}"
+    # Every page also publishes its Markdown beside it (docs/quickstart/ and docs/quickstart.md), and that Markdown's
+    # relative links must resolve in the site: agents fetch the `.md` form and follow its links as written.
+    for page in pages:
+        raw_page = site / "index.md" if page.parent == site else page.parent.parent / f"{page.parent.name}.md"
+        if page.parent.name in ("404", "search"):
+            continue
+        assert raw_page.is_file(), f"{page.relative_to(site)}: missing raw Markdown {raw_page.relative_to(site)}"
+        prose = re.sub(r"^```.*?^```", "", raw_page.read_text(encoding="utf-8"), flags=re.M | re.S)
+        for link in re.findall(r"\]\(([^)\s]+)", prose):
+            parsed_link = urlsplit(link)
+            if parsed_link.scheme or parsed_link.netloc or not parsed_link.path:
+                continue
+            target = (raw_page.parent / parsed_link.path).resolve()
+            assert target.is_relative_to(site.resolve()) and target.exists(), (
+                f"{raw_page.relative_to(site)} links to missing {link}"
+            )
     unreleased = unreleased_references(root)
     assert not unreleased, "Use a released CI-esta ref (@v1), not a branch:\n" + "\n".join(unreleased)
     print(f"Validated {len(pages)} pages: canonical, descriptions, social metadata, sitemap, search, agent files, refs")

@@ -30,7 +30,8 @@ with you. [Read the procedure it follows](../skills/ci-esta/SKILL.md), or set it
 ## Read a completed run
 
 ```bash
-uv tool install 'ci-esta[selection]>=1.11,<2'
+uv tool install --upgrade --refresh 'ci-esta[selection]>=1.11,<2'  # --refresh: see releases from the last minutes
+ci-esta --version                                                   # confirm the release on PATH
 export GH_TOKEN="$(gh auth token)"   # or any token that can read the run
 ci-esta report --repository owner/project --run-id 123456 --run-attempt 1 \
   --gate 'Validation gate' --critical-path --output-dir report
