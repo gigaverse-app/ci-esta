@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.1](https://github.com/gigaverse-app/ci-esta/compare/v1.9.0...v1.9.1) (2026-11-09)
+
+
+### Bug fixes
+
+* **docs:** install CI-esta 1.9 or newer everywhere ([#154](https://github.com/gigaverse-app/ci-esta/issues/154)) ([7e1ac39](https://github.com/gigaverse-app/ci-esta/commit/7e1ac391cc55e1f73c6005c74d43d48b955396eb))
+
 ## [1.9.0](https://github.com/gigaverse-app/ci-esta/compare/v1.8.0...v1.9.0) (2026-11-09)
 
 
