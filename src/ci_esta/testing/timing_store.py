@@ -7,7 +7,6 @@ readers merge *all* available snapshots, never just the last finisher's snapshot
 from __future__ import annotations
 
 import math
-import subprocess
 from collections.abc import Sequence
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -17,6 +16,7 @@ from typing import Literal, Self
 from filelock import FileLock
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
+from ci_esta.git import tracked_files
 from ci_esta.testing.junit import LearnedTimings, learn_junit_timings, write_learned_timings
 from ci_esta.testing.persistence import write_atomic_text
 from ci_esta.testing.timing_history import Observation, load_observations, merge_observations
@@ -121,10 +121,7 @@ def tracked_python_files(working_directory: Path, inventory: Path | None = None)
     """Inventory the entire checkout, independently of the selected test subset."""
     if inventory is not None:
         return {line.strip() for line in inventory.read_text().splitlines() if line.strip()}
-    result = subprocess.run(
-        ["git", "ls-files", "-z", "--", "*.py"], cwd=working_directory, text=True, capture_output=True, check=True
-    )
-    return set(filter(None, result.stdout.split("\0")))
+    return set(tracked_files(working_directory, "*.py"))
 
 
 def write_history(state: TimingHistory, path: Path) -> None:

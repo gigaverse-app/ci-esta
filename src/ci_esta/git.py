@@ -6,9 +6,9 @@ import subprocess
 from pathlib import Path
 
 
-def tracked_files(repo: Path) -> list[str]:
+def tracked_files(repo: Path, *pathspec: str) -> list[str]:
     """Git's tracked path inventory, preserving spaces and non-ASCII names."""
-    return [path for path in git(repo, "ls-files", "-z").split("\0") if path]
+    return [path for path in git(repo, "ls-files", "-z", "--", *pathspec).split("\0") if path]
 
 
 def git(repo: Path, *args: str) -> str:
