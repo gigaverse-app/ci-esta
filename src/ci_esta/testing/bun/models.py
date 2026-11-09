@@ -1,5 +1,6 @@
 """Typed Python contracts preserving the public Bun adapter's JSON field names."""
 
+import re
 from pathlib import Path
 from typing import Literal
 
@@ -7,6 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 from pydantic.alias_generators import to_camel
 
 from ci_esta.ci_observability.work_selection import execution_is_complete
+
+#: A Bun test file name: what the inventory, the planner's module graph and plan-work's runtime check accept.
+TEST_FILE = re.compile(r"[._](?:test|spec)\.[cm]?[jt]sx?$")
 
 
 class JsonContract(BaseModel):
