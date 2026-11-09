@@ -4,13 +4,17 @@ A called workflow that requests a scope its caller does not grant ends in `start
 nothing is published. That lost pytest-quint-connect 1.2.0 and pytest-selective 0.4.3 when a CI job gained a scope
 the Publish call did not grant.
 """
+
 # gv:test-dependency: .github/workflows/ci.yml
 # gv:test-dependency: .github/workflows/release.yml
 import json
 import re
 from pathlib import Path
 
+import pytest
 import yaml
+
+from ci_esta.testing.gha_expressions import evaluate
 
 WORKFLOWS = Path(__file__).resolve().parents[2] / ".github/workflows"
 LEVEL = {"none": 0, "read": 1, "write": 2}
@@ -77,3 +81,13 @@ def test_dispatch_only_jobs_stay_off_when_publish_calls_ci() -> None:
     triggers = workflow.get("on", workflow.get(True))  # YAML 1.1 reads the `on` key as true
     modes = [mode for mode in triggers["workflow_dispatch"]["inputs"]["timing-example"]["options"] if mode != "off"]
     assert json.dumps(modes, separators=(",", ":")) in example.replace("'", '"')
+
+
+@pytest.mark.parametrize("event", ["workflow_dispatch", "release"])
+@pytest.mark.parametrize("mode", [None, "", "off", "alpha", "beta", "verify"])
+def test_optional_timing_example_requires_an_explicit_manual_mode(event: str, mode: str | None) -> None:
+    # A manual Publish call inherits workflow_dispatch but supplies no CI inputs.
+    inputs = {} if mode is None else {"timing-example": mode}
+    context = {"github": {"event_name": event}, "inputs": inputs}
+    condition = workflow("ci.yml")["jobs"]["timing-example"]["if"]
+    assert evaluate(condition, context) == (event == "workflow_dispatch" and mode in {"alpha", "beta", "verify"})
