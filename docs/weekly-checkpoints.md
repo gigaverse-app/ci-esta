@@ -103,3 +103,5 @@ Changes to the shared dispatcher are tested with real HTTP adapter boundaries:
 default branch resolution, multi-target preflight, invalid/required inputs,
 dry runs and dispatch payloads. Dogfood workflows in CI-esta and pytest-selective
 exercise the full-on-dispatch policy on hosted runners.
+
+<!-- Documentation-only selection measurement; no execution inputs change. -->
