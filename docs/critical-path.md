@@ -62,6 +62,15 @@ attempts and unfinished relevant jobs make the path unavailable. Basic timing
 and cost reporting remain useful. Conditional matrix cells are expanded from
 observed names, including GitHub's skipped matrix representation.
 
+Job names that are expressions are matched as wildcards, and an observed job
+belongs to the most specific name it matches, so `typing` is not claimed by a
+`${{ matrix.name }}` job. A matrix job named only from `matrix.<key>`, `||` and
+string literals over a literal matrix is expanded the way GitHub expands it,
+giving its exact names. Two jobs whose names are both computed at run time (for
+example both from `fromJSON(needs.plan.outputs.pools)`) cannot be told apart:
+the analysis names both jobs; give one a literal part such as
+`name: Linux ${{ join(matrix.pool.versions, ', ') }}`.
+
 Reusable workflows are expanded recursively, preserving both the caller's
 barrier and every callee's internal `needs`. Same-repository calls use the
 parent source commit. External calls use the immutable SHA recorded in the

@@ -19,19 +19,20 @@ independent of the Python package version and advances only after the exact
 commit passes main CI and the public action smoke. Python dependency ranges and installed
 agent skills are separate. Prereleases do not advance `v1`.
 
-Follow your repository's pinning policy. Without one, use the published major tag
-`@v1`. If your workflows pin actions to commit SHAs (for example because zizmor or
-an organization policy requires it), pin CI-esta the same way, with the release tag
-as a comment, and let Dependabot or Renovate update both:
+Use the published major tag `@v1`, so compatible releases reach your workflows
+without edits, even when other actions in them are pinned to commit SHAs. Pin
+CI-esta to a commit SHA only when your repository's tooling rejects tags, such as
+zizmor's `unpinned-uses` audit or an all-SHA policy that CI enforces. Then name the
+release in a comment and let Dependabot or Renovate update both:
 
 ```yaml
-- uses: gigaverse-app/ci-esta/actions/setup-cached-uv@<sha> # v1.8.0
+- uses: gigaverse-app/ci-esta/actions/setup-cached-uv@<sha> # vX.Y.Z
 ```
 
-Resolve a tag to its commit with `gh api repos/gigaverse-app/ci-esta/commits/v1.8.0 --jq .sha`.
+Resolve a release to its commit with `gh api repos/gigaverse-app/ci-esta/commits/vX.Y.Z --jq .sha`.
 That returns the commit for annotated tags too, where `git/ref/tags/TAG` returns the
-tag object instead. Pin a release tag (`v1.8.0`), not the moving `v1`, so the comment
-stays true.
+tag object instead. Pin an exact release (`vX.Y.Z`), not the moving `v1`, so the
+comment stays true.
 
 Some actions have version floors in the environment they run in:
 `setup-cached-uv` always runs `uv sync --locked`, so it needs a committed `uv.lock`;

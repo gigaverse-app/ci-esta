@@ -189,6 +189,8 @@ class ObservedJobV1(BaseModel):
     end_offset_seconds: float | None
     #: When the job was queued, from the same origin; None when GitHub gave no creation time.
     queued_offset_seconds: float | None = None
+    #: Waiting for a runner: queued (after its needs completed) to started. None when either time is missing.
+    queue_seconds: float | None = None
     rounded_minutes: int | None
     rounding_waste_seconds: float | None
     seconds_to_save_minute: float | None
@@ -400,8 +402,12 @@ class CiObservabilityReportV1(BaseModel):
     merge_ready_from_creation_seconds: float | None
     merge_ready_from_run_start_seconds: float | None
     workflow_initial_queue_seconds: float | None
+    #: Run creation to the FIRST job's start; other jobs can wait much longer (see longest_job_queue_seconds).
     workflow_job_admission_delay_seconds: float | None = None
     merge_ready_after_job_admission_seconds: float | None = None
+    #: The longest runner wait of any started latest-attempt job; None when any started job has no queue time.
+    longest_job_queue_seconds: float | None = None
+    longest_job_queue_name: str | None = None
     longest_latest_job_name: str | None
     longest_latest_job_seconds: float | None
     runner_cost: RunnerCostV1

@@ -704,6 +704,18 @@
           "default": null,
           "title": "Queued Offset Seconds"
         },
+        "queue_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Queue Seconds"
+        },
         "rounded_minutes": {
           "anyOf": [
             {
@@ -1873,6 +1885,30 @@
       ],
       "default": null,
       "title": "Merge Ready After Job Admission Seconds"
+    },
+    "longest_job_queue_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Longest Job Queue Seconds"
+    },
+    "longest_job_queue_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Longest Job Queue Name"
     },
     "longest_latest_job_name": {
       "anyOf": [

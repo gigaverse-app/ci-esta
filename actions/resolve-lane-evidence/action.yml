@@ -134,7 +134,7 @@ runs:
             core.warning(`Could not read tested merge ${process.env.TESTED_MERGE_SHA} (${error.message}); only runs of this exact merge commit can be reused.`);
             tested = `commit ${process.env.TESTED_MERGE_SHA}`;
           }
-          const receipt = validationReceipt(process.env.GITHUB_ACTION_PATH, tested, executionContext, target.manifests);
+          const receipt = validationReceipt(tested, executionContext);
           core.setOutput('receipt', receipt);
           const pr = target.pr;
           if ((context.eventName === 'pull_request' || (context.eventName === 'push' && process.env.REUSE_AFTER_MERGE === 'true')) && Number(process.env.GITHUB_RUN_ATTEMPT) === 1 &&
@@ -159,6 +159,28 @@ runs:
                 },
               });
               if (result.reused) reused[key] = true;
+            }
+          }
+          // Trusted proof from the default branch's own push runs, for lanes no pull-request run proved.
+          if ((context.eventName === 'pull_request' || (context.eventName === 'push' && process.env.REUSE_AFTER_MERGE === 'true')) &&
+              Number(process.env.GITHUB_RUN_ATTEMPT) === 1) {
+            const { trustedPushProof } = require(`${process.env.GITHUB_ACTION_PATH}/trusted.cjs`);
+            const trustedCache = new Map();
+            for (const [key, jobName] of Object.entries(lanes)) {
+              if (reused[key]) continue;
+              try {
+                const proof = await trustedPushProof({github, context, core, jobName, receipt, cache: trustedCache});
+                if (!proof) continue;
+                reused[key] = true;
+                for (const job of proof.jobs) {
+                  const seconds = (Date.parse(job.completed_at) - Date.parse(job.started_at)) / 1000;
+                  measuredLanes.push({lane: key, job: job.name, source_run_id: proof.run.id, source_attempt: proof.run.run_attempt,
+                    source_head_sha: proof.run.head_sha, source_job_id: job.id,
+                    source_seconds: Number.isFinite(seconds) && seconds >= 0 ? seconds : null});
+                }
+              } catch (error) {
+                core.warning(`Default-branch evidence unavailable for '${jobName}' (${error.message}); executing fresh.`);
+              }
             }
           }
           core.setOutput('reused', JSON.stringify(reused));

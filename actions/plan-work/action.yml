@@ -25,6 +25,22 @@ runs:
     - uses: astral-sh/setup-uv@v10.0.1
       with:
         enable-cache: false
+    # Bun tests are planned from Bun's module graph. Without Bun the planner runs every lane holding them,
+    # so a repository with Bun tests gets Bun here unless the caller installed it already.
+    - id: bun
+      shell: bash
+      env:
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+      # The same interpreter and environment the plan step reuses, so this costs no second install.
+      run: |
+        uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../..[selection]" \
+          python -m ci_esta.testing.bun.runtime --github-output "$GITHUB_OUTPUT"
+    - if: ${{ steps.bun.outputs.install == 'true' }}
+      uses: oven-sh/setup-bun@v2
+      # A failed install leaves the planner's conservative fallback: every Bun lane runs.
+      continue-on-error: true
+      with:
+        bun-version-file: ${{ steps.bun.outputs.version-file }}
     - uses: actions/cache@v5
       continue-on-error: true
       with:

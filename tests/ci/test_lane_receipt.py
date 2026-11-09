@@ -1,4 +1,4 @@
-"""A receipt identifies the tested consumer tree and actual shared implementation."""
+"""A receipt identifies the tested consumer tree, its execution context and the receipt format."""
 
 import hashlib
 import itertools
@@ -14,15 +14,15 @@ import yaml
 RECEIPT = Path(__file__).resolve().parents[2] / "actions/resolve-lane-evidence/inputs.cjs"
 
 
-def receipt(root: Path, sha: str = "merge-a") -> str:
+def receipt(module: Path, sha: str = "merge-a", context: str = "") -> str:
     result = subprocess.run(
         [
             "node",
             "-e",
             "const {validationReceipt}=require(process.argv[1]); console.log(validationReceipt(process.argv[2],process.argv[3]));",
-            str(RECEIPT),
-            str(root / "actions/resolve-lane-evidence"),
+            str(module),
             sha,
+            context,
         ],
         capture_output=True,
         text=True,
@@ -31,24 +31,47 @@ def receipt(root: Path, sha: str = "merge-a") -> str:
     return result.stdout.strip()
 
 
-@pytest.mark.parametrize("changed", ["merge", "action", "workflow", "script", "source", "delete"])
-def test_changed_execution_inputs_invalidate_the_receipt(tmp_path: Path, changed: str) -> None:
+def test_the_tested_inputs_and_execution_context_change_the_receipt() -> None:
+    before = receipt(RECEIPT)
+    assert receipt(RECEIPT) == before
+    assert receipt(RECEIPT, "merge-b") != before
+    assert receipt(RECEIPT, context="scoped [\"tests/test_a.py\"]") != before
+
+
+@pytest.mark.parametrize("changed", ["action", "workflow", "script", "source", "manifest", "delete"])
+def test_a_ci_esta_release_keeps_every_adopter_receipt(tmp_path: Path, changed: str) -> None:
+    """
+    A newer CI-esta does not make an earlier pass of the adopter's inputs untrue. Binding CI-esta's
+    own files threw away every adopter's proof each time `v1` moved: pytest-quint-connect #49 tested
+    an identical tree with an identical selection, yet its merge reran all seven test jobs.
+    """
+    module = tmp_path / "actions/resolve-lane-evidence/inputs.cjs"
+    module.parent.mkdir(parents=True)
+    module.write_text(RECEIPT.read_text(encoding="utf-8"), encoding="utf-8")
     files = {
         "action": tmp_path / "actions/resolve-lane-evidence/action.yml",
         "workflow": tmp_path / ".github/workflows/check.yaml",
         "script": tmp_path / "scripts/check.py",
         "source": tmp_path / "src/ci_esta/check.py",
+        "manifest": tmp_path / "pyproject.toml",
     }
     for file in files.values():
         file.parent.mkdir(parents=True, exist_ok=True)
         file.write_text("original")
-    before = receipt(tmp_path)
-    assert receipt(tmp_path) == before
+    before = receipt(module)
     if changed == "delete":
         files["source"].unlink()
-    elif changed != "merge":
+    else:
         files[changed].write_text("different")
-    assert receipt(tmp_path, "merge-b" if changed == "merge" else "merge-a") != before
+    assert receipt(module) == before
+
+
+def test_a_new_receipt_format_retires_old_receipts(tmp_path: Path) -> None:
+    module = tmp_path / "inputs.cjs"
+    source = RECEIPT.read_text(encoding="utf-8")
+    assert "const RECEIPT_FORMAT = 'ci-esta-receipt-v2';" in source
+    module.write_text(source.replace("ci-esta-receipt-v2", "ci-esta-receipt-v3"), encoding="utf-8")
+    assert receipt(module) != receipt(RECEIPT)
 
 
 ACTION = RECEIPT.parent / "action.yml"
@@ -89,7 +112,7 @@ const { inventoryIdentity, validationReceipt } = require(`${process.env.GITHUB_A
 const shared = process.env.DEPENDENCY_TOKEN ? getOctokit(process.env.DEPENDENCY_TOKEN) : null;
 const identity = await inventoryIdentity(github, shared, context.repo, process.env.TESTED_MERGE_SHA,
     JSON.parse(process.env.INVENTORY_PATHS));
-core.setOutput('receipt', validationReceipt(process.env.GITHUB_ACTION_PATH, identity));
+core.setOutput('receipt', validationReceipt(identity));
 """
     harness = r"""
 const input = JSON.parse(process.env.RECEIPT_TEST);

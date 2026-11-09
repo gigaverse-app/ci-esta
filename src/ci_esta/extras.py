@@ -12,7 +12,7 @@ from contextlib import contextmanager
 
 #: Root modules the ``selection`` extra (pytest-selective, which brings pytest) provides.
 SELECTION_MODULES = frozenset({"pytest_selective", "pytest", "_pytest"})
-SELECTION_INSTALL = "uv tool install 'ci-esta[selection]>=1.9,<2'"
+SELECTION_INSTALL = "uv tool install 'ci-esta[selection]>=1.11,<2'"
 
 
 @contextmanager
