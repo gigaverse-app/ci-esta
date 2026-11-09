@@ -20,9 +20,11 @@ from pathlib import Path
 
 from pytest_selective.checkpoint import full_checkpoint_reason
 from pytest_selective.ci import LaneConfig, LanePlan, plan
+from pytest_selective.git_operations import pull_request_merge_base
 from pytest_selective.impact_graph import DependencyDeclarationError
 from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
+from ci_esta.git import git
 from ci_esta.package_inputs import PackageInputsUnavailable, changed_package_inputs
 from ci_esta.testing.bun.graph import bun_lane_reasons
 from ci_esta.testing.lane_inference import resolve
@@ -175,26 +177,19 @@ def python_entry_lanes(
 
 
 def commit_exists(repo: Path, revision: str) -> bool:
-    return (
-        subprocess.run(
-            ["git", "-C", str(repo), "cat-file", "-e", f"{revision}^{{commit}}"], capture_output=True
-        ).returncode
-        == 0
-    )
+    try:
+        git(repo, "cat-file", "-e", f"{revision}^{{commit}}")
+    except subprocess.CalledProcessError:
+        return False
+    return True
 
 
 def tested_base(repo: Path, base: str, head: str, pr_head: str) -> str:
     """The base GitHub's merge of the pull request was built on, as pytest-selective's planner uses.
 
     A pull request's `base.sha` can be older than the base-branch tip GitHub merged it into, so commits
-    that landed since would read as the PR's own. pytest-selective owns that rule
-    (`pull_request_merge_base`, from 1.3.0); with an older pytest-selective, `base` is kept, which only
-    plans more lanes, never fewer.
+    that landed since would read as the PR's own. pytest-selective owns that rule (`pull_request_merge_base`).
     """
-    try:
-        from pytest_selective.git_operations import pull_request_merge_base
-    except ImportError:
-        return base
     tested = pull_request_merge_base(repo, base, head, pr_head)
     if tested != base:
         print(
