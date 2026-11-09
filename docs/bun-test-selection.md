@@ -169,6 +169,15 @@ select-tests:
 Install Bun before `plan-work` yourself (`oven-sh/setup-bun`) only to pin a version kept
 somewhere else; `plan-work` then uses that one.
 
+Every job that re-plans lanes through the Python API or CLI also needs Bun when its
+inventory includes Bun-style or Node test files. Runtime setup is job-local: installing
+Bun in `select-tests` does not install it in a routing-regression or validation job.
+Use `oven-sh/setup-bun@v2` before those calls, with the same repository version file.
+This supplies the module-graph planner; the repository keeps its original Node/Jest
+runner for executing those tests. Missing Bun remains a full-lane fallback, including
+for documentation-only probes, so inspect the plan's reasons instead of treating that
+fallback as a dependency edge.
+
 Bun's bundler metafile lists what each test bundles: its imports followed transitively,
 including `require`, side-effect and dynamic `import()` calls with literal paths, and text,
 JSON, style and asset imports. A changed file selects the lanes of the tests that bundle it,

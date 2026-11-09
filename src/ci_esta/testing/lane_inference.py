@@ -13,6 +13,7 @@ collects runs every lane, as a reviewed lane file would until its fingerprints w
 
 from __future__ import annotations
 
+import configparser
 import json
 import posixpath
 import re
@@ -28,7 +29,7 @@ from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
 from ci_esta.git import git
 from ci_esta.testing.lane_rules import Rule, effective
-from ci_esta.workflow_graph import ALL, WorkflowGraph, inside
+from ci_esta.workflow_graph import ALL, WorkflowGraph, command_context, inside, joined
 
 #: The words that start a test command, and the arguments after them that are paths.
 TEST_COMMAND = re.compile(
@@ -44,10 +45,6 @@ UNITTEST = re.compile(r"python3? -m unittest discover\b.*?(?:-s|--start-director
 TEST_WRAPPER = re.compile(r"\bpython3? (?:-\S+ )*(\S*run\w*tests?\w*\.py)\b")
 #: A shell script a command runs; its own test commands give the roots.
 SHELL_SCRIPT = re.compile(r"(?:^|[\s;&|(])(?:bash |sh |exec )?((?:\.{0,2}/)?[\w.@+-]+(?:/[\w.@+-]+)*\.sh)\b")
-#: `cd DIR && ...` or `cd DIR; ...` before a command.
-CHANGE_DIRECTORY = re.compile(r"^\s*cd\s+(['\"]?)([^'\"\s;&|]+)\1\s*(?:&&|;)\s*(.*)$")
-#: `uv run --directory DIR`, which runs the command inside DIR.
-UV_DIRECTORY = re.compile(r"\buv (?:run )?(?:--[\w-]+(?:[ =]\S+)? )*?--directory[ =](['\"]?)([^'\"\s]+)\1")
 #: Options whose next word is a value, not a test path.
 VALUED_OPTIONS = {
     "-c",
@@ -97,20 +94,9 @@ def paths_after(
     return found or None
 
 
-def joined(directory: str | None, path: str) -> str | None:
-    """`path` read from `directory`, as a repository path; None for the root."""
-    if path.startswith(("$", "~", "/")):
-        return directory
-    value = inside(directory or ".", path)
-    return None if value == "." else value
-
-
 def line_roots(line: str, directory: str | None, graph: WorkflowGraph, repo: Path, nested: bool = False) -> list[str]:
     """The test roots one command line runs, read from `directory`; a shell script is read once, not recursively."""
-    while match := CHANGE_DIRECTORY.match(line):
-        directory, line = joined(directory, match[2]), match[3]
-    if match := UV_DIRECTORY.search(line):
-        directory = joined(directory, match[2])
+    line, directory = command_context(line, directory)
     files, directories = graph.files, graph.directories
     if match := UNITTEST.search(line):
         return [joined(directory, match.group(1)) or "."]
@@ -162,6 +148,18 @@ def module_roots(graph: WorkflowGraph) -> list[str]:
         ]
         for candidate in candidates:
             root = posixpath.normpath(f"{project or '.'}/{str(candidate).strip('/') or '.'}")
+            if (root == "." or root in graph.directories) and root not in found:
+                found.append(root)
+    for path in sorted(graph.files):
+        name = PurePosixPath(path).name
+        if name not in {"pytest.ini", ".pytest.ini", "setup.cfg", "tox.ini"}:
+            continue
+        parser = configparser.ConfigParser(interpolation=None)
+        parser.read_string(graph.text(path) or "")
+        section = "tool:pytest" if name == "setup.cfg" else "pytest"
+        for candidate in shlex.split(parser.get(section, "pythonpath", fallback="")):
+            # pytest resolves pythonpath relative to its configuration's directory.
+            root = inside(posixpath.dirname(path) or ".", candidate)
             if (root == "." or root in graph.directories) and root not in found:
                 found.append(root)
     return [*found, *(root for root in ("src", ".") if root not in found)]
@@ -268,12 +266,18 @@ def resolve(repo: Path, base: str, head: str, lane_file: Path | None) -> Resolve
         return infer(repo, base, head)
     document = json.loads(lane_file.read_text(encoding="utf-8"))
     label = lane_file.as_posix()
+    rules = effective(
+        [Rule.model_validate(rule) for rule in document.get("rules") or []], list(document.get("disable_rules") or [])
+    )
     if document.get(EXTENDS) is None:
-        config = LaneConfig.model_validate(document)
+        config = LaneConfig.model_validate(
+            {key: value for key, value in document.items() if key not in {"rules", "disable_rules"}}
+        )
         return ResolvedLanes(
             config=config,
             sources={name: [f"lane file {label}"] for name in config.lanes},
             jobs={},
+            rules=rules,
         )
     if document[EXTENDS] != "workflow":
         raise ValueError(f'{label}: "extends" must be "workflow"')
@@ -298,8 +302,5 @@ def resolve(repo: Path, base: str, head: str, lane_file: Path | None) -> Resolve
             "lanes": {name: lane.model_dump() for name, lane in lanes.items()},
             "global_inputs": document.get("global_inputs", inferred.config.global_inputs),
         }
-    )
-    rules = effective(
-        [Rule.model_validate(rule) for rule in document.get("rules") or []], list(document.get("disable_rules") or [])
     )
     return ResolvedLanes(config=config, sources=sources, jobs=inferred.jobs, rules=rules)

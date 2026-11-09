@@ -464,3 +464,48 @@ def test_a_lane_is_read_with_or_without_a_fallback(condition):
     assert lane_references(condition) == {"unit"}
     assert lane_references(condition, "select-tests") == {"unit"}
     assert lane_references(condition, "other") == set()
+
+
+@pytest.mark.parametrize("foreign", [False, True])
+@pytest.mark.parametrize("context", ["working-directory", "cd", "uv"])
+def test_run_paths_resolve_in_the_checkout_that_owns_them(repository, foreign, context):
+    repo, _ = repository
+    checkout = (
+        "      - uses: actions/checkout@v7\n        with: {repository: example/other, path: upstream}\n"
+        if foreign
+        else ""
+    )
+    command = {
+        "working-directory": "python scripts/run_unit.py\n        working-directory: upstream",
+        "cd": "cd upstream && python scripts/run_unit.py",
+        "uv": "uv run --directory upstream python scripts/run_unit.py",
+    }[context]
+    workflow = CI.replace(
+        "      - run: python scripts/run_unit.py",
+        checkout + "      - run: " + command,
+    )
+    write(repo, ".github/workflows/ci.yml", workflow)
+    write(repo, "upstream/scripts/run_unit.py", "print('local nested tool')\n")
+    base = commit(repo)
+    head = change(repo, "scripts/run_unit.py")
+    result = plan_work(repo, lanes_config(), base, head)
+    assert result.lanes == {"unit": False, "live": False}, result.lane_reasons
+    if not foreign:
+        head = change(repo, "upstream/scripts/run_unit.py")
+        assert plan_work(repo, lanes_config(), base, head).lanes["unit"] is True
+
+
+def test_reading_a_workflow_does_not_execute_its_jobs(repository):
+    repo, _ = repository
+    workflow = CI.replace(
+        "      - run: python scripts/run_unit.py",
+        "      - run: ci-esta check-workflow --workflow .github/workflows/live.yml",
+    )
+    write(repo, ".github/workflows/ci.yml", workflow)
+    base = commit(repo)
+    # The live caller executes this helper. The unit validator only reads the YAML.
+    head = change(repo, "scripts/live_helper.sh")
+    result = plan_work(repo, lanes_config(), base, head)
+    assert result.lanes == {"unit": False, "live": True}, result.lane_reasons
+    head = change(repo, ".github/workflows/live.yml", "runs-on: ubuntu-latest", "runs-on: ubuntu-24.04")
+    assert plan_work(repo, lanes_config(), base, head).lanes == {"unit": True, "live": True}
