@@ -118,7 +118,7 @@ selection, timing feedback, execution and measurement in order.
 - [Integrations](docs/integrations.md), [alternatives](docs/alternatives.md), and [revision-bound adoption audit](docs/adoption-audit.md)
 - [Contributing](CONTRIBUTING.md), [releases](RELEASING.md), and [source provenance](PROVENANCE.md)
 
-Install the CLI with `uv tool install 'ci-esta[selection]>=1.8,<2'` (Python 3.11+).
+Install the CLI with `uv tool install 'ci-esta[selection]>=1.9,<2'` (Python 3.11+).
 Base reporting alone (`pip install ci-esta`) needs neither pytest nor pytest-selective.
 For fixtures, schemas, source scanners, and subprocess helpers, follow the
 [pytest-selective sidecar tutorial](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/tutorials/sidecar-dependencies.md).
