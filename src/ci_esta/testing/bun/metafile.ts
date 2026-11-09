@@ -156,7 +156,8 @@ if (!result.success || !result.metafile) {
   // Errors first: a warning, such as Bun's own about `moduleSuffixes`, is not why the build failed.
   const logs = [...result.logs].sort((a, b) => Number(b.level === "error") - Number(a.level === "error"));
   for (const log of logs) {
-    const where = log.position ? ` (${relative(root, log.position.file)}:${log.position.line})` : "";
+    const file = log.position && relative(root, log.position.file).split(sep).join("/");
+    const where = log.position ? ` (${file}:${log.position.line})` : "";
     console.error(`${log.level}: ${log.message}${where}`);
   }
   process.exit(1);
