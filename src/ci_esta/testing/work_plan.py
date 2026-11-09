@@ -145,18 +145,24 @@ def python_entry_lanes(
     edges = union_edges(*snapshots)
     impacted = reachable(reverse_edges(edges), seed_nodes(sorted(changed)))
     index = ModuleIndex(
-        {path for snapshot in snapshots for path in snapshot.files if path.endswith(".py")}, config.graph.module_roots, []
+        {path for snapshot in snapshots for path in snapshot.files if path.endswith(".py")},
+        config.graph.module_roots,
+        [],
     )
     reasons: dict[str, set[str]] = {}
     for label, job in jobs:
-        modules = {path for module in job.modules for name in (module, f"{module}.__main__") for path in index.resolve(name)}
+        modules = {
+            path for module in job.modules for name in (module, f"{module}.__main__") for path in index.resolve(name)
+        }
         # A changed file the job names is a workflow input already; here only what reaches it by import counts.
         entries = (modules | {path for path in job.inputs if path.endswith(".py")}) - changed
         for entry in sorted(entries & impacted):
             closure = reachable(edges, {entry})
             via = sorted(path for path in changed if path in closure or contents_node(path) in closure)
             if via:
-                reasons.setdefault(f"workflow input: {via[0]} reaches {entry} (run by {label})", set()).update(job.lanes)
+                reasons.setdefault(f"workflow input: {via[0]} reaches {entry} (run by {label})", set()).update(
+                    job.lanes
+                )
                 break
     return reasons
 

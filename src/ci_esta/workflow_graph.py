@@ -40,8 +40,10 @@ DECLARATION_LINE = re.compile(r"^\s*(?:#|//)(.*gv:test-dependency.*)$")
 #: Where an action refers to its own files.
 ACTION_PATH = re.compile(r"(?:\$\{\{\s*github\.action_path\s*\}\}|\$\{?GITHUB_ACTION_PATH\}?)/([^\s'\"`;|&)]+)")
 ALL = "*"
-#: `python -m MODULE`: the job runs that module, and so everything it imports.
-PYTHON_MODULE = re.compile(r"\bpython(?:3(?:\.\d+)?)?\b[^\n;&|]*?\s-m\s+([A-Za-z_][\w.]*)")
+#: `python -m MODULE`, or `"$SOME_PYTHON" -m MODULE`: the job runs that module, and everything it imports.
+PYTHON_MODULE = re.compile(r"python\w*\b[^\n;&|]*?\s-m\s+([A-Za-z_][\w.]*)", re.IGNORECASE)
+#: A shell variable reference: `$NAME` or `${NAME}`.
+VARIABLE = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?")
 #: An action input inside a composite action's step.
 INPUT_EXPRESSION = re.compile(r"\$\{\{\s*inputs\.([A-Za-z0-9_-]+)\s*\}\}")
 #: Inputs of another repository's action that hold a command (`pytest-command`, `run`, `script`).
@@ -160,6 +162,27 @@ def local_actions(job: Any) -> list[str]:
         for step in (steps if isinstance(steps, list) else [])
         if isinstance(step, dict) and isinstance(step.get("uses"), str) and step["uses"].startswith("./")
     ]
+
+
+def expanded_runs(runs: Any) -> list[str]:
+    """A composite action's `run` commands with their step's `env` values substituted.
+
+    Actions alias their own directory (`SHARED_ACTION_PATH: ${{ github.action_path }}`) or a script in it
+    (`HELPER: ${{ github.action_path }}/../../scripts/helper.py`); substituted, those paths resolve.
+    """
+    steps = runs.get("steps") if isinstance(runs, dict) else None
+    found = []
+    for step in steps if isinstance(steps, list) else []:
+        if not isinstance(step, dict) or not isinstance(step.get("run"), str):
+            continue
+        env = (
+            {str(key): str(value) for key, value in (step.get("env") or {}).items()}
+            if isinstance(step.get("env"), dict)
+            else {}
+        )
+        if env:
+            found.append(VARIABLE.sub(lambda match: env.get(match[1], match[0]), step["run"]))
+    return found
 
 
 def is_workflow(path: str) -> bool:
@@ -382,7 +405,7 @@ class WorkflowGraph:
             if metadata in self.files:
                 document = yaml.safe_load(self.text(metadata) or "") or {}
                 runs = document.get("runs", {}) if isinstance(document, dict) else {}
-                texts = strings(runs)
+                texts = [*strings(runs), *expanded_runs(runs)]
                 entry_points = [
                     inside(directory, runs[key])
                     for key in ("main", "pre", "post")
