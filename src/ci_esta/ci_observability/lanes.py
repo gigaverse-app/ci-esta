@@ -114,9 +114,8 @@ def _takeaway(plan: LanePlan) -> str:
             }
         )
         if global_paths:
-            listed = ", ".join(markdown.code(path) for path in global_paths[:LISTED_REASONS])
-            more = f" and {len(global_paths) - LISTED_REASONS} more" if len(global_paths) > LISTED_REASONS else ""
-            return f"Every lane was selected: {listed}{more} is a CI or dependency input every lane reads."
+            listed = markdown.code_list(global_paths, LISTED_REASONS)
+            return f"Every lane was selected: {listed} is a CI or dependency input every lane reads."
         return f"Every lane was selected: {markdown.inline(plan.reason[:REASON_CHARACTERS])}."
     changed = len(plan.changed)
     files = f"{changed} changed file{'s' if changed != 1 else ''}"
