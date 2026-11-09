@@ -7,9 +7,11 @@ is their single home now.
 from __future__ import annotations
 
 import re
+from functools import partial
 from pathlib import Path
 
 from ci_esta.ci_observability.enrichment.models import PytestTimingMetadata
+from ci_esta.timing import format_duration
 
 
 def parse_duration_seconds(value: str) -> float | None:
@@ -28,11 +30,7 @@ def parse_duration_seconds(value: str) -> float | None:
     )
 
 
-def format_seconds(value: float | None) -> str:
-    if value is None:
-        return "unavailable"
-    minutes, seconds = divmod(round(value), 60)
-    return f"{minutes}m {seconds}s" if minutes else f"{seconds}s"
+format_seconds = partial(format_duration, rounded=True, hours=False)
 
 
 def write_pytest_metadata(

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 from pydantic.alias_generators import to_camel
 
 from ci_esta.ci_observability.work_selection import execution_is_complete
+from ci_esta.measurements import MeasurementIdentity
 
 #: A Bun test file name: what the inventory, the planner's module graph and plan-work's runtime check accept.
 TEST_FILE = re.compile(r"[._](?:test|spec)\.[cm]?[jt]sx?$")
@@ -106,7 +107,11 @@ class BunExecution(JsonContract):
         return execution_is_complete(self.mode, self.executed_files, self.total_files, self.always_run_files)
 
 
-class ReportContext(JsonContract):
-    run_id: int
-    attempt: int
-    head_sha: str
+class ReportContext(MeasurementIdentity):
+    """Bun's published attempt field is an alias of the shared measurement identity."""
+    model_config = ConfigDict(populate_by_name=True)
+    run_attempt: int = Field(alias="attempt", ge=1)
+
+    @property
+    def attempt(self) -> int:
+        return self.run_attempt

@@ -77,9 +77,7 @@ def _bar(value: int, total: int) -> str:
 
 
 def _files(paths: list[str]) -> str:
-    listed = ", ".join(markdown.code(path) for path in paths[:LISTED_FILES])
-    rest = len(paths) - LISTED_FILES
-    return f"{listed} and {_count(rest)} more" if rest > 0 else listed
+    return markdown.code_list(paths, LISTED_FILES)
 
 
 def _floor_table(files: list[str]) -> list[str]:

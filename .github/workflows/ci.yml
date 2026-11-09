@@ -15,8 +15,6 @@ on:
         description: Isolated history scope for the example; use the same key for all three runs.
         default: manual-timing-example
   workflow_call:
-  schedule:
-    - cron: '23 3 * * 1'
 
 permissions:
   contents: read
@@ -43,6 +41,8 @@ jobs:
       reused: ${{ steps.evidence.outputs.reused }}
       lanes: ${{ steps.selection.outputs.lanes }}
       release-only: ${{ steps.evidence.outputs.release-only }}
+      mode: ${{ steps.files.outputs.mode || 'none' }}
+      files: ${{ steps.files.outputs.test_roots_json || '[]' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -61,6 +61,17 @@ jobs:
         id: selection
         with:
           config: .github/test-lanes.json
+      - name: Derive file selection from the shared lane inputs
+        if: ${{ fromJSON(steps.selection.outputs.lanes).tests }}
+        run: >-
+          bash scripts/ci/tool-runtime.sh pytest_selective.impact_cli
+          file-config --lanes .github/test-lanes.json --output "$RUNNER_TEMP/test-impact.json"
+      - uses: ./actions/test-impact
+        id: files
+        if: ${{ fromJSON(steps.selection.outputs.lanes).tests }}
+        with:
+          config: ${{ runner.temp }}/test-impact.json
+          full-roots: tests
       - name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
         if: github.event_name == 'pull_request'
         run: 'true'
@@ -73,6 +84,7 @@ jobs:
         if: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && !contains(github.event.pull_request.labels.*.name, 'test:full') }}
         with:
           lanes: '{"tests":"Test suite","compat":"Python compatibility","contracts":"Runtime contracts"}'
+          execution-context: ${{ steps.files.outputs.mode }} ${{ steps.files.outputs.test_roots_json }}
           reuse-after-merge: 'true'
           reuse-version-only-release: 'true'
           input-paths: ${{ steps.validation-inputs.outputs.paths }}
@@ -95,8 +107,13 @@ jobs:
         run: |
           uv python install 3.14
           echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
-      - run: uv run pytest -q -n 4 --junitxml=junit.xml
+      - run: uv run --locked pytest-selective execute-plan -- -q -n 4 --dist=worksteal --junitxml=junit.xml
+        env:
+          CI_PLANNER_RESULT: ${{ needs.plan.result }}
+          CI_TEST_MODE: ${{ needs.plan.outputs.mode }}
+          CI_TEST_FILES: ${{ needs.plan.outputs.files }}
       - uses: ./actions/learn-test-timings
+        if: ${{ hashFiles('junit.xml') != '' }}
         with:
           junit-pattern: junit.xml
           artifact-name: test-timings-py311
@@ -117,8 +134,13 @@ jobs:
         run: |
           uv python install 3.14
           echo "$(dirname "$(uv python find 3.14)")" >> "$GITHUB_PATH"
-      - run: uv run pytest -q -n 4 --junitxml=junit.xml
+      - run: uv run --locked pytest-selective execute-plan -- -q -n 4 --dist=worksteal --junitxml=junit.xml
+        env:
+          CI_PLANNER_RESULT: ${{ needs.plan.result }}
+          CI_TEST_MODE: ${{ needs.plan.outputs.mode }}
+          CI_TEST_FILES: ${{ needs.plan.outputs.files }}
       - uses: ./actions/learn-test-timings
+        if: ${{ hashFiles('junit.xml') != '' }}
         with:
           junit-pattern: junit.xml
           artifact-name: test-timings-py314

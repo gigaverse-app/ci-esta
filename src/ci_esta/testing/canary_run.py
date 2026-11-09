@@ -4,7 +4,6 @@ Run a planned pytest failure canary without letting un-runnable files brick the 
 
 from __future__ import annotations
 
-import os
 import subprocess
 import sys
 import time
@@ -14,6 +13,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, computed_field
 
+from ci_esta.github_outputs import append_outputs
 from ci_esta.testing.junit import write_pytest_paths_file
 
 PYTEST_EXIT_NO_TESTS_COLLECTED = 5
@@ -185,14 +185,8 @@ def _read_canary_files(canary_file: Path) -> list[str] | None:
 
 
 def _append_github_outputs(plan: CanaryRunPlan) -> None:
-    output_path = os.environ.get("GITHUB_OUTPUT")
-    if not output_path:
-        return
-    with Path(output_path).open("a") as output:
-        output.write(f"has_files={str(bool(plan.runnable_files)).lower()}\n")
-        output.write(f"staged_count={len(plan.probes)}\n")
-        output.write(f"runnable_count={len(plan.runnable_files)}\n")
-        output.write(f"dropped_count={len(plan.dropped)}\n")
+    append_outputs(has_files=bool(plan.runnable_files), staged_count=len(plan.probes),
+                   runnable_count=len(plan.runnable_files), dropped_count=len(plan.dropped))
 
 
 def _stage_and_report(

@@ -40,6 +40,7 @@
     }
   },
   "global_inputs": [
+    "scripts/**",
     "importlinter.toml",
     "pyproject.toml",
     "uv.lock",

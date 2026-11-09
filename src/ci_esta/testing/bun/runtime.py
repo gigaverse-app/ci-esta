@@ -10,10 +10,10 @@ from __future__ import annotations
 import argparse
 import re
 import shutil
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
-from ci_esta.git import git
-from ci_esta.testing.bun.models import TEST_FILE
+from ci_esta.git import tracked_files
+from ci_esta.testing.bun.discovery import test_files
 
 #: Version files `oven-sh/setup-bun` reads, in the order a repository is likely to pin with.
 VERSION_FILES = {
@@ -24,8 +24,7 @@ VERSION_FILES = {
 
 
 def has_bun_tests(repo: Path) -> bool:
-    files = git(repo, "ls-files", "-z").split("\0")
-    return any(TEST_FILE.search(PurePosixPath(path).name) for path in files if path)
+    return bool(test_files(tracked_files(repo)))
 
 
 def version_file(repo: Path) -> str:

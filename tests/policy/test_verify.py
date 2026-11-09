@@ -42,7 +42,7 @@ def test_workflow_contract_evaluates_actual_inputs_and_catches_disconnected_sele
         "job": "plan",
         "step": "policy",
         "context": {
-            "github": {"event_name": "pull_request"},
+            "github": {"event_name": "pull_request", "sha": "a" * 40},
             "steps": {"select": {"outputs": {"lanes": '{"unit":false}'}}},
         },
         "expected": [],

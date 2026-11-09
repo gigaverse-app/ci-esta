@@ -4,8 +4,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-  schedule:
-    - cron: '43 3 * * 1'
 permissions:
   contents: read
   actions: read
@@ -260,6 +258,11 @@ jobs:
         with:
           policy: examples/test-policy/policy.json
           cases: examples/test-policy/cases.json
+      - uses: ./actions/weekly-checkpoint
+        with:
+          workflows: '["ci.yml", "public-actions.yml"]'
+          ref: ${{ github.sha }}
+          dry-run: 'true'
       - uses: ./actions/plan-test-policy
         id: policy-smoke
         with:

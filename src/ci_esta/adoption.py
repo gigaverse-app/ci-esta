@@ -7,14 +7,13 @@ the next step is a concrete measurement, not a generic suggestion.
 """
 from __future__ import annotations
 
-import math
 import re
 from pathlib import Path
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError
 
-from ci_esta.workflow_graph import prerequisites
+from ci_esta.workflow_graph import matrix_combinations, prerequisites
 
 Scalar = str | bool | int | float | None
 GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/tutorials/adoption-checklist/"
@@ -127,17 +126,8 @@ def _triggers(raw: dict) -> list[str]:
 
 
 def _matrix_size(matrix: dict[str, object] | str | None) -> int | None:
-    if not isinstance(matrix, dict):
-        return None
-    axes = [values for key, values in matrix.items() if key not in {"include", "exclude"}]
-    if not all(isinstance(values, list) for values in axes):
-        return None
-    include, exclude = matrix.get("include", []), matrix.get("exclude", [])
-    if not isinstance(include, list) or not isinstance(exclude, list):
-        return None
-    combinations = math.prod(len(values) for values in axes) if axes else 0
-    # Includes that match an existing combination extend it rather than adding one; this is an upper bound.
-    return max(combinations - len(exclude), 0) + len(include)
+    combinations = matrix_combinations(matrix)
+    return len(combinations) if combinations is not None else None
 
 
 def _summarize(source: str, parsed: _Source, raw: dict) -> WorkflowSummary:

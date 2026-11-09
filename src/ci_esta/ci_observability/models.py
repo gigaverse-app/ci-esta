@@ -15,6 +15,7 @@ from ci_esta.ci_observability.critical_path import CriticalPathResult
 from ci_esta.ci_observability.impact import ImpactResult
 from ci_esta.ci_observability.work_selection import WorkSelectionV1
 from ci_esta.measurements import ExecutionMeasurement
+from ci_esta.timing import elapsed_seconds
 
 
 class CollectionStatus(StrEnum):
@@ -101,6 +102,10 @@ class GitHubJobV1(BaseModel):
     runner_group_name: str | None = None
     labels: list[str] = Field(default_factory=list)
     steps: list[GitHubStepV1] = Field(default_factory=list)
+
+    @property
+    def wall_seconds(self) -> float | None:
+        return None if self.conclusion == "skipped" else elapsed_seconds(self.started_at, self.completed_at)
 
 
 class GitHubReferencedWorkflowV1(BaseModel):

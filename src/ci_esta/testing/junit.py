@@ -20,6 +20,7 @@ from defusedxml.common import DefusedXmlException
 from pydantic import BaseModel, ConfigDict, computed_field
 
 from ci_esta.testing.persistence import write_atomic_text
+from ci_esta.timing import format_duration as format_duration
 
 DEFAULT_CANARY_MAX_FILES = 5
 
@@ -312,16 +313,3 @@ def summarize_junit_timings(paths: list[Path]) -> JUnitTimings:
     """
     shard_durations = [duration for path in paths if (duration := junit_file_duration(path)) is not None]
     return JUnitTimings(total_seconds=sum(shard_durations), wall_seconds=max(shard_durations, default=0.0))
-
-
-def format_duration(seconds: float) -> str:
-    """
-    Format seconds for a concise CI summary.
-    """
-    minutes, secs = divmod(int(seconds), 60)
-    hours, minutes = divmod(minutes, 60)
-    if hours:
-        return f"{hours}h {minutes}m {secs}s"
-    if minutes:
-        return f"{minutes}m {secs}s"
-    return f"{secs}s"

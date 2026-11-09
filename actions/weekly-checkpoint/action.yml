@@ -1,0 +1,42 @@
+name: Weekly full checkpoint
+description: Dispatch full-validation workflows after validating every target, without an idle waiting runner.
+inputs:
+  workflows:
+    description: JSON array of workflow filenames. Each must run full validation on workflow_dispatch.
+    default: '["ci.yml"]'
+  ref:
+    description: Branch or tag to validate. Empty uses the repository default branch.
+    default: ''
+  workflow-inputs:
+    description: JSON object of inputs supplied to every target workflow.
+    default: '{}'
+  dry-run:
+    description: Validate targets and inputs without dispatching workflows.
+    default: 'false'
+  token:
+    description: Token with contents read and actions write permissions.
+    default: ${{ github.token }}
+outputs:
+  ref:
+    description: Resolved target ref.
+    value: ${{ steps.dispatch.outputs.ref }}
+  workflows:
+    description: JSON array of preflighted workflow filenames.
+    value: ${{ steps.dispatch.outputs.workflows }}
+  dispatched:
+    description: True after all dispatch requests were accepted. This does not indicate test success.
+    value: ${{ steps.dispatch.outputs.dispatched }}
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v10.3.3
+    - id: dispatch
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        CHECKPOINT_WORKFLOWS: ${{ inputs.workflows }}
+        CHECKPOINT_REF: ${{ inputs.ref }}
+        CHECKPOINT_INPUTS: ${{ inputs.workflow-inputs }}
+        CHECKPOINT_DRY_RUN: ${{ inputs.dry-run }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: bash "$ACTION_PATH/../../scripts/ci/tool-runtime.sh" ci_esta.checkpoint run

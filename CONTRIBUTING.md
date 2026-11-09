@@ -98,11 +98,20 @@ remain complete checkpoints.
 CI and public-action smoke use this checkout's `actions/plan-work`, combining
 pytest-selective's dependency graph with CI-esta's workflow graph. Tests and
 reporting use the locked pytest-selective 1.x release. Both workflows run a
-weekly full checkpoint on Monday; manual/called checkpoints and `test:full` also
+weekly full checkpoint on Monday through the shared [checkpoint dispatcher](docs/weekly-checkpoints.md);
+manual/called checkpoints and `test:full` also
 retain full execution, without receipt reuse.
 
-To run a complete checkpoint after a CI change, select **CI** in GitHub Actions
-and choose **Run workflow**. Retrying an ordinary PR run preserves its selection;
+Ordinary Python test jobs execute the same affected-file plan through
+`pytest-selective execute-plan`. The plan derives its graph and execution inputs
+from the lane config. A small source change can select a few files in each Python
+version instead of rerunning the whole suite. Runtime contracts keep their full
+lane, and missing planning proof retains complete pytest roots and a failing gate.
+
+To run both complete checkpoints after a CI change, select **Weekly full checkpoint**
+in GitHub Actions and choose **Run workflow**, then inspect the dispatched CI and
+public-action results. You can also dispatch either target directly.
+Retrying an ordinary PR run preserves its selection;
 use the manual checkpoint when you need full-suite evidence.
 
 Both planning jobs install Bun before inspecting the mixed Python/JavaScript test
@@ -129,8 +138,9 @@ if a test, build or smoke command loses its lane condition or names an unknown l
 
 The required `dry-lint` check accepts existing pairs recorded in `.dry-lint/baseline.json`
 and fails on new blocking duplicates or incomplete judging. The weekly **dry-lint audit**
-workflow publishes a read-only audit in its job summary and artifacts. Humans and agents
-choose refactors and open their own PRs; dry-lint does not change application code or open PRs.
+workflow calls dry-lint's reusable audit, publishes its reports, and opens or updates
+one `dry-lint/ratchet` PR recording cleaned pairs in the baseline and README.
+Humans and agents choose refactors; the audit does not change application code.
 
 With your Anthropic credential in `ANTHROPIC_API_KEY`, install the same released
 dry-lint major version used by CI:

@@ -137,13 +137,13 @@ defaults. Optional configuration contains only exceptional metadata and profile
 overrides; existing selectors remain authoritative for work IDs.
 
 <!-- dry-lint-progress:start -->
-<a href="https://github.com/gigaverse-app/dry-lint"><picture><source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&amp;key=cfe8d51e3678507c54e1b07ca48075c79bc0ce43b98f12b051d8d66f002901c9&amp;name=gigaverse-app%2Fci-esta&amp;cleaned=5&amp;remaining=15&amp;dismissed=0"><img alt="dry-lint in gigaverse-app/ci-esta: new duplicates kept out of its pull requests, 5 old duplicates cleaned up, 15 remaining" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?key=cfe8d51e3678507c54e1b07ca48075c79bc0ce43b98f12b051d8d66f002901c9&amp;name=gigaverse-app%2Fci-esta&amp;cleaned=5&amp;remaining=15&amp;dismissed=0" width="100%"></picture></a>
+<a href="https://github.com/gigaverse-app/dry-lint"><picture><source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&amp;key=cfe8d51e3678507c54e1b07ca48075c79bc0ce43b98f12b051d8d66f002901c9&amp;name=gigaverse-app%2Fci-esta&amp;cleaned=20&amp;remaining=0&amp;dismissed=0"><img alt="dry-lint in gigaverse-app/ci-esta: new duplicates kept out of its pull requests, 20 old duplicates cleaned up, 0 remaining" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?key=cfe8d51e3678507c54e1b07ca48075c79bc0ce43b98f12b051d8d66f002901c9&amp;name=gigaverse-app%2Fci-esta&amp;cleaned=20&amp;remaining=0&amp;dismissed=0" width="100%"></picture></a>
 
 **Reviewed duplication debt** · Counts from the committed baselines.
 
 | Accepted pairs | Remaining | Retired | Dismissed |
 | :-- | --: | --: | --: |
-| Functions | 15 | 5 | 0 |
+| Functions | 0 | 20 | 0 |
 | Models | Not initialized | — | — |
 
 [Accepted backlog](.dry-lint/baseline.json) · [Weekly audit](https://github.com/gigaverse-app/ci-esta/actions/workflows/dry-lint-audit.yml)

@@ -5,6 +5,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 def audit(root: Path, *args: str) -> dict:
     result = subprocess.run(
@@ -19,6 +21,17 @@ def write(root: Path, path: str, content: str) -> None:
     target = root / path
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(content)
+
+
+@pytest.mark.parametrize("matrix", [
+    {"os": ["linux", "windows"], "exclude": [{"os": "macos"}]},
+    {"os": ["linux", "windows"], "include": [{"os": "linux", "extra": True}]},
+])
+def test_adoption_counts_expanded_matrix_jobs_not_include_exclude_entries(tmp_path, matrix):
+    write(tmp_path, ".github/workflows/ci.yml", json.dumps({
+        "jobs": {"tests": {"strategy": {"matrix": matrix}, "steps": [{"run": "pytest"}]}},
+    }))
+    assert audit(tmp_path)["workflows"][0]["jobs"][0]["matrix_size"] == 2
 
 
 def test_report_discovers_missing_feedback_and_does_not_enable_retention(tmp_path):

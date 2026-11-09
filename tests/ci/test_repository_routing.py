@@ -3,10 +3,13 @@
 # gv:test-dependency: .github/workflows/ci.yml
 # gv:test-dependency: .github/workflows/public-actions.yml
 import subprocess
+from contextlib import closing
 from pathlib import Path
 
 import pytest
 from pytest_selective.ci import LaneConfig
+from pytest_selective.impact_graph import GraphCache
+from pytest_selective.impact_selection import affected
 
 from ci_esta.testing.work_plan import plan_work as plan
 from tests.testing.git_repo import commit, write
@@ -19,7 +22,7 @@ DOCS_ONLY = ["README.md", "docs/critical-path.md", "documentation/requirements.t
              ".readthedocs.yaml", "CHANGELOG.md", ".github/pull_request_template.md"]
 
 
-def lanes_for(tmp_path: Path, *paths: str) -> dict[str, bool]:
+def committed_changes(tmp_path: Path, *paths: str) -> tuple[str, str]:
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
     write(tmp_path, "pyproject.toml", (ROOT / "pyproject.toml").read_text())
     write(tmp_path, "src/example.py", "VALUE = 1")
@@ -34,6 +37,11 @@ def lanes_for(tmp_path: Path, *paths: str) -> dict[str, bool]:
         content = (ROOT / path).read_text() if path.startswith(".github/workflows/") else ""
         write(tmp_path, path, content + "\n# change\n")
     head = commit(tmp_path)
+    return base, head
+
+
+def lanes_for(tmp_path: Path, *paths: str) -> dict[str, bool]:
+    base, head = committed_changes(tmp_path, *paths)
     config = LaneConfig.model_validate_json((ROOT / ".github/test-lanes.json").read_text())
     assert all(plan(tmp_path, config, "f" * 40, head).lanes.values())
     return plan(tmp_path, config, base, head).lanes
@@ -78,3 +86,16 @@ def test_documentation_only_commit_selects_no_tests(tmp_path):
     assert lanes_for(tmp_path, *DOCS_ONLY) == {"tests": False, "package": True}
     assert lanes_for(tmp_path / "prose", *(path for path in DOCS_ONLY if path != "README.md")) == {
         "tests": False, "package": False}
+
+
+@pytest.mark.parametrize("path, expected", [
+    ("docs/critical-path.md", []),
+    ("src/example.py", ["tests/test_example.py"]),
+    ("scripts/ci/setup.py", ["tests/test_example.py", "tests/test_other.py"]),
+    (".github/workflows/ci.yml", ["tests/test_example.py", "tests/test_other.py"]),
+])
+def test_file_plan_narrows_source_and_preserves_execution_inputs(tmp_path, path, expected):
+    base, head = committed_changes(tmp_path, path)
+    config = LaneConfig.model_validate_json((ROOT / ".github/test-lanes.json").read_text()).file_config()
+    with closing(GraphCache(tmp_path / "cache.sqlite3")) as cache:
+        assert affected(tmp_path, base, head, config, cache).selected == expected
