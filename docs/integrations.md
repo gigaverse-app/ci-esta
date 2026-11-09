@@ -109,7 +109,8 @@ An extending file may also set `graph` fields (merged over the inferred graph) a
 **Rules: when these files change, run that.** Anything the graphs cannot see is a rule in
 the extending file. A rule names the files it watches and what it selects: `all`,
 `lane:NAME`, `job:WORKFLOW#JOB` (the lanes that job runs) or `package` (the lanes of the jobs
-that build the package). Patterns match like gitignore. The plan names the rule that
+that build the package). Patterns are shell-style: `*` matches any characters, `/` included, and
+`**/` also matches no directory, so `docs/**/*.md` covers `docs/a.md`; there is no `!` negation. The plan names the rule that
 selected each lane (`rule schemas: schemas/user.json (loaded by name)`).
 
 ```json
