@@ -26,9 +26,9 @@ from pathlib import Path, PurePosixPath
 from pytest_selective.impact_graph import matches, within
 
 from ci_esta.git import git
+from ci_esta.testing.bun.models import TEST_FILE
 from ci_esta.testing.lane_rules import BUN_ENVIRONMENT_FILES
 
-TEST_FILE = re.compile(r"[._](?:test|spec)\.[cm]?[jt]sx?$")
 BUNFIG = re.compile(r"(?:^|/)bunfig[^/]*\.toml$")
 #: Files Bun parses for further imports; other inputs (styles, images, text) are leaves.
 MODULE = re.compile(r"\.(?:[cm]?[jt]sx?|json)$")

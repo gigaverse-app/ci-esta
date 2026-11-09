@@ -31,7 +31,10 @@ runs:
       shell: bash
       env:
         SHARED_ACTION_PATH: ${{ github.action_path }}
-      run: bash "$SHARED_ACTION_PATH/bun-runtime.sh"
+      # The same interpreter and environment the plan step reuses, so this costs no second install.
+      run: |
+        uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../..[selection]" \
+          python -m ci_esta.testing.bun.runtime --github-output "$GITHUB_OUTPUT"
     - if: ${{ steps.bun.outputs.install == 'true' }}
       uses: oven-sh/setup-bun@v2
       # A failed install leaves the planner's conservative fallback: every Bun lane runs.
