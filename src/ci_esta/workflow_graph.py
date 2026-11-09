@@ -12,6 +12,7 @@ selects every lane the workflow runs. A file no job names, like a pull-request t
 
 from __future__ import annotations
 
+import itertools
 import posixpath
 import re
 import subprocess
@@ -464,3 +465,29 @@ def changed_job_lanes(before: WorkflowGraph, after: WorkflowGraph, changed: set[
                 if job.lanes:
                     reasons.setdefault(f"workflow input: {file} (run by {path}#{name})", set()).update(job.lanes)
     return reasons
+
+
+def matrix_combinations(matrix: object) -> list[dict] | None:
+    """GitHub's expansion of a literal matrix; None when any part is computed at run time."""
+    if not isinstance(matrix, dict) or "${{" in str(matrix):
+        return None
+    include, exclude = matrix.get("include", []), matrix.get("exclude", [])
+    axes = {key: values for key, values in matrix.items() if key not in {"include", "exclude"}}
+    if not isinstance(include, list) or not isinstance(exclude, list) or not all(
+            isinstance(values, list) and values for values in axes.values()) or not all(
+            isinstance(entry, dict) for entry in [*include, *exclude]):
+        return None
+    combinations = [dict(zip(axes, values)) for values in itertools.product(*axes.values())] if axes else []
+    combinations = [combination for combination in combinations
+                    if not any(all(combination.get(key) == value for key, value in entry.items())
+                               for entry in exclude)]
+    originals = list(combinations)
+    for entry in include:
+        # An include extends every original combination it does not contradict, or else adds its own.
+        extended = [combination for combination in originals
+                    if all(combination[key] == value for key, value in entry.items() if key in axes)]
+        for combination in extended:
+            combination.update(entry)
+        if not extended:
+            combinations.append(dict(entry))
+    return combinations or None
