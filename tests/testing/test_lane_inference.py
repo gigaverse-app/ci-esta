@@ -499,3 +499,26 @@ def test_a_base_missing_from_history_runs_every_lane(repository, capsys):
     result = json.loads(capsys.readouterr().out)
     assert set(result["lanes"].values()) == {True}
     assert "is not in this checkout's history" in result["reason"]
+
+
+def test_a_pull_request_merge_is_planned_against_the_base_it_was_built_on(repository, capsys):
+    """GitHub merges the PR head into the base branch's current tip, which can be ahead of `base.sha`."""
+    repo, base = repository
+
+    def run(*args: str) -> str:
+        return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout
+
+    run("checkout", "-q", "-b", "feature")
+    write(repo, "tests/live/test_live.py", "def test_live(): assert 1\n")
+    pr_head = commit(repo, "the pull request")
+    run("checkout", "-q", "-")
+    write(repo, "scripts/smoke.sh", "echo landed on main meanwhile\n")
+    commit(repo, "another merge on main")
+    run("-c", "user.name=Test", "-c", "user.email=test@example.com", "merge", "-q", "--no-ff", "-m", "merge", pr_head)
+    head = run("rev-parse", "HEAD").strip()
+
+    assert main(["--repo", str(repo), "--base", base, "--head", head, "--pr-head", pr_head]) == 0
+    tested = json.loads(capsys.readouterr().out)["lanes"]
+    assert tested == {"live": True, "smoke": False, "unit": False, "wrapped": True}
+    # Without the PR head, main's own change reads as the PR's: the smoke lane runs too.
+    assert plan(repo, base, head, capsys)["smoke"] is True
