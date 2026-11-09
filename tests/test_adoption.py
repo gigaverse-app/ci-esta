@@ -247,6 +247,14 @@ def test_matrix_from_an_unrelated_job_output_is_still_a_packing_candidate(tmp_pa
     assert "matrix-setup" in {item["id"] for item in report["suggestions"]}
 
 
+def test_sha_pinned_actions_keep_the_v1_default_unless_zizmor_rejects_tags(tmp_path):
+    write(tmp_path, ".github/workflows/ci.yml", TOX_CI)
+    assert "use `@v1` for CI-esta actions unless" in audit(tmp_path)["pinning"]
+    write(tmp_path, ".pre-commit-config.yaml", "repos:\n  - repo: https://github.com/zizmorcore/zizmor-pre-commit\n")
+    pinning = audit(tmp_path)["pinning"]
+    assert ".pre-commit-config.yaml runs zizmor" in pinning and "@<sha> # vX.Y.Z" in pinning
+
+
 def test_gate_that_needs_its_test_jobs_directly_has_no_blind_spot(tmp_path):
     write(tmp_path, ".github/workflows/ci.yml", TOX_CI.replace("needs: [coverage, lint]", "needs: [tests, coverage, lint]"))
     report = audit(tmp_path)

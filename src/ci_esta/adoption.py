@@ -224,17 +224,31 @@ def _inventory(root: Path) -> tuple[AdoptionReport, list[tuple[str, str]], list[
     return report, commands, job_steps
 
 
-def _pinning(actions: list[ActionUse]) -> str:
+def _pinning(actions: list[ActionUse], enforcers: list[str]) -> str:
     external = [item.uses for item in actions if not item.uses.startswith(("./", "$/", "docker://"))]
     if not external:
-        return "no external actions found"
+        return "no external actions found; use `@v1` for CI-esta actions"
     pinned = sum(bool(SHA_REF.search(uses)) for uses in external)
+    # Tags are the default so releases reach adopters; a SHA pin is needed only where tooling rejects tags.
+    sha_pin = ("pin CI-esta actions as `OWNER/REPO@<sha> # vX.Y.Z` "
+               "(sha from `gh api repos/OWNER/REPO/commits/TAG --jq .sha`)")
+    if enforcers:
+        policy = f"{', '.join(enforcers)} runs zizmor, which rejects tag references by default: {sha_pin}"
+    else:
+        policy = (f"use `@v1` for CI-esta actions unless the repository's CI rejects tags; then {sha_pin}. "
+                  "Copy existing references for third-party actions")
     if pinned == len(external):
-        return (f"all {pinned} external references are commit SHAs; pin added actions the same way "
-                "(`uses: OWNER/REPO@<sha> # vX.Y.Z`, sha from `gh api repos/OWNER/REPO/commits/TAG --jq .sha`)")
+        return f"all {pinned} external references are commit SHAs; {policy}"
     if pinned:
-        return f"{pinned} of {len(external)} external references are commit SHAs; follow the repository's policy"
+        return f"{pinned} of {len(external)} external references are commit SHAs; {policy}"
     return f"{len(external)} external references use tags; use `@v1` for CI-esta actions"
+
+
+def _read(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
 
 
 def _next_steps(report: AdoptionReport) -> list[str]:
@@ -334,7 +348,11 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
         advise("history-restore", "History learning is configured without a shared reader. Restore the same lane key before planning, or document the external consumer. Retention stays opt-in.", [item.source for item in writers])
     if readers and not writers:
         advise("history-writer", "History restore is configured without a shared writer. Verify a trusted producer exists for this lane; a read-only consumer may be intentional.", [item.source for item in readers])
-    report.pinning = _pinning(report.actions)
+    enforcers = sorted({path for path, command in commands if "zizmor" in command}
+                       | {item.source for item in uses("zizmorcore/zizmor-action")}
+                       | {name for name in (".pre-commit-config.yaml",)
+                          if "zizmor" in _read(Path(root) / name)})
+    report.pinning = _pinning(report.actions, enforcers)
     report.next_steps = _next_steps(report)
     report.limitations.append("Static wiring only: expressions, scripts and remote actions are not executed. Presence does not prove successful runs, equivalent lane keys, cache hits or savings. Required checks live in repository settings, not in workflow files.")
     return report

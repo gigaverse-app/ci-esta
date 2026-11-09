@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import argparse
 import os
-from importlib.metadata import version
 import sys
 from datetime import datetime, timezone
+from importlib.metadata import version
 from pathlib import Path
 
 from ci_esta.ci_observability.action import ActionConfig, run
