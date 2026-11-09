@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.10.0](https://github.com/gigaverse-app/ci-esta/compare/v1.9.1...v1.10.0) (2026-11-09)
+
+
+### Features
+
+* **adoption:** flag version-only reuse with Release Please on push ([#157](https://github.com/gigaverse-app/ci-esta/issues/157)) ([2ed587b](https://github.com/gigaverse-app/ci-esta/commit/2ed587b9d8e34f062bede9810837791bb274fed0))
+
+
+### Bug fixes
+
+* **ci:** install Bun before planning the mixed test graph ([#160](https://github.com/gigaverse-app/ci-esta/issues/160)) ([c562ef1](https://github.com/gigaverse-app/ci-esta/commit/c562ef1df1322e750a4f5974582a175ff555eee8))
+
+
+### Performance
+
+* **planning:** select jobs by the Python they run, and give each public smoke job its own lane ([#158](https://github.com/gigaverse-app/ci-esta/issues/158)) ([c9ac500](https://github.com/gigaverse-app/ci-esta/commit/c9ac500648419f267a4fa038f1d81c65fa66032f))
+
 ## [1.9.1](https://github.com/gigaverse-app/ci-esta/compare/v1.9.0...v1.9.1) (2026-11-09)
 
 
