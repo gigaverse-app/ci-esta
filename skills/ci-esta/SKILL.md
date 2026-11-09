@@ -91,7 +91,7 @@ In a clone of a fork, `gh` defaults to the upstream repository, so name `$REPO` 
 ## 2. Install and inventory
 
 ```bash
-uv tool install 'ci-esta[selection]>=1.9,<2'   # or: pipx install 'ci-esta[selection]>=1.9,<2'
+uv tool install 'ci-esta[selection]>=1.11,<2'   # or: pipx install 'ci-esta[selection]>=1.11,<2'
 ci-esta adoption --root .
 ```
 
@@ -103,8 +103,8 @@ export PATH="$(cygpath -u "$(uv tool dir --bin)"):$PATH"  # Git Bash on Windows
 $env:PATH = "$(uv tool dir --bin);$env:PATH"              # PowerShell
 ```
 
-Or skip the install and prefix each command with `uvx --from 'ci-esta[selection]>=1.9,<2'`, for example
-`uvx --from 'ci-esta[selection]>=1.9,<2' ci-esta adoption --root .`. The `selection` extra is required for
+Or skip the install and prefix each command with `uvx --from 'ci-esta[selection]>=1.11,<2'`, for example
+`uvx --from 'ci-esta[selection]>=1.11,<2' ci-esta adoption --root .`. The `selection` extra is required for
 `ci-esta check-workflow`, `ci-esta lanes` and `ci-esta-pytest`; without it they exit and print the install command.
 
 Expected: a pinning line, one line per workflow with its triggers, job count and aggregate gate candidate, the
