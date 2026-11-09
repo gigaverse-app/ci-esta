@@ -75,12 +75,12 @@ outputs:
     description: >-
       Completion step name binding the tested inputs, the execution context and the receipt
       format. Name each covered job's final successful step with it.
+    value: ${{ steps.resolve.outputs.receipt }}
   admitted-lanes:
     description: >-
       planned-lanes with every lane whose lane-keys are all proven set to false; planned-lanes
       unchanged when nothing is proven or reuse is not allowed. Empty without planned-lanes.
     value: ${{ steps.resolve.outputs.admitted-lanes }}
-    value: ${{ steps.resolve.outputs.receipt }}
   reused:
     description: JSON object of positively proven lane keys.
     value: ${{ steps.resolve.outputs.reused }}
