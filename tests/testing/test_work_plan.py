@@ -9,6 +9,7 @@ from pytest_selective.ci import Lane, LaneConfig
 from pytest_selective.impact_graph import DependencyDeclarationError
 from pytest_selective.impact_models import ImpactConfig
 
+from ci_esta.testing.lane_inference import resolve
 from ci_esta.testing.work_plan import main, plan_work
 from tests.testing.git_repo import commit, write
 
@@ -335,3 +336,103 @@ def test_a_local_planning_action_makes_its_job_the_planner_and_steps_do_not_wide
     # The job-level condition decides when the package is built; the smoke step's condition is its own.
     assert graph.jobs[(".github/workflows/ci.yml", "distributions")].lanes == {"package", "tests"}
     assert graph.package_lanes() == {"package"}
+
+
+ENTRIES = """\
+name: CI
+on: [pull_request]
+jobs:
+  select-tests:
+    runs-on: ubuntu-latest
+    outputs:
+      lanes: ${{ steps.plan.outputs.lanes }}
+    steps:
+      - id: plan
+        uses: ./actions/plan
+  unit:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).unit }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: python -m sample.report --check
+  live:
+    needs: select-tests
+    if: ${{ fromJSON(needs.select-tests.outputs.lanes).live }}
+    runs-on: ubuntu-latest
+    steps:
+      # Smoke-testing the planning action does not make this job the planner.
+      - uses: ./actions/plan
+      - uses: ./actions/runner
+      - run: sample-cli lanes
+"""
+PLAN_ACTION = """\
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: python -m pytest_selective.ci --base x
+"""
+RUNNER_ACTION = """\
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        PY=$(bash "$SHARED_ACTION_PATH/../../scripts/runtime.sh")
+        "$PY" -m sample.runner
+"""
+
+
+@pytest.fixture
+def entries(tmp_path: Path) -> tuple[Path, str]:
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    write(tmp_path, ".github/workflows/ci.yml", ENTRIES)
+    write(tmp_path, "actions/plan/action.yml", PLAN_ACTION)
+    write(tmp_path, "actions/runner/action.yml", RUNNER_ACTION)
+    write(tmp_path, "scripts/runtime.sh", "echo python3\n")
+    write(tmp_path, "pyproject.toml", '[project]\nname = "sample"\nversion = "1"\n[project.scripts]\nsample-cli = "sample.cli:main"\n')
+    write(tmp_path, "src/sample/__init__.py")
+    write(tmp_path, "src/sample/report.py", "from sample.format import render\n")
+    write(tmp_path, "src/sample/format.py", "def render(): pass\n")
+    write(tmp_path, "src/sample/runner.py", "from sample.engine import run\n")
+    write(tmp_path, "src/sample/engine.py", "def run(): pass\n")
+    write(tmp_path, "src/sample/cli.py", "from sample.commands import main\n")
+    write(tmp_path, "src/sample/commands.py", "def main(): pass\n")
+    write(tmp_path, "src/sample/unused.py", "VALUE = 1\n")
+    write(tmp_path, "tests/unit/test_nothing.py", "def test_nothing(): pass\n")
+    write(tmp_path, "tests/live/test_nothing_else.py", "def test_nothing_else(): pass\n")
+    return tmp_path, commit(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("path", "expected"),
+    [
+        # `python -m sample.report` depends on what that module imports.
+        ("src/sample/format.py", {"unit": True, "live": False}),
+        # `"$PY" -m sample.runner`, in an action that names its own directory through `env`.
+        ("src/sample/engine.py", {"unit": False, "live": True}),
+        ("scripts/runtime.sh", {"unit": False, "live": True}),
+        # A console script of the repository runs its module.
+        ("src/sample/commands.py", {"unit": False, "live": True}),
+        # Package code no job runs and no test imports selects nothing.
+        ("src/sample/unused.py", {"unit": False, "live": False}),
+    ],
+)
+def test_jobs_depend_on_the_python_modules_they_run(entries, path, expected):
+    repo, base = entries
+    head = change(repo, path)
+    resolved = resolve(repo, base, head, None)
+    result = plan_work(repo, resolved.config, base, head, rules=resolved.rules)
+    assert result.lanes == expected, result.lane_reasons
+
+
+def test_the_planner_is_the_job_whose_lanes_others_read(entries):
+    from ci_esta.workflow_graph import ALL, WorkflowGraph
+
+    repo, base = entries
+    graph = WorkflowGraph(repo, base)
+    assert graph.jobs[(".github/workflows/ci.yml", "select-tests")].lanes == {ALL}
+    assert graph.jobs[(".github/workflows/ci.yml", "live")].lanes == {"live"}
+

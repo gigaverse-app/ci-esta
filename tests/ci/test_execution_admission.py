@@ -42,13 +42,28 @@ def test_runtime_commands_have_selection_and_failure_fallback():
 
 
 def test_admission_names_only_configured_lanes():
-    # A misspelled lane reads as null, which silently skips the work it guards.
+    # A misspelled lane reads as null, which silently skips the work it guards. ci.yml plans with the
+    # lane file; the public smoke workflow plans with no lane file, so each job's condition is its lane.
     configured = set(json.loads((ROOT / ".github/test-lanes.json").read_text())["lanes"])
-    for name in ("ci.yml", "public-actions.yml"):
+    for name, lanes in (("ci.yml", configured), ("public-actions.yml", None)):
         text = (ROOT / ".github/workflows" / name).read_text()
         referenced = set(re.findall(r"outputs\.lanes(?: \|\| '\{\}')?\)\.([a-z_][a-z0-9_]*)", text))
         assert referenced, name
-        assert referenced <= configured, (name, referenced - configured)
+        if lanes is not None:
+            assert referenced <= lanes, (name, referenced - lanes)
+
+
+def test_the_public_smoke_planner_gives_each_job_its_own_lane():
+    workflow = yaml.safe_load((ROOT / ".github/workflows/public-actions.yml").read_text())
+    select = next(step for step in workflow["jobs"]["select-tests"]["steps"] if step.get("id") == "select")
+    assert "config" not in select.get("with", {})
+    lanes = {
+        name: set(re.findall(r"outputs\.lanes\)\.([a-z_][a-z0-9_]*)", str(job.get("if", ""))))
+        for name, job in workflow["jobs"].items()
+        if "outputs.lanes)" in str(job.get("if", ""))
+    }
+    assert all(len(found) == 1 for found in lanes.values()), lanes
+    assert len({lane for found in lanes.values() for lane in found}) == len(lanes), lanes
 
 
 def test_public_smoke_is_selected_and_requires_successful_planning():

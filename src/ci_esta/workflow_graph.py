@@ -40,8 +40,9 @@ DECLARATION_LINE = re.compile(r"^\s*(?:#|//)(.*gv:test-dependency.*)$")
 #: Where an action refers to its own files.
 ACTION_PATH = re.compile(r"(?:\$\{\{\s*github\.action_path\s*\}\}|\$\{?GITHUB_ACTION_PATH\}?)/([^\s'\"`;|&)]+)")
 ALL = "*"
-#: `python -m MODULE`, or `"$SOME_PYTHON" -m MODULE`: the job runs that module, and everything it imports.
-PYTHON_MODULE = re.compile(r"python\w*\b[^\n;&|]*?\s-m\s+([A-Za-z_][\w.]*)", re.IGNORECASE)
+#: `python -m MODULE` or `"$INTERPRETER" -m MODULE`: the job runs that module and everything it imports.
+#: Only a module that resolves to a repository file counts, so `git commit -m` and the like match nothing.
+PYTHON_MODULE = re.compile(r"(?:python\w*|\$\{?[A-Za-z_]\w*\}?)\b[^\n;&|]*?\s-m\s+([A-Za-z_][\w.]*)", re.IGNORECASE)
 #: A shell variable reference: `$NAME` or `${NAME}`.
 VARIABLE = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?")
 #: An action input inside a composite action's step.
