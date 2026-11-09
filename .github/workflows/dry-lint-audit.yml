@@ -1,33 +1,20 @@
 name: dry-lint audit
+# Weekly, or dispatched after merging a cleanup: dry-lint's own audit workflow sweeps the repository against the
+# accepted backlog and opens or updates one dry-lint/ratchet pull request recording what was cleaned. Its steps ship
+# with dry-lint releases; this file only says when it runs and with which credentials.
 on:
   schedule:
     - cron: '23 6 * * 1'
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: dry-lint-audit
-  cancel-in-progress: false
 jobs:
   audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: gigaverse-app/dry-lint@v1
-        with:
-          mode: sweep
-          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          plugins: anthropic==2.4.0
-          baseline: .dry-lint/baseline.json
-          require-complete: 'true'
-          budget-usd: '5'
-      - name: Retain the audit for human or agent review
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: dry-lint-audit
-          path: |
-            ${{ runner.temp }}/dry-lint/report.json
-            ${{ runner.temp }}/dry-lint/comment.md
-          retention-days: 30
-          if-no-files-found: warn
+    uses: gigaverse-app/dry-lint/.github/workflows/audit.yml@v1
+    with:
+      budget-usd: '5'
+      plugins: anthropic==2.4.0
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      # The organization credential makes the ratchet pull request run ordinary CI.
+      DRY_LINT_RATCHET_TOKEN: ${{ secrets.GV_CI_CROSS_REPO_TOKEN }}
