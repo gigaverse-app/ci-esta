@@ -54,8 +54,10 @@ In a clone of a fork, `gh` defaults to the upstream repository, so name `$REPO` 
 - **Default branch** (`$DEFAULT` below). Do not assume `main`.
 - **Required check** (`GATE`), decided by this one rule:
   1. A ruleset or branch protection names a check: `GATE` is that exact job name.
-  2. The lookups fail with 403 (you cannot read the settings): run `gh pr checks NUMBER --repo "$REPO" --required`
-     on any open pull request. If that is empty too, ask the human which check is required; do not guess.
+  2. You cannot see every setting: a lookup failed with 403, or both came back empty while
+     `gh api "repos/$REPO" --jq .permissions.admin` is not `true` (branch protection is hidden from non-admins).
+     Run `gh pr checks NUMBER --repo "$REPO" --required` on any open pull request. If that is empty too, ask the
+     human which check is required; do not guess.
   3. Nothing is required and the main workflow has an aggregate job (`ci-esta adoption` lists it as the gate
      candidate): `GATE` is that job. Tell the human to make it required.
   4. Nothing is required and there is no aggregate job: add one named `Validation gate` in step 5, use it as `GATE`,
