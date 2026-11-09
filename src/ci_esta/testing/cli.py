@@ -10,9 +10,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pytest_selective.pytest_sharding import load_durations, merge_duration_files, plan_shards, write_shard_files
-from pytest_selective.test_inventory import DEFAULT_TEST_FILE_PATTERNS
-
+from ci_esta.extras import requires_selection
 from ci_esta.testing.canary_run import (
     DEFAULT_COLLECT_TIMEOUT_SECONDS,
     DEFAULT_STAGE_BUDGET_SECONDS,
@@ -123,6 +121,12 @@ def main(argv: list[str] | None = None) -> int:
         raw_args, pytest_args = raw_args[:separator], raw_args[separator + 1 :]
     parser = _parser()
     args = parser.parse_args(raw_args)
+    # pytest-selective is optional: only plan and merge need it, and they name the extra when it is missing.
+    with requires_selection(f"ci-esta-pytest {args.command}"):
+        return _run(parser, args, pytest_args)
+
+
+def _run(parser: argparse.ArgumentParser, args: argparse.Namespace, pytest_args: list[str]) -> int:
     if args.command == "history":
         try:
             state = combine_histories(
@@ -181,6 +185,9 @@ def main(argv: list[str] | None = None) -> int:
             stage_budget_seconds=args.stage_budget,
         )
     if args.command == "plan":
+        from pytest_selective.pytest_sharding import load_durations, plan_shards, write_shard_files
+        from pytest_selective.test_inventory import DEFAULT_TEST_FILE_PATTERNS
+
         shards = plan_shards(
             load_durations(args.durations),
             args.test_root or [Path("tests")],
@@ -218,6 +225,8 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
     if args.command == "merge":
+        from pytest_selective.pytest_sharding import merge_duration_files
+
         merged = merge_duration_files(args.input_files, args.output)
         print(f"merged_tests={len(merged)}")
         return 0

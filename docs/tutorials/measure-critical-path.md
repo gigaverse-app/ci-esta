@@ -15,11 +15,12 @@ before changing caching or parallelism.
 Install the reporter in an isolated tool environment:
 
 ```bash
-uv tool install 'ci-esta>=1.1.0,<2'
+uv tool install 'ci-esta[selection]>=1.8,<2'
 ```
 
 Provide a GitHub read token through `GH_TOKEN` or `GITHUB_TOKEN` using your normal
-credential mechanism. Do not put the token in a command argument or commit it.
+credential mechanism; with the GitHub CLI signed in, `export GH_TOKEN="$(gh auth token)"`.
+Do not put the token in a command argument or commit it.
 Replace the repository, run, attempt, and gate with your actual values:
 
 ```bash

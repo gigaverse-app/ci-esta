@@ -78,6 +78,22 @@ def test_an_extending_lane_file_is_checked_with_the_lanes_it_inherits(tmp_path):
     check(workflow, extends, repo)
 
 
+def test_existing_required_aggregate_keeps_its_name(tmp_path):
+    workflows = {"jobs": {
+        "select-tests": {}, "test": {"needs": "select-tests", "if": "fromJSON(needs.select-tests.outputs.lanes).core"},
+        "required": {"name": "All required checks", "needs": ["select-tests", "test"],
+                     "steps": [{"uses": "gigaverse-app/ci-esta/actions/validation-gate@v1", "with": {
+                         "needs": "${{ toJSON(needs) }}", "lanes": "${{ needs.select-tests.outputs.lanes || '{}' }}",
+                         "lane-jobs": '{"test":["core"]}'}}]}}}
+    lane_file = tmp_path / "lanes.json"
+    lane_file.write_text(json.dumps({"lanes": {"core": {}}}))
+    workflow = tmp_path / "ci.yml"
+    workflow.write_text(yaml.safe_dump(workflows))
+    check(workflow, lane_file, gate_name="All required checks")
+    with pytest.raises(ValueError, match="'Validation gate'"):
+        check(workflow, lane_file)
+
+
 def test_check_workflow_reports_a_missing_gate_without_a_traceback(tmp_path, capsys):
     from ci_esta.cli import main as cli
 
@@ -86,5 +102,4 @@ def test_check_workflow_reports_a_missing_gate_without_a_traceback(tmp_path, cap
     lanes = tmp_path / "lanes.json"
     lanes.write_text('{"lanes": {}}', encoding="utf-8")
     assert cli(["check-workflow", "--workflow", str(workflow), "--lanes", str(lanes)]) == 2
-    assert "Exactly one stable Validation gate is required" in capsys.readouterr().err
-
+    assert "Exactly one aggregate job named 'Validation gate'" in capsys.readouterr().err

@@ -12,14 +12,26 @@ with a completed run, find the work delaying your required gate, and choose a
 change you can measure: caching, parallel tests, lane selection or reuse of
 previously completed equivalent work.
 
+## Set it up with your coding agent
+
+Give Claude Code, Codex, Cursor or any coding agent in your repository this one prompt:
+
+```text
+Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it.
+```
+
+The agent measures completed runs, makes one change the numbers support, proves it on the same commit with an
+unchanged test inventory, and opens a draft pull request; merging, required checks and repository settings stay
+with you. [Read the procedure it follows](../skills/ci-esta/SKILL.md), or set it up by hand:
+
 [Measure your first run](../docs/tutorials/measure-critical-path.md){ .md-button .md-button--primary }
 [Add the reporting action](../docs/quickstart.md){ .md-button }
 
 ## Read a completed run
 
 ```bash
-uv tool install 'ci-esta>=1.1.0,<2'
-# Set GH_TOKEN or GITHUB_TOKEN through your credential mechanism.
+uv tool install 'ci-esta[selection]>=1.8,<2'
+export GH_TOKEN="$(gh auth token)"   # or any token that can read the run
 ci-esta report --repository owner/project --run-id 123456 --run-attempt 1 \
   --gate 'Validation gate' --critical-path --output-dir report
 ```

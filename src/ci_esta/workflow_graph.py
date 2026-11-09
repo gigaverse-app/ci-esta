@@ -77,6 +77,24 @@ def strings(value: Any) -> list[str]:
     return []
 
 
+def job_needs(job: Any) -> list[str]:
+    """A job's `needs`, which YAML allows as one string or a list."""
+    needs = job.get("needs", []) if isinstance(job, dict) else []
+    return [needs] if isinstance(needs, str) else [str(need) for need in needs] if isinstance(needs, list) else []
+
+
+def prerequisites(needs: dict[str, list[str]], roots: list[str]) -> set[str]:
+    """The roots and every job they wait for, transitively: the jobs whose failure can reach a gate."""
+    reached: set[str] = set()
+    pending = list(roots)
+    while pending:
+        name = pending.pop()
+        if name not in reached and name in needs:
+            reached.add(name)
+            pending.extend(needs[name])
+    return reached
+
+
 def working_directory(document: dict[str, Any], job: Any, step: Any) -> str | None:
     """The repository directory a step's `run` executes in: the step's, the job's or the workflow's default."""
     for owner in (step, job, document):
