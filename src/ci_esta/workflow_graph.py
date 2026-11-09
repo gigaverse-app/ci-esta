@@ -15,6 +15,7 @@ from __future__ import annotations
 import posixpath
 import re
 import subprocess
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -29,11 +30,8 @@ LANE_REFERENCE = re.compile(
     r"needs\.([A-Za-z_][A-Za-z0-9_-]*)\.outputs\.lanes\s*\)\s*"
     r"(?:\.\s*([A-Za-z_][A-Za-z0-9_]*)|\[\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]\s*\])"
 )
-#: Steps that decide which lanes run; their job's change can change every lane.
-PLANNERS = re.compile(
-    r"pytest-selective(?:/actions/(?:plan-lanes|test-impact))?@|pytest_selective\.ci\b"
-    r"|ci-esta/actions/plan-work@|ci_esta\.testing\.work_plan\b"
-)
+#: A job other jobs read lanes from: the planner. Its change can change every lane.
+PLANNER_REFERENCE = re.compile(r"needs\.([A-Za-z_][A-Za-z0-9_-]*)\.outputs\.lanes\b")
 #: A repository path inside a command line, an input or an action reference.
 PATH_TOKEN = re.compile(r"[A-Za-z0-9_.@+\-]+(?:/[A-Za-z0-9_.@+\-]+)+|[A-Za-z0-9_\-]+\.[A-Za-z0-9]+")
 #: A line whose comment declares a file the script reads: pytest-selective's declaration syntax.
@@ -41,6 +39,13 @@ DECLARATION_LINE = re.compile(r"^\s*(?:#|//)(.*gv:test-dependency.*)$")
 #: Where an action refers to its own files.
 ACTION_PATH = re.compile(r"(?:\$\{\{\s*github\.action_path\s*\}\}|\$\{?GITHUB_ACTION_PATH\}?)/([^\s'\"`;|&)]+)")
 ALL = "*"
+#: `python -m MODULE` or `"$INTERPRETER" -m MODULE`: the job runs that module and everything it imports.
+#: Only a module that resolves to a repository file counts, so `git commit -m` and the like match nothing.
+PYTHON_MODULE = re.compile(r"(?:python\w*|\$\{?[A-Za-z_]\w*\}?)\b[^\n;&|]*?\s-m\s+([A-Za-z_][\w.]*)", re.IGNORECASE)
+#: A dotted module name passed to a wrapper (`bash run.sh pkg.tool`); kept only if it is a repository module.
+DOTTED_NAME = re.compile(r"(?<![\w.$/{-])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)(?![\w./}-])")
+#: A shell variable reference: `$NAME` or `${NAME}`.
+VARIABLE = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?")
 #: An action input inside a composite action's step.
 INPUT_EXPRESSION = re.compile(r"\$\{\{\s*inputs\.([A-Za-z0-9_-]+)\s*\}\}")
 #: Inputs of another repository's action that hold a command (`pytest-command`, `run`, `script`).
@@ -70,6 +75,8 @@ class Job:
     packages: bool = False
     #: The lanes the job-level condition reads; a step's own condition gates only that step.
     job_lanes: set[str] = field(default_factory=set)
+    #: Python modules the job runs (`python -m X`, a console script), directly or through its local actions.
+    modules: set[str] = field(default_factory=set)
 
 
 def strings(value: Any) -> list[str]:
@@ -159,6 +166,27 @@ def local_actions(job: Any) -> list[str]:
     ]
 
 
+def expanded_runs(runs: Any) -> list[str]:
+    """A composite action's `run` commands with their step's `env` values substituted.
+
+    Actions alias their own directory (`SHARED_ACTION_PATH: ${{ github.action_path }}`) or a script in it
+    (`HELPER: ${{ github.action_path }}/../../scripts/helper.py`); substituted, those paths resolve.
+    """
+    steps = runs.get("steps") if isinstance(runs, dict) else None
+    found = []
+    for step in steps if isinstance(steps, list) else []:
+        if not isinstance(step, dict) or not isinstance(step.get("run"), str):
+            continue
+        env = (
+            {str(key): str(value) for key, value in (step.get("env") or {}).items()}
+            if isinstance(step.get("env"), dict)
+            else {}
+        )
+        if env:
+            found.append(VARIABLE.sub(lambda match: env.get(match[1], match[0]), step["run"]))
+    return found
+
+
 def is_workflow(path: str) -> bool:
     return path.startswith(WORKFLOWS) and PurePosixPath(path).suffix.lower() in {".yml", ".yaml"}
 
@@ -179,8 +207,10 @@ class WorkflowGraph:
         self.directories = {str(parent) for path in self.files for parent in PurePosixPath(path).parents}
         self.documents: dict[str, dict[str, Any]] = {}
         self.declarations: dict[str, set[str]] = {}
-        #: Metadata of local actions that plan lanes (`uses: ./actions/plan-lanes`).
-        self.planning_actions: set[str] = set()
+        #: Each local action's metadata and the commands its `runs` holds.
+        self.action_texts: dict[str, list[str]] = {}
+        #: The repository's console scripts (`[project.scripts]`), name to module.
+        self.scripts = self.console_scripts()
         self.jobs: dict[tuple[str, str], Job] = {}
         for path in sorted(self.files):
             if is_workflow(path):
@@ -188,6 +218,14 @@ class WorkflowGraph:
                 self.documents[path] = document
                 for name, job in document["jobs"].items():
                     self.jobs[(path, str(name))] = self.describe(document, job)
+                # The planner is the job whose `lanes` output other jobs read, or that declares one; using a
+                # planning action to test it (a smoke job) does not make a job the planner.
+                read = {match for text in strings(document["jobs"]) for match in PLANNER_REFERENCE.findall(text)}
+                for name, job in document["jobs"].items():
+                    outputs = job.get("outputs") if isinstance(job, dict) else None
+                    if str(name) in read or (isinstance(outputs, dict) and "lanes" in outputs):
+                        self.jobs[(path, str(name))].lanes = {ALL}
+                        self.jobs[(path, str(name))].job_lanes = {ALL}
 
     def load(self, path: str) -> dict[str, Any]:
         # Malformed YAML raises, so the planner falls back to every lane.
@@ -205,8 +243,6 @@ class WorkflowGraph:
     def describe(self, document: dict[str, Any], job: Any) -> Job:
         texts = strings(job)
         lanes = {lane for text in texts for lane in lane_references(text)}
-        if any(PLANNERS.search(text) for text in texts):
-            lanes = {ALL}
         packages = any(PACKAGE_COMMANDS.search(text) for text in texts)
         # A command in a working directory names its files relative to that directory.
         relative = [
@@ -222,11 +258,38 @@ class WorkflowGraph:
                 # `uses: ./` is the repository's own action, which no path token names.
                 seen.add(directory)
                 inputs |= self.action(directory, seen)
-        if inputs & self.planning_actions:
-            lanes = {ALL}
         condition = job.get("if") if isinstance(job, dict) else None
         job_lanes = lane_references(str(condition)) if condition is not None else set()
-        return Job(lanes=lanes, inputs=inputs, packages=packages, job_lanes=job_lanes & lanes or lanes)
+        commands = [*texts, *(text for path in sorted(inputs) for text in self.action_texts.get(path, []))]
+        return Job(
+            lanes=lanes,
+            inputs=inputs,
+            packages=packages,
+            job_lanes=job_lanes & lanes or lanes,
+            modules=self.modules(commands),
+        )
+
+    def console_scripts(self) -> dict[str, str]:
+        """Every tracked project's `[project.scripts]`, as name to module."""
+        found: dict[str, str] = {}
+        for path in sorted(path for path in self.files if PurePosixPath(path).name == "pyproject.toml"):
+            try:
+                project = tomllib.loads(self.text(path) or "").get("project", {})
+            except tomllib.TOMLDecodeError:
+                continue
+            scripts = project.get("scripts") if isinstance(project, dict) else None
+            for name, target in (scripts if isinstance(scripts, dict) else {}).items():
+                found[str(name)] = str(target).split(":", 1)[0].strip()
+        return found
+
+    def modules(self, commands: list[str]) -> set[str]:
+        """Python modules `commands` run: `python -m X`, or a console script of this repository."""
+        found = {match for text in commands for match in (*PYTHON_MODULE.findall(text), *DOTTED_NAME.findall(text))}
+        for name, module in self.scripts.items():
+            script = re.compile(rf"(?:^|[\s;&|(`'\"]){re.escape(name)}(?=[\s;&|)`'\"]|$)", re.MULTILINE)
+            if any(script.search(text) for text in commands):
+                found.add(module)
+        return found
 
     def references(self, texts: list[str], seen: set[str], action_dir: str | None = None) -> set[str]:
         """Repository files named in `texts`, followed through local actions and reusable workflows."""
@@ -344,14 +407,13 @@ class WorkflowGraph:
             if metadata in self.files:
                 document = yaml.safe_load(self.text(metadata) or "") or {}
                 runs = document.get("runs", {}) if isinstance(document, dict) else {}
-                texts = strings(runs)
+                texts = [*strings(runs), *expanded_runs(runs)]
                 entry_points = [
                     inside(directory, runs[key])
                     for key in ("main", "pre", "post")
                     if isinstance(runs, dict) and isinstance(runs.get(key), str)
                 ]
-                if any(PLANNERS.search(text) for text in texts):
-                    self.planning_actions.add(metadata)
+                self.action_texts[metadata] = texts
                 image = runs.get("image") if isinstance(runs, dict) else None
                 if isinstance(image, str) and not image.startswith("docker://"):
                     entry_points.append(inside(directory, image))

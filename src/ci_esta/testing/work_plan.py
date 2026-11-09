@@ -68,6 +68,8 @@ def plan_work(
     try:
         before, after = WorkflowGraph(repo, base), WorkflowGraph(repo, head)
         reasons = changed_job_lanes(before, after, set(result.changed))
+        for reason, lanes in python_entry_lanes(repo, config, base, head, (before, after), set(result.changed)).items():
+            reasons.setdefault(reason, set()).update(lanes)
     except DependencyDeclarationError:
         # An authoring error to fix, as pytest-selective treats it, never a silent full run.
         raise
@@ -114,6 +116,61 @@ def plan_work(
             lanes[name] = True
             evidence[name].extend(added)
     return result.model_copy(update={"lanes": lanes, "lane_reasons": evidence})
+
+
+def python_entry_lanes(
+    repo: Path, config: LaneConfig, base: str, head: str, graphs: tuple[WorkflowGraph, ...], changed: set[str]
+) -> dict[str, set[str]]:
+    """Lanes of the jobs whose Python entry points import a changed file, through pytest-selective's graph.
+
+    A job that runs `python -m pkg.tool`, a console script or `python scripts/x.py` depends on what that
+    module imports, not on the whole package: a change outside the import closure leaves the job alone.
+    """
+    from pytest_selective.ast_imports import normalized_name
+    from pytest_selective.impact_graph import GraphCache, ModuleIndex, reachable, reverse_edges, seed_nodes, union_edges
+    from pytest_selective.impact_models import contents_node
+
+    jobs = [
+        (f"{path}#{name}", job)
+        for graph in graphs
+        for (path, name), job in graph.jobs.items()
+        if job.lanes and ALL not in job.lanes and (job.modules or any(item.endswith(".py") for item in job.inputs))
+    ]
+    if not jobs or not changed:
+        return {}
+    cache = GraphCache(repo / ".test-impact/cache.sqlite3")
+    try:
+        snapshots = [cache.snapshot(repo, revision, config.graph) for revision in (base, head)]
+    finally:
+        cache.close()
+    edges = union_edges(*snapshots)
+    impacted = reachable(reverse_edges(edges), seed_nodes(sorted(changed)))
+    index = ModuleIndex(
+        {path for snapshot in snapshots for path in snapshot.files if path.endswith(".py")},
+        config.graph.module_roots,
+        [],
+    )
+    reasons: dict[str, set[str]] = {}
+    for label, job in jobs:
+        # A name counts only when it is a module of this repository, not a prefix of one or an attribute path.
+        modules = {
+            path
+            for module in job.modules
+            for name in (module, f"{module}.__main__")
+            if normalized_name(name) in index.modules
+            for path in index.resolve(name)
+        }
+        # A changed file the job names is a workflow input already; here only what reaches it by import counts.
+        entries = (modules | {path for path in job.inputs if path.endswith(".py")}) - changed
+        for entry in sorted(entries & impacted):
+            closure = reachable(edges, {entry})
+            via = sorted(path for path in changed if path in closure or contents_node(path) in closure)
+            if via:
+                reasons.setdefault(f"workflow input: {via[0]} reaches {entry} (run by {label})", set()).update(
+                    job.lanes
+                )
+                break
+    return reasons
 
 
 def targets(rule: Rule, graph: WorkflowGraph, package_lanes: set[str], bun_lanes: set[str]) -> set[str]:
