@@ -24,6 +24,7 @@ from ci_esta.ci_observability.models import (
     SelectionSectionV1,
 )
 from ci_esta.ci_observability.report import (
+    NO_GATE,
     STICKY_MARKER,
     build_report,
     build_unavailable_report,
@@ -537,7 +538,8 @@ def test_active_skipped_reversed_and_missing_gate_data_are_explicit() -> None:
     )
 
     assert report.collection_status == CollectionStatus.PARTIAL
-    assert report.collection_errors == ["required gate metadata was not provided"]
+    assert report.collection_errors == [NO_GATE]
+    assert "--gate" in NO_GATE
     assert report.runner_cost.raw_runner_seconds == 200.0
     assert report.runner_cost.estimated_rounded_runner_minutes == 4
     assert report.latest_attempt_jobs[0].timing_status == "accrued"

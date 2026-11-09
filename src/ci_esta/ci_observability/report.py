@@ -286,6 +286,13 @@ def _overlapping_runner_cost(
     )
 
 
+NO_GATE = (
+    "no required gate was named, so the time-to-gate fields are null. Pass the required check's exact job "
+    "name (CLI --gate, action required-gates-json). If the repository requires no check, "
+    "name its aggregate job; `ci-esta adoption` lists the candidates."
+)
+
+
 def build_report(
     *,
     repository: str,
@@ -307,7 +314,7 @@ def build_report(
 ) -> CiObservabilityReportV1:
     errors = list(collection_errors or [])
     if not gate_selectors:
-        errors.append("required gate metadata was not provided")
+        errors.append(NO_GATE)
 
     # GitHub retains created_at across reruns. Waiting before a user requests a
     # rerun is not this attempt's queue time or critical-path execution.
