@@ -71,7 +71,7 @@ Pass `--repo "$REPO"` to every `gh` command. In a clone of a fork, `gh` otherwis
 ## 2. Install and inventory
 
 ```bash
-uv tool install 'ci-esta[selection]>=1.8,<2'   # or: pipx install 'ci-esta[selection]>=1.8,<2'
+uv tool install 'ci-esta[selection]>=1.9,<2'   # or: pipx install 'ci-esta[selection]>=1.9,<2'
 ci-esta adoption --root .
 ```
 
