@@ -6,6 +6,11 @@ import subprocess
 from pathlib import Path
 
 
+def tracked_files(repo: Path) -> list[str]:
+    """Git's tracked path inventory, preserving spaces and non-ASCII names."""
+    return [path for path in git(repo, "ls-files", "-z").split("\0") if path]
+
+
 def git(repo: Path, *args: str) -> str:
     """Run Git in `repo` and return its output as text; a failure raises `CalledProcessError`.
 
