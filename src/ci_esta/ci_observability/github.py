@@ -401,6 +401,7 @@ class GitHubActionsClient:
         for comment in comments:
             previous = self._comment_snapshot(comment)
             if previous is not None and not snapshot.supersedes(previous):
+                assert comment.body is not None, "a parsed snapshot requires a comment body"
                 snapshot, body = previous, comment.body
 
         if keeper.body != body:

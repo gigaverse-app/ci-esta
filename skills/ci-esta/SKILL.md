@@ -22,6 +22,10 @@ human keeps merging, required-check settings, runner groups and secrets.
   with the exact step, when the next move needs one.
 - Make **one** optimization (plus a gate fix if step 2 finds a gap). Keep every existing test, required check,
   coverage threshold and full or scheduled run.
+- Offer `ci-esta checkpoint init` for a weekly full checkpoint. It generates a small adopter-owned schedule
+  using `gigaverse-app/ci-esta/actions/weekly-checkpoint@v1`; configure the target workflows, ref and inputs
+  as needed. Verify each target runs full validation on `workflow_dispatch` and bypasses receipt reuse.
+  See [weekly checkpoints](https://github.com/gigaverse-app/ci-esta/blob/main/docs/weekly-checkpoints.md).
 - If a command fails, report the command and its error. Never work around a failure with `|| true`, a hand-written
   completion receipt, a widened gate or a deleted test.
 

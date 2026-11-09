@@ -7,7 +7,6 @@ import re
 from functools import partial
 
 import httpx
-from pydantic import TypeAdapter
 
 from ci_esta.ci_observability.enrichment.backend.models import (
     GitHubComment,
@@ -19,8 +18,6 @@ from ci_esta.ci_observability.github import GitHubActionsClient
 
 LEGACY_STICKY_MARKER = "<!-- ci-cost-report -->"
 SHARED_STICKY_MARKER = "<!-- ci-observability-v1 -->"
-
-COMMENTS_ADAPTER = TypeAdapter(list[GitHubComment])
 
 INFRA_SIGNATURES = (
     (re.compile(r"No space left on device"), "shared storage full"),

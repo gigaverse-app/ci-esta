@@ -1,6 +1,7 @@
 """Every runtime test, build and smoke command must be admitted by dependency selection."""
 # gv:test-dependency: .github/workflows/ci.yml
 # gv:test-dependency: .github/workflows/public-actions.yml
+# gv:test-dependency: .github/workflows/weekly-checkpoint.yml
 
 import json
 import re
@@ -14,6 +15,7 @@ RUNTIME = (
     "-m unittest",
     "node --test",
     "run_ci_tests.py",
+    "pytest-selective execute-plan",
     "smoke_distribution.py",
     "check_wheel.py",
     "check_core_is_framework_free.py",

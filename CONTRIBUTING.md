@@ -98,8 +98,15 @@ remain complete checkpoints.
 CI and public-action smoke use this checkout's `actions/plan-work`, combining
 pytest-selective's dependency graph with CI-esta's workflow graph. Tests and
 reporting use the locked pytest-selective 1.x release. Both workflows run a
-weekly full checkpoint on Monday; manual/called checkpoints and `test:full` also
+weekly full checkpoint on Monday through the shared [checkpoint dispatcher](docs/weekly-checkpoints.md);
+manual/called checkpoints and `test:full` also
 retain full execution, without receipt reuse.
+
+Ordinary Python test jobs execute the same affected-file plan through
+`pytest-selective execute-plan`. The plan derives its graph and execution inputs
+from the lane config. A small source change can select a few files in each Python
+version instead of rerunning the whole suite. Runtime contracts keep their full
+lane, and missing planning proof retains complete pytest roots and a failing gate.
 
 To run a complete checkpoint after a CI change, select **CI** in GitHub Actions
 and choose **Run workflow**. Retrying an ordinary PR run preserves its selection;
