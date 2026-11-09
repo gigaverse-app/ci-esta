@@ -2,7 +2,7 @@
   "schema": 1,
   "contract": "fbf56a4a852e47539b956057d11e9f3ee56a986bbb3b26ac209dc491d4b45f6e",
   "started_at": "a3ded1d6b3cf7f555e7cc53050518a93d469e9f2",
-  "checked_at": "a3ded1d6b3cf7f555e7cc53050518a93d469e9f2",
+  "checked_at": "2a04e6adc8ab6321553e535ebdf185cbfbab8ec8",
   "entries": [
     {
       "hashes": {
@@ -10,7 +10,7 @@
         "src/ci_esta/workflow_inputs.py::git": "636743995ec5d40d"
       },
       "context_hash": "",
-      "state": "remaining"
+      "state": "cleaned"
     },
     {
       "hashes": {
@@ -34,7 +34,7 @@
         "src/ci_esta/testing/bun/selection.py::git": "7905c287e590a296"
       },
       "context_hash": "",
-      "state": "remaining"
+      "state": "cleaned"
     },
     {
       "hashes": {
@@ -58,7 +58,7 @@
         "src/ci_esta/workflow_inputs.py::git": "636743995ec5d40d"
       },
       "context_hash": "",
-      "state": "remaining"
+      "state": "cleaned"
     },
     {
       "hashes": {
@@ -74,7 +74,7 @@
         "src/ci_esta/testing/timing_store.py::write_history": "e5b9beb3ad2fe0ee"
       },
       "context_hash": "",
-      "state": "remaining"
+      "state": "cleaned"
     },
     {
       "hashes": {
@@ -98,7 +98,7 @@
         "src/ci_esta/ci_observability/report.py::_elapsed": "548d3f83eef5f64e"
       },
       "context_hash": "",
-      "state": "remaining"
+      "state": "cleaned"
     },
     {
       "hashes": {
