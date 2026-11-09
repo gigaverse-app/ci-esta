@@ -108,10 +108,15 @@ def main():
     home = Metadata()
     home.feed((site / "index.html").read_text(encoding="utf-8"))
     base = home.canonical[0]
-    for link in re.findall(r"\]\((https://\S+?)\)", llms):
-        if link.startswith(base):
-            target = site / urlsplit(link[len(base):]).path
-            assert target.is_file() or (target / "index.html").is_file(), f"llms.txt links to missing {link}"
+    # Agents fetch these links as written, so a `.md` path that only exists in the repository is a 404 for them.
+    for source, text in (("llms.txt", llms), ("agent-setup.md", raw.read_text(encoding="utf-8"))):
+        for link in re.findall(r"\]\((https://\S+?)\)", text):
+            if link.startswith(base):
+                target = site / urlsplit(link[len(base):]).path
+                assert target.is_file() or (target / "index.html").is_file(), f"{source} links to missing {link}"
+            repository = re.fullmatch(r"https://github\.com/gigaverse-app/ci-esta/(?:blob|tree)/[^/]+/([^#?]+)", link)
+            if repository:
+                assert (root / repository[1]).exists(), f"{source} links to missing repository file {link}"
     unreleased = unreleased_references(root)
     assert not unreleased, "Use a released CI-esta ref (@v1), not a branch:\n" + "\n".join(unreleased)
     print(f"Validated {len(pages)} pages: canonical, descriptions, social metadata, sitemap, search, agent files, refs")
