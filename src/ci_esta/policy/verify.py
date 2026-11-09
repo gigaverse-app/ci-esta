@@ -7,15 +7,12 @@ This is a contract-test helper, never a substitute for test execution evidence.
 
 import argparse
 import json
-import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-import yaml
-
-from ci_esta.testing.gha_expressions import evaluate_value
+from ci_esta.testing.test_policy import workflow_inputs
 
 
 def verify(policy: Path | None, cases: Path, *, work: str = "", lanes: str = "") -> None:
@@ -71,21 +68,8 @@ def verify_workflows(cases: Path) -> None:
     Remote event/selector outputs are fixture boundaries, never admission results.
     """
     for case in json.loads(cases.read_text()):
-        workflow = yaml.safe_load(Path(case["workflow"]).read_text())
-        step = next(step for step in workflow["jobs"][case["job"]]["steps"] if step.get("id") == case["step"])
-        if "/plan-test-policy@" not in step.get("uses", ""):
-            raise AssertionError(f"{case['name']}: expected the public policy action")
-
-        def render(value: str) -> str:
-            def replace(match: re.Match[str]) -> str:
-                resolved = evaluate_value(match[0], case["context"])
-                if resolved is None:
-                    return ""
-                return resolved if isinstance(resolved, str) else json.dumps(resolved)
-
-            return re.sub(r"\$\{\{.*?\}\}", replace, value, flags=re.DOTALL)
-
-        inputs = {key: render(str(value)) for key, value in step["with"].items()}
+        inputs = workflow_inputs(Path(case["workflow"]), case["job"], case["context"],
+                                 step=case["step"], root=Path.cwd())
         policy = inputs.pop("policy", "")
         inputs.setdefault("occasion", case["context"].get("github", {}).get("event_name", ""))
         request = {

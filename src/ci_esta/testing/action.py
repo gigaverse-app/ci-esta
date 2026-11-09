@@ -10,6 +10,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, model_validator
 from pytest_selective.pytest_sharding import merge_duration_files
 
+from ci_esta.github_outputs import append_outputs
 from ci_esta.testing.artifacts import matching_artifacts
 from ci_esta.testing.coverage import read_coverage_summary
 from ci_esta.testing.junit import format_duration, summarize_junit_timings
@@ -96,14 +97,9 @@ def _optional_float(value: str) -> float | None:
 
 
 def _append_action_outputs(result: AggregationResult) -> None:
-    output_path = os.environ.get("GITHUB_OUTPUT")
-    if output_path:
-        coverage_percent = "" if result.coverage_percent is None else f"{result.coverage_percent:.2f}"
-        with Path(output_path).open("a") as output:
-            output.write(f"merged_tests={result.merged_tests}\n")
-            output.write(f"total_test_time={result.total_test_time}\n")
-            output.write(f"wall_time={result.wall_time}\n")
-            output.write(f"coverage_percent={coverage_percent}\n")
+    append_outputs(merged_tests=result.merged_tests, total_test_time=result.total_test_time,
+                   wall_time=result.wall_time,
+                   coverage_percent="" if result.coverage_percent is None else f"{result.coverage_percent:.2f}")
 
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_path:

@@ -8,12 +8,13 @@ accounting or sticky rendering.
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from ci_esta.ci_observability.enrichment.models import PytestTimingMetadata
+from ci_esta.ci_observability.github import GitHubCommentV1, GitHubJobsPageV1
+from ci_esta.ci_observability.models import GitHubJobV1
 
 CONTRACT_VERSION = "CI-OBS-BACKEND-ENRICH-v1"
 RUNNER_TEST_SHARD_PREFIX = "Test unit behavior · runner shard"
@@ -61,34 +62,13 @@ class BackendExtensions(BaseModel):
     backend: BackendEnrichment
 
 
-class GitHubJob(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-    id: int
-    name: str
-    status: str
-    conclusion: str | None = None
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-
-    @property
-    def wall_seconds(self) -> float | None:
-        if self.conclusion == "skipped" or self.started_at is None or self.completed_at is None:
-            return None
-        return max((self.completed_at - self.started_at).total_seconds(), 0.0)
+GitHubJob = GitHubJobV1
 
 
-class GitHubJobsPage(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-    jobs: list[GitHubJob]
+GitHubJobsPage = GitHubJobsPageV1
 
 
-class GitHubComment(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="ignore")
-
-    id: int
-    body: str | None = None
+GitHubComment = GitHubCommentV1
 
 
 class GitHubEnrichment(BaseModel):

@@ -21,17 +21,13 @@ from ci_esta.ci_observability.enrichment.models import (
 )
 from ci_esta.ci_observability.enrichment.primitives import format_seconds
 from ci_esta.ci_observability.models import PYTEST_TIMING_SIGNAL, REPOSITORY_SIGNAL_VALUE_LIMIT
+from ci_esta.testing.coverage import read_coverage_summary
 
 
 def parse_coverage_xml(path: Path) -> float | None:
-    if not path.exists():
-        return None
     try:
-        root = ET.parse(path).getroot()
-        assert root is not None, "Cobertura XML must have a root element"
-        rate = root.get("line-rate")
-        return round(float(rate) * 100, 1) if rate is not None else None
-    except (OSError, ET.ParseError, DefusedXmlException, ValueError):
+        return round(read_coverage_summary(path).percent, 1)
+    except ValueError:
         return None
 
 

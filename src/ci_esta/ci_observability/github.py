@@ -7,12 +7,14 @@ from __future__ import annotations
 import base64
 import io
 import json
+import os
 import re
 import zipfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from functools import cached_property
 from time import perf_counter
+from typing import Any, Literal, Self, overload
 
 import httpx
 import yaml
@@ -25,6 +27,7 @@ from ci_esta.ci_observability.models import (
     StickySnapshotV1,
 )
 from ci_esta.ci_observability.workflow_graph import dependencies
+from ci_esta.pagination import collect_pages
 
 
 class GitHubJobsPageV1(BaseModel):
@@ -43,6 +46,11 @@ class GitHubRepositoryV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     default_branch: str
+
+
+class WorkflowDispatch(BaseModel):
+    ref: str
+    inputs: dict[str, str | bool | int | float] = {}
 
 
 class GitHubCommentAuthorV1(BaseModel):
@@ -121,6 +129,33 @@ class GitHubActionsClient:
             transport=transport,
         )
 
+    @classmethod
+    @overload
+    def from_environment(cls, *, required: Literal[True] = True) -> Self: ...
+
+    @classmethod
+    @overload
+    def from_environment(cls, *, required: Literal[False]) -> Self | None: ...
+
+    @classmethod
+    def from_environment(cls, *, required: bool = True) -> Self | None:
+        repository = os.environ.get("GITHUB_REPOSITORY", "")
+        token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN", "")
+        if not repository or not token:
+            if required:
+                raise ValueError("GITHUB_REPOSITORY and GH_TOKEN or GITHUB_TOKEN are required")
+            return None
+        return cls(repository, token, os.environ.get("GITHUB_API_URL", "https://api.github.com"))
+
+    def job_log(self, job_id: int) -> str:
+        response = self._client.get(f"/repos/{self._repository}/actions/jobs/{job_id}/logs", follow_redirects=True)
+        response.raise_for_status()
+        return response.text
+
+    def update_comment(self, comment_id: int, body: str) -> None:
+        response = self._client.patch(f"/repos/{self._repository}/issues/comments/{comment_id}", json={"body": body})
+        response.raise_for_status()
+
     def close(self) -> None:
         self._client.close()
 
@@ -163,7 +198,7 @@ class GitHubActionsClient:
 
         return expand(self._repository, run.head_sha, run.path, "", ())
 
-    def _workflow_source(self, repository: str, ref: str, path: str) -> dict:
+    def _workflow_source(self, repository: str, ref: str, path: str) -> dict[str, Any]:
         if not re.fullmatch(r"\.github/workflows/[\w.-]+\.ya?ml", path):
             raise ValueError("Unsupported reusable workflow path")
         headers = {}
@@ -179,26 +214,17 @@ class GitHubActionsClient:
             raise ValueError("Workflow content is too large")
         return yaml.safe_load(content)
 
-    def list_jobs(
-        self, run_id: int, *, include_all_attempts: bool, run_attempt: int | None = None
-    ) -> list[GitHubJobV1]:
+    def list_jobs(self, run_id: int | str, *, include_all_attempts: bool = False,
+                  run_attempt: int | None = None) -> list[GitHubJobV1]:
         if include_all_attempts and run_attempt is not None:
             raise ValueError("an exact attempt cannot include all attempts")
         suffix = f"/attempts/{run_attempt}" if run_attempt is not None else ""
-        attempt_filter = "all" if include_all_attempts else "latest"
-        jobs: list[GitHubJobV1] = []
-        page = 1
-        while True:
-            response = self._client.get(
-                f"/repos/{self._repository}/actions/runs/{run_id}{suffix}/jobs",
-                params={"filter": attempt_filter, "per_page": 100, "page": page},
-            )
+        def page(number: int) -> list[GitHubJobV1]:
+            response = self._client.get(f"/repos/{self._repository}/actions/runs/{run_id}{suffix}/jobs",
+                                       params={"filter": "all" if include_all_attempts else "latest", "per_page": 100, "page": number})
             response.raise_for_status()
-            batch = GitHubJobsPageV1.model_validate_json(response.content).jobs
-            jobs.extend(batch)
-            if len(batch) < 100:
-                return jobs
-            page += 1
+            return GitHubJobsPageV1.model_validate_json(response.content).jobs
+        return collect_pages(page)
 
     def list_overlapping_prior_runs(
         self,
@@ -244,6 +270,15 @@ class GitHubActionsClient:
         response = self._client.get(f"/repos/{self._repository}")
         response.raise_for_status()
         return GitHubRepositoryV1.model_validate_json(response.content).default_branch
+
+    def workflow_source(self, workflow: str, ref: str) -> dict[str, Any]:
+        return self._workflow_source(self._repository, ref, f".github/workflows/{workflow}")
+
+    def dispatch_workflow(self, workflow: str, request: WorkflowDispatch) -> None:
+        response = self._client.post(
+            f"/repos/{self._repository}/actions/workflows/{workflow}/dispatches", json=request.model_dump()
+        )
+        response.raise_for_status()
 
     def latest_successful_push_run(self, workflow_id: int, branch: str) -> GitHubRunV1 | None:
         """The newest green push run of a workflow on a branch: on the default branch, a full run."""
@@ -327,20 +362,15 @@ class GitHubActionsClient:
                           "artifact_read_failures": sum(isinstance(item, Exception) for item in results)}))
         return results
 
-    def _list_comments(self, pull_request_number: int) -> list[GitHubCommentV1]:
-        comments: list[GitHubCommentV1] = []
-        page = 1
-        while True:
-            response = self._client.get(
-                f"/repos/{self._repository}/issues/{pull_request_number}/comments",
-                params={"per_page": 100, "page": page},
-            )
+    def list_comments(self, pull_request_number: int) -> list[GitHubCommentV1]:
+        def page(number: int) -> list[GitHubCommentV1]:
+            response = self._client.get(f"/repos/{self._repository}/issues/{pull_request_number}/comments",
+                                       params={"per_page": 100, "page": number})
             response.raise_for_status()
-            batch = COMMENTS_ADAPTER.validate_json(response.content)
-            comments.extend(batch)
-            if len(batch) < 100:
-                return comments
-            page += 1
+            return COMMENTS_ADAPTER.validate_json(response.content)
+        return collect_pages(page)
+
+    _list_comments = list_comments
 
     def upsert_sticky(
         self,

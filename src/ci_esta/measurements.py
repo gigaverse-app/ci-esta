@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Literal
+import os
+from pathlib import Path
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AliasPath, BaseModel, ConfigDict, Field, model_validator
+
+from ci_esta.timing import span_seconds
+
+
+class _EventHead(BaseModel):
+    head_sha: str = Field(default="", validation_alias=AliasPath("pull_request", "head", "sha"))
 
 
 class MeasurementIdentity(BaseModel):
@@ -13,6 +21,16 @@ class MeasurementIdentity(BaseModel):
     run_id: int = Field(ge=0)
     run_attempt: int = Field(ge=1)
     head_sha: str = Field(pattern=r"^(?:[0-9a-f]{40})?$")
+
+    @classmethod
+    def from_environment(cls, *, required: bool = False) -> Self:
+        event_path = os.environ.get("GITHUB_EVENT_PATH")
+        event = _EventHead.model_validate_json(Path(event_path).read_text()) if event_path else _EventHead()
+        if required and not all(os.environ.get(key) for key in ("GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "GITHUB_SHA")):
+            raise ValueError("GitHub run identity is required")
+        return cls(run_id=int(os.environ.get("GITHUB_RUN_ID", "0")),
+                   run_attempt=int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")),
+                   head_sha=event.head_sha or os.environ.get("GITHUB_SHA", ""))
 
 
 class ShardInterval(BaseModel):
@@ -50,7 +68,9 @@ class ShardPoolMeasurement(MeasurementIdentity):
 
     @property
     def wall_seconds(self) -> float:
-        return max(shard.end_seconds for shard in self.shards) - min(shard.start_seconds for shard in self.shards)
+        value = span_seconds((shard.start_seconds for shard in self.shards), (shard.end_seconds for shard in self.shards))
+        assert value is not None, "validated shard intervals must have a wall span"
+        return value
 
     @property
     def active_seconds(self) -> float:

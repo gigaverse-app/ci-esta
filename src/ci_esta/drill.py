@@ -62,6 +62,9 @@ from typing import Literal, TypeVar
 import yaml
 from pydantic import BaseModel, ConfigDict
 
+from ci_esta.pagination import collect_pages
+from ci_esta.timing import elapsed_seconds
+
 ORG = "gigaverse-app"
 SOURCE_REPOSITORY = f"{ORG}/backend-common"
 STATUS_CONTEXT = "ci-drill"
@@ -589,7 +592,7 @@ def _field(data: dict[str, object], *keys: str) -> str:
 def _seconds(start: object, end: object) -> float | None:
     if not isinstance(start, str) or not isinstance(end, str):
         return None
-    return (dt.datetime.fromisoformat(end) - dt.datetime.fromisoformat(start)).total_seconds()
+    return elapsed_seconds(dt.datetime.fromisoformat(start), dt.datetime.fromisoformat(end))
 
 
 def _latest_runs(profile: ConsumerProfile, branch: str) -> list[dict[str, object]]:
@@ -646,9 +649,11 @@ def _next_run(profile: ConsumerProfile, session: DrillSession, known: set[int]) 
 
 
 def _jobs(profile: ConsumerProfile, run: dict[str, object]) -> list[dict[str, object]]:
-    jobs = _api(f"repos/{profile.repository}/actions/runs/{run['id']}/jobs?filter=latest&per_page=100")["jobs"]
-    assert isinstance(jobs, list)
-    return jobs
+    def page(number: int) -> list[dict[str, object]]:
+        jobs = _api(f"repos/{profile.repository}/actions/runs/{run['id']}/jobs?filter=latest&per_page=100&page={number}")["jobs"]
+        assert isinstance(jobs, list)
+        return jobs
+    return collect_pages(page)
 
 
 def _require_idle_casualty(profile: ConsumerProfile, casualty: dict[str, object], survivor: dict[str, object]) -> None:

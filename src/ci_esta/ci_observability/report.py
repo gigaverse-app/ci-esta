@@ -44,6 +44,7 @@ from ci_esta.ci_observability.models import (
 )
 from ci_esta.ci_observability.pricing import PRICING_URL, matching_rate
 from ci_esta.ci_observability.timeline import render_timeline
+from ci_esta.timing import elapsed_seconds
 
 STICKY_MARKER = "<!-- ci-observability-v1 -->"
 #: The keyed sticky marker's prefix. A bare marker is never a substring of a keyed one.
@@ -52,10 +53,8 @@ SNAPSHOT_MARKER_PREFIX = "<!-- ci-observability-snapshot "
 
 
 def _elapsed(start: datetime | None, end: datetime | None, *, allow_zero: bool = False) -> float | None:
-    if start is None or end is None:
-        return None
-    seconds = (end - start).total_seconds()
-    return round(seconds, 1) if seconds > 0 or (allow_zero and seconds == 0) else None
+    seconds = elapsed_seconds(start, end)
+    return round(seconds, 1) if seconds is not None and (seconds > 0 or allow_zero) else None
 
 
 def _observe_step(step: GitHubStepV1, observed_at: datetime) -> ObservedStepV1:

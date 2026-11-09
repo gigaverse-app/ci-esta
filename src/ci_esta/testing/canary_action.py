@@ -10,6 +10,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from ci_esta.github_outputs import append_outputs
 from ci_esta.testing.artifacts import find_artifacts
 from ci_esta.testing.junit import (
     DEFAULT_CANARY_MAX_FILES,
@@ -90,14 +91,7 @@ def build_canary(config: CanaryConfig) -> CanaryActionResult:
 
 
 def _append_action_outputs(config: CanaryConfig, result: CanaryActionResult) -> None:
-    output_path = os.environ.get("GITHUB_OUTPUT")
-    if not output_path:
-        return
-    with Path(output_path).open("a") as output:
-        output.write(f"canary_file={config.output}\n")
-        for name, value in result.model_dump(exclude={"selected_files"}).items():
-            rendered = str(value).lower() if isinstance(value, bool) else value
-            output.write(f"{name}={rendered}\n")
+    append_outputs(canary_file=str(config.output), **result.model_dump(exclude={"selected_files"}))
 
 
 def main() -> int:

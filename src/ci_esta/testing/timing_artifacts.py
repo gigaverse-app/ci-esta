@@ -62,11 +62,7 @@ def history_branch() -> str:
     )["repository"]["default_branch"]
 
 
-def github_client() -> GitHubActionsClient:
-    return GitHubActionsClient(
-        os.environ["GITHUB_REPOSITORY"], os.environ["GH_TOKEN"],
-        api_url=os.environ.get("GITHUB_API_URL", "https://api.github.com"),
-    )
+github_client = GitHubActionsClient.from_environment
 
 
 def action_histories(client: GitHubActionsClient, key: str) -> list[TimingHistory]:

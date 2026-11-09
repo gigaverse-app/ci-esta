@@ -15,8 +15,6 @@ on:
         description: Isolated history scope for the example; use the same key for all three runs.
         default: manual-timing-example
   workflow_call:
-  schedule:
-    - cron: '23 3 * * 1'
 
 permissions:
   contents: read

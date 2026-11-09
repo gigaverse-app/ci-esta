@@ -7,6 +7,9 @@ analyze your project still need your project's checkout.
 
 ## Availability and pinning
 
+For scheduled full validation, use [`weekly-checkpoint`](weekly-checkpoints.md).
+`ci-esta checkpoint init` generates the adopter's schedule with conservative defaults.
+
 For Bun dependency setup, use [`setup-cached-bun`](environment-cache.md#bun-dependency-downloads).
 For compiler or tool caches, use [`report-cache`](environment-cache.md#other-download-build-and-tool-caches).
 Both publish execution measurements consumed automatically by the report workflow.

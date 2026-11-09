@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+from functools import partial
 
 import httpx
 from pydantic import TypeAdapter
@@ -12,9 +13,9 @@ from ci_esta.ci_observability.enrichment.backend.models import (
     GitHubComment,
     GitHubEnrichment,
     GitHubJob,
-    GitHubJobsPage,
     InfraSignal,
 )
+from ci_esta.ci_observability.github import GitHubActionsClient
 
 LEGACY_STICKY_MARKER = "<!-- ci-cost-report -->"
 SHARED_STICKY_MARKER = "<!-- ci-observability-v1 -->"
@@ -38,84 +39,13 @@ def detect_infra(log: str) -> list[InfraSignal]:
     return [InfraSignal(label=label, line=line) for label, line in found.items()]
 
 
-class GitHubClient:
-    def __init__(
-        self,
-        repository: str,
-        token: str,
-        api_url: str,
-        *,
-        transport: httpx.BaseTransport | None = None,
-    ) -> None:
-        self.repository = repository
-        self.client = httpx.Client(
-            base_url=api_url,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
-            follow_redirects=True,
-            timeout=20,
-            transport=transport,
-        )
-
-    def close(self) -> None:
-        self.client.close()
-
-    def list_jobs(self, run_id: str) -> list[GitHubJob]:
-        jobs: list[GitHubJob] = []
-        page = 1
-        while True:
-            response = self.client.get(
-                f"/repos/{self.repository}/actions/runs/{run_id}/jobs",
-                params={"filter": "latest", "per_page": 100, "page": page},
-            )
-            response.raise_for_status()
-            chunk = GitHubJobsPage.model_validate(response.json()).jobs
-            jobs.extend(chunk)
-            if len(chunk) < 100:
-                return jobs
-            page += 1
-
-    def job_log(self, job_id: int) -> str:
-        response = self.client.get(f"/repos/{self.repository}/actions/jobs/{job_id}/logs")
-        response.raise_for_status()
-        return response.text
-
-    def list_comments(self, pull_request: int) -> list[GitHubComment]:
-        comments: list[GitHubComment] = []
-        page = 1
-        while True:
-            response = self.client.get(
-                f"/repos/{self.repository}/issues/{pull_request}/comments",
-                params={"per_page": 100, "page": page},
-            )
-            response.raise_for_status()
-            chunk = COMMENTS_ADAPTER.validate_python(response.json())
-            comments.extend(chunk)
-            if len(chunk) < 100:
-                return comments
-            page += 1
-
+class GitHubClient(GitHubActionsClient):
+    """Backend's legacy-sticky migration on the shared API client."""
     def mark_legacy_sticky(self, pull_request: int, comment: GitHubComment) -> None:
-        response = self.client.patch(
-            f"/repos/{self.repository}/issues/comments/{comment.id}",
-            json={"body": f"{comment.body or ''}\n{SHARED_STICKY_MARKER}"},
-        )
-        response.raise_for_status()
+        self.update_comment(comment.id, f"{comment.body or ''}\n{SHARED_STICKY_MARKER}")
 
 
-def github_client() -> GitHubClient | None:
-    repository = os.environ.get("GITHUB_REPOSITORY", "")
-    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN", "")
-    if not repository or not token:
-        return None
-    return GitHubClient(
-        repository,
-        token,
-        os.environ.get("GITHUB_API_URL", "https://api.github.com"),
-    )
+github_client = partial(GitHubClient.from_environment, required=False)
 
 
 def collect_github_enrichment() -> GitHubEnrichment:
