@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.13.0](https://github.com/gigaverse-app/ci-esta/compare/v1.12.0...v1.13.0) (2026-11-09)
+
+
+### Features
+
+* check plain gates, report gate failures plainly and fix round-3 adoption friction ([#184](https://github.com/gigaverse-app/ci-esta/issues/184)) ([ee20f06](https://github.com/gigaverse-app/ci-esta/commit/ee20f06ea48f4a6c7ad756d0daae475a7a84d513))
+* **reuse:** admit lanes in resolve-lane-evidence and verify they cover every gated job ([#176](https://github.com/gigaverse-app/ci-esta/issues/176)) ([9aa904e](https://github.com/gigaverse-app/ci-esta/commit/9aa904ee22e2bd777f71c8e3fb06aa02bb683398))
+
+
+### Bug fixes
+
+* **ci:** keep the timing example out of a re-dispatched Publish ([#181](https://github.com/gigaverse-app/ci-esta/issues/181)) ([8cf2367](https://github.com/gigaverse-app/ci-esta/commit/8cf23671a76385f4f0441b6afbfd3d674512df30))
+
 ## [1.12.0](https://github.com/gigaverse-app/ci-esta/compare/v1.11.0...v1.12.0) (2026-11-09)
 
 
