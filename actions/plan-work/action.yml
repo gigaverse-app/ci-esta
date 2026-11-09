@@ -7,8 +7,14 @@ inputs:
     description: Optional lane file (the pytest-selective lane schema). Empty infers lanes from the workflows.
     default: ''
   base:
-    description: Base commit containing the complete change set.
+    description: Base commit containing the complete change set. A commit missing from the checkout runs every lane.
     default: ${{ github.event.pull_request.base.sha || github.event.before }}
+  pr-head:
+    description: >-
+      The pull request's head. When the checkout is GitHub's merge of it (refs/pull/N/merge), changes are measured from
+      that merge's base-branch parent, so commits that landed on the base branch after `base` are not counted as the PR's.
+      Empty (any other event) keeps `base`.
+    default: ${{ github.event.pull_request.head.sha }}
   full:
     description: 'auto preserves selection on PR/push reruns and runs full for manual/scheduled/release checkpoints or test:full. Override with true or false.'
     default: auto
@@ -53,10 +59,11 @@ runs:
         SHARED_ACTION_PATH: ${{ github.action_path }}
         PLAN_CONFIG: ${{ inputs.config }}
         PLAN_BASE: ${{ inputs.base }}
+        PLAN_PR_HEAD: ${{ inputs.pr-head }}
         PLAN_FULL: ${{ inputs.full }}
       run: |
         uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../..[selection]" \
-          python -m ci_esta.testing.work_plan ${PLAN_CONFIG:+--config "$PLAN_CONFIG"} --base "$PLAN_BASE" \
+          python -m ci_esta.testing.work_plan ${PLAN_CONFIG:+--config "$PLAN_CONFIG"} --base "$PLAN_BASE" --pr-head "$PLAN_PR_HEAD" \
           --full "$PLAN_FULL" --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY" \
           | tee test-lanes.json
     - if: ${{ inputs.artifact-name != '' }}

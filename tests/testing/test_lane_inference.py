@@ -473,3 +473,29 @@ def test_ci_esta_lanes_reports_errors_without_a_traceback(tmp_path, capsys):
     commit(tmp_path)
     assert cli(["lanes", "--repo", str(tmp_path)]) == 2
     assert "no job condition reads a lane" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "uv run --locked pytest-selective execute-plan -- -q -n 4 --junitxml=junit.xml",
+        "pytest-selective run --config .github/test-impact.json -- -q",
+    ],
+)
+def test_pytest_selective_runners_collect_pytests_testpaths(tmp_path, command):
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    write(tmp_path, ".github/workflows/ci.yml", CI.replace("python scripts/run_tests.py", command))
+    write(tmp_path, ".github/test-impact.json", "{}")
+    write(tmp_path, "pyproject.toml", PYPROJECT)
+    write(tmp_path, "tests/unit/test_value.py", "def test_value(): pass\n")
+    write(tmp_path, "scripts/smoke.sh", "echo smoke\n")
+    base = commit(tmp_path)
+    assert infer_lanes(tmp_path, base, base).lanes["wrapped"].roots == ["tests"]
+
+
+def test_a_base_missing_from_history_runs_every_lane(repository, capsys):
+    repo, head = repository
+    assert main(["--repo", str(repo), "--base", "1234567890abcdef1234567890abcdef12345678", "--head", head]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert set(result["lanes"].values()) == {True}
+    assert "is not in this checkout's history" in result["reason"]
