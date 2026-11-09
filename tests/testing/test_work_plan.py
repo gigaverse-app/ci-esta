@@ -392,7 +392,11 @@ def entries(tmp_path: Path) -> tuple[Path, str]:
     write(tmp_path, "actions/plan/action.yml", PLAN_ACTION)
     write(tmp_path, "actions/runner/action.yml", RUNNER_ACTION)
     write(tmp_path, "scripts/runtime.sh", "echo python3\n")
-    write(tmp_path, "pyproject.toml", '[project]\nname = "sample"\nversion = "1"\n[project.scripts]\nsample-cli = "sample.cli:main"\n')
+    write(
+        tmp_path,
+        "pyproject.toml",
+        '[project]\nname = "sample"\nversion = "1"\n[project.scripts]\nsample-cli = "sample.cli:main"\n',
+    )
     write(tmp_path, "src/sample/__init__.py")
     write(tmp_path, "src/sample/report.py", "from sample.format import render\n")
     write(tmp_path, "src/sample/format.py", "def render(): pass\n")
@@ -435,4 +439,3 @@ def test_the_planner_is_the_job_whose_lanes_others_read(entries):
     graph = WorkflowGraph(repo, base)
     assert graph.jobs[(".github/workflows/ci.yml", "select-tests")].lanes == {ALL}
     assert graph.jobs[(".github/workflows/ci.yml", "live")].lanes == {"live"}
-

@@ -126,6 +126,7 @@ def python_entry_lanes(
     A job that runs `python -m pkg.tool`, a console script or `python scripts/x.py` depends on what that
     module imports, not on the whole package: a change outside the import closure leaves the job alone.
     """
+    from pytest_selective.ast_imports import normalized_name
     from pytest_selective.impact_graph import GraphCache, ModuleIndex, reachable, reverse_edges, seed_nodes, union_edges
     from pytest_selective.impact_models import contents_node
 
@@ -151,8 +152,13 @@ def python_entry_lanes(
     )
     reasons: dict[str, set[str]] = {}
     for label, job in jobs:
+        # A name counts only when it is a module of this repository, not a prefix of one or an attribute path.
         modules = {
-            path for module in job.modules for name in (module, f"{module}.__main__") for path in index.resolve(name)
+            path
+            for module in job.modules
+            for name in (module, f"{module}.__main__")
+            if normalized_name(name) in index.modules
+            for path in index.resolve(name)
         }
         # A changed file the job names is a workflow input already; here only what reaches it by import counts.
         entries = (modules | {path for path in job.inputs if path.endswith(".py")}) - changed

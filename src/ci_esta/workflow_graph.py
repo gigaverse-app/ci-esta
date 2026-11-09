@@ -15,11 +15,10 @@ from __future__ import annotations
 import posixpath
 import re
 import subprocess
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 from typing import Any
-
-import tomllib
 
 import yaml
 
@@ -43,6 +42,8 @@ ALL = "*"
 #: `python -m MODULE` or `"$INTERPRETER" -m MODULE`: the job runs that module and everything it imports.
 #: Only a module that resolves to a repository file counts, so `git commit -m` and the like match nothing.
 PYTHON_MODULE = re.compile(r"(?:python\w*|\$\{?[A-Za-z_]\w*\}?)\b[^\n;&|]*?\s-m\s+([A-Za-z_][\w.]*)", re.IGNORECASE)
+#: A dotted module name passed to a wrapper (`bash run.sh pkg.tool`); kept only if it is a repository module.
+DOTTED_NAME = re.compile(r"(?<![\w.$/{-])([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+)(?![\w./}-])")
 #: A shell variable reference: `$NAME` or `${NAME}`.
 VARIABLE = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?")
 #: An action input inside a composite action's step.
@@ -283,7 +284,7 @@ class WorkflowGraph:
 
     def modules(self, commands: list[str]) -> set[str]:
         """Python modules `commands` run: `python -m X`, or a console script of this repository."""
-        found = {match for text in commands for match in PYTHON_MODULE.findall(text)}
+        found = {match for text in commands for match in (*PYTHON_MODULE.findall(text), *DOTTED_NAME.findall(text))}
         for name, module in self.scripts.items():
             script = re.compile(rf"(?:^|[\s;&|(`'\"]){re.escape(name)}(?=[\s;&|)`'\"]|$)", re.MULTILINE)
             if any(script.search(text) for text in commands):

@@ -85,7 +85,10 @@ def test_ordinary_pushes_do_not_force_full_tests():
         jobs = yaml.safe_load(path.read_text()).get("jobs", {})
         for job in jobs.values():
             for step in job.get("steps", []):
-                if any(action in step.get("uses", "") for action in ("plan-lanes", "plan-work")) or step.get("id") == "files":
+                if (
+                    any(action in step.get("uses", "") for action in ("plan-lanes", "plan-work"))
+                    or step.get("id") == "files"
+                ):
                     full = step.get("with", {}).get("full", "auto")
                     assert "github.event_name != 'pull_request'" not in str(full), path
                     assert full == "auto" or "workflow_dispatch" in str(full), path
