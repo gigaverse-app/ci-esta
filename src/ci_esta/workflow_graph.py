@@ -3,13 +3,16 @@
 A workflow is not a global input. Each job is a node: it runs the lanes its conditions read
 (`fromJSON(needs.PLANNER.outputs.lanes).LANE`), or every lane when it is the planner itself, and it
 depends on the repository files it executes: paths named in `run`, `with` and local `uses` values,
-followed into composite, JavaScript and Docker actions and reusable workflows. A changed job selects
+followed into composite, JavaScript and Docker actions and reusable workflows, plus the files an
+executed file declares it reads (`# gv:test-dependency: PATH`, pytest-selective's syntax, in a `#` or
+`//` comment), since no command line names what a script opens by path. A changed job selects
 its lanes; a changed file selects the lanes of the jobs that depend on it; a change outside `jobs:`
 selects every lane the workflow runs. A file no job names, like a pull-request template, selects nothing.
 """
 
 from __future__ import annotations
 
+import posixpath
 import re
 import subprocess
 from dataclasses import dataclass, field
@@ -33,6 +36,8 @@ PLANNERS = re.compile(
 )
 #: A repository path inside a command line, an input or an action reference.
 PATH_TOKEN = re.compile(r"[A-Za-z0-9_.@+\-]+(?:/[A-Za-z0-9_.@+\-]+)+|[A-Za-z0-9_\-]+\.[A-Za-z0-9]+")
+#: A line whose comment declares a file the script reads: pytest-selective's declaration syntax.
+DECLARATION_LINE = re.compile(r"^\s*(?:#|//)(.*gv:test-dependency.*)$")
 #: Where an action refers to its own files.
 ACTION_PATH = re.compile(r"(?:\$\{\{\s*github\.action_path\s*\}\}|\$\{?GITHUB_ACTION_PATH\}?)/([^\s'\"`;|&)]+)")
 ALL = "*"
@@ -57,6 +62,8 @@ class Job:
     inputs: set[str] = field(default_factory=set)
     #: The job builds, checks, installs or publishes the package, so the package's inputs are its inputs too.
     packages: bool = False
+    #: The lanes the job-level condition reads; a step's own condition gates only that step.
+    job_lanes: set[str] = field(default_factory=set)
 
 
 def strings(value: Any) -> list[str]:
@@ -88,8 +95,50 @@ def prerequisites(needs: dict[str, list[str]], roots: list[str]) -> set[str]:
     return reached
 
 
+def working_directory(document: dict[str, Any], job: Any, step: Any) -> str | None:
+    """The repository directory a step's `run` executes in: the step's, the job's or the workflow's default."""
+    for owner in (step, job, document):
+        if not isinstance(owner, dict):
+            continue
+        value = owner.get("working-directory") if owner is step else None
+        if value is None:
+            defaults = owner.get("defaults")
+            run = defaults.get("run") if isinstance(defaults, dict) else None
+            value = run.get("working-directory") if isinstance(run, dict) else None
+        if isinstance(value, str):
+            # An expression names a directory only at run time.
+            return None if "${{" in value else posixpath.normpath(value.strip().removeprefix("./"))
+    return None
+
+
+def run_steps(document: dict[str, Any], job: Any) -> list[tuple[str, str | None]]:
+    """Each `run` command of a job, with the repository directory it executes in (None for the root)."""
+    steps = job.get("steps") if isinstance(job, dict) else None
+    found = []
+    for step in steps if isinstance(steps, list) else []:
+        if isinstance(step, dict) and isinstance(step.get("run"), str):
+            directory = working_directory(document, job, step)
+            found.append((step["run"], None if directory in {None, "."} else directory))
+    return found
+
+
+def local_actions(job: Any) -> list[str]:
+    """Directories of the local actions a job's steps use, the repository root included (`uses: ./`)."""
+    steps = job.get("steps") if isinstance(job, dict) else None
+    return [
+        posixpath.normpath(step["uses"].removeprefix("./") or ".")
+        for step in (steps if isinstance(steps, list) else [])
+        if isinstance(step, dict) and isinstance(step.get("uses"), str) and step["uses"].startswith("./")
+    ]
+
+
 def is_workflow(path: str) -> bool:
     return path.startswith(WORKFLOWS) and PurePosixPath(path).suffix.lower() in {".yml", ".yaml"}
+
+
+def inside(directory: str, relative: str) -> str:
+    """A path relative to a repository directory, as a repository path."""
+    return posixpath.normpath(f"{directory}/{relative.removeprefix('./')}")
 
 
 class WorkflowGraph:
@@ -102,13 +151,16 @@ class WorkflowGraph:
         self.files = {path for path in listing.split("\0") if path}
         self.directories = {str(parent) for path in self.files for parent in PurePosixPath(path).parents}
         self.documents: dict[str, dict[str, Any]] = {}
+        self.declarations: dict[str, set[str]] = {}
+        #: Metadata of local actions that plan lanes (`uses: ./actions/plan-lanes`).
+        self.planning_actions: set[str] = set()
         self.jobs: dict[tuple[str, str], Job] = {}
         for path in sorted(self.files):
             if is_workflow(path):
                 document = self.load(path)
                 self.documents[path] = document
                 for name, job in document["jobs"].items():
-                    self.jobs[(path, str(name))] = self.describe(path, job)
+                    self.jobs[(path, str(name))] = self.describe(document, job)
 
     def load(self, path: str) -> dict[str, Any]:
         # Malformed YAML raises, so the planner falls back to every lane.
@@ -123,20 +175,38 @@ class WorkflowGraph:
         except subprocess.CalledProcessError:
             return None
 
-    def describe(self, path: str, job: Any) -> Job:
+    def describe(self, document: dict[str, Any], job: Any) -> Job:
         texts = strings(job)
         lanes = {lane for text in texts for lane in lane_references(text)}
         if any(PLANNERS.search(text) for text in texts):
             lanes = {ALL}
         packages = any(PACKAGE_COMMANDS.search(text) for text in texts)
-        return Job(lanes=lanes, inputs=self.references(texts, set()), packages=packages)
+        # A command in a working directory names its files relative to that directory.
+        relative = [
+            posixpath.normpath(f"{directory}/{token.removeprefix('./')}")
+            for command, directory in run_steps(document, job)
+            if directory is not None
+            for token in PATH_TOKEN.findall(command)
+        ]
+        seen: set[str] = set()
+        inputs = self.references([*texts, *relative], seen)
+        for directory in local_actions(job):
+            if directory == "." and directory not in seen:
+                # `uses: ./` is the repository's own action, which no path token names.
+                seen.add(directory)
+                inputs |= self.action(directory, seen)
+        if inputs & self.planning_actions:
+            lanes = {ALL}
+        condition = job.get("if") if isinstance(job, dict) else None
+        job_lanes = lane_references(str(condition)) if condition is not None else set()
+        return Job(lanes=lanes, inputs=inputs, packages=packages, job_lanes=job_lanes & lanes or lanes)
 
     def references(self, texts: list[str], seen: set[str], action_dir: str | None = None) -> set[str]:
         """Repository files named in `texts`, followed through local actions and reusable workflows."""
         found: set[str] = set()
         candidates = [token.removeprefix("./") for text in texts for token in PATH_TOKEN.findall(text)]
         if action_dir is not None:
-            candidates += [f"{action_dir}/{relative}" for text in texts for relative in ACTION_PATH.findall(text)]
+            candidates += [inside(action_dir, relative) for text in texts for relative in ACTION_PATH.findall(text)]
         for candidate in candidates:
             candidate = candidate.rstrip(".,")
             if candidate in self.files:
@@ -144,27 +214,49 @@ class WorkflowGraph:
                 if is_workflow(candidate) and candidate not in seen:
                     seen.add(candidate)
                     found |= self.reusable(candidate, seen)
+                elif candidate not in seen:
+                    seen.add(candidate)
+                    found |= self.declared(candidate)
             elif candidate in self.directories and candidate not in seen:
                 seen.add(candidate)
                 found |= self.action(candidate, seen)
         return found
 
+    def declared(self, path: str) -> set[str]:
+        """Files `path` declares it reads, and theirs in turn, in pytest-selective's syntax; an invalid one raises."""
+        from pytest_selective.impact_graph import declared_inputs, dependency_comment
+
+        if path not in self.declarations:
+            self.declarations[path] = set()
+            text = self.text(path) or ""
+            files = dict.fromkeys(self.files, "") if "gv:test-dependency" in text else {}
+            found: set[str] = set()
+            for number, line in enumerate(text.splitlines() if files else [], 1):
+                if (match := DECLARATION_LINE.match(line)) and (comment := dependency_comment(match[1], number)):
+                    found |= declared_inputs(comment, files, path)
+            for target in sorted(found):
+                found |= self.declared(target)
+            self.declarations[path] = found
+        return self.declarations[path]
+
     def action(self, directory: str, seen: set[str]) -> set[str]:
         """A local action's metadata and the files its steps, entry points or image use."""
         for name in ("action.yml", "action.yaml"):
-            metadata = f"{directory}/{name}"
+            metadata = inside(directory, name)
             if metadata in self.files:
                 document = yaml.safe_load(self.text(metadata) or "") or {}
                 runs = document.get("runs", {}) if isinstance(document, dict) else {}
                 texts = strings(runs)
                 entry_points = [
-                    f"{directory}/{runs[key]}"
+                    inside(directory, runs[key])
                     for key in ("main", "pre", "post")
                     if isinstance(runs, dict) and isinstance(runs.get(key), str)
                 ]
+                if any(PLANNERS.search(text) for text in texts):
+                    self.planning_actions.add(metadata)
                 image = runs.get("image") if isinstance(runs, dict) else None
                 if isinstance(image, str) and not image.startswith("docker://"):
-                    entry_points.append(f"{directory}/{image}")
+                    entry_points.append(inside(directory, image))
                 return {metadata, *(path for path in entry_points if path in self.files)} | self.references(
                     texts, seen, directory
                 )
@@ -176,8 +268,8 @@ class WorkflowGraph:
         return self.references(strings(document.get("jobs", {})), seen)
 
     def package_lanes(self) -> set[str]:
-        """Lanes gating a job that builds the package; a planner job is not one."""
-        return {lane for job in self.jobs.values() if job.packages and ALL not in job.lanes for lane in job.lanes}
+        """Lanes gating a job that builds the package, by its job-level condition; a planner job is not one."""
+        return {lane for job in self.jobs.values() if job.packages and ALL not in job.lanes for lane in job.job_lanes}
 
     def lanes_of_workflow(self, path: str) -> set[str]:
         return {lane for (workflow, _), job in self.jobs.items() if workflow == path for lane in job.lanes}

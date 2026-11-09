@@ -221,3 +221,59 @@ def test_text_output_lists_each_workflow_and_next_step(tmp_path):
     assert ".github/workflows/ci.yml (CI; pull_request, push): 6 jobs; aggregate gate: 'All required checks'" in result.stdout
     assert "not behind the gate: colors" in result.stdout
     assert "ci-esta report --repository OWNER/REPO" in result.stdout
+
+
+REUSE_PLANNER = """
+jobs:
+  plan:
+    outputs:
+      receipt: ${{ steps.evidence.outputs.receipt }}
+    steps:
+%s
+      - id: evidence
+        uses: gigaverse-app/ci-esta/actions/resolve-lane-evidence@v1
+        with:
+          lanes: '{"tests":"Tests"}'
+          input-paths: '["src","tests"]'
+          reuse-after-merge: 'true'
+  tests:
+    name: Tests
+    needs: plan
+    steps:
+      - run: pytest -q
+%s
+"""
+MARKER = """      - name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
+        if: github.event_name == 'pull_request'
+        run: 'true'"""
+RECEIPT = """      - name: ${{ needs.plan.outputs.receipt || 'No execution receipt' }}
+        if: ${{ needs.plan.outputs.receipt != '' }}
+        run: 'true'"""
+
+
+def reuse_suggestions(tmp_path: Path, marker: str, receipt: str) -> set[str]:
+    write(tmp_path, ".github/workflows/ci.yml", REUSE_PLANNER % (marker, receipt))
+    return {item["id"] for item in audit(tmp_path)["suggestions"]}
+
+
+def test_reuse_after_merge_without_ownership_marker_is_flagged(tmp_path):
+    # pytest-quint-connect #34: every PR run lacked pull_requests metadata, so the push after each merge
+    # rejected them as "not associated with PR" and reran all lanes until the marker was added (#37).
+    assert "reuse-ownership-marker" in reuse_suggestions(tmp_path, "", RECEIPT)
+    assert "reuse-ownership-marker" not in reuse_suggestions(tmp_path, MARKER, RECEIPT)
+
+
+def test_marker_inside_a_composite_action_does_not_count(tmp_path):
+    write(tmp_path, ".github/actions/mark/action.yml", "runs:\n  using: composite\n  steps:\n" + MARKER.replace("      -", "    -"))
+    write(tmp_path, ".github/workflows/ci.yml", REUSE_PLANNER % ("      - uses: ./.github/actions/mark", RECEIPT))
+    assert "reuse-ownership-marker" in {item["id"] for item in audit(tmp_path)["suggestions"]}
+
+
+def test_lane_evidence_without_a_receipt_step_is_flagged(tmp_path):
+    assert "reuse-receipt" in reuse_suggestions(tmp_path, MARKER, "")
+    assert "reuse-receipt" not in reuse_suggestions(tmp_path, MARKER, RECEIPT)
+
+
+def test_reuse_without_merge_reuse_needs_no_marker(tmp_path):
+    write(tmp_path, ".github/workflows/ci.yml", (REUSE_PLANNER % ("", RECEIPT)).replace("reuse-after-merge: 'true'", "reuse-after-merge: 'false'"))
+    assert "reuse-ownership-marker" not in {item["id"] for item in audit(tmp_path)["suggestions"]}

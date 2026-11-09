@@ -92,3 +92,14 @@ def test_existing_required_aggregate_keeps_its_name(tmp_path):
     check(workflow, lane_file, gate_name="All required checks")
     with pytest.raises(ValueError, match="'Validation gate'"):
         check(workflow, lane_file)
+
+
+def test_check_workflow_reports_a_missing_gate_without_a_traceback(tmp_path, capsys):
+    from ci_esta.cli import main as cli
+
+    workflow = tmp_path / "ci.yml"
+    workflow.write_text("on: push\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps: []\n", encoding="utf-8")
+    lanes = tmp_path / "lanes.json"
+    lanes.write_text('{"lanes": {}}', encoding="utf-8")
+    assert cli(["check-workflow", "--workflow", str(workflow), "--lanes", str(lanes)]) == 2
+    assert "Exactly one aggregate job named 'Validation gate'" in capsys.readouterr().err

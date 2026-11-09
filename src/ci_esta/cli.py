@@ -65,9 +65,13 @@ def main(argv: list[str] | None = None) -> int:
         print(report.model_dump_json(indent=2) if args.json else render_adoption(report))
         return 0
     if args.command == "check-workflow":
-        with requires_selection("ci-esta check-workflow"):
-            from ci_esta.testing.workflow_adoption import check
-            check(args.workflow, args.lanes, args.repo, args.gate)
+        try:
+            with requires_selection("ci-esta check-workflow"):
+                from ci_esta.testing.workflow_adoption import check
+                check(args.workflow, args.lanes, args.repo, args.gate)
+        except ValueError as error:
+            print(f"{args.workflow}: {error}", file=sys.stderr)
+            return 2
         print("Workflow lane and aggregate-gate contracts passed")
         return 0
     if args.command == "render":
