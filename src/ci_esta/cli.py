@@ -30,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     adoption.add_argument("--root", type=Path, default=Path("."))
     adoption.add_argument("--json", action="store_true")
     adoption.add_argument("--ignore", action="append", default=[], metavar="SUGGESTION_ID")
-    audit = commands.add_parser("check-workflow", help="Validate selected-lane aggregate gate wiring")
+    audit = commands.add_parser("check-workflow", help="Validate aggregate gate wiring, and its lanes when jobs are selected")
     audit.add_argument("--workflow", type=Path, required=True)
     audit.add_argument("--lanes", type=Path, help="lane file; omitted, lanes are inferred from the workflows")
     audit.add_argument("--repo", type=Path, default=Path("."))
@@ -75,11 +75,11 @@ def main(argv: list[str] | None = None) -> int:
         try:
             with requires_selection("ci-esta check-workflow"):
                 from ci_esta.testing.workflow_adoption import check
-                check(args.workflow, args.lanes, args.repo, args.gate)
+                checked = check(args.workflow, args.lanes, args.repo, args.gate)
         except ValueError as error:
             print(f"{args.workflow}: {error}", file=sys.stderr)
             return 2
-        print("Workflow lane and aggregate-gate contracts passed")
+        print(checked)
         return 0
     if args.command == "render":
         report = CiObservabilityReportV1.model_validate_json(args.report.read_bytes())

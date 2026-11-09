@@ -127,6 +127,7 @@ nav:
   - Related tools: ecosystem.md
   - Compare alternatives: docs/alternatives.md
 - Benchmarks and evidence:
+  - "From the trenches: two backends, thirty thousand tests": case-study.md
   - CI routing and reporting results: docs/benchmarks/2026-10-22.md
   - Toolkit adoption and critical paths: docs/benchmarks/2026-10-23-toolkit.md
   - Parallel conformance test results: docs/benchmarks/2026-10-23-critical-execution.md

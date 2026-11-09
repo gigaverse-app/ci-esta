@@ -28,7 +28,9 @@ concurrency:
 
 jobs:
   timing-example:
-    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.timing-example || 'off') != 'off' }}
+    # Only a manual run of this workflow that chose a mode. A workflow_call (Publish re-dispatched on a tag)
+    # keeps the caller's workflow_dispatch event but has no timing-example input, which is not 'off'.
+    if: ${{ github.event_name == 'workflow_dispatch' && contains(fromJSON('["alpha","beta","verify"]'), inputs.timing-example) }}
     uses: ./.github/workflows/timing-history-example.yml
     with:
       mode: ${{ inputs.timing-example }}

@@ -67,24 +67,32 @@ CI-esta cannot infer external dependencies, changed services, floating container
 Use `validation-gate` with the aggregate job's direct `needs` and a boolean `required` map containing exactly those job keys. A job must succeed, or be explicitly unneeded and skipped. Failed, cancelled, missing and unexpectedly skipped jobs fail the gate. Keep the planner itself required so a broken admission decision cannot turn the aggregate green.
 
 A gate in selected-lane mode (`lanes` plus `lane-jobs`) is what `ci-esta check-workflow`
-verifies, and the check refuses a `required` map. To reuse there, fold the proof into
-the planner's lane output instead: after `resolve-lane-evidence`, set a lane to `false`
-only when every job it covers is in `reused`, and publish that as the planner's
-`lanes` output. Job conditions, `lane-jobs` and the check stay unchanged, and a
-partly proven lane runs in full:
+verifies, and the check refuses a `required` map. To reuse there, let the evidence step
+admit the lanes: give it the planner's lanes and, per lane, the evidence keys of every job
+that lane gates. Its `admitted-lanes` output reports a lane as `false` only when all of
+them are proven, so publish it as the planner's `lanes` output. Job conditions, `lane-jobs`
+and the gate stay unchanged, and a partly proven lane runs in full:
 
 ```yaml
-- id: admit
-  env:
-    LANES: ${{ steps.plan.outputs.lanes }}
-    REUSED: ${{ steps.evidence.outputs.reused || '{}' }}
-    LANE_JOBS: '{"py311":"Tests (3.11)","py314":"Tests (3.14)"}'  # the evidence step's lanes input
-  run: |
-    lanes=$(jq -c --argjson jobs "$LANE_JOBS" --argjson reused "$REUSED" 'if [$jobs | keys[] | $reused[.] == true] | all then .tests = false else . end' <<<"$LANES")
-    echo "lanes=$lanes" >> "$GITHUB_OUTPUT"
+- id: evidence
+  uses: gigaverse-app/ci-esta/actions/resolve-lane-evidence@v1
+  with:
+    lanes: ${{ env.TEST_LANE_JOBS }}   # {"py311":"Tests (3.11)","py314":"Tests (3.14)"}
+    planned-lanes: ${{ steps.plan.outputs.lanes }}
+    lane-keys: '{"tests":["py311","py314"]}'
+    # receipt inputs as above
+# job outputs: lanes: ${{ steps.evidence.outputs.admitted-lanes }}
 ```
 
-[pytest-quint-connect](https://github.com/gigaverse-app/pytest-quint-connect/blob/main/.github/workflows/ci.yml) uses this for its seven test jobs.
+`ci-esta check-workflow` verifies that each lane's keys name every job the lane gates,
+expanding static matrices into GitHub's job names. Without that check, a newly added
+matrix cell missing from the list would be skipped as proven, and its failure would pass
+the gate on the next push that changes nothing the receipt binds. `lanes` and `lane-keys`
+must be literal JSON or `${{ env.NAME }}`, and a gated job needs a static matrix of lists
+(no `include`, `exclude` or expressions), so the check can read them. A second evidence
+step for another lane can take the first step's `admitted-lanes` as its `planned-lanes`.
+
+[pytest-quint-connect](https://github.com/gigaverse-app/pytest-quint-connect/blob/main/.github/workflows/ci.yml) and [pytest-selective](https://github.com/gigaverse-app/pytest-selective/blob/main/.github/workflows/ci.yml) use this.
 
 ## Permissions
 

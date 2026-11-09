@@ -10,7 +10,8 @@ rule the same name, or switch one off with `disable_rules`:
 | `bun-environment` | `package.json`, `bun.lock`, `bunfig*.toml`, `tsconfig*.json` | every lane with Bun tests |
 
 A rule selects `all`, `lane:NAME`, `job:WORKFLOW#JOB` (the lanes that job runs) or `package` (the lanes
-of the jobs that build the package). Patterns match repository paths like gitignore patterns.
+of the jobs that build the package). Patterns are shell-style (`*` crosses `/`; `**/` may match no
+directory) and have no negation.
 """
 
 from __future__ import annotations

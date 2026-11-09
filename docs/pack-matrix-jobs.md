@@ -105,6 +105,17 @@ Keep your repository's own setup steps (for example an existing cached-uv
 action) and its action pinning policy. If the entries come from another job,
 such as trove classifiers, read them from that job's output instead of `env`.
 
+### Entries on more than one operating system
+
+Every runner of a packed job uses the job's one `runs-on`, so pack only entries
+that run on the same image. With Linux, macOS and Windows entries, plan one set
+of pools per operating system: one `plan-runner-pools` step, one output and one
+packed job each. An entry that needs a different image from its neighbours, such
+as an old Python version that only `ubuntu-24.04` still provides, stays out of
+the pools as its own job, for example a `matrix.include` entry with its own
+`runs-on`. Put every packed and unpacked test job in the required aggregate
+job's `needs`.
+
 ## Run several entries in one job
 
 The job must fail when any entry fails. Never append `|| true`.
@@ -169,8 +180,12 @@ concurrency only when the runner has spare cores (standard Linux runners have 4)
 
 The workflow file is the change, so the old layout cannot run on the new commit.
 The `entries-per-runner` input is the same-head control: dispatch the new
-workflow with `1` (the old layout) and with each candidate, plus recent `main`
-runs for context. Dispatch one run at a time: dispatched runs on one branch share
+workflow with `1` (the old job graph) and with each candidate, plus recent `main`
+runs of the unchanged workflow. `1` reproduces the old jobs, not the old steps:
+those runs also pay for the `plan` job, the gate if you added one, and new steps
+such as `--result-json` and the artifact upload. Credit packing only with the
+change from `1` to each candidate on the same head, and attribute the change from
+the unchanged workflow to `1` to those added jobs and steps. Dispatch one run at a time: dispatched runs on one branch share
 the workflow's concurrency group, and `cancel-in-progress` cancels the earlier
 run. Then report each run:
 

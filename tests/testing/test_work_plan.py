@@ -444,3 +444,20 @@ def test_the_planner_is_the_job_whose_lanes_others_read(entries):
     graph = WorkflowGraph(repo, base)
     assert graph.jobs[(".github/workflows/ci.yml", "select-tests")].lanes == {ALL}
     assert graph.jobs[(".github/workflows/ci.yml", "live")].lanes == {"live"}
+
+
+@pytest.mark.parametrize(
+    "condition",
+    [
+        "${{ fromJSON(needs.select-tests.outputs.lanes).unit }}",
+        "${{ fromJSON(needs.select-tests.outputs.lanes)['unit'] }}",
+        "${{ fromJSON(needs.select-tests.outputs.lanes || '{}').unit }}",
+        "${{ toJSON(fromJSON(needs.select-tests.outputs.lanes || \"{}\").unit) != 'false' }}",
+    ],
+)
+def test_a_lane_is_read_with_or_without_a_fallback(condition):
+    from ci_esta.workflow_graph import lane_references
+
+    assert lane_references(condition) == {"unit"}
+    assert lane_references(condition, "select-tests") == {"unit"}
+    assert lane_references(condition, "other") == set()

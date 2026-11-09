@@ -105,12 +105,20 @@ class WorkflowSummary(BaseModel):
         return any(job.test_commands for job in self.jobs)
 
 
+NO_RETENTION = "no shared history-key found"
+# The rendered line explains the term: the inventory is often the first CI-esta output a reader sees.
+RETENTION_HELP = (
+    "a history-key keeps learned test timings across runs for timing-balanced pytest shards;"
+    " nothing else needs one"
+)
+
+
 class AdoptionReport(BaseModel):
     files: list[str] = Field(default_factory=list)
     actions: list[ActionUse] = Field(default_factory=list)
     workflows: list[WorkflowSummary] = Field(default_factory=list)
     suggestions: list[Suggestion] = Field(default_factory=list)
-    retention: str = "no shared history-key found"
+    retention: str = NO_RETENTION
     pinning: str = "no external actions found"
     project_files: list[str] = Field(default_factory=list)
     next_steps: list[str] = Field(default_factory=list)
@@ -314,7 +322,7 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
         advise("reporting", "No completed-run reporter found. Measure with `ci-esta report` first (see next steps); "
                "add the observer workflow once the change can merge to the default branch.", observed)
     evidence = ci("resolve-lane-evidence")
-    if evidence and not any(re.search(r"outputs\.receipt(?![a-z_-])", name) for _, name in job_steps):
+    if evidence and not any(re.search(r"outputs\.[a-z0-9_-]*receipt(?![a-z0-9_-])", name) for _, name in job_steps):
         advise("reuse-receipt", "resolve-lane-evidence is wired, but no job step is named after its receipt output. Without a final successful step named with the receipt, no run can ever be reused.", [item.source for item in evidence])
     after_merge = [item for item in evidence if str(item.inputs.get("reuse-after-merge", "")).lower() == "true"]
     marker = re.compile(r"PR evidence #\$\{\{\s*github\.event\.pull_request\.number\s*\}\}")
@@ -349,7 +357,8 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
 
 
 def render(report: AdoptionReport) -> str:
-    lines = [f"Inspected {len(report.files)} local workflow/action files; timing retention: {report.retention}."]
+    retention = f"{report.retention} ({RETENTION_HELP})" if report.retention == NO_RETENTION else report.retention
+    lines = [f"Inspected {len(report.files)} local workflow/action files; timing retention: {retention}."]
     lines.append(f"Action pinning: {report.pinning}.")
     if report.project_files:
         note = "" if "uv.lock" in report.project_files else (

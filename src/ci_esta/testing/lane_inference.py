@@ -32,7 +32,7 @@ from ci_esta.workflow_graph import ALL, WorkflowGraph, inside
 
 #: The words that start a test command, and the arguments after them that are paths.
 TEST_COMMAND = re.compile(
-    r"(?:^|[\s;&|(])(?:uv run (?:--[\w-]+(?:[ =]\S+)? )*)?(pytest|python3? -m pytest)(?![\w-])(.*)"
+    r"(?:^|[\s;&|(])(?:uv run (?:--[\w-]+(?:[ =]\S+)? )*)?(pytest-selective execute-plan|pytest-selective run|pytest|python3? -m pytest)(?![\w-])(.*)"
 )
 #: JavaScript test runners: with no path they collect the tests under their working directory.
 JS_TEST_COMMAND = re.compile(
@@ -51,6 +51,7 @@ UV_DIRECTORY = re.compile(r"\buv (?:run )?(?:--[\w-]+(?:[ =]\S+)? )*?--directory
 #: Options whose next word is a value, not a test path.
 VALUED_OPTIONS = {
     "-c",
+    "--config",
     "-k",
     "-m",
     "-p",

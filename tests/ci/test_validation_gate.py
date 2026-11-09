@@ -81,3 +81,56 @@ def test_plain_gate_without_planner_requires_every_need_to_succeed(result):
 def test_lane_mapping_still_requires_its_planner():
     run = _plain_gate({"tests": {"result": "skipped"}}, '{"tests":["unit"]}')
     assert run.returncode != 0 and "planner 'select-tests'" in run.stderr
+
+
+def _run_action(needs: dict, **inputs: str) -> dict:
+    """Run the action's own github-script body with a recording `core`, as the runner would."""
+    import os
+
+    import yaml
+
+    action = yaml.safe_load((ROOT / "actions/validation-gate/action.yml").read_text())
+    step = action["runs"]["steps"][0]
+    script = r"""
+    const calls = {failed: [], info: []};
+    const core = {setFailed: m => calls.failed.push(m), info: m => calls.info.push(m)};
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+    new AsyncFunction('core', process.env.ACTION_SCRIPT)(core)
+      .then(() => console.log(JSON.stringify(calls)), error => { console.log(JSON.stringify({thrown: String(error)})); });
+    """
+    env = os.environ | {
+        "GITHUB_ACTION_PATH": str(ROOT / "actions/validation-gate"),
+        "ACTION_SCRIPT": step["with"]["script"],
+        "VALIDATION_NEEDS": json.dumps(needs),
+        "VALIDATION_REQUIRED": inputs.get("required", ""),
+        "VALIDATION_PLANNER": inputs.get("planner", "select-tests"),
+        "VALIDATION_LANES": inputs.get("lanes", "{}"),
+        "VALIDATION_LANE_JOBS": inputs.get("lane_jobs", "{}"),
+    }
+    result = subprocess.run(["node", "-e", script], capture_output=True, text=True, check=True, env=env)
+    return json.loads(result.stdout)
+
+
+def test_action_reports_every_failing_job_without_an_unhandled_error():
+    calls = _run_action({"tests": {"result": "failure"}, "typing": {"result": "cancelled"},
+                         "docs": {"result": "skipped"}, "lint": {"result": "success"}})
+    assert "thrown" not in calls
+    assert calls["failed"] == [
+        "Validation gate failed: 3 of 4 prerequisite jobs did not pass: "
+        "docs was skipped but is required; tests failed; typing was cancelled."
+    ]
+
+
+def test_action_passes_and_names_plan_skipped_jobs():
+    calls = _run_action({"select-tests": {"result": "success"}, "unit": {"result": "skipped"},
+                         "lint": {"result": "success"}},
+                        lanes='{"unit": false}', lane_jobs='{"unit": ["unit"]}')
+    assert calls["failed"] == []
+    assert calls["info"] == ["Validation gate passed: 2 prerequisite jobs succeeded; "
+                             "skipped as not needed by the plan: unit."]
+
+
+def test_action_reports_a_configuration_error_plainly():
+    calls = _run_action({"unit": {"result": "skipped"}}, lane_jobs='{"unit": ["unit"]}')
+    assert len(calls["failed"]) == 1
+    assert calls["failed"][0].startswith("Validation gate configuration error: lane-jobs needs the planner")
