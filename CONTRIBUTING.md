@@ -97,10 +97,13 @@ remain complete checkpoints.
 
 CI and public-action smoke use this checkout's `actions/plan-work`, combining
 pytest-selective's dependency graph with CI-esta's workflow graph. Tests and
-reporting use the updated selector lock, and the compatible package range accepts
-the upcoming 1.x line as well as the published 0.4.2. Both workflows run a
+reporting use the locked pytest-selective 1.x release. Both workflows run a
 weekly full checkpoint on Monday; manual/called checkpoints and `test:full` also
 retain full execution, without receipt reuse.
+
+To run a complete checkpoint after a CI change, select **CI** in GitHub Actions
+and choose **Run workflow**. Retrying an ordinary PR run preserves its selection;
+use the manual checkpoint when you need full-suite evidence.
 
 Both lanes also run for every global input: environment files, CI workflows,
 selector configuration and every non-Markdown file under `actions/` and
@@ -125,10 +128,11 @@ and fails on new blocking duplicates or incomplete judging. The weekly **dry-lin
 workflow publishes a read-only audit in its job summary and artifacts. Humans and agents
 choose refactors and open their own PRs; dry-lint does not change application code or open PRs.
 
-With your Anthropic credential in `ANTHROPIC_API_KEY`, install dry-lint from `main` until its v1 launch:
+With your Anthropic credential in `ANTHROPIC_API_KEY`, install the same released
+dry-lint major version used by CI:
 
 ```bash
-uv tool install 'dry-lint[anthropic] @ git+https://github.com/gigaverse-app/dry-lint@main'
+uv tool install --no-config --python 3.13 'dry-lint[anthropic] @ git+https://github.com/gigaverse-app/dry-lint@v1'
 dry-lint sweep --budget-usd 5 --report audit.json --output audit.md
 # Review findings, refactor selected code, and run its tests before updating the baseline.
 dry-lint sweep --update --budget-usd 5 --readme README.md --repository gigaverse-app/ci-esta
