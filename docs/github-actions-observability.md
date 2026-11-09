@@ -343,7 +343,7 @@ the latest attempt. Use the latest attempt for elapsed time and both for cost.
 ## Local reports and offline rendering
 
 ```bash
-uv tool install 'ci-esta[selection]>=1.9,<2'
+uv tool install 'ci-esta[selection]>=1.11,<2'
 # Set GITHUB_TOKEN or GH_TOKEN in your environment; do not put it in command history.
 ci-esta report --repository owner/repo --run-id 123456 --gate 'Validation gate'
 ci-esta render ci-esta-report/ci-observability.json \

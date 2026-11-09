@@ -24,7 +24,7 @@ observer runs once it is merged, never on the PR that adds it. Until then, measu
 any completed run with the CLI, which produces the same report:
 
 ```bash
-uv tool install 'ci-esta[selection]>=1.9,<2'
+uv tool install 'ci-esta[selection]>=1.11,<2'
 export GH_TOKEN="$(gh auth token)"
 ci-esta report --repository OWNER/REPO --run-id RUN_ID --gate 'Validation gate' \
   --critical-path --output-dir ci-esta-report

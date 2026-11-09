@@ -15,7 +15,7 @@ before changing caching or parallelism.
 Install the reporter in an isolated tool environment:
 
 ```bash
-uv tool install 'ci-esta[selection]>=1.9,<2'
+uv tool install 'ci-esta[selection]>=1.11,<2'
 ```
 
 Provide a GitHub read token through `GH_TOKEN` or `GITHUB_TOKEN` using your normal
