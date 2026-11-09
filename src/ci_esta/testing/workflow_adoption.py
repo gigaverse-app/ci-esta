@@ -40,6 +40,7 @@ def check(workflow: Path, lanes: Path | None, repo: Path = Path("."), gate_name:
     if lanes is None and not mapping and not any(lane_references(str(job.get("if", ""))) for job in jobs.values()):
         # A plain gate: no job is selected by lanes, so every job must reach the gate and succeed.
         _check_every_job_reaches(jobs, gate_id)
+        _check_no_unmapped_skips(jobs, gate_id)
         return "Aggregate-gate contract passed: every job reaches the gate (no lanes)"
     document = json.loads(lanes.read_text()) if lanes is not None else None
     # A complete lane file names its lanes; an extending file or none needs the workflow's inferred lanes.
@@ -61,6 +62,7 @@ def check(workflow: Path, lanes: Path | None, repo: Path = Path("."), gate_name:
     if set(mapping) - set(needs):
         raise ValueError("Gate mapping refers to a job outside its prerequisites")
     _check_every_job_reaches(jobs, gate_id)
+    _check_no_unmapped_skips(jobs, gate_id)
     _check_reuse_coverage(parsed.get("env") or {}, jobs, planner)
     return "Workflow lane and aggregate-gate contracts passed"
 
@@ -69,6 +71,31 @@ def _check_every_job_reaches(jobs: dict, gate_id: str) -> None:
     visited = prerequisites({name: job_needs(job) for name, job in jobs.items()}, [gate_id])
     if visited != set(jobs):
         raise ValueError(f"Validation jobs outside the aggregate gate: {sorted(set(jobs) - visited)}")
+
+
+#: Conditions that only wait for the job's needs; they never skip a job whose needs succeeded.
+STATUS_ONLY = re.compile(r"^\s*(?:\$\{\{)?\s*(?:always\(\)|success\(\)|!\s*cancelled\(\))\s*(?:\}\})?\s*$")
+
+
+def _check_no_unmapped_skips(jobs: dict, gate_id: str) -> None:
+    """
+    The gate requires every job that no lane selects, so such a job must not have a condition that can skip it:
+    a push-only or label-gated job makes the gate fail on every run that skips it. A lane's jobs are mapped.
+    """
+    conditional = {
+        name: str(job["if"])
+        for name, job in jobs.items()
+        if name != gate_id
+        and "if" in job
+        and not STATUS_ONLY.match(str(job["if"]))
+        and not lane_references(str(job["if"]))
+    }
+    if conditional:
+        listed = "; ".join(f"{name} (if: {condition})" for name, condition in sorted(conditional.items()))
+        raise ValueError(
+            f"The gate requires these jobs, but their conditions can skip them, which fails the gate: {listed}. "
+            "Remove the condition, or select the job by a lane and map it in lane-jobs"
+        )
 
 
 ENV_REFERENCE = re.compile(r"^\$\{\{\s*env\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}$")
