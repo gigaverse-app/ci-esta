@@ -4,6 +4,7 @@ A called workflow that requests a scope its caller does not grant ends in `start
 nothing is published. That lost pytest-quint-connect 1.2.0 and pytest-selective 0.4.3 when a CI job gained a scope
 the Publish call did not grant.
 """
+
 # gv:test-dependency: .github/workflows/ci.yml
 # gv:test-dependency: .github/workflows/release.yml
 import json
