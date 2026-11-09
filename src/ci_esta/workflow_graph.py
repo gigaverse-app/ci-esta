@@ -26,9 +26,10 @@ import yaml
 from ci_esta.git import git
 
 WORKFLOWS = ".github/workflows/"
-#: A lane read from the planner's JSON output, by attribute or by index.
+#: A lane read from the planner's JSON output, by attribute or by index, with or without a fallback
+#: for a planner that produced none (`fromJSON(needs.plan.outputs.lanes || '{}').tests`).
 LANE_REFERENCE = re.compile(
-    r"needs\.([A-Za-z_][A-Za-z0-9_-]*)\.outputs\.lanes\s*\)\s*"
+    r"needs\.([A-Za-z_][A-Za-z0-9_-]*)\.outputs\.lanes\s*(?:\|\|\s*(?:'[^']*'|\"[^\"]*\")\s*)?\)\s*"
     r"(?:\.\s*([A-Za-z_][A-Za-z0-9_]*)|\[\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]\s*\])"
 )
 #: A job other jobs read lanes from: the planner. Its change can change every lane.
