@@ -24,6 +24,8 @@ const github = strictGithub({actions: {
   getWorkflowRun: async ({run_id}) => ({data: {id: run_id, workflow_id: 55}}),
   listWorkflowRuns: async (args) => {
     if (args.event !== 'push' || args.branch !== 'main' || args.workflow_id !== 55) throw new Error(`unexpected ${JSON.stringify(args)}`);
+    // Only the proof window: the branch's whole history grows without bound.
+    if (!/^>=\d{4}-\d{2}-\d{2}T/.test(args.created || '')) throw new Error(`unbounded run listing ${JSON.stringify(args)}`);
     return {data: {workflow_runs: runs}};
   },
   listJobsForWorkflowRun: async ({run_id}) => ({data: {jobs: input.jobs[run_id] || []}}),

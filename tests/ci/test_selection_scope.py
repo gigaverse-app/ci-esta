@@ -118,3 +118,55 @@ console.log(JSON.stringify(pendingMatrix(['linux','mac'], JSON.parse(process.env
         },
     )
     assert json.loads(result.stdout) == expected
+
+
+def admitted(planned: dict, lane_keys: dict, proof: dict) -> subprocess.CompletedProcess[str]:
+    script = """
+const {admittedLanes} = require(process.env.MODULE);
+const lanes = {a1: 'Job A1', a2: 'Job A2', b1: 'Job B1'};
+console.log(JSON.stringify(admittedLanes(process.env.PLANNED, process.env.KEYS, JSON.parse(process.env.PROOF), lanes)));
+"""
+    return subprocess.run(
+        ["node", "-e", script],
+        capture_output=True,
+        text=True,
+        env=os.environ
+        | {
+            "MODULE": str(ACTION / "selection.cjs"),
+            "PLANNED": json.dumps(planned),
+            "KEYS": json.dumps(lane_keys),
+            "PROOF": json.dumps(proof),
+        },
+    )
+
+
+KEYS = {"a": ["a1", "a2"], "b": ["b1"]}
+PLANNED = {"a": True, "b": True, "docs": True}
+
+
+@pytest.mark.parametrize(
+    ("proof", "expected"),
+    [
+        ({}, PLANNED),
+        ({"a1": True}, PLANNED),  # partial proof runs the whole lane
+        ({"a1": True, "a2": True}, {"a": False, "b": True, "docs": True}),
+        ({"a1": True, "a2": True, "b1": True}, {"a": False, "b": False, "docs": True}),
+        ({"a1": "true", "a2": 1}, PLANNED),  # only literal true is proof
+    ],
+)
+def test_a_lane_is_admitted_as_proven_only_when_every_listed_key_is(proof, expected):
+    result = admitted(PLANNED, KEYS, proof)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == expected
+
+
+def test_a_lane_the_planner_did_not_select_stays_unselected():
+    result = admitted({"a": False, "b": True}, KEYS, {"b1": True})
+    assert json.loads(result.stdout) == {"a": False, "b": False}
+
+
+@pytest.mark.parametrize("lane_keys", [{"a": []}, {"a": ["missing"]}, {"a": "a1"}])
+def test_unusable_lane_keys_fail_instead_of_admitting(lane_keys):
+    result = admitted(PLANNED, lane_keys, {"a1": True, "a2": True})
+    assert result.returncode != 0
+    assert "must list keys of lanes" in result.stderr

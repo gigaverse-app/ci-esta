@@ -38,6 +38,17 @@ inputs:
   reuse-version-only-release:
     description: Reuse a validated base for strict root Python Release Please version changes; requires input-paths, full Git history and Python 3.11+.
     default: 'false'
+  planned-lanes:
+    description: >-
+      Optional planner lane booleans (JSON), usually pytest-selective's plan-lanes output or an
+      earlier evidence step's admitted-lanes. With lane-keys, admitted-lanes reports each lane
+      as false when every one of its evidence keys is proven.
+    default: ''
+  lane-keys:
+    description: >-
+      Optional JSON map from a planner lane to the evidence keys (keys of `lanes`) that prove
+      it, every job the lane gates. `ci-esta check-workflow` verifies the jobs, matrix included.
+    default: '{}'
   dependency-token:
     description: >-
       Read access to backend-common. With it, a backend-common pin counts as the tree it
@@ -61,8 +72,15 @@ outputs:
     description: Lane keys lacking literal successful proof; all keys when all are proven (gate the job separately).
     value: ${{ steps.resolve.outputs.matrix }}
   receipt:
-    description: Completion step name binding consumer merge tree and downloaded shared tooling.
+    description: >-
+      Completion step name binding the tested inputs, the execution context and the receipt
+      format. Name each covered job's final successful step with it.
     value: ${{ steps.resolve.outputs.receipt }}
+  admitted-lanes:
+    description: >-
+      planned-lanes with every lane whose lane-keys are all proven set to false; planned-lanes
+      unchanged when nothing is proven or reuse is not allowed. Empty without planned-lanes.
+    value: ${{ steps.resolve.outputs.admitted-lanes }}
   reused:
     description: JSON object of positively proven lane keys.
     value: ${{ steps.resolve.outputs.reused }}
@@ -78,6 +96,8 @@ runs:
         SELECTION_REPORT: ${{ inputs.selection-report }}
         ALLOW_REUSE: ${{ inputs.allow-reuse }}
         EVIDENCE_LANES: ${{ inputs.lanes }}
+        PLANNED_LANES: ${{ inputs.planned-lanes }}
+        LANE_KEYS: ${{ inputs.lane-keys }}
         EVIDENCE_EXECUTION_CONTEXT: ${{ inputs.execution-context }}
         EVIDENCE_INPUT_PATHS: ${{ inputs.input-paths }}
         REUSE_AFTER_MERGE: ${{ inputs.reuse-after-merge }}
@@ -92,12 +112,16 @@ runs:
         script: |
           const reused = {};
           const measuredLanes = [];
-          const { executionScope, pendingMatrix } = require(`${process.env.GITHUB_ACTION_PATH}/selection.cjs`);
+          const { executionScope, pendingMatrix, admittedLanes } = require(`${process.env.GITHUB_ACTION_PATH}/selection.cjs`);
           const lanes = JSON.parse(process.env.EVIDENCE_LANES);
           const keys = JSON.parse(process.env.SELECTION_KEYS || '[]');
           let executionContext = process.env.EVIDENCE_EXECUTION_CONTEXT || '';
           core.setOutput('reused', '{}');
           core.setOutput('matrix', JSON.stringify(pendingMatrix(Object.keys(lanes), {})));
+          // Every exit reports the planned lanes; only proven reuse below can turn a lane off.
+          const admit = (proof) => process.env.PLANNED_LANES
+            ? JSON.stringify(admittedLanes(process.env.PLANNED_LANES, process.env.LANE_KEYS || '{}', proof, lanes)) : '';
+          core.setOutput('admitted-lanes', admit({}));
           let scope;
           if (keys.length) {
             if (executionContext) throw new Error('Use selection-keys or execution-context, not both');
@@ -185,6 +209,7 @@ runs:
           }
           core.setOutput('reused', JSON.stringify(reused));
           core.setOutput('matrix', JSON.stringify(pendingMatrix(Object.keys(lanes), reused)));
+          core.setOutput('admitted-lanes', admit(reused));
           try {
             const fs = require('fs');
             const path = require('path');
