@@ -60,7 +60,16 @@ syntax:
 ```
 
 Declarations are followed transitively, and one that matches no file fails the plan,
-as it does in pytest-selective. The reviewed
+as it does in pytest-selective.
+
+A job that runs Python, directly or through one of its local actions, depends on what
+that code imports, through pytest-selective's import graph: `python -m pkg.tool` (or
+`"$PYTHON" -m pkg.tool`), a console script from `[project.scripts]`, a `.py` file, or a
+module name handed to a wrapper (`bash run.sh pkg.tool`). A change outside those imports
+leaves the job alone, so a job per lane pays off: CI-esta's own public-action smoke
+workflow gives each smoke job its own lane, and a change to one CLI module no longer
+starts the macOS and Windows runners. A job is the planner only when other jobs read its
+`lanes` output; a job that runs a planning action to test it is an ordinary job. The reviewed
 pytest policy is the base commit's, so a pull request that changes how pytest collects
 runs every lane. A test no lane claims also runs every lane, so a wrong guess costs time,
 never coverage. Add a lane file when roots must be narrower than the commands show, or
