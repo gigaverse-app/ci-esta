@@ -105,6 +105,7 @@ def _observe_job(job: GitHubJobV1, timeline_start: datetime | None, observed_at:
         start_offset_seconds=_elapsed(timeline_start, job.started_at, allow_zero=True),
         end_offset_seconds=_elapsed(timeline_start, effective_end, allow_zero=True),
         queued_offset_seconds=_elapsed(timeline_start, job.created_at, allow_zero=True),
+        queue_seconds=_elapsed(job.created_at, job.started_at, allow_zero=True) if job.conclusion != "skipped" else None,
         rounded_minutes=rounded_minutes,
         rounding_waste_seconds=(
             round(upper_boundary - wall_seconds, 1) if upper_boundary is not None and wall_seconds is not None else None
@@ -328,6 +329,11 @@ def build_report(
         errors.append(f"required gates were not observed: {', '.join(missing)}")
 
     longest = max(timed_latest, key=lambda item: (item.wall_seconds or 0.0, item.name), default=None)
+    # One job without a creation time makes the maximum unknown, not the maximum of the rest.
+    started = [job for job in latest if job.started_at is not None and job.conclusion != "skipped"]
+    waited = max(started, key=lambda item: (item.queue_seconds or 0.0, item.name), default=None)
+    if any(job.queue_seconds is None for job in started):
+        waited = None
     rates = runner_sku_rates or []
     current_runner_cost = _runner_cost(billing, rates, run.repository.private if run.repository else None)
     overlapping_runner_cost = _overlapping_runner_cost(
@@ -379,6 +385,8 @@ def build_report(
         workflow_initial_queue_seconds=_elapsed(run.created_at, run.run_started_at) if run.run_attempt == 1 else None,
         workflow_job_admission_delay_seconds=job_admission_delay,
         merge_ready_after_job_admission_seconds=merge_ready_after_admission,
+        longest_job_queue_seconds=waited.queue_seconds if waited is not None else None,
+        longest_job_queue_name=waited.name if waited is not None else None,
         longest_latest_job_name=longest.name if longest is not None else None,
         longest_latest_job_seconds=longest.wall_seconds if longest is not None else None,
         runner_cost=current_runner_cost,
@@ -645,6 +653,13 @@ def _latency_table(report: CiObservabilityReportV1) -> list[str]:
         ("CI gates passed", "--:", format_seconds(gates) if gates is not None else _readiness_label(report)),
         ("First runner", "--:", f"after {format_seconds(admission)}" if admission is not None else ""),
         (
+            "Longest runner wait",
+            ":--",
+            f"{markdown.cell(report.longest_job_queue_name)} · {format_seconds(report.longest_job_queue_seconds)}"
+            if report.longest_job_queue_seconds and report.longest_job_queue_name is not None
+            else "",
+        ),
+        (
             "Longest job",
             ":--",
             f"{markdown.cell(longest_name)} · {format_seconds(longest)}"
@@ -903,6 +918,7 @@ def render_prometheus(report: CiObservabilityReportV1) -> str:
             report.merge_ready_after_job_admission_seconds,
         ),
         ("ci_longest_latest_job_seconds", report.longest_latest_job_seconds),
+        ("ci_longest_job_queue_seconds", report.longest_job_queue_seconds),
         ("ci_raw_runner_seconds", report.runner_cost.raw_runner_seconds),
         (
             "ci_estimated_rounded_runner_minutes",

@@ -296,7 +296,8 @@ To post a sticky PR report, supply `pull-request-number`, set `post-sticky: 'tru
 | Measurement | Meaning and limit |
 | --- | --- |
 | Required-gate elapsed time | Time to the explicitly configured gates, from creation on attempt 1 or the rerun attempt start; topology analysis is a separate opt-in |
-| Job admission delay | Time before a job starts, which can include dependencies, approvals and runner queueing |
+| Job admission delay | Time before the first job starts, which can include approvals and runner queueing |
+| Longest runner wait | The longest time any job waited for a runner after GitHub queued it; unknown, not zero, when a job has no queue time |
 | Runner seconds | Observed timed jobs across attempts, including retries |
 | Slowest step per job | Latest-attempt API step durations, with links to job logs; all steps remain in the JSON report |
 | Rounded runner minutes | Sum of per-job ceiling-rounded durations; an estimate, not a GitHub invoice |
@@ -324,7 +325,9 @@ never zero.
 | `required_gates[].display_name`, `.conclusion`, `.matched` | Each `--gate` you named and whether a job with that exact name was found. |
 | `required_gates[].elapsed_from_creation_seconds` | Workflow creation to that gate completing: the time a PR author waits. |
 | `merge_ready_from_creation_seconds` | The same, for the last of all named gates; `null` unless every named gate matched and succeeded. |
-| `workflow_job_admission_delay_seconds` | Time before jobs started (dependencies, approvals and runner queueing together). |
+| `workflow_job_admission_delay_seconds` | Run creation to the **first** job's start. Other jobs can wait much longer; see the next row. |
+| `longest_job_queue_seconds`, `longest_job_queue_name` | The longest runner wait (queued to started) of any job, for example a macOS job waiting for a runner. `null` when any started job has no queue time. |
+| `latest_attempt_jobs[].queue_seconds` | That job's own runner wait, queued (after its `needs` finished) to started. |
 | `runner_cost.raw_runner_seconds` | Summed wall time of every timed job, across attempts. Compare layouts with this. |
 | `runner_cost.estimated_rounded_runner_minutes` | The same with each job rounded up to a whole minute, as GitHub bills; an estimate, not an invoice. |
 | `runner_cost.estimated_cost_usd` | Rounded minutes times known runner rates; `null` when any job's runner is unpriced. Public-repository standard runners are free. |
