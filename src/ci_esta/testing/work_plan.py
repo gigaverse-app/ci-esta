@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -173,6 +174,35 @@ def python_entry_lanes(
     return reasons
 
 
+def commit_exists(repo: Path, revision: str) -> bool:
+    return (
+        subprocess.run(
+            ["git", "-C", str(repo), "cat-file", "-e", f"{revision}^{{commit}}"], capture_output=True
+        ).returncode
+        == 0
+    )
+
+
+def tested_base(repo: Path, base: str, head: str, pr_head: str) -> str:
+    """The base GitHub's merge of the pull request was built on, as pytest-selective's planner uses.
+
+    A pull request's `base.sha` can be older than the base-branch tip GitHub merged it into, so commits
+    that landed since would read as the PR's own. pytest-selective owns that rule
+    (`pull_request_merge_base`, from 1.3.0); with an older pytest-selective, `base` is kept, which only
+    plans more lanes, never fewer.
+    """
+    try:
+        from pytest_selective.git_operations import pull_request_merge_base
+    except ImportError:
+        return base
+    tested = pull_request_merge_base(repo, base, head, pr_head)
+    if tested != base:
+        print(
+            f"Planning against the tested merge's base {tested}; the event's base {base} is behind it.", file=sys.stderr
+        )
+    return tested
+
+
 def targets(rule: Rule, graph: WorkflowGraph, package_lanes: set[str], bun_lanes: set[str]) -> set[str]:
     """The lanes a rule selects."""
     selected: set[str] = set()
@@ -199,6 +229,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo", type=Path, default=Path("."))
     parser.add_argument("--base", required=True, help="base commit; empty or all zeros runs every lane")
     parser.add_argument("--head", default="HEAD")
+    # A pull request's head: when `--head` is GitHub's merge of it, plan against the merge's actual base.
+    parser.add_argument("--pr-head", default="")
     parser.add_argument(
         "--full", nargs="?", const="true", default="false", type=full_checkpoint_reason, metavar="auto|true|false"
     )
@@ -210,6 +242,11 @@ def main(argv: list[str] | None = None) -> int:
         # A branch's first push has no `before` (all zeros), and some callers pass nothing: compare against
         # nothing, and run every lane.
         args.full, args.base = "full run: no base commit to compare against", args.head
+    elif not commit_exists(args.repo, args.base):
+        # A shallow checkout or a force-pushed `before`: nothing to compare against, so every lane runs.
+        args.full, args.base = f"full run: base commit {args.base} is not in this checkout's history", args.head
+    else:
+        args.base = tested_base(args.repo, args.base, args.head, args.pr_head)
     try:
         resolved = resolve(args.repo, args.base, args.head, args.config)
         config = resolved.config
