@@ -8,7 +8,7 @@ set -euo pipefail
 exec docker run --rm --user "$(id -u):$(id -g)" \
   --volume "$PWD:/src" --workdir /src \
   --env SEMGREP_SEND_METRICS=off --env HOME=/tmp \
-  semgrep/semgrep:latest@sha256:98c2572fced2474539fd27cab3207ebd8e95e4e7aab4c3b381fdc5e2641d9941 \
+  semgrep/semgrep:1.185.0@sha256:67518c174185a2043fdbed16c70631b79209499b3671178e7194379b48295a0d \
   semgrep "$@"
 SCRIPT
 chmod +x "$tool_dir/semgrep"

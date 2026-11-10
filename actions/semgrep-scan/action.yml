@@ -1,5 +1,5 @@
 name: Scan source with Semgrep
-description: Run source and secret checks on an existing Docker-capable runner.
+description: Run source security checks on an existing Docker-capable runner.
 inputs:
   github-token:
     description: Read-only contents token used only for the private diff-base fetch; never persisted.
@@ -7,7 +7,7 @@ inputs:
   configs:
     description: Space-separated semgrep registry configs (each becomes --config).
     required: false
-    default: "p/default p/python p/security-audit p/owasp-top-ten p/dockerfile p/secrets"
+    default: "p/default p/python p/security-audit p/owasp-top-ten p/dockerfile"
   severity:
     description: Minimum severity that fails the scan.
     required: false

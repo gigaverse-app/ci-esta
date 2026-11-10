@@ -1,5 +1,5 @@
 name: Scan CI code with Trivy
-description: Stage configured CI-code paths and scan them for misconfigurations and secrets with the shared Trivy version.
+description: Stage configured CI-code paths and scan them for misconfigurations with the shared Trivy version.
 
 inputs:
   ci-files:
@@ -38,8 +38,8 @@ runs:
       with:
         scan-type: fs
         scan-ref: ${{ steps.stage.outputs.scan-root }}
-        version: "v0.72.0"
-        scanners: misconfig,secret
+        version: "v0.76.2"
+        scanners: misconfig
         format: table
         exit-code: "1"
         severity: CRITICAL,HIGH

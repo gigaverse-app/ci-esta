@@ -9,7 +9,7 @@ inputs:
   configs:
     description: Space-separated Semgrep registry configurations.
     required: false
-    default: "p/default p/python p/security-audit p/owasp-top-ten p/dockerfile p/secrets"
+    default: "p/default p/python p/security-audit p/owasp-top-ten p/dockerfile"
 
 runs:
   using: composite

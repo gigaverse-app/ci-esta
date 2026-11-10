@@ -27,7 +27,7 @@ inputs:
     required: false
     default: "os,library"
   scanners:
-    description: Trivy scanners to enable; source and secret scanning belongs to the shared Semgrep gate.
+    description: Trivy scanners to enable; source analysis belongs to Semgrep and credential detection to a dedicated secret scanner.
     required: false
     default: "vuln"
   skip-dirs:
@@ -45,7 +45,7 @@ inputs:
   trivy-version:
     description: Trivy CLI version installed by trivy-action.
     required: false
-    default: "v0.72.0"
+    default: "v0.76.2"
   severity:
     description: Comma-separated severities that fail the scan.
     required: false
