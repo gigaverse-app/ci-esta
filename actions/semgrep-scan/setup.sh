@@ -2,9 +2,19 @@
 set -euo pipefail
 tool_dir="$RUNNER_TEMP/shared-semgrep-bin"
 mkdir -p "$tool_dir"
+cp "$(dirname "$0")/credential-rule-exclusions.txt" "$tool_dir/credential-rule-exclusions.txt"
 cat > "$tool_dir/semgrep" <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
+# Insert exact credential rule exclusions before any end-of-options marker.
+if [ "${1:-}" = scan ]; then
+  shift
+  args=(scan)
+  while IFS= read -r rule; do
+    [ -z "$rule" ] || args+=(--exclude-rule "$rule")
+  done < "$(dirname "$0")/credential-rule-exclusions.txt"
+  set -- "${args[@]}" "$@"
+fi
 exec docker run --rm --user "$(id -u):$(id -g)" \
   --volume "$PWD:/src" --workdir /src \
   --env SEMGREP_SEND_METRICS=off --env HOME=/tmp \

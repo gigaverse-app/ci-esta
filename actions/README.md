@@ -193,7 +193,7 @@ native package manager materialize an environment and use `scan-type: fs` plus
 matches installed package versions to advisories; it does not replace the
 package manager's resolution semantics.
 
-The action pins Trivy `v0.72.0` by default; consumers can use `trivy-version`
+The action pins Trivy `v0.76.2` by default; consumers can use `trivy-version`
 for a controlled compatibility override. `vuln-type` defaults to both OS and
 language libraries, while `scanners` defaults to `vuln`: the shared Semgrep
 gate owns source-code vulnerability and secret scanning once at repository
@@ -348,3 +348,32 @@ before treating these similarly named actions as interchangeable.
 `ci-esta-pytest run-local --shards N --first-shard A --last-shard B -- ...` runs the inclusive range A–B from one global exact-file plan. Workers retain global `GV_PYTEST_SHARD_INDEX` and `GV_PYTEST_SHARD_COUNT`; logs and completion reports therefore remain disjoint across machines. Omitted bounds preserve the existing all-shards behavior. Invalid or empty ranges fail before starting a worker.
 
 Pass the same bounds as `PLAN_FIRST_SHARD` and `PLAN_LAST_SHARD` to `verify-pytest-completion`. Each pool proves its entire range. The consumer must require every pool, verify that its ranges partition 1–N, and issue the reusable aggregate receipt only after all pools prove completion. A successful pool alone never authorizes reuse of the global plan.
+
+
+### Security scanner responsibilities
+
+Semgrep 1.185.0 runs source vulnerability rules. Trivy 0.76.2 checks package
+vulnerabilities and CI configuration mistakes. Credential detection belongs to
+a dedicated scanner such as Betterleaks; adopters must enable that scanner
+before relying on this separation. These actions do not provide secret scanning.
+
+Both Semgrep actions exclude the 65 credential rule IDs audited on 2026-11-10,
+including credential rules bundled in `p/default`, `p/python`, `p/security-audit`
+and `p/owasp-top-ten`. Removing `p/secrets` alone does not remove those rules.
+The shared wrapper applies `credential-rule-exclusions.txt` even when callers
+supply their own packs. It retains Flask debug/test-mode rules, authentication
+handling, injection and transport security checks. The list uses exact IDs:
+new registry rules need review when upgrading or auditing the policy. Registry
+packs remain live, so this is an audited exclusion list, not a guarantee that a
+future pack cannot introduce a new credential rule.
+
+The existing severity policy runs ERROR rules only, not WARNING or INFO. Trivy
+keeps HIGH/CRITICAL and ignore-unfixed. Existing path and rule exclusions are
+unchanged. Routine source scans use changed files; scheduled/manual full scans
+cover unchanged files against updated rules. Semgrep's normal ignore behavior
+still applies; the dedicated secret scanner must cover tests and fixtures.
+
+The exclusion list is copied locally when setting up the existing Semgrep
+wrapper. It adds no runner, registry request or separate scan. Version upgrades
+may change download and execution times; CI-esta measurements, rather than a
+zero-cost promise, determine their effect on the critical path.

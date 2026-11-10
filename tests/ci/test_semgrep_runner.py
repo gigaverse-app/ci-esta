@@ -185,3 +185,32 @@ def test_diff_targets_remove_files_owned_by_ci_before_scanning(tmp_path: Path, r
     assert result.returncode == 0, result.stderr
     assert (tmp_path / "changed-scan-targets.txt").read_text().splitlines() == ([remaining] if remaining else [])
     assert (tmp_path / "output").read_text().strip() == ("mode=diff" if remaining else "mode=empty")
+
+
+@pytest.mark.parametrize("verdict", [0, 1, 2])
+def test_pinned_wrapper_excludes_credentials_and_preserves_verdict(tmp_path: Path, verdict: int) -> None:
+    """Both scanner actions use this wrapper, including explicit config overrides."""
+    docker = tmp_path / "docker"
+    docker.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$CAPTURE"\nexit "$VERDICT"\n')
+    docker.chmod(0o755)
+    env = {
+        **os.environ,
+        "PATH": f"{tmp_path}:{os.environ['PATH']}",
+        "RUNNER_TEMP": str(tmp_path),
+        "GITHUB_PATH": str(tmp_path / "path"),
+        "CAPTURE": str(tmp_path / "args"),
+        "VERDICT": str(verdict),
+    }
+    subprocess.run(["bash", str(ROOT / "actions/semgrep-scan/setup.sh")], env=env, check=True)
+    result = subprocess.run(
+        [str(tmp_path / "shared-semgrep-bin/semgrep"), "scan", "--config", "p/default", "--", "file with spaces.py"],
+        env=env,
+    )
+    assert result.returncode == verdict
+    args = (tmp_path / "args").read_text().splitlines()
+    exclusions = [args[i + 1] for i, arg in enumerate(args) if arg == "--exclude-rule"]
+    assert "python.jwt.security.jwt-hardcode.jwt-python-hardcoded-secret" in exclusions
+    assert "python.flask.security.audit.hardcoded-config.avoid_hardcoded_config_SECRET_KEY" in exclusions
+    assert not any(rule.endswith(("_DEBUG", "_ENV", "_TESTING")) for rule in exclusions)
+    assert args[-2:] == ["--", "file with spaces.py"]
+    assert args.index("--exclude-rule") < args.index("--")

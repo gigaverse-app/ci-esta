@@ -3,7 +3,7 @@ from pathlib import Path
 import yaml
 
 ACTION_PATH = Path("actions/trivy-scan-image/action.yml")
-LATEST_TRIVY_VERSION = "v0.72.0"
+LATEST_TRIVY_VERSION = "v0.76.2"
 TRIVY_VERSION_INPUT = "trivy-version"
 
 

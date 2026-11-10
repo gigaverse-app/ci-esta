@@ -9,7 +9,7 @@ inputs:
     required: false
     default: "p/default p/python p/security-audit p/owasp-top-ten p/dockerfile"
   severity:
-    description: Minimum severity that fails the scan.
+    description: Exact Semgrep severity to run (ERROR by default; WARNING and INFO are omitted).
     required: false
     default: "ERROR"
   exclude:
