@@ -161,6 +161,7 @@ replays a Quint lifecycle model through the actual collector and timing store.
 <!-- pytest-quint-connect:start -->
 <!-- pytest-quint-connect:contracts merged-pr-evidence -->
 <!-- pytest-quint-connect:evidence 9e73f61f843a1c9e renderer 1.4.1 -->
+<a href="https://github.com/gigaverse-app/pytest-quint-connect#impact"><picture><source media="(prefers-color-scheme: dark)" srcset="https://pytest-quint-connect-counter.gigaverse-oss.workers.dev/v1/sign.svg?key=cfe8d51e3678507c54e1b07ca48075c79bc0ce43b98f12b051d8d66f002901c9&amp;name=gigaverse-app%2Fci-esta&amp;theme=dark"><img alt="What pytest-quint-connect&#x27;s contracts caught in gigaverse-app/ci-esta&#x27;s pull requests" src="https://pytest-quint-connect-counter.gigaverse-oss.workers.dev/v1/sign.svg?key=cfe8d51e3678507c54e1b07ca48075c79bc0ce43b98f12b051d8d66f002901c9&amp;name=gigaverse-app%2Fci-esta" width="100%"></picture></a>
 
 <a href="https://github.com/gigaverse-app/pytest-quint-connect" title="Mutants are planted fake bugs: deliberately broken copies of the code, used only during this test run. Each must make some history diverge, proving the tests are meaningful: they would notice that kind of bug"><img alt="Quint contracts: 1 contract passed · 104 histories · 3/3 mutants caught" src="https://img.shields.io/badge/Quint_contracts-1_contract_passed_%C2%B7_104_histories_%C2%B7_3%2F3_mutants_caught-brightgreen"></a>
 
