@@ -17,6 +17,9 @@
     ]
   },
   "lanes": {
+    "quint": {
+      "inputs": ["README.md", "contracts/**", "src/ci_esta/testing/**", "src/ci_esta/ci_observability/github.py", "src/ci_esta/ci_observability/models.py", "tests/testing/merged_pr_server.py"]
+    },
     "tests": {
       "roots": [
         "tests"

@@ -142,6 +142,9 @@ Then adapt the [complete sharding workflow](../../examples/pytest-shards/workflo
 
 - [ ] Choose one timing key per OS, Python version, service and fixed marker lane.
 - [ ] Opt in with `history-key`; keep replacement behavior if retention is unnecessary.
+- [ ] Default shared learning to the [last green merged PR validation](../merged-pr-evidence.md),
+  with observed-only manifests, merge/completion collection and catch-up recovery. Verify a hosted
+  publish/restore round trip before removing tests whose remaining main-push purpose is learning.
 - [ ] Validate every expected shard before declaring `complete-files: 'true'`.
   Whole-file partial runs are supported; ad hoc case filtering cannot replace a file's cost.
 - [ ] Restore once before planning. Pass the exact plan or frozen duration input

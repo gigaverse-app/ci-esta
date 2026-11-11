@@ -82,14 +82,23 @@ def lanes_for(tmp_path: Path, *paths: str) -> dict[str, bool]:
     (".github/validation-inputs.json", True, True),
 ])
 def test_repository_lane_inputs(tmp_path, path, tests, package):
-    assert lanes_for(tmp_path, path) == {"tests": tests, "package": package}
+    lanes = lanes_for(tmp_path, path)
+    assert lanes["tests"] == tests
+    assert lanes["package"] == package
 
 
 def test_documentation_only_commit_selects_no_tests(tmp_path):
     """README.md is the packaged long description, so only metadata checks may run."""
-    assert lanes_for(tmp_path, *DOCS_ONLY) == {"tests": False, "package": True}
+    # README's generated contract block is an explicit input to the contract reporter.
+    assert lanes_for(tmp_path, *DOCS_ONLY) == {"tests": False, "package": True, "quint": True}
     assert lanes_for(tmp_path / "prose", *(path for path in DOCS_ONLY if path != "README.md")) == {
-        "tests": False, "package": False}
+        "tests": False, "package": False, "quint": False}
+
+
+@pytest.mark.parametrize("path", ["README.md", "contracts/merged_pr/merged_pr_evidence.qnt", "contracts/merged_pr/contract.qnt",
+                                  "src/ci_esta/testing/merged_pr_timings.py", "tests/testing/merged_pr_server.py"])
+def test_model_contract_tracks_implementation_and_remote_fixture(tmp_path, path):
+    assert lanes_for(tmp_path, path)["quint"] is True
 
 
 @pytest.mark.parametrize("path, expected", [

@@ -97,6 +97,7 @@ extra:
   - docs/github-actions-observability.md
   - docs/integrations.md
   - docs/learned-test-timings.md
+  - docs/merged-pr-evidence.md
   - docs/measured-impact.md
   - docs/non-python.md
   - docs/pack-matrix-jobs.md

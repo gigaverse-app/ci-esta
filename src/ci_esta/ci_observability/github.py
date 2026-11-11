@@ -23,6 +23,8 @@ from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
 from ci_esta.ci_observability.models import (
     GitHubCommitStatusV1,
     GitHubJobV1,
+    GitHubPRDetailsV1,
+    GitHubPullRequestV1,
     GitHubRunV1,
     StickySnapshotV1,
 )
@@ -40,6 +42,7 @@ class GitHubRunsPageV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     workflow_runs: list[GitHubRunV1]
+    total_count: int | None = None
 
 
 class GitHubRepositoryV1(BaseModel):
@@ -271,6 +274,51 @@ class GitHubActionsClient:
         response.raise_for_status()
         return GitHubRepositoryV1.model_validate_json(response.content).default_branch
 
+    def pull_request(self, number: int) -> GitHubPRDetailsV1:
+        response = self._client.get(f"/repos/{self._repository}/pulls/{number}")
+        response.raise_for_status()
+        return GitHubPRDetailsV1.model_validate_json(response.content)
+
+    def pulls_for_commit(self, sha: str) -> list[GitHubPullRequestV1]:
+        def page(number: int) -> list[GitHubPullRequestV1]:
+            response = self._client.get(f"/repos/{self._repository}/commits/{sha}/pulls",
+                                       params={"per_page": 100, "page": number})
+            response.raise_for_status()
+            return TypeAdapter(list[GitHubPullRequestV1]).validate_json(response.content)
+        return collect_pages(page)
+
+    def recent_closed_pulls(self, since: datetime, *, max_pages: int = 10) -> list[GitHubPRDetailsV1]:
+        """Recover missed merge/completion events from GitHub's durable PR inventory."""
+        result: list[GitHubPRDetailsV1] = []
+        for page in range(1, max_pages + 1):
+            response = self._client.get(f"/repos/{self._repository}/pulls", params={
+                "state": "closed", "sort": "updated", "direction": "desc", "per_page": 100, "page": page,
+            })
+            response.raise_for_status()
+            batch = TypeAdapter(list[GitHubPRDetailsV1]).validate_json(response.content)
+            result.extend(pr for pr in batch if pr.updated_at >= since)
+            if len(batch) < 100 or any(pr.updated_at < since for pr in batch):
+                return result
+        raise ValueError("closed PR inventory exceeds scan budget; narrow the lookback or increase max-pages")
+
+    def runs_for_head(self, workflow: str, head_sha: str) -> list[GitHubRunV1]:
+        """Enumerate every outcome. Never filter to success before selecting the last run."""
+        result: list[GitHubRunV1] = []
+        for page in range(1, 11):
+            response = self._client.get(f"/repos/{self._repository}/actions/workflows/{workflow}/runs", params={
+                "head_sha": head_sha, "event": "pull_request", "per_page": 100, "page": page,
+            })
+            response.raise_for_status()
+            batch = GitHubRunsPageV1.model_validate_json(response.content)
+            if batch.total_count is None or batch.total_count >= 1000:
+                raise ValueError("cannot prove complete producer enumeration")
+            result.extend(batch.workflow_runs)
+            if len(batch.workflow_runs) < 100:
+                if len(result) != batch.total_count:
+                    raise ValueError("producer inventory changed during enumeration; retry")
+                return result
+        raise ValueError("producer inventory exceeds GitHub's 1000-run query limit")
+
     def workflow_source(self, workflow: str, ref: str) -> dict[str | bool, Any]:
         return self._workflow_source(self._repository, ref, f".github/workflows/{workflow}")
 
@@ -327,21 +375,27 @@ class GitHubActionsClient:
             reverse=True,
         )
 
-    def read_single_file_artifact(self, artifact_id: int) -> bytes:
+    def read_single_file_artifact(self, artifact_id: int, *, max_bytes: int = 10_000_000) -> bytes:
         """
         The one file in an artifact, whatever the uploader called it.
 
         The download redirects to blob storage; httpx drops the Authorization header when a
         redirect leaves the API origin, so the token never reaches it.
         """
-        response = self._client.get(
-            f"/repos/{self._repository}/actions/artifacts/{artifact_id}/zip", follow_redirects=True
-        )
-        response.raise_for_status()
-        with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        content = bytearray()
+        with self._client.stream("GET", f"/repos/{self._repository}/actions/artifacts/{artifact_id}/zip",
+                                 follow_redirects=True) as response:
+            response.raise_for_status()
+            for chunk in response.iter_bytes():
+                content.extend(chunk)
+                if len(content) > max_bytes:
+                    raise ValueError("artifact exceeds compressed byte limit")
+        with zipfile.ZipFile(io.BytesIO(content)) as archive:
             names = archive.namelist()
             if len(names) != 1:
                 raise ValueError(f"artifact {artifact_id} holds {len(names)} files, expected one")
+            if archive.getinfo(names[0]).file_size > max_bytes:
+                raise ValueError("artifact exceeds uncompressed byte limit")
             return archive.read(names[0])
 
     def read_artifacts(self, artifact_ids: list[int]) -> list[bytes | Exception]:

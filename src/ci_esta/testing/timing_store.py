@@ -29,6 +29,19 @@ def observation_stamp(observed_at: datetime, run_id: int = 0, attempt: int = 0) 
     return f"{observed_at.astimezone(timezone.utc):%Y-%m-%dT%H:%M:%S.%fZ}/{run_id:020d}/{attempt:010d}"
 
 
+class ImportedTimingSource(BaseModel):
+    """Audit attribution; never a validation receipt."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    pull_request: int
+    head_sha: str
+    merge_commit_sha: str
+    run_id: int
+    attempt: int
+    workflow: str
+    artifact_ids: set[int]
+
+
 class TimingHistory(BaseModel):
     """One environment's checkpoint. Inventory ordering is independent of download order."""
 
@@ -45,6 +58,7 @@ class TimingHistory(BaseModel):
     covered_artifact_ids: set[int] = Field(default_factory=set)
     producer_run_id: int = 0
     producer_attempt: int = 0
+    imports: dict[str, ImportedTimingSource] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def valid_measurements(self) -> Self:
@@ -86,7 +100,12 @@ def combine_histories(states: list[TimingHistory], key: str, now: datetime) -> T
     result.observations = {}
     result.removed_files = _reconcile_removals(states)
     result.covered_artifact_ids = set().union(*(state.covered_artifact_ids for state in states))
+    result.imports = {}
     for state in states:
+        for identity, source in state.imports.items():
+            if identity in result.imports and result.imports[identity] != source:
+                raise ValueError("conflicting provenance for one immutable timing import")
+            result.imports[identity] = source
         by_stamp: dict[str, dict[str, float]] = {}
         for node, value in state.observations.items():
             by_stamp.setdefault(value.stamp, {})[node] = value.seconds

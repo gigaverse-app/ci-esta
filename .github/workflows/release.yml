@@ -31,7 +31,7 @@ jobs:
       contents: read
       actions: read
       checks: read
-      pull-requests: read
+      pull-requests: write
   publish:
     needs: checks
     runs-on: ubuntu-latest

@@ -39,7 +39,14 @@ def test_runtime_commands_have_selection_and_failure_fallback():
                 if not any(marker in command for marker in RUNTIME):
                     continue
                 admission = job.get("if", "") + " " + step.get("if", "")
-                assert "needs." in admission and "result != 'success'" in admission, (path.name, name, command)
+                if name == "quint":
+                    assert not job.get("needs"), "contract must remain independent of unrelated validation failures"
+                    assert "steps.selection.outcome != 'success'" in admission
+                    assert "!cancelled()" in admission
+                    assert any(item.get("id") == "selection" and item.get("uses") == "./actions/plan-work"
+                               for item in job["steps"])
+                else:
+                    assert "needs." in admission and "result != 'success'" in admission, (path.name, name, command)
                 assert "lanes" in admission, (path.name, name, command)
 
 

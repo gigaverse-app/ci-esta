@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "name": "merged-pr-evidence",
+  "description": "Only the final green merged PR validation supplies shared timing history, preserving late-report and crash recovery.",
+  "module": "merged_pr_contract",
+  "model": "contract.qnt",
+  "invariant": "safety",
+  "actions": {
+    "init": "New HTTP boundary and real collector/history",
+    "push": "GitHub changes PR head",
+    "start": "GitHub admits a producer run",
+    "passGate": "GitHub records successful gate completion",
+    "finish": "GitHub completes producer",
+    "upload": "GitHub exposes measured-only artifact",
+    "expire": "GitHub expires artifact",
+    "closePR": "GitHub closes without merging",
+    "merge": "GitHub records merge cutoff",
+    "stage": "MergedPRTimingCollector.stage",
+    "publish": "publish_promotion",
+    "crash": "Discard local staging; keep published history",
+    "inspect": "Read staged source and published observations without mutation"
+  },
+  "witnesses": ["contractRecoveryTest", "contractOpenTest", "contractLastTest", "contractInvalidTest"],
+  "mutants": [
+    {"name": "open-admission", "description": "Admit an unmerged PR as though it merged after validation"},
+    {"name": "older-green", "description": "Select the oldest successful run instead of the last admitted run"},
+    {"name": "dropped-publication", "description": "Lose the admitted observation during history publication"}
+  ],
+  "bounds": {"seed": 17, "max_samples": 500, "max_steps": 35, "n_traces": 100},
+  "root": "../..",
+  "sources": ["src/ci_esta/testing/merged_pr_timings.py", "src/ci_esta/testing/timing_store.py", "src/ci_esta/testing/timing_history.py", "src/ci_esta/ci_observability/github.py", "src/ci_esta/ci_observability/models.py"],
+  "attest": {"package": "ci_esta", "source": "src"},
+  "limits": ["One PR, two heads, three run slots; sampled histories contain at most 35 steps.", "HTTP is simulated; GitHub queue-admission ambiguity and partial attempt enumeration have separate integration controls.", "The inherited lifecycle model checks receipt separation abstractly; timing publication never calls the receipt resolver."]
+}

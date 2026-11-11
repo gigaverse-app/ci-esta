@@ -99,9 +99,28 @@ jobs:
 """)
     report = audit(tmp_path)
     assert "history-restore" in {item["id"] for item in report["suggestions"]}
+    assert "merged-pr-timing-promotion" in {item["id"] for item in report["suggestions"]}
     ignored = audit(tmp_path, "--ignore", "history-restore")
     assert "history-restore" not in {item["id"] for item in ignored["suggestions"]}
     assert ignored["actions"] == report["actions"]
+
+
+def test_collector_is_a_shared_writer_and_satisfies_default_promotion_advice(tmp_path):
+    write(tmp_path, ".github/workflows/history.yml", """
+jobs:
+  timings:
+    steps:
+      - uses: gigaverse-app/ci-esta/actions/restore-test-timings@v1
+        with:
+          history-key: unit
+      - uses: gigaverse-app/ci-esta/actions/promote-merged-pr-timings@v1
+        with:
+          history-key: unit
+""")
+    report = audit(tmp_path)
+    assert report["retention"] == "configured; verify lane keys and trusted writers"
+    assert not {"history-writer", "merged-pr-timing-promotion"}.intersection(
+        item["id"] for item in report["suggestions"])
 
 
 def test_invalid_yaml_and_missing_local_action_are_reported_as_unknown(tmp_path):

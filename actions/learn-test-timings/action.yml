@@ -13,6 +13,15 @@ inputs:
   history-key:
     description: Opt in with a stable environment identity, e.g. unit-linux-py314. Empty preserves replacement behavior.
     default: ''
+  fresh-reports:
+    description: Declare every input report was measured in this run attempt. Enables observed-only manifests for merged PR promotion. Never set for retained XML from earlier attempts.
+    default: 'false'
+  measurement-shard:
+    description: Stable shard name in the collector's expected-shards map. Shards must cover disjoint complete files.
+    default: all
+  measurement-report-count:
+    description: Exact expected JUnit file count in this shard; missing reports fail publication.
+    default: '1'
   complete-files:
     description: Declare that reports cover every case in each observed file within this lane. Required with history-key.
     default: 'false'
@@ -46,12 +55,23 @@ runs:
         INPUT_JUNIT_PATTERN: ${{ inputs.junit-pattern }}
         INPUT_TIMING_OUTPUT: ${{ inputs.output }}
         INPUT_HISTORY_KEY: ${{ inputs.history-key }}
+        INPUT_FRESH_REPORTS: ${{ inputs.fresh-reports }}
+        INPUT_MEASUREMENT_SHARD: ${{ inputs.measurement-shard }}
+        INPUT_MEASUREMENT_REPORT_COUNT: ${{ inputs.measurement-report-count }}
         INPUT_COMPLETE_FILES: ${{ inputs.complete-files }}
         INPUT_HISTORY_PUBLISH: ${{ inputs.history-publish }}
         INPUT_HISTORY_BRANCH: ${{ inputs.history-branch }}
         INPUT_HISTORY_MAX_DOWNLOADS: ${{ inputs.history-max-downloads }}
         GH_TOKEN: ${{ inputs.github-token }}
       run: bash "$SHARED_ACTION_PATH/../../scripts/ci/timing-runtime.sh" ci_esta.testing.timing_feedback
+    - name: Retain observed-only measurements for promotion after merge
+      if: steps.learn.outputs.measurement-path != ''
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.learn.outputs.measurement-name }}
+        path: ${{ steps.learn.outputs.measurement-path }}
+        if-no-files-found: error
+        retention-days: 21
     - name: Publish independent timing checkpoint
       if: steps.learn.outputs.publish == 'true'
       uses: actions/upload-artifact@v7

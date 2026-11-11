@@ -148,6 +148,28 @@ class GitHubPullRequestV1(BaseModel):
     number: int
 
 
+class GitHubPRRepositoryV1(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="ignore")
+    full_name: str
+
+
+class GitHubPRRefV1(BaseModel):
+    model_config = ConfigDict(frozen=True, extra="ignore")
+    ref: str
+    sha: str
+    repo: GitHubPRRepositoryV1 | None
+
+
+class GitHubPRDetailsV1(GitHubPullRequestV1):
+    """Authoritative pull detail, rather than the sparse association on a run."""
+
+    merged_at: datetime | None = None
+    merge_commit_sha: str | None = None
+    updated_at: datetime
+    head: GitHubPRRefV1
+    base: GitHubPRRefV1
+
+
 class GitHubRunJobsV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
