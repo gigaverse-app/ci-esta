@@ -1,5 +1,10 @@
 # Learn from tests that already run
 
+The proposed default for learning from merged PRs is specified in the
+[merged-PR evidence state machine](merged-pr-evidence.md). It is an executable
+design, not yet a supported publication mode; the current contracts below remain
+in effect until the collector and its hosted verification ship.
+
 Keep the JUnit report from a successful test lane, then use its file costs to
 balance the next run. Timing data only affects placement. It never proves that
 a test passed on the current commit and never authorizes omitting a file.
