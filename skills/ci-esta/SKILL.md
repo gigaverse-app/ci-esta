@@ -145,6 +145,15 @@ next steps with the exact `gh run list` and `ci-esta report` commands. It reads 
 Its first line reports `timing retention`: a `history-key` keeps learned test timings between runs for
 timing-balanced pytest shards. `no shared history-key found` is normal; nothing in this procedure needs one.
 
+When adopting shared timing history, default to the last green validation of a merged PR.
+Follow [merged-PR timing promotion](https://ci-esta.readthedocs.io/en/latest/docs/merged-pr-evidence/):
+retain observed-only manifests, collect after merge and producer completion, and include scheduled recovery.
+Working or abandoned PRs never update shared history. Do not rerun tests on every main push merely to learn
+their timings. Preserve source run/attempt timestamps, exact expected shards and the complete-file contract;
+never import a duration snapshot containing inherited history. Keep full checkpoints for unobserved files,
+and prove hosted publication followed by restoration under an experimental key before removing an existing
+learning path. Uncertain/partial rerun provenance retains the old baseline; timing data never grants test reuse.
+
 *Check:* the main workflow and `GATE` are identified by the rule in step 1. With a required check, it is `GATE`
 even when the gate candidate differs. Without one, `GATE` is the gate candidate, or `Validation gate` when the
 output says `aggregate gate: none found`.

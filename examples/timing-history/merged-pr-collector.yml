@@ -1,0 +1,56 @@
+# Copy as .github/workflows/ci-esta-timing-history.yml, then set the producer
+# workflow display name, filename, gate names, environment and shard counts.
+name: Shared test timing history
+on:
+  push:
+    branches: [main]
+  workflow_run:
+    workflows: [Tests]
+    types: [completed]
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      pull-request:
+        description: Optional merged PR number for targeted retry; zero scans seven days.
+        default: '0'
+      source-run:
+        description: Completed producer run ID supplied by the completion observer.
+        default: '0'
+
+permissions:
+  contents: read
+
+jobs:
+  request-collection:
+    # The trusted default-branch observer dispatches a supported history producer.
+    # Never check out or execute code from workflow_run.head_sha.
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Request collection after reporting finishes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          SOURCE_RUN: ${{ github.event.workflow_run.id }}
+        run: gh workflow run ci-esta-timing-history.yml --ref "$DEFAULT_BRANCH" -f source-run="$SOURCE_RUN"
+  collect:
+    if: github.event_name != 'workflow_run' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: gigaverse-app/ci-esta/actions/promote-merged-pr-timings@v1
+        with:
+          producer-workflow: tests.yml
+          required-gates: '["Validation gate"]'
+          history-key: unit-linux-py314
+          expected-shards: '{"all":1}'
+          pull-request: ${{ inputs.pull-request || '0' }}
+          source-run: ${{ inputs.source-run || '0' }}

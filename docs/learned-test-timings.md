@@ -1,9 +1,10 @@
 # Learn from tests that already run
 
-The proposed default for learning from merged PRs is specified in the
-[merged-PR evidence state machine](merged-pr-evidence.md). It is an executable
-design, not yet a supported publication mode; the current contracts below remain
-in effect until the collector and its hosted verification ship.
+For new shared-history adoption, use the
+[merged-PR collector](merged-pr-evidence.md): the last green validation of a merged
+PR supplies fresh observations after merge. Main-push tests are unnecessary merely
+to refresh timings. Keep scheduled full checkpoints for files ordinary PRs do not
+exercise. Existing workflows remain opt-in and unchanged until explicitly migrated.
 
 Keep the JUnit report from a successful test lane, then use its file costs to
 balance the next run. Timing data only affects placement. It never proves that
@@ -65,6 +66,8 @@ steps:
       output: .test_durations
       history-key: unit-linux-py314
       complete-files: 'true'
+      fresh-reports: 'true'
+      measurement-report-count: '1'
 ```
 
 `complete-files` declares that the reports include every case belonging to each
@@ -73,6 +76,9 @@ supported. Ad hoc `-k`, changing marker filters, node-level subsets, fail-fast
 reports and missing shards cannot satisfy this contract. Validate completion
 before learning; JUnit cannot establish which cases were omitted. Aggregate
 all disjoint shard reports into one publisher per history key per run.
+For the default merged-PR path, add the [collector workflow](merged-pr-evidence.md#adopt-the-default).
+The `fresh-reports` declaration requires every report to have been measured in
+this attempt; it must be false for retained reports from partial reruns.
 
 For separate planning and matrix jobs, restore once in the planner and pass that
 exact duration file to every worker as an artifact. Independently restoring the

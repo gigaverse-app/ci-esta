@@ -1,0 +1,65 @@
+name: Promote merged PR test timings
+description: Import only the last green merged PR validation into trusted shared scheduling history. Never runs tests or issues test receipts.
+inputs:
+  producer-workflow:
+    description: Producer workflow filename, including .yml or .yaml.
+    required: true
+  required-gates:
+    description: JSON array of exact producer job names that must have passed before merge.
+    required: true
+  history-key:
+    description: Stable environment key shared with learn/restore-test-timings.
+    required: true
+  expected-shards:
+    description: JSON map of shard name to exact JUnit report count; all shards must exist in the sealed attempt.
+    default: '{"all":1}'
+  pull-request:
+    description: Optional PR number for targeted retry. Zero scans the recovery window.
+    default: '0'
+  source-run:
+    description: Optional completed producer run ID from the observer. Resolves merged PRs by commit association, never by an often-empty run pull_requests array.
+    default: '0'
+  lookback-days:
+    description: Recovery window for merged PRs; 1-21 days. Existing baseline survives unavailable evidence.
+    default: '7'
+  history-branch:
+    description: Trusted branch. Defaults to repository default branch.
+    default: ''
+  history-max-downloads:
+    description: Maximum uncovered history checkpoints; never truncate silently.
+    default: '20'
+  github-token:
+    description: Token with actions read and pull-requests read permissions.
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - uses: astral-sh/setup-uv@v10.0.1
+      with:
+        enable-cache: false
+    - name: Validate merged PR sources and import observed measurements
+      id: promote
+      shell: bash
+      env:
+        SHARED_ACTION_PATH: ${{ github.action_path }}
+        PYTHONPATH: ${{ github.action_path }}/../../src
+        GH_TOKEN: ${{ inputs.github-token }}
+        INPUT_PRODUCER_WORKFLOW: ${{ inputs.producer-workflow }}
+        INPUT_REQUIRED_GATES: ${{ inputs.required-gates }}
+        INPUT_HISTORY_KEY: ${{ inputs.history-key }}
+        INPUT_EXPECTED_SHARDS: ${{ inputs.expected-shards }}
+        INPUT_PULL_REQUEST: ${{ inputs.pull-request }}
+        INPUT_SOURCE_RUN: ${{ inputs.source-run }}
+        INPUT_LOOKBACK_DAYS: ${{ inputs.lookback-days }}
+        INPUT_HISTORY_BRANCH: ${{ inputs.history-branch }}
+        INPUT_HISTORY_MAX_DOWNLOADS: ${{ inputs.history-max-downloads }}
+      run: bash "$SHARED_ACTION_PATH/../../scripts/ci/timing-runtime.sh" ci_esta.testing.promote_timings
+    - name: Publish independent trusted timing checkpoint
+      if: steps.promote.outputs.publish == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.promote.outputs.history-name }}
+        path: ${{ steps.promote.outputs.history-path }}
+        overwrite: true
+        retention-days: 90
+        if-no-files-found: error

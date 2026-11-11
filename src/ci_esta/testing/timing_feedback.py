@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 
 from ci_esta.testing.junit import learn_junit_timings, write_learned_timings
+from ci_esta.testing.merged_pr_timings import TimingMeasurements, measurement_name
 from ci_esta.testing.timing_artifacts import action_histories, artifact_name, github_client, history_branch
 from ci_esta.testing.timing_store import learn_with_history
 
@@ -17,7 +18,8 @@ def main() -> None:
     if key := os.environ.get("INPUT_HISTORY_KEY"):
         client = github_client()
         try:
-            run = client.get_run(int(os.environ["GITHUB_RUN_ID"]))
+            run = client.get_run(int(os.environ["GITHUB_RUN_ID"]),
+                                 run_attempt=int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")))
             history = Path(os.environ["RUNNER_TEMP"]) / f"{artifact_name(key)}-{run.id}-{run.run_attempt}.json"
             learned = learn_with_history(
                 reports, history=history, key=key, output=output,
@@ -27,6 +29,23 @@ def main() -> None:
                 observed_at=run.created_at,
                 snapshots=action_histories(client, key), run_id=run.id, attempt=run.run_attempt,
             )
+            # This declaration is deliberately explicit: a reporter that downloaded
+            # older attempts' XML must not manufacture a fresh producer manifest.
+            if os.environ.get("INPUT_FRESH_REPORTS") == "true":
+                expected = int(os.environ.get("INPUT_MEASUREMENT_REPORT_COUNT", "1"))
+                if expected != len(reports) or learned.unmapped_cases:
+                    raise ValueError("observed-only publication requires all expected reports and mapped cases")
+                measured = TimingMeasurements(
+                    key=key, shard=os.environ.get("INPUT_MEASUREMENT_SHARD", "all"),
+                    run_id=run.id, attempt=run.run_attempt, head_sha=run.head_sha,
+                    complete_files=True,  # learn_with_history already enforces the caller's declaration.
+                    report_count=expected, observed_at=run.created_at, durations=learned.durations,
+                )
+                name = measurement_name(key, measured.shard, run.id, run.run_attempt)
+                path = Path(os.environ["RUNNER_TEMP"]) / f"{name}.json"
+                path.write_text(measured.model_dump_json(), encoding="utf-8")
+                with Path(os.environ["GITHUB_OUTPUT"]).open("a") as stream:
+                    stream.write(f"measurement-path={path}\nmeasurement-name={name}\n")
             publish = (
                 os.environ.get("INPUT_HISTORY_PUBLISH", "true") == "true"
                 and run.event in {"push", "schedule", "workflow_dispatch"}

@@ -54,7 +54,8 @@ class ArtifactServer:
                 for index, (id, state) in enumerate(self.states.items())
             ]})
         if "/actions/runs/" in path:
-            return httpx.Response(200, json=self.runs[int(path.split("/")[-1])])
+            parts = path.split("/")
+            return httpx.Response(200, json=self.runs[int(parts[parts.index("runs") + 1])])
         if path.endswith("/zip"):
             id = int(path.split("/")[-2])
             self.downloads.append(id)
@@ -144,6 +145,7 @@ def test_action_learns_partial_run_and_gates_publication(tmp_path, monkeypatch, 
     for key, value in {
         "INPUT_JUNIT_PATTERN": "junit.xml", "INPUT_TIMING_OUTPUT": "costs.json",
         "INPUT_HISTORY_KEY": "unit", "INPUT_COMPLETE_FILES": "true", "INPUT_HISTORY_BRANCH": "main",
+        "INPUT_FRESH_REPORTS": "true",
         "GITHUB_RUN_ID": "2", "GITHUB_REF": f"refs/heads/{branch}", "GITHUB_OUTPUT": "output",
         "RUNNER_TEMP": str(tmp_path),
     }.items():
@@ -153,6 +155,10 @@ def test_action_learns_partial_run_and_gates_publication(tmp_path, monkeypatch, 
         {"test_a.py": 10} if replay else {"test_a.py": 10, "test_b.py": 20}
     )
     assert f"publish={str(publish).lower()}" in Path("output").read_text()
+    outputs = dict(line.split("=", 1) for line in Path("output").read_text().splitlines())
+    measured = json.loads(Path(outputs["measurement-path"]).read_text())
+    assert measured["durations"] == {file: 20}
+    assert measured["observed_at"] == server.runs[2]["created_at"]
 
 
 def test_restore_keeps_unobserved_seed_and_replaces_observed_nodes(tmp_path, monkeypatch):

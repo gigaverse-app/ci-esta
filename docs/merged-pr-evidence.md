@@ -1,14 +1,95 @@
 # Learn from the last validation of a merged PR
 
-**Design contract; the collector and adoption default are not implemented yet.**
-The default adoption should promote evidence from the final validation of a green,
+The default adoption promotes timing evidence from the final validation of a green,
 merged PR. A working branch, an earlier PR revision, and a PR closed without merge
 must never change shared baseline history. Running Python tests again on every
 main push is unnecessary for learning those observations.
 
 The executable design is [merged_pr_evidence.qnt](../specs/merged_pr_evidence.qnt)
-and [timing_publication.qnt](../specs/timing_publication.qnt). CI checks the model;
-it does not publish production evidence or change consumer workflows.
+and [timing_publication.qnt](../specs/timing_publication.qnt). The
+[pytest-quint-connect contract](../contracts/merged_pr/contract.qnt) imports the
+lifecycle model and replays histories through the real Python collector, HTTP
+adapter, artifact parser and timing store. Adoption is explicit; installing a
+new CI-esta version does not edit existing workflows.
+
+## Adopt the default
+
+Use the same environment key in `restore-test-timings`, the producer below, and
+`promote-merged-pr-timings`. The latter is the lightweight shared-history writer.
+Keep existing scheduled full checkpoints. All examples use `@v1`; adopt these new
+inputs only after this implementation is released on that major tag.
+
+After successful tests in the producer workflow:
+
+```yaml
+- name: "PR evidence #${{ github.event.pull_request.number }} head ${{ github.event.pull_request.head.sha }}"
+  if: github.event_name == 'pull_request'
+  run: 'true'
+- uses: gigaverse-app/ci-esta/actions/learn-test-timings@v1
+  with:
+    junit-pattern: junit.xml
+    artifact-name: unit-timings-${{ github.run_id }}-${{ github.run_attempt }}
+    history-key: unit-linux-py314
+    complete-files: 'true'
+    fresh-reports: 'true'
+    measurement-shard: all
+    measurement-report-count: '1'
+```
+
+The ownership step must be in a top-level job; reuse an existing identical marker.
+`fresh-reports` declares that **every XML input was measured in this attempt**.
+Leave it false when aggregating retained XML from earlier attempts. For matrix
+jobs, publish one manifest per named shard and configure every shard/report count
+in the collector's `expected-shards` map. Shards must own disjoint complete files.
+Changing marker filters or running arbitrary case subsets needs a different lane
+contract, not a whole-file declaration. Keep observed manifest publication outside
+required validation dependencies if timing-report failure should not block merging.
+
+Copy [the collector workflow](../examples/timing-history/merged-pr-collector.yml)
+as `.github/workflows/ci-esta-timing-history.yml`. Set the producer's display name
+under `workflow_run`, its filename, exact validation gate job names, environment
+key and expected shards. Every configured gate must succeed before merge. The
+producer itself must eventually complete successfully. These are explicitly
+configured gates in that producer workflow; CI-esta does not infer all repository
+branch-protection rules or cross-workflow required checks.
+
+The workflow collects the PR associated with the pushed merge commit. A trusted
+completion observer passes its producer run ID to a manual collection, covering
+merge-before-reporting. Neither event rescans every recent PR on every push.
+An hourly catch-up recovers missed notifications for seven days; targeted manual
+retry accepts a PR number. Catch-up skips already imported immutable sources.
+Only the completion dispatcher needs `actions: write`; collection needs read
+access to actions, PRs and contents. It never checks out PR code. Shared history
+readers continue accepting successful trusted push/schedule/dispatch uploaders.
+
+The collector parses at most 10 MB per artifact, verifies uploader repository,
+exact source run/attempt/head, workflow, gate completion and expected shard counts,
+and reads observed-only costs. A missing shard retains the old baseline and is
+retried. Malformed or uncertain evidence produces an unavailable/rejected outcome.
+Different environments cannot be combined. Explicit targeted retries still read
+the original immutable source; publication time never replaces measurement time.
+
+### Conservative boundaries
+
+GitHub exposes a rerun's start timestamp, not durable queue admission. If an
+attempt starts after merge, the collector cannot distinguish a post-merge rerun
+from one queued before merge. Before the first successful import it declines that
+source instead of selecting an older green attempt. Equal merge/admission/gate
+timestamps are also ambiguous at GitHub's timestamp precision. Already imported
+sources remain unchanged. Deleted attempt records and incomplete enumeration
+similarly retain the baseline. These are missed learning opportunities, not reasons
+to rerun tests or block a PR.
+
+Partial reruns are supported only when every expected shard supplies fresh
+measurements for the sealed attempt. This version does not import retained
+cross-attempt XML; an explicit per-shard producer provenance format is needed
+before that can be supported safely. Fork producers are excluded.
+
+Provenance is retained in each checkpoint's `imports` map, separately from its
+uploader. Publication is logically idempotent, but duplicate physical uploads are
+possible. Concurrent checkpoints use the existing reconciliation contract.
+Expired-only artifacts cannot be recovered. Source artifacts last 21 days and
+history checkpoints 90 days, subject to repository retention limits.
 
 ## The default and the meaning of last
 
@@ -59,8 +140,8 @@ Do not rerun tests automatically just to manufacture timing history.
 
 | Transition | Required evidence | Shared effect |
 | --- | --- | --- |
-| Working -> Sealed | Authoritative merged PR, destination, merge commit, final head, complete producer/attempt enumeration at merge cutoff | Persist source selection; no baseline update |
-| Sealed -> Waiting | Green final gates; matching latest producer still finishing | Durable pending item |
+| Working -> Sealed | Authoritative merged PR, destination, merge commit, final head, complete producer/attempt enumeration at merge cutoff | Reconstruct source selection; no baseline update |
+| Sealed -> Waiting | Green final gates; matching latest producer still finishing | GitHub merge/attempt records remain the durable pending inventory |
 | Waiting -> Validated | Successful exact producer, verified artifact IDs, schema/environment/whole-file completion | Parse observed measurements only |
 | Validated -> Published | Same sealed source; trusted collector and idempotency key | Immutable checkpoint |
 | Published -> Published | Repeated event or importer retry | No extra logical contribution |
@@ -111,15 +192,15 @@ measured merely because the aggregate reporter ran again.
 
 The live spike found a successful merged PR run whose `pull_requests` array was
 empty. Reuse CI-esta's merged-PR/ownership resolution rather than relying on that
-array or inventing a second association policy. Resolve the merge commit's PR,
-then verify final head and the configured producer's ownership/completion data.
+array. Read the authoritative merged PR record, then verify its final head and
+the configured producer's existing `PR evidence #... head ...` ownership marker.
 Head equality alone does not establish which PR/workflow produced an artifact.
 
 ## Events, recovery and trust
 
 Merge notification and producer completion both request reconciliation. Neither
 event payload directly authorizes publication. Read current authoritative state,
-apply the merge-time cutoff, and process the durable pending item. A bounded
+apply the merge-time cutoff, and reconstruct pending work from GitHub records. A bounded
 catch-up pass finds missed notifications, including a merge that occurred before
 the reporter finished. Pagination or an API failure must not silently exclude a
 newer attempt and select an older one. If the merge-time attempt cannot be
@@ -191,23 +272,34 @@ state enumeration.
 Local verification of this design enumerated 917,140 lifecycle states, nine
 publication states and five recovery states. All 17 scenario tests passed.
 These are results for the stated finite abstractions, not proof of an arbitrary
-number of PRs or of an unimplemented Python collector.
+number of PRs. The separate model-connected contract checks the Python implementation
+against sampled and named histories through an HTTP-boundary fixture.
 
-## Implementation sequence
+## Implementation verification and rollout
 
-1. Implement source sealing/admission in CI-esta using existing ownership and
-   receipt machinery. Preserve immutable per-attempt records needed at merge.
-2. Implement observed-only import, separate source/uploader identity, durable
-   pending work, completion/merge reconciliation and catch-up.
-3. Connect model traces to the real Python state machine using
-   pytest-quint-connect; exercise real API-boundary recordings, partial reruns,
-   fork/ownership rejection, missing shards and unavailable APIs.
-4. Publish under an experimental history key and verify a later real run reads
-   it. Exercise merge-before-reporting and retry-after-upload in hosted Actions.
-5. Make merged-PR promotion the default adoption path, including generated
-   workflow examples, adoption checks and migration documentation. Preserve
-   scheduled full checkpoints and exact receipt requirements. Only then remove
-   consumer main-push test executions whose remaining purpose was learning.
+```bash
+UV_PROJECT_ENVIRONMENT=.venv-contracts uv sync --locked --no-default-groups --group contracts
+UV_PROJECT_ENVIRONMENT=.venv-contracts uv run --no-sync pytest-quint-connect codegen contracts/merged_pr/quint-connect.json --check
+UV_PROJECT_ENVIRONMENT=.venv-contracts uv run --no-sync pytest -c contracts/quint.ini contracts --quint-require-complete
+```
 
-No hosted publication, billing improvement, consumer rollout or implementation
-conformance is claimed by this model-only change.
+The contract checks 100 sampled histories and four named histories, plus three
+mutants and completeness. Mutants admit an open PR, fall back to an older green
+run, or drop publication. At the committed seed, the latter two are caught by
+named histories only. The driver observes actual staging and stored costs; it
+does not calculate expected admission. Ordinary integration tests cover concrete
+API/schema/ownership failures, trusted uploader admission, producer manifests and
+collector-to-reader round trips. The finite model still abstracts external API
+availability and receipt validation.
+
+The live read-only spike selected gigaverse-ai PR #3367's actual source run
+42994425766, attempt 1, through the new implementation. Its gate/ownership checks
+passed; promotion correctly remained pending because that older run has no new
+observed-only manifest. It did not import the inherited duration snapshot.
+
+Before removing consumer main-push tests, publish this implementation, use an
+experimental history key for one real merged producer PR, and verify a subsequent
+hosted run restores the checkpoint. That hosted publish/restore journey and
+consumer rollout are still required; local HTTP-boundary tests do not establish
+GitHub permissions or artifact behavior in production. No billing savings are
+claimed. Review the Quint specification as the statement of intended policy.

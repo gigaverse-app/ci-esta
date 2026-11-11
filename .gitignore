@@ -14,4 +14,6 @@ ci-observability.prom
 # Built documentation
 /site/
 /.venv-docs/
+/.venv-contracts/
+**/.artifacts/
 /_apalache-out/

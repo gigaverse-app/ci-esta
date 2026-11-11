@@ -151,7 +151,7 @@ jobs:
 
   gate:
     name: Validation gate
-    needs: [plan, tests, compat, contracts, quality]
+    needs: [plan, tests, compat, contracts, quality, quint]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -160,7 +160,46 @@ jobs:
         with:
           needs: ${{ toJSON(needs) }}
           required: >-
-            {"plan":true,"quality":true,"tests":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').tests) }},"compat":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').compat) }},"contracts":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').contracts) }}}
+            {"plan":true,"quality":true,"quint":true,"tests":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').tests) }},"compat":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').compat) }},"contracts":${{ needs.plan.result != 'success' || (toJSON(fromJSON(needs.plan.outputs.lanes || '{}').tests) != 'false' && !fromJSON(needs.plan.outputs.reused || '{}').contracts) }}}
+
+  quint:
+    name: Merged PR evidence contract
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: ./actions/collect-pr-changes
+      # Independent planning: an unrelated failed job must not hide this contract.
+      - uses: ./actions/plan-work
+        id: selection
+        with:
+          config: .github/test-lanes.json
+          artifact-name: quint-lane-selection
+      - uses: actions/setup-node@v7
+        if: ${{ !cancelled() && (steps.selection.outcome != 'success' || fromJSON(steps.selection.outputs.lanes).quint) }}
+        with:
+          node-version: '24'
+      - uses: ./actions/setup-cached-uv
+        if: ${{ !cancelled() && (steps.selection.outcome != 'success' || fromJSON(steps.selection.outputs.lanes).quint) }}
+        with:
+          python-version: '3.14'
+          sync-args: '--no-default-groups --group contracts'
+      - name: Verify generated driver
+        if: ${{ !cancelled() && (steps.selection.outcome != 'success' || fromJSON(steps.selection.outputs.lanes).quint) }}
+        run: uv run --no-sync pytest-quint-connect codegen contracts/merged_pr/quint-connect.json --check
+      - name: Replay model histories against the collector
+        if: ${{ !cancelled() && (steps.selection.outcome != 'success' || fromJSON(steps.selection.outputs.lanes).quint) }}
+        env:
+          PYTHONPATH: src:.
+        run: uv run --no-sync pytest -c contracts/quint.ini contracts --quint-require-complete --junitxml=contracts/.artifacts/quint-connect/junit.xml
+      - uses: gigaverse-app/pytest-quint-connect/report@v1
+        if: ${{ !cancelled() && steps.selection.outputs.lanes != '' && fromJSON(steps.selection.outputs.lanes).quint }}
+        with:
+          share-totals: 'false'
 
   contracts:
     name: Runtime contracts

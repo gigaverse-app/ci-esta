@@ -339,6 +339,10 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
     if learned and not restored and (ci("plan-pytest-shards", "plan-runner-pools") or file_selectors):
         advise("timing-feedback", "Timing collection and file planning are present, but no shared restore was found. Inspect existing caches. Opt into retained history only for compatible complete-file observations, then restore before planning.", [item.source for item in learned])
     writers = [item for item in learned if item.inputs.get("history-key")]
+    promoters = ci("promote-merged-pr-timings")
+    if writers and not promoters:
+        advise("merged-pr-timing-promotion", "Use the last green merged PR validation as the default source of shared timings. Publish observed-only manifests, then collect on merge and producer completion with scheduled recovery. Main-push tests are not needed merely to refresh timings. Keep scheduled full validation for unobserved files.", [item.source for item in writers])
+    writers = [*writers, *(item for item in promoters if item.inputs.get("history-key"))]
     readers = [item for item in restored if item.inputs.get("history-key")]
     if writers or readers:
         report.retention = "configured; verify lane keys and trusted writers"
