@@ -17,6 +17,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validato
 
 from ci_esta.ci_observability.github import GitHubActionsClient
 from ci_esta.ci_observability.models import GitHubPRDetailsV1, GitHubRunV1
+from ci_esta.measurements import MeasurementIdentity
 from ci_esta.testing.timing_history import merge_observations
 from ci_esta.testing.timing_store import ImportedTimingSource, TimingHistory, observation_stamp
 
@@ -40,6 +41,8 @@ are deliberately not accepted by this version of the wire contract.
     report_count: int = Field(gt=0)
     observed_at: AwareDatetime
     durations: dict[str, float] = Field(min_length=1)
+    origin: MeasurementIdentity | None = None
+    pull_request: int | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
     def validate_costs(self) -> Self:
@@ -57,18 +60,26 @@ def measurement_name(key: str, shard: str, run_id: int, attempt: int) -> str:
     return f"ci-esta-measured-v1-{identity}-{run_id}-{attempt}"
 
 
+def automatic_name(key: str, publisher: str = "") -> str:
+    prefix = "ci-esta-observed-v1-" + hashlib.sha256(key.encode()).hexdigest()[:32] + "-"
+    return prefix + hashlib.sha256(publisher.encode()).hexdigest()[:32] if publisher else prefix
+
+
 class PromotionPolicy(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     repository: str = Field(pattern=r"^[^/]+/[^/]+$")
     branch: str = "main"
     workflow: str = Field(pattern=r"^[A-Za-z0-9_.-]+\.ya?ml$")
     key: str = Field(min_length=1)
-    gates: set[str] = Field(min_length=1)
+    gates: set[str] = Field(default_factory=set)
+    automatic: bool = False
     # Explicit expected reports per shard prevents an incomplete glob becoming a baseline.
     shards: dict[str, int] = Field(default_factory=lambda: {"all": 1}, min_length=1)
 
     @model_validator(mode="after")
     def positive_counts(self) -> Self:
+        if not self.automatic and not self.gates:
+            raise ValueError("explicit promotion requires configured gates")
         if any(not shard or count < 1 for shard, count in self.shards.items()):
             raise ValueError("each shard needs a name and positive report count")
         return self
@@ -142,15 +153,29 @@ class MergedPRTimingCollector:
         jobs = self.client.list_jobs(source.id, run_attempt=source.run_attempt)
         marker = f"PR evidence #{pr.number} head {pr.head.sha}"
         owned = any(step.name == marker and step.conclusion == "success" for job in jobs for step in job.steps)
-        if not owned:
+        if not self.policy.automatic and not owned:
             return PromotionDecision(status="rejected", reason="missing successful PR ownership marker")
         assert pr.merged_at is not None
+        required_jobs = []
+        if self.policy.automatic:
+            # Without adopter-supplied gate names, require the entire producer
+            # to have finished green before merge. Skipped jobs teach no costs.
+            if source.updated_at is None or source.updated_at >= pr.merged_at:
+                return PromotionDecision(status="rejected", reason="automatic producer completion not proven before merge")
+            if not jobs or any(job.conclusion not in {"success", "skipped"} for job in jobs):
+                return PromotionDecision(status="rejected", reason="automatic producer jobs are not all green")
+            required_jobs = [job for job in jobs if job.conclusion == "success"]
+            if not required_jobs:
+                return PromotionDecision(status="rejected", reason="automatic producer executed no successful job")
         for gate in self.policy.gates:
             gate_jobs = [job for job in jobs if job.name == gate]
-            if (len(gate_jobs) != 1 or gate_jobs[0].conclusion != "success"
-                    or gate_jobs[0].run_attempt != source.run_attempt or gate_jobs[0].completed_at is None
-                    or gate_jobs[0].completed_at >= pr.merged_at):
-                return PromotionDecision(status="rejected", reason=f"gate {gate!r} not proven green before merge")
+            if len(gate_jobs) != 1:
+                return PromotionDecision(status="rejected", reason=f"gate {gate!r} missing or ambiguous")
+            required_jobs.extend(gate_jobs)
+        for job in required_jobs:
+            if (job.conclusion != "success" or job.run_attempt != source.run_attempt
+                    or job.completed_at is None or job.completed_at >= pr.merged_at):
+                return PromotionDecision(status="rejected", reason=f"gate {job.name!r} not proven green before merge")
         if source.status != "completed":
             return PromotionDecision(status="pending", reason="sealed producer still running")
         if source.conclusion != "success":
@@ -159,8 +184,14 @@ class MergedPRTimingCollector:
         measurements: list[TimingMeasurements] = []
         artifact_ids: set[int] = set()
         files: set[str] = set()
-        for shard, report_count in self.policy.shards.items():
-            name = measurement_name(self.policy.key, shard, source.id, source.run_attempt)
+        expected = self.policy.shards
+        if self.policy.automatic:
+            expected = {artifact.name: 0 for artifact in artifacts
+                        if artifact.name.startswith(automatic_name(self.policy.key))}
+        for identifier, report_count in expected.items():
+            shard = identifier
+            name = identifier if self.policy.automatic else measurement_name(
+                self.policy.key, shard, source.id, source.run_attempt)
             shard_artifacts = [artifact for artifact in artifacts if artifact.name == name]
             if not shard_artifacts:
                 return PromotionDecision(status="pending", reason=f"shard {shard!r} unavailable or expired")
@@ -171,6 +202,16 @@ class MergedPRTimingCollector:
             if artifact.workflow_run.id != source.id:
                 raise ValueError("artifact source run mismatch")
             measured = TimingMeasurements.model_validate_json(self.client.read_single_file_artifact(artifact.id))
+            if self.policy.automatic:
+                # Retained artifacts from older attempts are never re-dated or
+                # used as fallback. Only freshly executed complete files teach.
+                if measured.attempt != source.run_attempt:
+                    continue
+                origin = MeasurementIdentity(run_id=source.id, run_attempt=source.run_attempt,
+                                             head_sha=source.head_sha)
+                if measured.origin != origin or measured.pull_request != pr.number:
+                    return PromotionDecision(status="rejected", reason="missing or mismatched pytest execution origin")
+                shard, report_count = measured.shard, measured.report_count
             # Preserve source time. Publication/download time cannot refresh stale data.
             if (measured.key, measured.shard, measured.run_id, measured.attempt, measured.head_sha,
                 measured.report_count, measured.observed_at) != (
@@ -183,6 +224,8 @@ class MergedPRTimingCollector:
             files.update(measured.durations)
             measurements.append(measured)
             artifact_ids.add(artifact.id)
+        if not measurements:
+            return PromotionDecision(status="pending", reason="no fresh complete-file observations")
         identity = f"{self.policy.repository}/{pr.number}/{pr.head.sha}/{source.id}/{source.run_attempt}/{self.policy.key}"
         return PromotionDecision(status="ready", reason="last merged validation admitted", promotion=TimingPromotion(
             identity=identity, pull_request=pr, source=source, measurements=measurements, artifact_ids=artifact_ids,

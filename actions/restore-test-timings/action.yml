@@ -16,6 +16,9 @@ inputs:
   strict:
     description: Fail on inaccessible or invalid history instead of retaining a seed or unknown-cost fallback.
     default: 'false'
+  merged-pr-learning:
+    description: Learn verified complete-file observations from final green merged PR producers while restoring.
+    default: 'true'
   github-token:
     description: Token with actions read permission.
     default: ${{ github.token }}
@@ -34,5 +37,6 @@ runs:
         INPUT_HISTORY_BRANCH: ${{ inputs.history-branch }}
         INPUT_HISTORY_MAX_DOWNLOADS: ${{ inputs.history-max-downloads }}
         INPUT_HISTORY_STRICT: ${{ inputs.strict }}
+        INPUT_MERGED_PR_LEARNING: ${{ inputs.merged-pr-learning }}
         GH_TOKEN: ${{ inputs.github-token }}
       run: bash "$SHARED_ACTION_PATH/../../scripts/ci/timing-runtime.sh" ci_esta.testing.timing_artifacts

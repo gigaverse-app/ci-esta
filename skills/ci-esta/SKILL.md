@@ -147,7 +147,9 @@ timing-balanced pytest shards. `no shared history-key found` is normal; nothing 
 
 When adopting shared timing history, default to the last green validation of a merged PR.
 Follow [merged-PR timing promotion](https://ci-esta.readthedocs.io/en/latest/docs/merged-pr-evidence/):
-retain observed-only manifests, collect after merge and producer completion, and include scheduled recovery.
+upgrade CI-esta in the pytest environment and use the existing learn/restore actions with one history key.
+The default path stamps JUnit at execution and admits merged evidence during restore, without a new workflow.
+Use the explicit collector only for custom gate/shard contracts or immediate durable publication.
 Working or abandoned PRs never update shared history. Do not rerun tests on every main push merely to learn
 their timings. Preserve source run/attempt timestamps, exact expected shards and the complete-file contract;
 never import a duration snapshot containing inherited history. Keep full checkpoints for unobserved files,

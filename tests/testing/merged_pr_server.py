@@ -8,7 +8,8 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 from ci_esta.ci_observability.github import GitHubActionsClient
-from ci_esta.testing.merged_pr_timings import PromotionPolicy, TimingMeasurements, measurement_name
+from ci_esta.measurements import MeasurementIdentity
+from ci_esta.testing.merged_pr_timings import PromotionPolicy, TimingMeasurements, automatic_name, measurement_name
 
 REPOSITORY = "org/repo"
 NOW = datetime(2026, 11, 11, tzinfo=timezone.utc)
@@ -63,16 +64,19 @@ class MergedPRServer:
                                     conclusion=None, completed_at=None)
 
     def finish(self, number, result):
-        self.runs[number].update(status="completed", conclusion=result)
+        self.runs[number].update(status="completed", conclusion=result, updated_at=self.time())
 
     def merge(self):
         self.pr.update(merged_at=self.time(), merge_commit_sha="c" * 40)
 
-    def upload(self, number, artifact="valid"):
+    def upload(self, number, artifact="valid", *, automatic=False):
         run = self.runs[number]
         measured = TimingMeasurements(key="unit", run_id=number, attempt=run["run_attempt"],
                                       head_sha=run["head_sha"], complete_files=True, report_count=1,
-                                      observed_at=run["created_at"], durations={"test_a.py": number})
+                                      observed_at=run["created_at"], durations={"test_a.py": number},
+                                      origin=MeasurementIdentity(run_id=number, run_attempt=run["run_attempt"],
+                                                                 head_sha=run["head_sha"]) if automatic else None,
+                                      pull_request=7 if automatic else None)
         payload = measured.model_dump(mode="json")
         if artifact == "invalid":
             payload["head_sha"] = "f" * 40
@@ -80,6 +84,8 @@ class MergedPRServer:
         self.artifacts[number] = dict(id=number, name=measurement_name("unit", "all", number, run["run_attempt"]),
                                       expired=False, created_at=self.time(),
                                       workflow_run=dict(id=number, repository_id=1, head_repository_id=1))
+        if automatic:
+            self.artifacts[number]["name"] = automatic_name("unit", "file-costs")
 
     def expire(self, number):
         self.artifacts[number]["expired"] = True
@@ -93,6 +99,12 @@ class MergedPRServer:
 
     def handle(self, request):
         path = request.url.path
+        if path.endswith("/actions/artifacts"):
+            name = request.url.params.get("name")
+            return httpx.Response(200, json={"artifacts": [artifact for artifact in self.artifacts.values()
+                                                          if name is None or artifact["name"] == name]})
+        if "/commits/" in path and path.endswith("/pulls"):
+            return httpx.Response(200, json=[{"number": 7}])
         if path.endswith("/pulls/7"):
             return httpx.Response(200, json=self.pr)
         if "/workflows/" in path:

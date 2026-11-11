@@ -399,3 +399,21 @@ def test_release_please_after_main_ci_needs_nothing(tmp_path):
 
 def test_release_please_on_push_without_version_only_reuse_is_fine(tmp_path):
     assert "release-refresh-timing" not in release_suggestions(tmp_path, ON_PUSH, version_only=False)
+
+
+def test_existing_timing_pair_does_not_need_an_additional_collector(tmp_path):
+    write(tmp_path, ".github/workflows/tests.yml", """
+jobs:
+  timings:
+    steps:
+      - uses: gigaverse-app/ci-esta/actions/restore-test-timings@v1
+        with:
+          history-key: unit
+      - uses: gigaverse-app/ci-esta/actions/learn-test-timings@v1
+        with:
+          history-key: unit
+          complete-files: 'true'
+""")
+    report = audit(tmp_path)
+    assert not {"history-writer", "history-restore", "merged-pr-timing-promotion"}.intersection(
+        item["id"] for item in report["suggestions"])

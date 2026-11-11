@@ -19,10 +19,37 @@ import defusedxml.ElementTree as ET
 from defusedxml.common import DefusedXmlException
 from pydantic import BaseModel, ConfigDict, computed_field
 
+from ci_esta.measurements import MeasurementIdentity
 from ci_esta.testing.persistence import write_atomic_text
 from ci_esta.timing import format_duration as format_duration
 
 DEFAULT_CANARY_MAX_FILES = 5
+EXECUTION_PROPERTY = "ci-esta.execution"
+
+
+def junit_report_identity(path: Path) -> MeasurementIdentity | None:
+    """Read execution provenance written by pytest, never infer it from file time.
+
+    Every suite must carry the same identity. Downloading or copying a report
+    preserves this property, so a reporting-only rerun cannot refresh its origin.
+    """
+    root = _parse_junit(path)
+    if root is None:
+        return None
+    identities = []
+    for suite in root.iter("testsuite"):
+        values = [p.get("value", "") for p in suite.findall("./properties/property")
+                  if p.get("name") == EXECUTION_PROPERTY]
+        if len(values) != 1:
+            return None
+        try:
+            identity = MeasurementIdentity.model_validate_json(values[0])
+        except ValueError:
+            return None
+        if not identity.run_id or not identity.head_sha:
+            return None
+        identities.append(identity)
+    return identities[0] if identities and all(item == identities[0] for item in identities) else None
 
 
 class JUnitTimings(BaseModel):

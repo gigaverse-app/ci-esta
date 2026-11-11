@@ -6,7 +6,7 @@ module merged_pr_evidence {
   type Run = { head: int, gate: bool, result: str, artifact: str }
   type State = {
     lifecycle: str, head: int, count: int, runs: int -> Run,
-    sealed: int, sealedHead: int, greenAtMerge: bool,
+    sealed: int, sealedHead: int, greenAtMerge: bool, finishedAtMerge: bool,
     staged: int, validated: Set[int], published: Set[int],
     reuseGranted: bool, matchingInputs: bool
   }
@@ -20,7 +20,7 @@ module merged_pr_evidence {
 
   action init = s' = {
     lifecycle: "open", head: 1, count: 0, runs: SLOTS.mapBy(_ => EMPTY),
-    sealed: 0, sealedHead: 0, greenAtMerge: false,
+    sealed: 0, sealedHead: 0, greenAtMerge: false, finishedAtMerge: false,
     staged: 0, validated: Set(), published: Set(),
     reuseGranted: false, matchingInputs: false
   }
@@ -72,11 +72,16 @@ module merged_pr_evidence {
     s' = s.with("lifecycle", "merged").with("sealed", latest)
       .with("sealedHead", s.head)
       .with("greenAtMerge", if (latest == 0) false else s.runs.get(latest).gate)
+      .with("finishedAtMerge", if (latest == 0) false else s.runs.get(latest).result == "success")
   }
 
   val eligible = s.lifecycle == "merged" and s.greenAtMerge and s.sealed > 0
     and s.runs.get(s.sealed).head == s.sealedHead
     and s.runs.get(s.sealed).result == "success"
+
+  // Automatic discovery has no configured gate names: the entire workflow
+  // must already be successful at merge, not merely its validation gate.
+  val automaticEligible = eligible and s.finishedAtMerge
 
   // Read/validate is separate from publication, exposing retry/crash/expiry races.
   action stage = all {
@@ -126,7 +131,7 @@ module merged_pr_evidence {
     lifecycle: "merged", head: 1, count: 1,
     runs: SLOTS.mapBy(r => if (r == 1)
       { head: 1, gate: true, result: "success", artifact: "valid" } else EMPTY),
-    sealed: 1, sealedHead: 1, greenAtMerge: true,
+    sealed: 1, sealedHead: 1, greenAtMerge: true, finishedAtMerge: true,
     staged: 0, validated: Set(), published: Set(),
     reuseGranted: false, matchingInputs: false
   }

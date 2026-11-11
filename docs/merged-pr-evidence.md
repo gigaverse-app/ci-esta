@@ -1,6 +1,6 @@
 # Learn from the last validation of a merged PR
 
-The default adoption promotes timing evidence from the final validation of a green,
+The default adoption learns timing evidence from the final validation of a green,
 merged PR. A working branch, an earlier PR revision, and a PR closed without merge
 must never change shared baseline history. Running Python tests again on every
 main push is unnecessary for learning those observations.
@@ -9,8 +9,8 @@ The executable design is [merged_pr_evidence.qnt](../contracts/merged_pr/merged_
 and [timing_publication.qnt](../contracts/merged_pr/timing_publication.qnt). The
 [pytest-quint-connect contract](../contracts/merged_pr/contract.qnt) imports the
 lifecycle model and replays histories through the real Python collector, HTTP
-adapter, artifact parser and timing store. Adoption is explicit; installing a
-new CI-esta version does not edit existing workflows.
+adapter, artifact parser and timing store. Existing timing actions support automatic
+learning after a normal version upgrade; they never edit consumer workflows.
 
 All executable Quint files live in `contracts/merged_pr/`. The lifecycle model
 owns source admission; the publication model checks concurrent history updates;
@@ -18,6 +18,50 @@ owns source admission; the publication model checks concurrent history updates;
 the policy rather than maintaining a second copy.
 
 ## Adopt the default
+
+If you already use `learn-test-timings` and `restore-test-timings` with the same
+`history-key` and `complete-files: 'true'`, upgrade CI-esta in the pytest environment
+and use the released `@v1` actions. No collector workflow, gate list, freshness flag,
+shard map or merge dispatcher is required for the automatic path.
+
+1. The installed pytest plugin stamps JUnit with the execution's run, attempt and
+   PR head. It works in ordinary pytest and the xdist controller, makes no network
+   calls, and does nothing outside GitHub Actions.
+2. The existing learn action recognizes matching stamps and retains only measured
+   file costs. Downloaded XML keeps its original identity; a reporting-only rerun
+   cannot manufacture fresh measurements. Unstamped reports keep existing behavior.
+3. At the next existing restore, CI-esta discovers recent observed artifacts and
+   checks the authoritative merged PR, final head and latest attempt. It requires
+   the entire producer workflow and its executed jobs to be successful before merge.
+4. Valid costs overlay retained checkpoints and seeds. Untouched files retain their
+   estimates, original measurement times are preserved, and tests are never rerun
+   merely to learn timings. Open and abandoned PRs contribute nothing.
+
+This is learning at restore time: there is no background writer and no new main-push
+job. Source artifacts last 21 days. Discovery examines the latest 300 repository
+artifacts and at most `history-max-downloads` distinct source runs (20 by default).
+Busy repositories or expired artifacts can miss learning opportunities, so keep
+weekly full checkpoints. This bound does not weaken admission: every selected
+source still enumerates newer attempts and verifies its exact provenance.
+
+The token needs Actions and pull-request read access. Unavailable discovery or
+missing provenance retains existing checkpoints or the seed. Installing the action
+alone does not install the pytest plugin into your test environment. If plugin
+autoload is disabled, enable `ci_esta.testing.pytest_provenance` in your existing
+pytest plugin configuration. Set `merged-pr-learning: 'false'` on the timing actions
+to disable automatic retention/discovery.
+
+The complete-file declaration still matters: validate all expected reports before
+learning, and do not claim whole files for arbitrary case subsets. The automatic
+path admits fresh complete-file observations; it does not infer a missing report
+inventory or certify repository-wide branch-protection rules.
+
+### Explicit collector for advanced workflows
+
+Use the collector below when required gates finish before the reporting workflow,
+when you need publication immediately after merge rather than at the next restore,
+or when you need an explicit expected-shard contract and durable checkpoints.
+
 
 Use the same environment key in `restore-test-timings`, the producer below, and
 `promote-merged-pr-timings`. The latter is the lightweight shared-history writer.
@@ -274,9 +318,8 @@ checker output stays outside the repository. See the [Quint CLI](https://quint.s
 for the distinction between random simulation, bounded checking and TLC's finite
 state enumeration.
 
-Local verification of this design enumerated 917,140 lifecycle states, nine
-publication states and five recovery states. All 17 scenario tests passed.
-These are results for the stated finite abstractions, not proof of an arbitrary
+CI enumerates the lifecycle, publication and recovery state spaces and checks all
+17 scenario tests. These checks cover the stated finite abstractions, not an arbitrary
 number of PRs. The separate model-connected contract checks the Python implementation
 against sampled and named histories through an HTTP-boundary fixture.
 
@@ -288,7 +331,7 @@ UV_PROJECT_ENVIRONMENT=.venv-contracts uv run --no-sync pytest-quint-connect cod
 UV_PROJECT_ENVIRONMENT=.venv-contracts uv run --no-sync pytest -c contracts/quint.ini contracts --quint-require-complete
 ```
 
-The contract checks 100 sampled histories and four named histories, plus three
+The contract checks 100 sampled histories and six named histories, plus three
 mutants and completeness. Mutants admit an open PR, fall back to an older green
 run, or drop publication. At the committed seed, the latter two are caught by
 named histories only. The driver observes actual staging and stored costs; it

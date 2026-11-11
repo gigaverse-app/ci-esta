@@ -353,7 +353,12 @@ class GitHubActionsClient:
                 return statuses
             page += 1
 
-    def list_artifacts(self, name: str | None, run_id: int | None = None) -> list[GitHubArtifactV1]:
+    @property
+    def repository(self) -> str:
+        return self._repository
+
+    def list_artifacts(self, name: str | None, run_id: int | None = None,
+                       *, recent_pages: int | None = None) -> list[GitHubArtifactV1]:
         """Unexpired artifacts called `name`, newest first: one run's, or the whole repository's."""
         path = f"/actions/runs/{run_id}/artifacts" if run_id is not None else "/actions/artifacts"
         artifacts: list[GitHubArtifactV1] = []
@@ -366,7 +371,7 @@ class GitHubActionsClient:
             response.raise_for_status()
             batch = GitHubArtifactsPageV1.model_validate_json(response.content).artifacts
             artifacts.extend(batch)
-            if len(batch) < 100:
+            if len(batch) < 100 or (recent_pages is not None and page >= recent_pages):
                 break
             page += 1
         return sorted(
