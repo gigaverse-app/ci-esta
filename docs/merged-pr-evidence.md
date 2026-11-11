@@ -5,12 +5,17 @@ merged PR. A working branch, an earlier PR revision, and a PR closed without mer
 must never change shared baseline history. Running Python tests again on every
 main push is unnecessary for learning those observations.
 
-The executable design is [merged_pr_evidence.qnt](../specs/merged_pr_evidence.qnt)
-and [timing_publication.qnt](../specs/timing_publication.qnt). The
+The executable design is [merged_pr_evidence.qnt](../contracts/merged_pr/merged_pr_evidence.qnt)
+and [timing_publication.qnt](../contracts/merged_pr/timing_publication.qnt). The
 [pytest-quint-connect contract](../contracts/merged_pr/contract.qnt) imports the
 lifecycle model and replays histories through the real Python collector, HTTP
 adapter, artifact parser and timing store. Adoption is explicit; installing a
 new CI-esta version does not edit existing workflows.
+
+All executable Quint files live in `contracts/merged_pr/`. The lifecycle model
+owns source admission; the publication model checks concurrent history updates;
+`contract.qnt` adapts the lifecycle model for implementation replay. It imports
+the policy rather than maintaining a second copy.
 
 ## Adopt the default
 
@@ -258,7 +263,7 @@ reconciliation. A parser/tooling failure does not count as a counterexample.
 Install Node.js 22+ and Java 21, then run:
 
 ```bash
-python specs/check.py
+python contracts/merged_pr/check.py
 ```
 
 The runner pins Quint 0.33.1 and uses its TLC backend (through Apalache 0.62.4).

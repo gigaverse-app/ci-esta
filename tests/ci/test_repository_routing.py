@@ -95,7 +95,7 @@ def test_documentation_only_commit_selects_no_tests(tmp_path):
         "tests": False, "package": False, "quint": False}
 
 
-@pytest.mark.parametrize("path", ["README.md", "specs/merged_pr_evidence.qnt", "contracts/merged_pr/contract.qnt",
+@pytest.mark.parametrize("path", ["README.md", "contracts/merged_pr/merged_pr_evidence.qnt", "contracts/merged_pr/contract.qnt",
                                   "src/ci_esta/testing/merged_pr_timings.py", "tests/testing/merged_pr_server.py"])
 def test_model_contract_tracks_implementation_and_remote_fixture(tmp_path, path):
     assert lanes_for(tmp_path, path)["quint"] is True

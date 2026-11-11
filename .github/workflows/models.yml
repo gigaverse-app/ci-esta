@@ -2,7 +2,7 @@ name: Evidence lifecycle model
 on:
   pull_request:
     paths:
-      - 'specs/**'
+      - 'contracts/merged_pr/**'
       - '.github/workflows/models.yml'
   workflow_dispatch:
 
@@ -27,4 +27,4 @@ jobs:
           path: ~/.quint
           key: quint-${{ runner.os }}-0.33.1-apalache-0.62.4
       - name: Check safety, recovery and expected counterexamples
-        run: python specs/check.py
+        run: python contracts/merged_pr/check.py

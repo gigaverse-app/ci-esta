@@ -1,4 +1,5 @@
-// Design specification, not a deployed collector. See docs/merged-pr-evidence.md.
+// Canonical lifecycle policy, replayed against the collector by contract.qnt.
+// See docs/merged-pr-evidence.md for the implementation and adoption contract.
 // One PR and one configured producer/environment; independent PRs compose through
 // timing_publication.qnt. A slot represents an immutable (run_id, attempt).
 module merged_pr_evidence {

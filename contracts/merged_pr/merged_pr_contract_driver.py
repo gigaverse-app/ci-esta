@@ -24,7 +24,7 @@ class MergedPrEvidenceDriver(ActionDriver):
     """Subclass this, implement each action against the real code, and read state back in observe()."""
 
     __quint_contract__ = "merged-pr-evidence"
-    __quint_fingerprint__ = "3d47fbefd0b29f5c64d38311358b10232ef251f2c4a0bb9da446702d248148bd"
+    __quint_fingerprint__ = "7b426ea2a0b5ae4fbfcc50ab0523b1e03ea75a8053fcbba5977eee1e9e92e4e1"
     __quint_codegen_command__ = "pytest-quint-connect codegen quint-connect.json"
     __quint_actions__ = {
         "init": ("init", ()),
