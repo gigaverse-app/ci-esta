@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.15.0](https://github.com/gigaverse-app/ci-esta/compare/v1.14.1...v1.15.0) (2026-11-11)
+
+
+### Features
+
+* **timings:** learn from final merged PR validation ([#202](https://github.com/gigaverse-app/ci-esta/issues/202)) ([4f4725f](https://github.com/gigaverse-app/ci-esta/commit/4f4725f432d7cfb45bc107af2132337ee75acc0d))
+* **timings:** learn merged PR costs automatically during restore ([#203](https://github.com/gigaverse-app/ci-esta/issues/203)) ([3bbdc48](https://github.com/gigaverse-app/ci-esta/commit/3bbdc489edb121ac78f7cd685fb58a624fe7e7b7))
+
+
+### Bug fixes
+
+* **security:** upgrade scanners and separate secret detection ([#200](https://github.com/gigaverse-app/ci-esta/issues/200)) ([ceeaf9a](https://github.com/gigaverse-app/ci-esta/commit/ceeaf9ac3db4c5658a60e32ad37dd69a8dfc3bc2))
+
+
+### Documentation
+
+* publish the case study's charts as standalone share-ready images ([#199](https://github.com/gigaverse-app/ci-esta/issues/199)) ([58dd490](https://github.com/gigaverse-app/ci-esta/commit/58dd490c3406b6a438443666c284191e4de4b17c))
+
 ## [1.14.1](https://github.com/gigaverse-app/ci-esta/compare/v1.14.0...v1.14.1) (2026-11-09)
 
 
