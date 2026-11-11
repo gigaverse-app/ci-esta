@@ -51,13 +51,20 @@ the pending release PR; merging that PR is the publishing decision.
 
 | Commit header | Version change |
 | --- | --- |
-| `fix:`, `perf:`, `revert:` | Patch, such as 0.1.2 to 0.1.3 |
+| `fix:`, `perf:`, `revert:`, `docs:` | Patch, such as 0.1.2 to 0.1.3 |
 | `feat:` | Minor, such as 0.1.2 to 0.2.0 |
 | `feat!:`, `fix!:`, or a `BREAKING CHANGE:` footer | Minor below 1.0; major at 1.0 and later |
-| `docs:`, `style:`, `refactor:`, `test:`, `build:`, `ci:`, `chore:` without breaking changes | No release on their own |
+| `style:`, `refactor:`, `test:`, `build:`, `ci:`, `chore:` without breaking changes | No release on their own |
 
 Squash with the checked PR title and retain breaking-change details in the body.
 No automatic publishing happens just because an ordinary feature PR merges.
+
+Documentation changes appear in the release's Documentation section. Before
+merging the release PR, compare its body with the current version's CHANGELOG.md
+section and the commits since the last release. Release Please owns the generated
+notes; do not replace its refreshed body with a previously fetched copy when
+editing the title or formatting. A stale body can omit changes from the eventual
+GitHub release even when the release branch contains them.
 
 ```text
 Conventional Commit -> successful main CI -> Release Please release PR

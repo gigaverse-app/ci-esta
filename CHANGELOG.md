@@ -13,6 +13,11 @@
 
 * **security:** upgrade scanners and separate secret detection ([#200](https://github.com/gigaverse-app/ci-esta/issues/200)) ([ceeaf9a](https://github.com/gigaverse-app/ci-esta/commit/ceeaf9ac3db4c5658a60e32ad37dd69a8dfc3bc2))
 
+
+### Documentation
+
+* publish the case study's charts as standalone share-ready images ([#199](https://github.com/gigaverse-app/ci-esta/issues/199)) ([58dd490](https://github.com/gigaverse-app/ci-esta/commit/58dd490c3406b6a438443666c284191e4de4b17c))
+
 ## [1.14.1](https://github.com/gigaverse-app/ci-esta/compare/v1.14.0...v1.14.1) (2026-11-09)
 
 
