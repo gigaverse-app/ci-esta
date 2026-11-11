@@ -36,6 +36,9 @@ Documentation = "https://ci-esta.readthedocs.io/en/latest/"
 Repository = "https://github.com/gigaverse-app/ci-esta"
 Issues = "https://github.com/gigaverse-app/ci-esta/issues"
 
+[project.entry-points.pytest11]
+ci_esta_provenance = "ci_esta.testing.pytest_provenance"
+
 [dependency-groups]
 contracts = ["pytest>=8", "pytest-quint-connect>=1.4.1,<2"]
 dev = ["pytest-selective>=1.5.0,<2.0.0", "pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3", "psycopg[binary]>=3.2,<4"]

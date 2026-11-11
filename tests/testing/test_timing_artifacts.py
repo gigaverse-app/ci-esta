@@ -45,7 +45,7 @@ class ArtifactServer:
     def handle(self, request):
         path = request.url.path
         if path.endswith("/actions/artifacts"):
-            assert request.url.params["name"] == timing_artifacts.artifact_name("unit")
+            assert request.url.params.get("name") in {None, timing_artifacts.artifact_name("unit")}
             return httpx.Response(200, json={"artifacts": [
                 dict(id=id, name=timing_artifacts.artifact_name("unit"), expired=False,
                      created_at=f"2026-10-23T00:00:{index:02d}Z",

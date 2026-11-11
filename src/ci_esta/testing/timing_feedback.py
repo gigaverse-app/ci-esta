@@ -3,13 +3,24 @@
 from __future__ import annotations
 
 import glob
+import json
 import os
 from pathlib import Path
 
-from ci_esta.testing.junit import learn_junit_timings, write_learned_timings
-from ci_esta.testing.merged_pr_timings import TimingMeasurements, measurement_name
+from ci_esta.ci_observability.models import GitHubPullRequestV1
+from ci_esta.measurements import MeasurementIdentity
+from ci_esta.testing.junit import junit_report_identity, learn_junit_timings, write_learned_timings
+from ci_esta.testing.merged_pr_timings import TimingMeasurements, automatic_name, measurement_name
 from ci_esta.testing.timing_artifacts import action_histories, artifact_name, github_client, history_branch
 from ci_esta.testing.timing_store import learn_with_history
+
+
+def _event_pull_request() -> GitHubPullRequestV1 | None:
+    try:
+        event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+        return GitHubPullRequestV1.model_validate(event["pull_request"])
+    except (KeyError, TypeError, ValueError, OSError):
+        return None
 
 
 def main() -> None:
@@ -29,6 +40,24 @@ def main() -> None:
                 observed_at=run.created_at,
                 snapshots=action_histories(client, key), run_id=run.id, attempt=run.run_attempt,
             )
+            origin = MeasurementIdentity(run_id=run.id, run_attempt=run.run_attempt, head_sha=run.head_sha)
+            pull = _event_pull_request()
+            if (os.environ.get("INPUT_MERGED_PR_LEARNING", "true") == "true"
+                    and run.event == "pull_request" and pull is not None and not learned.unmapped_cases
+                    and all(junit_report_identity(report) == origin for report in reports)):
+                # Provenance originates inside pytest, surviving downloads intact.
+                # A reporter cannot turn retained XML into this attempt's evidence.
+                publisher = os.environ["INPUT_TIMING_ARTIFACT_NAME"]
+                measured = TimingMeasurements(
+                    key=key, shard=publisher, run_id=run.id, attempt=run.run_attempt,
+                    head_sha=run.head_sha, complete_files=True, report_count=len(reports),
+                    observed_at=run.created_at, durations=learned.durations, origin=origin, pull_request=pull.number,
+                )
+                name = automatic_name(key, publisher)
+                path = Path(os.environ["RUNNER_TEMP"]) / f"{name}.json"
+                path.write_text(measured.model_dump_json(exclude_none=True), encoding="utf-8")
+                with Path(os.environ["GITHUB_OUTPUT"]).open("a") as stream:
+                    stream.write(f"automatic-path={path}\nautomatic-name={name}\n")
             # This declaration is deliberately explicit: a reporter that downloaded
             # older attempts' XML must not manufacture a fresh producer manifest.
             if os.environ.get("INPUT_FRESH_REPORTS") == "true":
@@ -43,7 +72,7 @@ def main() -> None:
                 )
                 name = measurement_name(key, measured.shard, run.id, run.run_attempt)
                 path = Path(os.environ["RUNNER_TEMP"]) / f"{name}.json"
-                path.write_text(measured.model_dump_json(), encoding="utf-8")
+                path.write_text(measured.model_dump_json(exclude_none=True), encoding="utf-8")
                 with Path(os.environ["GITHUB_OUTPUT"]).open("a") as stream:
                     stream.write(f"measurement-path={path}\nmeasurement-name={name}\n")
             publish = (

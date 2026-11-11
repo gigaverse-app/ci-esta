@@ -12,6 +12,7 @@ from zipfile import BadZipFile
 import httpx
 
 from ci_esta.ci_observability.github import GitHubActionsClient
+from ci_esta.testing.automatic_timings import learn_merged_observations
 from ci_esta.testing.timing_history import Observation
 from ci_esta.testing.timing_store import TimingHistory, combine_histories
 
@@ -77,7 +78,14 @@ def restore() -> None:
     try:
         states = action_histories(client, key)
         state = combine_histories(states, key, datetime.now(timezone.utc))
-        if output.exists() and states:
+        if os.environ.get("INPUT_MERGED_PR_LEARNING", "true") == "true":
+            try:
+                state = learn_merged_observations(client, state, history_branch(),
+                                                  int(os.environ.get("INPUT_HISTORY_MAX_DOWNLOADS", "20")))
+            except (ValueError, OSError, BadZipFile, httpx.HTTPError) as exc:
+                print(f"::warning::Merged PR timing discovery unavailable ({type(exc).__name__}); retaining checkpoints")
+        has_history = bool(states or state.imports)
+        if output.exists() and has_history:
             # A committed seed remains useful for files never measured by this
             # history. Replace all nodes of observed files, never add their cost twice.
             seed = json.loads(output.read_text())
@@ -86,9 +94,10 @@ def restore() -> None:
                 if node.split("::", 1)[0] not in measured:
                     state.observations[node] = Observation(float(seconds), "seed")
             state = TimingHistory.model_validate(state.model_dump())
-        if states or not output.exists():
+        if has_history or not output.exists():
             state.export(output)
-        print(f"Restored {len(state.observations)} timing observations from {len(states)} checkpoints")
+        print(f"Restored {len(state.observations)} timing observations from {len(states)} checkpoints "
+              f"and {len(state.imports)} admitted merged PR sources")
     except (ValueError, OSError, BadZipFile, httpx.HTTPError) as exc:
         if os.environ.get("INPUT_HISTORY_STRICT", "false") == "true":
             raise

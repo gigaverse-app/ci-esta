@@ -24,7 +24,7 @@ class MergedPrEvidenceDriver(ActionDriver):
     """Subclass this, implement each action against the real code, and read state back in observe()."""
 
     __quint_contract__ = "merged-pr-evidence"
-    __quint_fingerprint__ = "7b426ea2a0b5ae4fbfcc50ab0523b1e03ea75a8053fcbba5977eee1e9e92e4e1"
+    __quint_fingerprint__ = "f3144bb767cc2d1191cb18d682c368926afd93c2ce4c968201f72487fbbf75ed"
     __quint_codegen_command__ = "pytest-quint-connect codegen quint-connect.json"
     __quint_actions__ = {
         "init": ("init", ()),
@@ -40,6 +40,7 @@ class MergedPrEvidenceDriver(ActionDriver):
         "publish": ("publish", ()),
         "crash": ("crash", ()),
         "inspect": ("inspect", ()),
+        "automatic": ("automatic", ()),
     }
 
     @abstractmethod
@@ -93,6 +94,10 @@ class MergedPrEvidenceDriver(ActionDriver):
     @abstractmethod
     def inspect(self) -> None:
         """Read staged source and published observations without mutation"""
+
+    @abstractmethod
+    def automatic(self) -> None:
+        """Use automatic discovery with whole-workflow completion before merge"""
 
     @abstractmethod
     def observe(self) -> Observed:

@@ -16,6 +16,9 @@ inputs:
   fresh-reports:
     description: Declare every input report was measured in this run attempt. Enables observed-only manifests for merged PR promotion. Never set for retained XML from earlier attempts.
     default: 'false'
+  merged-pr-learning:
+    description: Automatically retain reports carrying matching pytest execution provenance for learning after merge.
+    default: 'true'
   measurement-shard:
     description: Stable shard name in the collector's expected-shards map. Shards must cover disjoint complete files.
     default: all
@@ -53,6 +56,8 @@ runs:
         SHARED_ACTION_PATH: ${{ github.action_path }}
         PYTHONPATH: ${{ github.action_path }}/../../src
         INPUT_JUNIT_PATTERN: ${{ inputs.junit-pattern }}
+        INPUT_TIMING_ARTIFACT_NAME: ${{ inputs.artifact-name }}
+        INPUT_MERGED_PR_LEARNING: ${{ inputs.merged-pr-learning }}
         INPUT_TIMING_OUTPUT: ${{ inputs.output }}
         INPUT_HISTORY_KEY: ${{ inputs.history-key }}
         INPUT_FRESH_REPORTS: ${{ inputs.fresh-reports }}
@@ -64,6 +69,15 @@ runs:
         INPUT_HISTORY_MAX_DOWNLOADS: ${{ inputs.history-max-downloads }}
         GH_TOKEN: ${{ inputs.github-token }}
       run: bash "$SHARED_ACTION_PATH/../../scripts/ci/timing-runtime.sh" ci_esta.testing.timing_feedback
+    - name: Retain automatic merged PR measurements
+      if: steps.learn.outputs.automatic-path != ''
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ steps.learn.outputs.automatic-name }}
+        path: ${{ steps.learn.outputs.automatic-path }}
+        overwrite: true
+        if-no-files-found: error
+        retention-days: 21
     - name: Retain observed-only measurements for promotion after merge
       if: steps.learn.outputs.measurement-path != ''
       uses: actions/upload-artifact@v7

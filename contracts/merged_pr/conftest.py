@@ -36,9 +36,14 @@ class CollectorDriver(MergedPrEvidenceDriver):
         self.staged: TimingPromotion | None = None
         self.history = TimingHistory(key="unit")
         self.drop_publication = mutant == "dropped-publication"
+        self.automatic_mode = False
 
     def init(self) -> None:
         pass
+
+    def automatic(self) -> None:
+        self.automatic_mode = True
+        self.collector.policy = self.collector.policy.model_copy(update={"automatic": True, "gates": set()})
 
     def push(self) -> None:
         self.remote.push()
@@ -53,7 +58,7 @@ class CollectorDriver(MergedPrEvidenceDriver):
         self.remote.finish(r, value)
 
     def upload(self, r: int, value: str) -> None:
-        self.remote.upload(r, value)
+        self.remote.upload(r, value, automatic=self.automatic_mode)
 
     def expire(self, r: int) -> None:
         self.remote.expire(r)
