@@ -4,6 +4,11 @@ set -euo pipefail
 # A reusable SHA is adopted only together with a complete changed-input list.
 # The selector must use the same base as this list, including on fetch failure.
 base="${PR_BASE_SHA:-${BEFORE_SHA:-HEAD}}"
+pr_base="$base"
+if [ "$EVENT_NAME" = pull_request ] && [ -n "${PR_BASE_SHA:-}" ]; then
+  pr_base=$(python "$(dirname "$0")/pr_base.py" "$PR_BASE_SHA" "$CURRENT_SHA")
+  base="$pr_base"
+fi
 candidate="${PR_INCREMENTAL_BASE_SHA:-}"
 reused_failures=false
 if [ -z "$candidate" ] && [ -n "${FAILED_SHA:-}" ] &&
@@ -14,7 +19,7 @@ if [ -z "$candidate" ] && [ -n "${FAILED_SHA:-}" ] &&
   reused_failures=true
 fi
 
-# The PR base is always a sound base too. After main is merged into a validated PR, the
+# The unique PR fork point is a sound base too. After main is merged into a validated PR, the
 # tree delta above carries main's own changes and can reach every test, so the selector
 # is offered both and keeps the smaller selection. Unresolved failures follow either base.
 alternate=""
@@ -29,8 +34,8 @@ if [ "$EVENT_NAME" = pull_request ]; then
     fi
     sort -u changed-files.tmp > changed-files.txt
     base="$candidate"
-    if [ -n "${PR_BASE_SHA:-}" ] && [ "$PR_BASE_SHA" != "$candidate" ]; then
-      alternate="$PR_BASE_SHA"
+    if [ -n "${PR_BASE_SHA:-}" ] && [ "$pr_base" != "$candidate" ]; then
+      alternate="$pr_base"
       {
         if [ -f complete-pr-paths.txt ]; then cat complete-pr-paths.txt; fi
         if [ "$reused_failures" = true ]; then cat "$FAILURES_FILE"; fi

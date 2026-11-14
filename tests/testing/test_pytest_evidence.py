@@ -82,6 +82,36 @@ def test_merge_delta_includes_imported_dependencies_outside_pr_diff(history: His
     assert (history.repo / "changed-files.txt").read_text().splitlines() == ["feature.py", "shared.py"]
 
 
+@pytest.mark.parametrize("validated", [False, True])
+def test_main_advancing_does_not_make_a_pr_revert_its_unmerged_changes(history: History, validated: bool) -> None:
+    """The PR diff's baseline is its fork point, not main's independently advanced tip."""
+    fork = git(history.repo, "merge-base", history.base, history.old)
+    git(history.repo, "checkout", "-q", "--detach", history.old)
+    result = collect(
+        history.model_copy(update={"head": history.old}),
+        PR_INCREMENTAL_BASE_SHA=history.old if validated else "",
+    )
+    selected_base = result["alternate-base"] if validated else result["base"]
+    assert selected_base == fork
+    assert git(history.repo, "diff", "--name-only", selected_base, history.old).splitlines() == ["feature.py"]
+
+
+def test_missing_pr_history_retains_the_unresolved_base(history: History) -> None:
+    missing = "a" * 40
+    result = collect(history, PR_BASE_SHA=missing)
+    assert result["base"] == missing, "The selector must see missing history and fall back, not assume HEAD is clean"
+    assert result["alternate-base"] == ""
+
+
+def test_ambiguous_pr_history_retains_the_complete_tree_delta(history: History) -> None:
+    tree = git(history.repo, "rev-parse", f"{history.head}^{{tree}}")
+    left = git(history.repo, "commit-tree", tree, "-p", history.old, "-p", history.base, "-m", "left merge")
+    right = git(history.repo, "commit-tree", tree, "-p", history.base, "-p", history.old, "-m", "right merge")
+    assert len(git(history.repo, "merge-base", "--all", left, right).splitlines()) == 2
+    result = collect(history.model_copy(update={"head": right, "base": left}))
+    assert result["base"] == left, "Do not choose one of several possible PR fork points"
+
+
 def test_validated_tree_offers_the_pr_base_as_the_alternate(history: History) -> None:
     """
     INVARIANT: a validated-tree base always travels with the PR base as its alternate.

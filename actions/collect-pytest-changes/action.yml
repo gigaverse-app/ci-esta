@@ -3,17 +3,18 @@ description: >-
   Adopt a proven base with its complete tree delta and unresolved failures.
   Uses EVENT_NAME, CURRENT_SHA, PR_BASE_SHA, BEFORE_SHA, PR_INCREMENTAL_BASE_SHA,
   FAILED_SHA and FAILURES_{COMPLETE,TRUNCATED,STALE,INVALID,COUNT,FILE} from env.
+  Requires Python 3.11+ on PATH and local PR history to resolve a unique merge base.
   Missing proof falls back to complete-pr-paths.txt or full-suite selection.
 outputs:
   base:
-    description: Base paired with changed-files.txt.
+    description: Validated tree or unique PR merge base paired with changed-files.txt; unresolved history stays conservative.
     value: ${{ steps.collect.outputs.base }}
   reused-failures:
     description: Whether every unresolved failure was unioned into the tree delta.
     value: ${{ steps.collect.outputs.reused-failures }}
   alternate-base:
     description: >-
-      The PR base, offered beside an adopted validated-tree base; empty otherwise. Pass it to
+      The PR merge base, offered beside an adopted validated-tree base; empty otherwise. Pass it to
       test-impact's alternate-base with alternate-changed-files.txt, which carries the
       unresolved failures too.
     value: ${{ steps.collect.outputs.alternate-base }}
