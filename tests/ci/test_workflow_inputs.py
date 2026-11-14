@@ -133,3 +133,43 @@ def test_cli_compares_real_git_and_refuses_incremental_evidence(tmp_path, monkey
         "dependencies-unchanged": "false",
         "api-unaffected": "false",
     }
+
+
+@pytest.mark.parametrize("captured", [False, True])
+def test_ambiguous_forks_cannot_discharge_workflow_or_dependency_changes(tmp_path, monkeypatch, captured):
+    from ci_esta.workflow_inputs import changed_lanes, dependency_proof
+
+    monkeypatch.chdir(tmp_path)
+    git(tmp_path, "init", "-q")
+    git(tmp_path, "config", "user.name", "Tests")
+    git(tmp_path, "config", "user.email", "test@example.invalid")
+    path = tmp_path / "ci.yml"
+    path.write_text("jobs:\n  test:\n    runs-on: linux\n")
+    git(tmp_path, "add", ".")
+    git(tmp_path, "commit", "-qm", "root")
+    root = git(tmp_path, "rev-parse", "HEAD").strip()
+    tree = git(tmp_path, "rev-parse", "HEAD^{tree}").strip()
+    left = git(tmp_path, "commit-tree", tree, "-p", root, "-m", "left").strip()
+    right = git(tmp_path, "commit-tree", tree, "-p", root, "-m", "right").strip()
+    head = git(tmp_path, "commit-tree", tree, "-p", left, "-p", right, "-m", "head").strip()
+    path.write_text("jobs:\n  test:\n    runs-on: windows\n")
+    git(tmp_path, "add", ".")
+    base_tree = git(tmp_path, "write-tree").strip()
+    base = git(tmp_path, "commit-tree", base_tree, "-p", right, "-p", left, "-m", "base").strip()
+    report = tmp_path / "selection.json"
+    report.write_text(
+        json.dumps({"base": base_tree, "head": tree, "mode": "none", "selected": [], "dependencies_unchanged": True})
+    )
+    kwargs = {"merge_base": base} if captured else {}
+    assert changed_lanes(base, head, workflow="ci.yml", lanes={"unit": "test"}, **kwargs) == {"unit": True}
+    assert dependency_proof(base, head, report, tests={"unit": ["test.py"]}, **kwargs) == {
+        "dependencies-unchanged": True,
+        "unit-unaffected": True,
+    }
+    report.write_text(
+        json.dumps({"base": tree, "head": tree, "mode": "none", "selected": [], "dependencies_unchanged": True})
+    )
+    assert dependency_proof(base, head, report, tests={"unit": ["test.py"]}, **kwargs) == {
+        "dependencies-unchanged": False,
+        "unit-unaffected": False,
+    }
