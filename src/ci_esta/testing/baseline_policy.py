@@ -137,7 +137,6 @@ def collect_plan(
     repo: Path,
     *,
     event: str,
-    base: str,
     head: str,
     pr_base: str = "",
     before: str = "",
@@ -146,6 +145,7 @@ def collect_plan(
     failures: FailureEvidence = FailureEvidence(),
 ) -> BaselinePlan:
     """Pair every candidate with complete inputs before admitting an alternate."""
+    base = pr_base or before or "HEAD"
     primary = comparison(
         repo, base, head, BaselineKind.COMPLETE_PR if event == "pull_request" and pr_base else BaselineKind.EXACT
     )

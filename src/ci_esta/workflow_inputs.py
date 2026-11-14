@@ -17,6 +17,7 @@ from typing import Any
 import yaml
 
 from ci_esta.git import git
+from ci_esta.testing.baseline_policy import BaselineKind, comparison
 
 
 def workflow_inputs(document: dict[str, Any], lane: str) -> dict[str, Any]:
@@ -56,7 +57,12 @@ def changed_lanes(
     base: str, head: str, *, workflow: str, lanes: dict[str, str], merge_base: str | None = None
 ) -> dict[str, bool]:
     """Compare the complete range, optionally retaining a pre-shallow-fetch base."""
-    merge_base = merge_base or git(Path("."), "merge-base", base, head).strip()
+    baseline = comparison(
+        Path("."), merge_base or base, head, BaselineKind.EXACT if merge_base else BaselineKind.COMPLETE_PR
+    )
+    if baseline.full:
+        raise ValueError(baseline.reason)
+    merge_base = baseline.base
     before = yaml.safe_load(git(Path("."), "show", f"{merge_base}:{workflow}"))
     after = yaml.safe_load(git(Path("."), "show", f"{head}:{workflow}"))
     return {key: workflow_inputs(before, lane) != workflow_inputs(after, lane) for key, lane in lanes.items()}
@@ -88,7 +94,12 @@ def selection_proof(report: Any, *, base_tree: str, head_tree: str, tests: dict[
 def dependency_proof(
     base: str, head: str, report_path: Path, *, tests: dict[str, list[str]], merge_base: str | None = None
 ) -> dict[str, bool]:
-    merge_base = merge_base or git(Path("."), "merge-base", base, head).strip()
+    baseline = comparison(
+        Path("."), merge_base or base, head, BaselineKind.EXACT if merge_base else BaselineKind.COMPLETE_PR
+    )
+    if baseline.full:
+        raise ValueError(baseline.reason)
+    merge_base = baseline.base
     return selection_proof(
         json.loads(report_path.read_text()),
         base_tree=git(Path("."), "rev-parse", f"{merge_base}^{{tree}}").strip(),

@@ -428,3 +428,33 @@ def test_alternate_preserves_unknown_versus_empty_complete_paths(history: Histor
     assert alternate.exists() is not missing
     if not missing:
         assert alternate.read_text() == ""
+
+
+@pytest.mark.parametrize("valid", [True, False])
+def test_native_caller_baseline_cli_enforces_tested_merge_identity(history: History, valid: bool) -> None:
+    import json
+
+    tree = git(history.repo, "rev-parse", f"{history.head}^{{tree}}")
+    merged = git(history.repo, "commit-tree", tree, "-p", history.base, "-p", history.old, "-m", "tested merge")
+    result = subprocess.run(
+        [sys.executable, "-m", "ci_esta.testing.bun.cli", "baseline", "--json-input"],
+        input=json.dumps(
+            {
+                "options": {
+                    "cwd": str(history.repo),
+                    "base": merged,
+                    "validatedHead": history.old if valid else history.base,
+                }
+            }
+        ),
+        env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == (0 if valid else 1)
+    if valid:
+        report = json.loads(result.stdout)
+        assert report["base"] == merged
+        assert report["head"] == history.head
+    else:
+        assert "second parent" in result.stderr

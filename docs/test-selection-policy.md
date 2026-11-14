@@ -124,11 +124,27 @@ proven empty one.
 
 The collector's Python adapter only reads environment/files and writes the
 existing action outputs. Its shell entry point bootstraps the shared locked
-runtime. The workflow planner and Bun selector import the same policy module;
+runtime. The workflow planner, workflow-input comparison and Bun selector import the same policy module;
 pytest-selective still owns the current merge-parent Git proof and dependency
 graphs. Remote receipt ownership/completion remains with the existing evidence
 resolver, whose admitted prior head the collector consumes. A local Git shape
 never substitutes for that remote evidence.
+
+Native callers that retain their own runner-specific selection rules can use
+`python -m ci_esta.testing.bun.cli baseline --json-input` with
+`{"options":{"cwd":"/checkout","base":"<tested-sha>","validatedHead":"<pr-head>"}}`.
+The command returns the canonical comparison including its exact `base` and
+checkout `head`. Invalid ancestry or merge-parent proof exits nonzero; callers
+must retain full validation. This is the same `validated_comparison` used by the
+Bun selector, with no second implementation in JavaScript.
+
+`workflow_inputs` uses the complete-PR policy unless the caller supplies a
+previously captured `--merge-base`, whose exact identity must survive shallow
+fetches. Ambiguous history retains the event base for both workflow comparisons
+and selector-report tree matching. The real criss-cross Git control is
+`test_ambiguous_forks_cannot_discharge_workflow_or_dependency_changes`.
+Release-only receipt classification still checks ancestry separately because it
+admits a version-only receipt; it neither chooses nor rewrites a selection base.
 
 The baseline depends on what the workflow checks out. `collect-pytest-changes`
 consumes the **real PR head** as `CURRENT_SHA`; it is not a synthetic-merge planner.

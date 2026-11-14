@@ -32,7 +32,6 @@ def main() -> None:
         Path.cwd(),
         event=env["EVENT_NAME"],
         head=env["CURRENT_SHA"],
-        base=env.get("PR_BASE_SHA") or env.get("BEFORE_SHA") or "HEAD",
         pr_base=env.get("PR_BASE_SHA", ""),
         before=env.get("BEFORE_SHA", ""),
         validated=env.get("PR_INCREMENTAL_BASE_SHA", ""),

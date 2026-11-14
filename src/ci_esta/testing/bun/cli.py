@@ -9,6 +9,8 @@ from pathlib import Path
 from pydantic import BaseModel
 from pytest_selective.checkpoint import full_checkpoint_reason
 
+from ci_esta.git import git
+from ci_esta.testing.baseline_policy import validated_comparison
 from ci_esta.testing.bun.execution import report_context, run_bun_tests, write_json
 from ci_esta.testing.bun.models import BunExecution, ReportContext, RunRequest, SelectionRequest
 from ci_esta.testing.bun.report import work_selection_report
@@ -39,7 +41,7 @@ class CommandInput(BaseModel):
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("operation", choices=["run", "report", "plan", "read-plan", "inventory", "safe-path"])
+    parser.add_argument("operation", choices=["run", "report", "plan", "read-plan", "inventory", "safe-path", "baseline"])
     parser.add_argument("--json-input", action="store_true")
     args = parser.parse_args()
     try:
@@ -56,7 +58,15 @@ def main() -> int:
                        work_selection_report(execution, report_context()))
             return 0
         request = CommandInput.model_validate_json(sys.stdin.read())
-        if args.operation == "plan":
+        if args.operation == "baseline":
+            if request.options is None:
+                parser.error("baseline requires options")
+            options = request.options
+            value = validated_comparison(
+                options.cwd, options.base, git(options.cwd, "rev-parse", "HEAD").strip(),
+                validated_head=options.validated_head,
+            ).model_dump(mode="json")
+        elif args.operation == "plan":
             if request.options is None:
                 parser.error("plan requires options")
             value = plan_affected_tests(request.options).model_dump(by_alias=True, exclude_none=True)
