@@ -14,18 +14,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 from pathlib import Path
 
 from pytest_selective.checkpoint import full_checkpoint_reason
 from pytest_selective.ci import LaneConfig, LanePlan, plan
-from pytest_selective.git_operations import pull_request_merge_base
 from pytest_selective.impact_graph import DependencyDeclarationError
 from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
-from ci_esta.git import git
 from ci_esta.package_inputs import PackageInputsUnavailable, changed_package_inputs
+from ci_esta.testing.baseline_policy import BaselineKind, comparison
 from ci_esta.testing.bun.graph import bun_lane_reasons
 from ci_esta.testing.lane_inference import resolve
 from ci_esta.testing.lane_report import render
@@ -179,28 +177,6 @@ def python_entry_lanes(
     return reasons
 
 
-def commit_exists(repo: Path, revision: str) -> bool:
-    try:
-        git(repo, "cat-file", "-e", f"{revision}^{{commit}}")
-    except subprocess.CalledProcessError:
-        return False
-    return True
-
-
-def tested_base(repo: Path, base: str, head: str, pr_head: str) -> str:
-    """The base GitHub's merge of the pull request was built on, as pytest-selective's planner uses.
-
-    A pull request's `base.sha` can be older than the base-branch tip GitHub merged it into, so commits
-    that landed since would read as the PR's own. pytest-selective owns that rule (`pull_request_merge_base`).
-    """
-    tested = pull_request_merge_base(repo, base, head, pr_head)
-    if tested != base:
-        print(
-            f"Planning against the tested merge's base {tested}; the event's base {base} is behind it.", file=sys.stderr
-        )
-    return tested
-
-
 def targets(rule: Rule, graph: WorkflowGraph, package_lanes: set[str], bun_lanes: set[str]) -> set[str]:
     """The lanes a rule selects."""
     selected: set[str] = set()
@@ -236,15 +212,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--bun", default="bun", help="Bun executable, for repositories with Bun tests")
     parser.add_argument("--summary", type=Path, help="append a readable table of the plan (step summary)")
     args = parser.parse_args(argv)
-    if not args.base.strip("0"):
-        # A branch's first push has no `before` (all zeros), and some callers pass nothing: compare against
-        # nothing, and run every lane.
-        args.full, args.base = "full run: no base commit to compare against", args.head
-    elif not commit_exists(args.repo, args.base):
-        # A shallow checkout or a force-pushed `before`: nothing to compare against, so every lane runs.
-        args.full, args.base = f"full run: base commit {args.base} is not in this checkout's history", args.head
+    baseline = comparison(
+        args.repo,
+        args.base,
+        args.head,
+        BaselineKind.CHECKOUT_MERGE if args.pr_head else BaselineKind.EXACT,
+        pr_head=args.pr_head,
+    )
+    if baseline.full:
+        args.full, args.base = f"full run: {baseline.reason}", args.head
     else:
-        args.base = tested_base(args.repo, args.base, args.head, args.pr_head)
+        args.base = baseline.base
     try:
         resolved = resolve(args.repo, args.base, args.head, args.config)
         config = resolved.config

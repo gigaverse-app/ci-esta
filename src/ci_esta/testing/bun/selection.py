@@ -6,13 +6,13 @@ import subprocess
 from pathlib import Path
 
 from ci_esta.git import git
+from ci_esta.testing.baseline_policy import validated_comparison
 from ci_esta.testing.bun.models import TEST_FILE, BunPolicy, Inventory, SelectionPlan, SelectionRequest
 
 OPAQUE_DEPENDENCY = re.compile(
     r"\b(?:Bun\s*\.\s*file|readFile(?:Sync)?|import\s*\.\s*meta\s*\.\s*glob)\b"
     r"|[\"'](?:node:)?fs(?:/promises)?[\"']|\b(?:import|require)\s*\(\s*(?!\s*[\"'])[^\s]"
 )
-SHA = re.compile(r"[0-9a-f]{40}\Z")
 
 
 def safe_path(value: str) -> bool:
@@ -47,22 +47,6 @@ def _policy(request: SelectionRequest) -> BunPolicy:
     return policy
 
 
-def _comparison_base(request: SelectionRequest, tested_sha: str) -> str:
-    if not SHA.fullmatch(request.base):
-        raise ValueError("Missing committed selection base")
-    base = git(request.cwd, "rev-parse", "--verify", f"{request.base}^{{commit}}").strip()
-    ancestor = base
-    if request.validated_head:
-        if not SHA.fullmatch(request.validated_head):
-            raise ValueError("Invalid validated PR head")
-        parents = git(request.cwd, "show", "-s", "--format=%P", base).strip().split()
-        if len(parents) != 2 or parents[1] != request.validated_head:
-            raise ValueError("Recorded merge does not have the validated PR head as its second parent")
-        ancestor = request.validated_head
-    git(request.cwd, "merge-base", "--is-ancestor", ancestor, tested_sha)
-    return base
-
-
 def plan_affected_tests(request: SelectionRequest) -> SelectionPlan:
     plan = SelectionPlan(reason=request.checkpoint_reason or "Full checkpoint requested",
                          fallback="fallback" in (request.checkpoint_reason or ""),
@@ -71,7 +55,9 @@ def plan_affected_tests(request: SelectionRequest) -> SelectionPlan:
         plan.tested_sha = git(request.cwd, "rev-parse", "HEAD").strip()
         if request.full:
             return plan
-        plan.base = _comparison_base(request, plan.tested_sha)
+        plan.base = validated_comparison(
+            request.cwd, request.base, plan.tested_sha, validated_head=request.validated_head
+        ).base
         if git(request.cwd, "status", "--porcelain", "--untracked-files=no").strip():
             raise ValueError("Tracked worktree differs from the planned commit")
         policy = _policy(request)

@@ -2,16 +2,17 @@
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
 from pydantic import BaseModel
 
+from ci_esta.testing.baseline_policy import BaselineKind, comparison, validated_comparison
 from ci_esta.testing.canary_action import CanaryConfig, build_canary
 
 ROOT = Path(__file__).resolve().parents[2]
-COLLECT = ROOT / "src/ci_esta/testing/evidence_scripts/collect.sh"
 RECEIPT = ROOT / "src/ci_esta/testing/evidence_scripts/verify.sh"
 VERIFY_ACTION = ROOT / "actions/verify-pytest-completion/action.yml"
 
@@ -58,10 +59,11 @@ def collect(history: History, **overrides: str) -> dict[str, str]:
     output = history.repo / "outputs"
     output.write_text("")
     subprocess.run(
-        ["bash", str(COLLECT)],
+        [sys.executable, "-m", "ci_esta.testing.collect_changes"],
         cwd=history.repo,
         env={
             **os.environ,
+            "PYTHONPATH": str(ROOT / "src"),
             "EVENT_NAME": "pull_request",
             "CURRENT_SHA": history.head,
             "PR_BASE_SHA": history.base,
@@ -329,3 +331,100 @@ def test_completion_rejects_invalid_ranges(tmp_path: Path, first: str, last: str
         text=True,
     )
     assert result.returncode != 0
+
+
+@pytest.mark.parametrize("kind", [BaselineKind.COMPLETE_PR, BaselineKind.EXACT])
+def test_only_complete_pr_comparisons_normalize_a_divergent_target(history: History, kind: BaselineKind) -> None:
+    fork = git(history.repo, "merge-base", history.base, history.old)
+    result = comparison(history.repo, history.base, history.old, kind)
+    assert result.base == (fork if kind == BaselineKind.COMPLETE_PR else history.base)
+    changed = git(history.repo, "diff", "--name-only", result.base, result.head).splitlines()
+    assert changed == (["feature.py"] if kind == BaselineKind.COMPLETE_PR else ["feature.py", "shared.py"])
+
+
+def test_checkout_merge_and_historical_merge_keep_different_identities(history: History) -> None:
+    fork = git(history.repo, "merge-base", history.base, history.old)
+    tree = git(history.repo, "rev-parse", f"{history.head}^{{tree}}")
+    merged = git(history.repo, "commit-tree", tree, "-p", history.base, "-p", history.old, "-m", "tested merge")
+    current = comparison(history.repo, fork, merged, BaselineKind.CHECKOUT_MERGE, pr_head=history.old)
+    assert current.base == history.base
+    historical = validated_comparison(history.repo, merged, history.head, validated_head=history.old)
+    assert historical.base == merged, "Historical proof must keep the exact tested tree, even for sibling merges"
+    with pytest.raises(ValueError, match="second parent"):
+        validated_comparison(history.repo, merged, history.head, validated_head=history.base)
+    with pytest.raises(ValueError, match="ancestry proof"):
+        comparison(history.repo, merged, history.head, BaselineKind.VALIDATED_TREE)
+
+
+@pytest.mark.parametrize("field", ["FAILURES_STALE", "FAILURES_INVALID", "FAILURES_COUNT"])
+@pytest.mark.parametrize("value", ["", "unknown"])
+def test_malformed_failure_facts_cannot_admit_a_baseline(history: History, field: str, value: str) -> None:
+    failures = history.repo / "failures.txt"
+    failures.write_text("feature.py\n")
+    facts = dict(
+        FAILED_SHA=history.old,
+        FAILURES_COMPLETE="true",
+        FAILURES_TRUNCATED="false",
+        FAILURES_STALE="0",
+        FAILURES_INVALID="0",
+        FAILURES_COUNT="1",
+        FAILURES_FILE=str(failures),
+    )
+    facts[field] = value
+    result = collect(history, **facts)
+    assert result["base"] == history.base
+    assert result["reused-failures"] == "false"
+
+
+def test_collector_action_uses_its_pinned_runtime_not_the_application(history: History, tmp_path: Path) -> None:
+    action_path = ROOT / "actions/collect-pytest-changes/action.yml"
+    action = yaml.safe_load(action_path.read_text())
+    step = next(step for step in action["runs"]["steps"] if step.get("id") == "collect")
+    output = tmp_path / "action-output"
+    subprocess.run(
+        ["bash", "-eo", "pipefail", "-c", step["run"]],
+        cwd=history.repo,
+        check=True,
+        capture_output=True,
+        text=True,
+        env={
+            **os.environ,
+            "GITHUB_ACTION_PATH": str(action_path.parent),
+            "GITHUB_OUTPUT": str(output),
+            "RUNNER_TEMP": str(tmp_path / "runner"),
+            "EVENT_NAME": "pull_request",
+            "CURRENT_SHA": history.head,
+            "PR_BASE_SHA": history.base,
+            "PYTHONPATH": str(tmp_path / "absent-application"),
+        },
+    )
+    assert f"base={history.base}" in output.read_text()
+    assert (history.repo / "changed-files.txt").read_text().splitlines() == ["feature.py"]
+
+
+def test_force_pushed_history_cannot_reuse_an_unrelated_tested_tree(history: History) -> None:
+    tree = git(history.repo, "rev-parse", f"{history.head}^{{tree}}")
+    unrelated = git(history.repo, "commit-tree", tree, "-m", "unrelated replacement")
+    with pytest.raises(subprocess.CalledProcessError):
+        validated_comparison(history.repo, history.old, unrelated)
+
+
+def test_wrong_current_merge_head_cannot_narrow_the_event_base(history: History) -> None:
+    fork = git(history.repo, "merge-base", history.base, history.old)
+    result = comparison(history.repo, fork, history.head, BaselineKind.CHECKOUT_MERGE, pr_head=history.old)
+    assert result.base == fork, "An ordinary PR commit is not a proven GitHub synthetic merge"
+
+
+@pytest.mark.parametrize("missing", [True, False])
+def test_alternate_preserves_unknown_versus_empty_complete_paths(history: History, missing: bool) -> None:
+    paths = history.repo / "complete-pr-paths.txt"
+    if missing:
+        paths.unlink()
+    else:
+        paths.write_text("")
+    result = collect(history, PR_INCREMENTAL_BASE_SHA=history.old)
+    assert result["alternate-base"] == history.base
+    alternate = history.repo / "alternate-changed-files.txt"
+    assert alternate.exists() is not missing
+    if not missing:
+        assert alternate.read_text() == ""

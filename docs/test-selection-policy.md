@@ -115,6 +115,21 @@ copying only the “smaller wins” heuristic into merged-tree validation is uns
 
 ## Keep the three baseline contracts separate
 
+[`baseline_policy.py`](../src/ci_esta/testing/baseline_policy.py) owns comparison
+identity, missing-history fallback, failure-evidence admission and pairing each
+candidate with its changed paths. `BaselineComparison` carries the head, baseline kind,
+reason and paths together; `BaselinePlan` binds the primary and alternate plans
+to the same unresolved-failure decision. A missing path list is distinct from a
+proven empty one.
+
+The collector's Python adapter only reads environment/files and writes the
+existing action outputs. Its shell entry point bootstraps the shared locked
+runtime. The workflow planner and Bun selector import the same policy module;
+pytest-selective still owns the current merge-parent Git proof and dependency
+graphs. Remote receipt ownership/completion remains with the existing evidence
+resolver, whose admitted prior head the collector consumes. A local Git shape
+never substitutes for that remote evidence.
+
 The baseline depends on what the workflow checks out. `collect-pytest-changes`
 consumes the **real PR head** as `CURRENT_SHA`; it is not a synthetic-merge planner.
 A Git merge-base is a diff origin, not evidence that tests passed there.

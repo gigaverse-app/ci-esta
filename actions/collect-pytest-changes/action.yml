@@ -3,7 +3,7 @@ description: >-
   For real PR-head checkouts, adopt a proven base with its complete tree delta and unresolved failures.
   Uses EVENT_NAME, CURRENT_SHA, PR_BASE_SHA, BEFORE_SHA, PR_INCREMENTAL_BASE_SHA,
   FAILED_SHA and FAILURES_{COMPLETE,TRUNCATED,STALE,INVALID,COUNT,FILE} from env.
-  Requires Python 3.11+ on PATH and local PR history to resolve a unique merge base.
+  Uses the isolated locked CI-esta runtime and local PR history to resolve a unique merge base.
   Missing proof falls back to complete-pr-paths.txt or full-suite selection.
 outputs:
   base:
@@ -21,6 +21,9 @@ outputs:
 runs:
   using: composite
   steps:
+    - uses: astral-sh/setup-uv@v10
+      with:
+        enable-cache: false
     - id: collect
       shell: bash
       run: bash "$GITHUB_ACTION_PATH/../../src/ci_esta/testing/evidence_scripts/collect.sh"
