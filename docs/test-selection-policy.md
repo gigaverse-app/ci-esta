@@ -113,6 +113,39 @@ Do not pick whichever historical main SHA produces the smallest diff. Python's
 alternate-base optimization combines independently complete change evidence;
 copying only the “smaller wins” heuristic into merged-tree validation is unsound.
 
+## Keep the three baseline contracts separate
+
+The baseline depends on what the workflow checks out. `collect-pytest-changes`
+consumes the **real PR head** as `CURRENT_SHA`; it is not a synthetic-merge planner.
+A Git merge-base is a diff origin, not evidence that tests passed there.
+
+| Contract | Required invariant | Executable control |
+| --- | --- | --- |
+| Complete PR diff on a PR-head checkout | Use the unique fork point of the target branch and PR head. Independent target-branch changes must not appear as reversed PR edits. | `test_main_advancing_does_not_make_a_pr_revert_its_unmerged_changes`, with and without a validated candidate |
+| Incremental reuse on a PR-head checkout | Diff the exact proven prior head against the current head. Preserve imported dependency changes and conflict resolutions; never intersect with PR-only paths. | `test_merge_delta_includes_imported_dependencies_outside_pr_diff`, `test_merge_conflict_resolution_is_a_changed_input` |
+| Alternate complete-PR plan | Pair its baseline with its own complete paths and all unresolved failures. Minimize only between independently complete plans. | `test_validated_tree_offers_the_pr_base_as_the_alternate`, `test_failed_evidence_keeps_all_files_or_falls_back` |
+| Unknown or ambiguous fork point | Keep the unresolved/conservative baseline; never substitute HEAD and manufacture an empty diff. | `test_missing_pr_history_retains_the_unresolved_base`, `test_ambiguous_pr_history_retains_the_complete_tree_delta` |
+| Synthetic-merge checkout | Use the proven merge's base parent through pytest-selective's `pull_request_merge_base`; do not apply the PR-head fork-point rule. | `test_a_pull_request_merge_is_planned_against_the_base_it_was_built_on` in `test_lane_inference.py` |
+
+The collector controls are in `tests/testing/test_pytest_evidence.py`. Their
+Git histories exercise both directions of base-branch movement: a PR behind
+main and a PR that has merged main. Keeping both controls prevents a performance
+fix for one case from dropping coverage in the other.
+
+This distinction reflects earlier fixes, rather than reversing them:
+
+- [backend-common's alternate-base change](https://github.com/gigaverse-app/backend-common/commit/7b4ce9dc5ba110f84a5d70682c1a5066c2f399e7)
+  avoided selecting 750/750 files after importing main into a validated PR.
+- [CI-esta #185](https://github.com/gigaverse-app/ci-esta/pull/185) corrected the
+  synthetic-merge planner's baseline. [#188](https://github.com/gigaverse-app/ci-esta/pull/188)
+  then required the dependency version that implements that rule and added its
+  missing execution test; the earlier optional import had left it inactive.
+- The collector was imported from backend-common in
+  [f071a26](https://github.com/gigaverse-app/ci-esta/commit/f071a2675e9c0f28505b56730c5d114d3f1866c2).
+  It still used the target tip for a complete PR-head diff until
+  [#204](https://github.com/gigaverse-app/ci-esta/pull/204), leaving behind-main
+  PRs vulnerable to the opposite over-selection case.
+
 ## Set up tested-merge selection
 
 The [complete Bun workflow](../examples/bun-tests/workflow.yml) shows checkout,

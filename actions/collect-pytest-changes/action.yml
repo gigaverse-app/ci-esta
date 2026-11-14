@@ -1,6 +1,6 @@
 name: Collect pytest changed inputs
 description: >-
-  Adopt a proven base with its complete tree delta and unresolved failures.
+  For real PR-head checkouts, adopt a proven base with its complete tree delta and unresolved failures.
   Uses EVENT_NAME, CURRENT_SHA, PR_BASE_SHA, BEFORE_SHA, PR_INCREMENTAL_BASE_SHA,
   FAILED_SHA and FAILURES_{COMPLETE,TRUNCATED,STALE,INVALID,COUNT,FILE} from env.
   Requires Python 3.11+ on PATH and local PR history to resolve a unique merge base.
