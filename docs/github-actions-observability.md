@@ -5,6 +5,11 @@ CI-esta reads GitHub's run and job APIs and writes one versioned JSON report, a 
 Start with the [public-action quickstart](quickstart.md#report-a-completed-workflow).
 The reusable-workflow alternative below additionally owns artifact upload.
 
+Historical full-suite reference discovery is optional: it lists one recent page
+of matching artifacts and downloads at most ten candidates to find five comparable
+samples. If those samples are unavailable, the savings estimate stays unknown.
+It does not traverse the repository's retained artifact history or affect validation.
+
 ## Add a reporting job
 
 For CI that already has a long critical path, prefer a separate completed-run

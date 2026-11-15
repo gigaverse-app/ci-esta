@@ -592,7 +592,7 @@ class FakeArtifacts:
         if explanation is not None:
             self.payloads[EXPLANATION_ID] = explanation.model_dump_json().encode()
 
-    def list_artifacts(self, name: str, run_id: int | None = None) -> list[GitHubArtifactV1]:
+    def list_artifacts(self, name: str, run_id: int | None = None, *, recent_pages: int | None = None) -> list[GitHubArtifactV1]:
         if name == EXPLANATION_ARTIFACT:
             assert run_id == RUN_ID
             return [artifact(EXPLANATION_ID, RUN_ID)] if self.explanation is not None else []
@@ -784,7 +784,7 @@ def test_unavailable_references_leave_the_saving_unknown(tmp_path: Path, capsys:
     config = _selection_config(tmp_path, ai_extensions())
     fake = FakeArtifacts(_explanation())
 
-    def list_or_fail(name: str, run_id: int | None = None) -> list[GitHubArtifactV1]:
+    def list_or_fail(name: str, run_id: int | None = None, *, recent_pages: int | None = None) -> list[GitHubArtifactV1]:
         if name == REFERENCE_ARTIFACT:
             raise httpx.HTTPError("artifact listing unavailable")
         return fake.list_artifacts(name, run_id)
@@ -835,7 +835,7 @@ def test_the_saving_uses_only_the_newest_few_comparable_runs(tmp_path: Path) -> 
         {first_id + offset: reference.model_dump_json().encode() for offset, reference in enumerate(references)}
     )
 
-    def list_many(name: str, run_id: int | None = None) -> list[GitHubArtifactV1]:
+    def list_many(name: str, run_id: int | None = None, *, recent_pages: int | None = None) -> list[GitHubArtifactV1]:
         if name == REFERENCE_ARTIFACT:
             return [artifact(first_id + offset, reference.run_id) for offset, reference in enumerate(references)]
         return fake.list_artifacts(name, run_id)
@@ -847,6 +847,22 @@ def test_the_saving_uses_only_the_newest_few_comparable_runs(tmp_path: Path) -> 
     section = _report(config).test_selection
     assert section is not None
     assert section.references == references[:REFERENCE_SAMPLE]
+
+
+@pytest.mark.parametrize("readable", [False, True])
+def test_optional_reference_search_has_a_fixed_request_budget(readable) -> None:
+    client = MagicMock(spec=GitHubActionsClient)
+    client.list_artifacts.return_value = [artifact(1000 + n, NEWEST_RUN + n) for n in range(100)]
+    references = [full_suite_reference(NEWEST_RUN + n) for n in range(100)]
+    client.read_artifacts.side_effect = lambda ids: [
+        references[identifier - 1000].model_dump_json().encode() if readable else ValueError("unreadable")
+        for identifier in ids
+    ]
+    assert action_module._references(client, REFERENCE_ARTIFACT, _selection_run(), TOTAL_FILES) == (
+        references[:REFERENCE_SAMPLE] if readable else []
+    )
+    client.list_artifacts.assert_called_once_with(REFERENCE_ARTIFACT, recent_pages=1)
+    assert sum(len(call.args[0]) for call in client.read_artifacts.call_args_list) <= 10
 
 
 def test_a_reference_must_carry_measured_times() -> None:

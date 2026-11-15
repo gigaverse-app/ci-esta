@@ -33,6 +33,7 @@ function receiptMatches(name, receipt) {
 }
 const HOUR_MS = 60 * 60 * 1000;
 const MAX_ANCESTOR_HEADS = 10;
+const MAX_INDEXED_CANDIDATES = 10;
 
 async function resolveIncrementalPrBase({
   github,
@@ -58,11 +59,17 @@ async function resolveIncrementalPrBase({
   // One planning invocation may evaluate several lanes. Share only raw API evidence,
   // never verdicts: each lane still enforces its own receipt and newer-failure revocation.
   // The caller owns this snapshot; it must never survive into another planning invocation.
+  let throttled = false;
   const readEvidence = async (key, read) => {
     // Cache the promise before awaiting it, including rejection. A slow API outage
     // must not repeat once per lane; each caller still handles uncertainty itself.
-    if (!evidenceCache.has(key)) evidenceCache.set(key, Promise.resolve().then(read));
-    return evidenceCache.get(key);
+    try {
+      if (!evidenceCache.has(key)) evidenceCache.set(key, Promise.resolve().then(read));
+      return await evidenceCache.get(key);
+    } catch (error) {
+      if ([403, 429].includes(error.status)) throttled = true;
+      throw error;
+    }
   };
   const fallback = { baseSha: fallbackBaseSha, reused: false };
   if (
@@ -355,10 +362,11 @@ async function resolveIncrementalPrBase({
       }
     };
 
-    // The indexed path is normally one list + one compare call. Sorting here
-    // is an enforcement point: never trust transport ordering for reuse.
+    // Reuse is optional. Never paginate a branch's lifetime history just to
+    // avoid validation. A partial index could hide contradictory evidence, so
+    // saturation executes fresh validation instead of inspecting an arbitrary subset.
     try {
-      const indexedRuns = await readEvidence(`runs:${currentRun.workflow_id}:${headRef}`, () => github.paginate(github.rest.actions.listWorkflowRuns, {
+      const response = await readEvidence(`runs:${currentRun.workflow_id}:${headRef}`, () => github.rest.actions.listWorkflowRuns({
         owner: context.repo.owner,
         repo: context.repo.repo,
         workflow_id: currentRun.workflow_id,
@@ -366,17 +374,38 @@ async function resolveIncrementalPrBase({
         branch: headRef,
         per_page: 100,
       }));
+      const indexedRuns = response.data.workflow_runs;
+      if (response.headers?.link?.includes('rel="next"') ||
+          (Number.isSafeInteger(response.data.total_count)
+            ? response.data.total_count !== indexedRuns.length
+            : indexedRuns.length >= 100)) {
+        core.info("Workflow history exceeds the bounded index; executing fresh validation.");
+        return fallback;
+      }
       const others = indexedRuns.filter((run) => run.id !== context.runId).sort(newestFirst);
-      await Promise.all(others.map(recoverOwner));
       for (const run of others) if (run.status === "completed") listedCompleted.add(run.id);
       for (const run of others.slice(0, 20)) {
         const reasons = rejectionReasons(run);
         if (reasons.length) reportRejection(run, reasons);
       }
-      const candidates = others.filter(run => isReusableRun(run) || ((validationEvidence || sameHeadOnly || pytestEvidence) && unverifiedOwners.has(run.id)));
-      for (const candidate of candidates) {
+      const candidates = others.filter(run => {
+        if (isReusableRun(run)) return true;
+        const reasons = rejectionReasons(run);
+        return !(run.pull_requests || []).length && run.event === "pull_request" && run.head_branch === headRef &&
+          reasons.length === 1 && reasons[0] === `not associated with PR #${pullRequestNumber}`;
+      });
+      for (const [index, candidate] of candidates.entries()) {
+        if (index >= MAX_INDEXED_CANDIDATES) {
+          core.info("Evidence candidate budget exhausted; executing fresh validation.");
+          return fallback;
+        }
+        // Hydrate only the candidate being evaluated. Once recent proof suffices,
+        // older ownerless runs need no job-detail API calls.
+        await recoverOwner(candidate);
+        if (throttled) return fallback;
         // An unverified newer owner cannot disappear and expose an older validation success.
         if (unverifiedOwners.has(candidate.id)) {
+          if (!(validationEvidence || sameHeadOnly || pytestEvidence)) continue;
           core.info("Unverified PR ownership prevents advancing the selection base.");
           return fallback;
         }
@@ -385,6 +414,7 @@ async function resolveIncrementalPrBase({
           return fallback;
         }
         const succeeded = await hasSuccessfulEvidence(candidate);
+        if (throttled) return fallback;
         if (sameHeadOnly && contradictedSameHeadEvidence) return fallback;
         // Revoked same-head pytest evidence leaves ancestor proof, as before same-head reuse.
         if (pytestEvidence && contradictedSameHeadEvidence && candidate.head_sha === headSha) continue;
@@ -419,6 +449,10 @@ async function resolveIncrementalPrBase({
         }
       }
     } catch (error) {
+      if ([403, 429].includes(error.status)) {
+        core.warning(`Workflow evidence is throttled; executing fresh validation: ${error.message}`);
+        return fallback;
+      }
       core.warning(`Could not list prior workflow runs (${error.message}); trying previous-head checks.`);
     }
 
