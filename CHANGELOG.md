@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.15.3](https://github.com/gigaverse-app/ci-esta/compare/v1.15.2...v1.15.3) (2026-11-15)
+
+
+### Bug fixes
+
+* **quota:** bound optional evidence and artifact discovery ([#209](https://github.com/gigaverse-app/ci-esta/issues/209)) ([a81f7bc](https://github.com/gigaverse-app/ci-esta/commit/a81f7bcaef93928775e064845428429e5dd2ed85))
+* **quota:** centralize evidence discovery and preserve newer results ([#211](https://github.com/gigaverse-app/ci-esta/issues/211)) ([e0987d0](https://github.com/gigaverse-app/ci-esta/commit/e0987d035f2994c69a8583b31b0dcecea7697cf6))
+
 ## [1.15.2](https://github.com/gigaverse-app/ci-esta/compare/v1.15.1...v1.15.2) (2026-11-15)
 
 
