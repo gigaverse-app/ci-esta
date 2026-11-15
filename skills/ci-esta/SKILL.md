@@ -384,6 +384,15 @@ Human actions: merge; required check; settings
 ## Rules that keep the numbers honest
 
 - Keep the reporter outside the validation gate's dependencies; its runner time is still reported separately.
+- When splitting or moving jobs, resolve the tested commit once and pass that immutable SHA to execution,
+  collection, replay-fixture preparation and every evidence consumer. Reuse the workflow's existing revision
+  output; do not copy PR-head/merge expressions into each job. A PR head, synthetic merge commit and mutable
+  branch name are different identities. Preserve the workflow's choice of head or merge testing.
+- Check the complete producer-to-consumer chain with distinct PR-head and merge SHAs, plus branch-override and
+  non-PR controls. Verify the report accepts an artifact from the tested SHA and explains a mismatched artifact.
+  Green test gates alone do not validate a reporting job outside that gate. Do not fix a mismatch by relabeling
+  old evidence or disabling revision validation. See the [revision checklist](https://github.com/gigaverse-app/ci-esta/blob/main/docs/tutorials/adoption-checklist.md#keep-one-tested-revision-across-jobs).
+
 - Never equate selected with executed, skipped tests with saved time, or a green old run with proof for new work.
 - Test selection and completion-receipt reuse are different savings; attribute each to what produced it.
 - Unknown timings and unknown prices stay unknown, never zero. Rounded minutes and dollars are estimates, not

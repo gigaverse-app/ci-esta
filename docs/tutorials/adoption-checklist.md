@@ -59,6 +59,39 @@ ci-esta render ci-esta-report/ci-observability.json \
 **Done when:** you can name the blocking cost and show the source evidence.
 If reporting is the only useful change, stopping here is a valid adoption.
 
+### Keep one tested revision across jobs
+
+Splitting a job can silently split its source identity. For example, inventory
+collection might use `github.event.pull_request.head.sha` while a new reporting
+job uses `github.sha`, which is normally the synthetic merge commit on a
+`pull_request` event. Each checkout succeeds, but the report correctly rejects
+an inventory from different code. This occurred in
+[gigaverse-ai #3420](https://github.com/gigaverse-app/gigaverse-ai/pull/3420).
+
+Choose whether this workflow tests the PR head or the merge commit, then resolve
+that choice to an immutable SHA once. Reuse an existing source-revision job output
+where available. If the workflow accepts a branch override, resolve it in that
+job too; checking out the branch independently in later jobs can observe a newer
+commit. Have tests, inventory collection, replay preparation and reporting consume
+the same resolved output. A selection base is a comparison input, not the tested
+revision. A trusted `workflow_run` publisher must instead obtain the source run's
+identity through its existing verification boundary, not trust a PR's manifest.
+
+Before and after moving work between jobs:
+
+- [ ] Trace every artifact from its producer to its readers, including reports
+  outside the required validation gate.
+- [ ] Exercise PR-head and merge-testing policies with deliberately different
+  SHAs. Also check explicit branch overrides and push/scheduled runs.
+- [ ] Verify a matching inventory is accepted and a mismatched inventory stays
+  unavailable with an actionable explanation. Keep the original evidence intact.
+- [ ] Inspect the final reporting job and its output, not only the test gate.
+
+Use pytest-obligation's
+[separate-job inventory recipe](https://github.com/gigaverse-app/pytest-obligation/blob/main/package/docs/github-action-report.md#collect-and-report-in-separate-jobs)
+when wiring its collector and reporter. This is an integration contract; adding a
+new checkout wrapper is unnecessary when one resolved revision already exists.
+
 ## 2. Skip unaffected work before provisioning it
 
 Use [whole-lane selection](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/ci.md#select-whole-ci-lanes)
