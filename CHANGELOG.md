@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.1](https://github.com/gigaverse-app/ci-esta/compare/v1.15.0...v1.15.1) (2026-11-14)
+
+
+### Bug fixes
+
+* **selection:** centralize baseline policy and preserve checkout identity ([#204](https://github.com/gigaverse-app/ci-esta/issues/204)) ([9f33d04](https://github.com/gigaverse-app/ci-esta/commit/9f33d042f4d02ea5c2531a3bffe0a2b99005b37a))
+
 ## [1.15.0](https://github.com/gigaverse-app/ci-esta/compare/v1.14.1...v1.15.0) (2026-11-11)
 
 
