@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 @pytest.mark.parametrize(
     "scenario,expected",
-    [("current", [90]), ("stale", []), ("advanced", []), ("unavailable", []), ("missing_order", []), ("missing_caller_order", []), ("force", [90])],
+    [("current", [90]), ("stale", []), ("advanced", []), ("unavailable", []), ("missing_order", []), ("missing_caller_order", []), ("force", [90]), ("rate_limit", []), ("no_before", [90])],
 )
 def test_cleanup_requires_live_head_and_older_same_workflow_run(scenario: str, expected: list[int]) -> None:
     action = yaml.safe_load((ROOT / "actions/cancel-obsolete-pr-runs/action.yml").read_text())
@@ -23,6 +23,7 @@ const {strictGithub}=require(process.env.STRICT_FAKE);
 const scenario=process.env.SCENARIO;
 let liveHead=scenario==='stale'?'new':'current';
 const cancelled=[], forced=[], warnings=[];
+const inspected=[],listed=[];
 const base={workflow_id:7, status:'in_progress', head_sha:'old', run_number:9,
   head_repository:{full_name:'org/repo'},head_branch:'feature',pull_requests:[{number:123}]};
 const runs=[
@@ -37,21 +38,21 @@ const runs=[
 const github=strictGithub({
   repos:{
     getBranch:async()=>{if(scenario==='unavailable')throw Error('API unavailable');return {data:{commit:{sha:liveHead}}};},
-    getCommit:async()=>({data:{parents:[{sha:'old'}]}}),
+    getCommit:async()=>{if(scenario!=='no_before')throw Error('event.before already identifies the previous head');return {data:{parents:[{sha:'old'}]}};},
   },
   checks:{listForRef:async()=>({data:{check_runs:[{details_url:'https://github.com/org/repo/actions/runs/90'}]}})},
   actions:{
-    getWorkflowRun:async({run_id})=>({data:{...runs.find(r=>r.id===run_id),status:cancelled.includes(run_id)&&scenario!=='force'?'completed':'in_progress'}}),
-    listWorkflowRuns:async()=>{if(scenario==='advanced')liveHead='new';return {data:{workflow_runs:runs}};},
+    getWorkflowRun:async({run_id})=>{inspected.push(run_id);if(scenario==='rate_limit'&&run_id===90)throw Object.assign(Error('API rate limit exceeded'),{status:403});return {data:{...runs.find(r=>r.id===run_id),status:cancelled.includes(run_id)&&scenario!=='force'?'completed':'in_progress'}};},
+    listWorkflowRuns:async({status})=>{listed.push(status);if(scenario==='advanced')liveHead='new';return {data:{workflow_runs:runs.filter(r=>r.status===status)}};},
     cancelWorkflowRun:async({run_id})=>{cancelled.push(run_id);},
     forceCancelWorkflowRun:async({run_id})=>{forced.push(run_id);},
   },
 });
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
 new AsyncFunction('github','context','core','setTimeout',process.env.ACTION_SCRIPT)(
-  github,{repo:{owner:'org',repo:'repo'},runId:100,payload:{before:'old'}},
+  github,{repo:{owner:'org',repo:'repo'},runId:100,payload:{before:scenario==='no_before'?undefined:'old'}},
   {info:()=>{},notice:()=>{},warning:m=>warnings.push(m)},fn=>fn()
-).then(()=>console.log(JSON.stringify({cancelled,forced,warnings}))).catch(e=>{console.error(e);process.exit(1);});
+).then(()=>console.log(JSON.stringify({cancelled,forced,warnings,inspected,listed}))).catch(e=>{console.error(e);process.exit(1);});
 """
     result = subprocess.run(
         ["node", "-e", harness], check=True, capture_output=True, text=True,
@@ -63,4 +64,10 @@ new AsyncFunction('github','context','core','setTimeout',process.env.ACTION_SCRI
     observed = json.loads(result.stdout)
     assert observed["cancelled"] == expected
     assert observed["forced"] == ([90] if scenario == "force" else [])
-    assert bool(observed["warnings"]) is (scenario == "unavailable")
+    assert bool(observed["warnings"]) is (scenario in {"unavailable", "rate_limit"})
+    if scenario not in {"stale", "unavailable", "rate_limit"}:
+        assert set(observed["listed"]) == {"queued", "in_progress", "pending", "waiting"}
+
+    if scenario == "rate_limit":
+        assert observed["inspected"] == [100, 90]
+        assert observed["listed"] == []
