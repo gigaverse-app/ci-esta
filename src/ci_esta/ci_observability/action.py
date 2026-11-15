@@ -50,6 +50,9 @@ REPOSITORY_SIGNALS_ADAPTER = TypeAdapter(list[RepositorySignalV1])
 RUNNER_SKU_RATES_ADAPTER = TypeAdapter(list[RunnerSkuRateV1])
 #: Recent comparable full-suite runs the saving takes the median of, so one odd run cannot set it.
 REFERENCE_SAMPLE = 5
+# Optional savings estimates cannot scan or download the repository's full
+# retained artifact history. Missing comparable samples remain unknown.
+REFERENCE_CANDIDATE_LIMIT = 10
 #: A reference counts only while its suite has about the size of this run's.
 REFERENCE_SIZE_TOLERANCE = 0.1
 
@@ -184,9 +187,9 @@ def _references(
     ones behind it, and so is one whose suite size no longer matches this run's.
     """
     references: list[FullSuiteReferenceV1] = []
-    candidates = [artifact for artifact in client.list_artifacts(name)
+    candidates = [artifact for artifact in client.list_artifacts(name, recent_pages=1)
                   if artifact.from_same_repository and artifact.workflow_run is not None
-                  and artifact.workflow_run.id != run.id]
+                  and artifact.workflow_run.id != run.id][:REFERENCE_CANDIDATE_LIMIT]
     while candidates and len(references) < REFERENCE_SAMPLE:
         count = REFERENCE_SAMPLE - len(references)
         batch, candidates = candidates[:count], candidates[count:]

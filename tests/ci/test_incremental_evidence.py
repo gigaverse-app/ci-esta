@@ -72,16 +72,20 @@ const github = strictGithub({
         if (!run) throw new Error(`missing run ${run_id}`);
         return { data: { ...run, workflow_id: input.workflowId } };
       },
-      listWorkflowRuns: async () => (reads.push("runs"), {
+      listWorkflowRuns: async () => { reads.push("runs");
+        if (input.failAt === "run-list-rate-limit") throw Object.assign(Error("API rate limit exceeded"), {status:403});
+        return {
         data: {
+          total_count: input.totalCount ?? (input.indexedRuns ?? input.runs).length,
           workflow_runs: (input.indexedRuns ?? input.runs).map((run) => ({
             ...run,
             workflow_id: input.workflowId,
           })),
         },
-      }),
+      }; },
       listJobsForWorkflowRun: async ({ run_id }) => {
         reads.push(`jobs:${run_id}`);
+        if (input.failAt === "jobs-rate-limit") throw Object.assign(Error("API rate limit exceeded"), {status:403});
         if (input.failAt === "jobs" || input.failedJobRunId === run_id) throw new Error("HTTP 502: jobs API unavailable");
         return { data: {
           jobs: input.jobsByRun?.[run_id] ?? [
@@ -229,6 +233,54 @@ def test_a_reused_same_head_candidate_logs_no_rejection() -> None:
 
     assert outcome["result"] == {"baseSha": CURRENT_HEAD_SHA, "reused": True}
     assert not [line for line in _resolver_infos(outcome) if "rejected" in line]
+
+
+def test_incomplete_run_index_cannot_hide_a_newer_contradiction() -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    scenario["totalCount"] = 101
+    observed = _resolve_incremental_base(scenario)
+    assert observed["result"] == {"baseSha": FALLBACK_BASE_SHA, "reused": False}
+    assert observed["reads"] == ["run:9999", "runs"]
+
+
+def test_rate_limited_index_stops_optional_discovery() -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    scenario["failAt"] = "run-list-rate-limit"
+    observed = _resolve_incremental_base(scenario)
+    assert observed["result"] == {"baseSha": FALLBACK_BASE_SHA, "reused": False}
+    assert observed["reads"] == ["run:9999", "runs"]
+
+
+def test_recent_proof_does_not_hydrate_older_ownerless_runs() -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    newest = scenario["runs"][0]
+    scenario["runs"] += [newest | {
+        "id": identifier, "pull_requests": [], "event": "pull_request",
+        "head_branch": "feature/security-ci", "updated_at": "2026-08-31T12:00:00Z",
+    } for identifier in range(2, 22)]
+    observed = _resolve_incremental_base(scenario)
+    assert observed["result"]["reused"] is True
+    assert [read for read in observed["reads"] if read.startswith("jobs:")] == ["jobs:1"]
+
+
+def test_explicit_other_pr_owner_cannot_be_recovered_from_matching_branch() -> None:
+    scenario = _same_head_lane_scenario("success", "other-pr")
+    scenario["runs"][0].update(event="pull_request", head_branch="feature/security-ci")
+    assert _resolve_incremental_base(scenario)["result"]["reused"] is False
+
+
+@pytest.mark.parametrize("rate_limited", [False, True])
+def test_missing_proof_stops_after_ten_candidates_without_an_ancestor_scan(rate_limited) -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    run = scenario["runs"][0]
+    scenario.update(sameHeadOnly=False, evidenceJobName="No matching evidence", firstParentSha=SUCCESSFUL_ANCESTOR_SHA)
+    scenario["runs"] = [run | {"id": identifier} for identifier in range(1, 22)]
+    if rate_limited:
+        scenario["failAt"] = "jobs-rate-limit"
+    observed = _resolve_incremental_base(scenario)
+    assert observed["result"]["reused"] is False
+    assert len([read for read in observed["reads"] if read.startswith("jobs:")]) == (1 if rate_limited else 10)
+    assert observed["calls"]["commitRefs"] == []
 
 
 def _resolver_infos(outcome: dict[str, object]) -> list[str]:
@@ -1428,7 +1480,8 @@ def test_unverified_owner_cannot_hide_newer_validation(conclusion, newer, mode):
         "baseSha": FALLBACK_BASE_SHA if newer else CURRENT_HEAD_SHA if mode == "lane" else SUCCESSFUL_ANCESTOR_SHA,
         "reused": not newer,
     }
-    assert any("HTTP 502" in warning for warning in observed["warnings"])
+    assert any("HTTP 502" in warning for warning in observed["warnings"]) is newer
+    assert ("jobs:2" in observed["reads"]) is newer
 
 
 @pytest.mark.parametrize("variant", ["valid", "missing", "malformed", "masked", "failed", "other-job", "conflicting"])
