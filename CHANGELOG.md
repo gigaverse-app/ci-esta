@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.15.2](https://github.com/gigaverse-app/ci-esta/compare/v1.15.1...v1.15.2) (2026-11-15)
+
+
+### Bug fixes
+
+* **actions:** bound obsolete run discovery to active work ([#208](https://github.com/gigaverse-app/ci-esta/issues/208)) ([6e3e327](https://github.com/gigaverse-app/ci-esta/commit/6e3e327e5d07b3a66a717bd03b65263c4deccef7))
+
+
+### Documentation
+
+* **adoption:** preserve tested revision across evidence jobs ([#206](https://github.com/gigaverse-app/ci-esta/issues/206)) ([42b8971](https://github.com/gigaverse-app/ci-esta/commit/42b8971c81f71cf0968131d4dcac23092d4240b3))
+
 ## [1.15.1](https://github.com/gigaverse-app/ci-esta/compare/v1.15.0...v1.15.1) (2026-11-14)
 
 
