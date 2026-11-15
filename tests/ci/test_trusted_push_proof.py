@@ -18,24 +18,34 @@ const input = JSON.parse(process.env.CASE);
 const {strictGithub} = require(process.env.GITHUB_REST_FAKE);
 const {trustedPushProof} = require(process.env.MODULE);
 const now = Date.now();
+let runLists = 0;
 const runs = input.runs.map((run) => ({workflow_id: 55, status: 'completed', run_attempt: 1, ...run,
-  updated_at: new Date(now - run.minutes_ago * 60000).toISOString()}));
+  updated_at: new Date(now - run.minutes_ago * 60000).toISOString(),
+  created_at: new Date(now - (run.created_minutes_ago ?? run.minutes_ago) * 60000).toISOString()}));
 const github = strictGithub({actions: {
   getWorkflowRun: async ({run_id}) => ({data: {id: run_id, workflow_id: 55}}),
   listWorkflowRuns: async (args) => {
+    runLists += 1;
     if (args.event !== 'push' || args.branch !== 'main' || args.workflow_id !== 55) throw new Error(`unexpected ${JSON.stringify(args)}`);
     // Only the proof window: the branch's whole history grows without bound.
-    if (!/^>=\d{4}-\d{2}-\d{2}T/.test(args.created || '')) throw new Error(`unbounded run listing ${JSON.stringify(args)}`);
-    return {data: {workflow_runs: runs}};
+    if (!/^(>=|<)\d{4}-\d{2}-\d{2}T/.test(args.created || '')) throw new Error(`unbounded run listing ${JSON.stringify(args)}`);
+    const since = Date.parse(args.created.replace(/^(>=|<)/, ''));
+    return {data: {workflow_runs: runs.filter(run => args.created.startsWith('>=')
+      ? Date.parse(run.created_at) >= since : Date.parse(run.created_at) < since)}};
   },
   listJobsForWorkflowRun: async ({run_id}) => ({data: {jobs: input.jobs[run_id] || []}}),
 }});
 const logs = [];
 const core = {info: (m) => logs.push(m), warning: (m) => logs.push(m)};
 const context = {runId: 999, repo: {owner: 'o', repo: 'r'}, payload: {repository: {default_branch: input.branch ?? 'main'}}};
-trustedPushProof({github, context, core, jobName: input.job, receipt: input.receipt}).then((proof) => {
-  console.log(JSON.stringify({proof: proof ? {run: proof.run.id, jobs: proof.jobs.map((j) => j.id)} : null, logs}));
-});
+(async () => {
+ const cache = new Map(); let proof;
+ for (let index = 0; index < (input.repeat ?? 1); index++) {
+  proof = await trustedPushProof({github, context, core, jobName: input.job, receipt: input.receipt,
+    cache, nowMs: now + index * 60000});
+ }
+ console.log(JSON.stringify({proof: proof ? {run: proof.run.id, jobs: proof.jobs.map((j) => j.id)} : null, logs, runLists}));
+})();
 """
 
 
@@ -44,8 +54,8 @@ def job(job_id: int, conclusion: str = "success", receipt: str = RECEIPT, step: 
     return {"id": job_id, "name": JOB, "conclusion": conclusion, "steps": [{"name": receipt, "conclusion": step_conclusion}]}
 
 
-def resolve(runs: list[dict], jobs: dict, *, receipt: str = RECEIPT, branch: str = "main") -> dict:
-    case = {"runs": runs, "jobs": jobs, "receipt": receipt, "job": JOB, "branch": branch}
+def resolve(runs: list[dict], jobs: dict, *, receipt: str = RECEIPT, branch: str = "main", repeat: int = 1) -> dict:
+    case = {"runs": runs, "jobs": jobs, "receipt": receipt, "job": JOB, "branch": branch, "repeat": repeat}
     result = subprocess.run(
         ["node", "-e", HARNESS], capture_output=True, text=True,
         env={**os.environ, "CASE": json.dumps(case), "MODULE": str(MODULE), "GITHUB_REST_FAKE": str(FAKE)},
@@ -85,3 +95,25 @@ def test_weaker_evidence_executes_fresh(run: dict, jobs: dict) -> None:
 
 def test_without_a_known_default_branch_nothing_is_trusted() -> None:
     assert resolve([{"id": 1, "head_sha": "c" * 40, "minutes_ago": 10}], {"1": [job(11)]}, branch="")["proof"] is None
+
+
+def test_a_failed_rerun_revokes_older_default_branch_proof() -> None:
+    runs = [
+        {"id": 1, "head_sha": "c" * 40, "minutes_ago": 30},
+        {"id": 2, "head_sha": "d" * 40, "minutes_ago": 5, "run_attempt": 2},
+    ]
+    assert resolve(runs, {"1": [job(11)], "2": [job(21, conclusion="failure")]})["proof"] is None
+
+
+def test_an_old_run_rerun_recently_cannot_hide_outside_the_creation_window() -> None:
+    runs = [
+        {"id": 1, "head_sha": "c" * 40, "minutes_ago": 30},
+        {"id": 2, "head_sha": "d" * 40, "minutes_ago": 5, "created_minutes_ago": 3 * 24 * 60, "run_attempt": 2},
+    ]
+    assert resolve(runs, {"1": [job(11)], "2": [job(21, conclusion="failure")]})["proof"] is None
+
+
+def test_lanes_share_one_observation_time_and_one_history_snapshot() -> None:
+    outcome = resolve([{ "id": 1, "head_sha": "c" * 40, "minutes_ago": 10}], {"1": [job(11)]}, repeat=2)
+    assert outcome["proof"] is not None
+    assert outcome["runLists"] == 2  # One recent index and one revocation index, shared by both calls.

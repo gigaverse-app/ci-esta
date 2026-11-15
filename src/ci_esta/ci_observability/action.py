@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
     from ci_esta.ci_observability.python_selection_models import LaneSelectionSectionV1, SelectionSectionV1
 
+import httpx
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 
 from ci_esta.ci_observability.enrichment.profiles import pytest_timings
@@ -190,7 +191,8 @@ def _references(
     candidates = [artifact for artifact in client.list_artifacts(name, recent_pages=1)
                   if artifact.from_same_repository and artifact.workflow_run is not None
                   and artifact.workflow_run.id != run.id][:REFERENCE_CANDIDATE_LIMIT]
-    while candidates and len(references) < REFERENCE_SAMPLE:
+    throttled = False
+    while candidates and len(references) < REFERENCE_SAMPLE and not throttled:
         count = REFERENCE_SAMPLE - len(references)
         batch, candidates = candidates[:count], candidates[count:]
         for artifact, content in zip(batch, client.read_artifacts([item.id for item in batch]), strict=True):
@@ -200,6 +202,8 @@ def _references(
                 reference = FullSuiteReferenceV1.model_validate_json(content)
             except Exception as error:
                 print(f"::warning::Skipped unreadable full-suite reference {artifact.id}: {error}")
+                if isinstance(error, httpx.HTTPStatusError) and error.response.status_code in {403, 429}:
+                    throttled = True
                 continue
             if abs(reference.total_files - total_files) <= REFERENCE_SIZE_TOLERANCE * total_files:
                 references.append(reference)
@@ -223,7 +227,7 @@ def _test_selection(client: GitHubActionsClient, config: ActionConfig, run: GitH
     if explanation is None:
         return None
     references: list[FullSuiteReferenceV1] = []
-    if config.full_suite_reference_artifact:
+    if config.full_suite_reference_artifact and explanation.selected < explanation.total:
         try:
             references = _references(client, config.full_suite_reference_artifact, run, explanation.total)
         except Exception as error:
@@ -378,7 +382,11 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
             except Exception as error:
                 errors.append(f"critical-path graph unavailable: {error}")
         try:
-            billing_jobs = client.list_jobs(config.run_id, include_all_attempts=True)
+            # On a first attempt, latest jobs already ARE the whole attempt history.
+            # Retain the separate read for reruns and reports of older attempts.
+            billing_jobs = latest_jobs if not older_attempt and run_metadata.run_attempt == 1 else client.list_jobs(
+                config.run_id, include_all_attempts=True
+            )
         except Exception as error:
             billing_jobs = latest_jobs
             errors.append(f"all-attempt jobs unavailable; latest attempt only: {error}")

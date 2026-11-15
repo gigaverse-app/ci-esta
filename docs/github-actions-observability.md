@@ -9,6 +9,10 @@ Historical full-suite reference discovery is optional: it lists one recent page
 of matching artifacts and downloads at most ten candidates to find five comparable
 samples. If those samples are unavailable, the savings estimate stays unknown.
 It does not traverse the repository's retained artifact history or affect validation.
+A full-suite execution does not need this savings lookup. A throttled download
+stops further batches. First-attempt reporting reuses its latest-job snapshot for
+billing; reruns still collect their attempt history. See the
+[discovery policy](evidence-discovery.md) for the distinct proof and pricing rules.
 
 ## Add a reporting job
 

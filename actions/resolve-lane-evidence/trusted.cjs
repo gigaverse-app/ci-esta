@@ -1,3 +1,5 @@
+const {evidenceSearch, newestFirst} = require('../resolve-incremental-pr-base/search.cjs');
+const {receiptEvidence} = require('../resolve-incremental-pr-base/resolve.cjs');
 // Proof from the default branch's own push runs.
 //
 // A pull request's runs prove a lane only for that pull request. The default branch's
@@ -9,39 +11,46 @@
 
 // The newest run decides: a newer failure of the same job with the same receipt revokes
 // older successes, as it does for pull-request evidence.
-async function trustedPushProof({github, context, core, jobName, receipt, maxAgeHours = 24, cache = new Map()}) {
+async function trustedPushProof({github, context, core, jobName, receipt, maxAgeHours = 24, nowMs = Date.now(), cache = new Map()}) {
   const branch = context.payload.repository?.default_branch;
   if (!branch || !receipt) return null;
-  const read = async (key, load) => {
-    if (!cache.has(key)) cache.set(key, load());
-    return cache.get(key);
-  };
-  const {data: current} = await read(`run:${context.runId}`, () =>
-    github.rest.actions.getWorkflowRun({...context.repo, run_id: context.runId}));
-  const oldest = Date.now() - maxAgeHours * 3600 * 1000;
+  const search = evidenceSearch(github, context, cache, nowMs);
+  if (!search.canSearch(jobName, receipt)) return null;
+  const {data: current} = await search.run(context.runId);
+  const oldest = search.nowMs - maxAgeHours * 3600 * 1000;
   // Ask only for the window that can prove anything; the branch's whole history grows without bound.
   const since = new Date(oldest - 3600 * 1000).toISOString();
-  const runs = await read(`push-runs:${current.workflow_id}:${branch}`, () =>
-    github.paginate(github.rest.actions.listWorkflowRuns, {
-      ...context.repo, workflow_id: current.workflow_id, branch, event: 'push', status: 'completed',
-      created: `>=${since}`, per_page: 100,
-    }));
+  const runs = await search.runs({workflow_id: current.workflow_id, branch, event: 'push',
+    status: 'completed', created: `>=${since}`});
   const candidates = runs
-    .filter((run) => run.id !== context.runId && run.run_attempt === 1 && Date.parse(run.updated_at) >= oldest)
-    .sort((a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at));
+    .filter((run) => run.id !== context.runId && Date.parse(run.updated_at) >= oldest && search.allows(jobName, receipt, run))
+    .sort(newestFirst);
   for (const run of candidates) {
-    const jobs = await read(`jobs:${run.id}`, () =>
-      github.paginate(github.rest.actions.listJobsForWorkflowRun, {...context.repo, run_id: run.id, filter: 'latest', per_page: 100}));
-    const job = jobs.find((candidate) => candidate.name === jobName &&
-      (candidate.steps || []).some((step) => step.name === receipt));
-    if (!job) continue;
-    const step = job.steps.find((candidate) => candidate.name === receipt);
-    if (job.conclusion === 'success' && step.conclusion === 'success') {
-      core.info(`Default-branch run ${run.id} (${run.head_sha.slice(0, 7)}) proved '${jobName}' for identical inputs.`);
-      return {run, jobs: [job]};
+    const jobs = await search.jobs(run.id, run.run_attempt);
+    const evidence = receiptEvidence(run, jobs, {jobName, receipt});
+    if (evidence.contradicted) {
+      search.refuse(jobName, receipt, 'newer contradictory default-branch evidence', run);
+      core.info(`Default-branch run ${run.id} has '${jobName}' failure for these inputs; executing fresh.`);
+      return null;
     }
-    core.info(`Default-branch run ${run.id} (${run.head_sha.slice(0, 7)}) has '${jobName}' ${job.conclusion} for these inputs; executing fresh.`);
-    return null;
+    if (evidence.proven) {
+      // Creation time scopes the cheap positive-proof search, not revocation.
+      // An old run can finish/rerun now. Only once we have useful proof do we
+      // load that older metadata, then inspect jobs solely for newer results.
+      const older = await search.runs({workflow_id: current.workflow_id, branch, event: 'push',
+        status: 'completed', created: `<${since}`});
+      for (const later of older.filter(other => other.id !== context.runId && newestFirst(other, run) < 0).sort(newestFirst)) {
+        const laterEvidence = receiptEvidence(later, await search.jobs(later.id, later.run_attempt), {jobName, receipt});
+        if (laterEvidence.contradicted) {
+          search.refuse(jobName, receipt, 'newer result from an older default-branch run', later);
+          core.info(`Default-branch run ${later.id} has a newer failure for these inputs; executing fresh.`);
+          return null;
+        }
+      }
+      core.info(`Default-branch run ${run.id} (${run.head_sha.slice(0, 7)}) proved '${jobName}' for identical inputs.`);
+      return {run, jobs: evidence.jobs};
+    }
+    if (evidence.encountered) return null;
   }
   return null;
 }

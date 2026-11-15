@@ -933,3 +933,50 @@ def test_explicit_wrong_source_head_still_rejects_collection(tmp_path):
     report = json.loads(config.report_output.read_text())
     assert report["collection_status"] == "unavailable"
     assert "does not match" in report["collection_errors"][0]
+
+
+@pytest.mark.parametrize("selected", [TOTAL_FILES, SELECTED])
+def test_reference_reads_only_happen_when_the_report_can_estimate_skipped_work(tmp_path, selected) -> None:
+    client = MagicMock(spec=GitHubActionsClient)
+    explanation = _explanation(selected)
+    with patch.object(action_module, "_explanation", return_value=explanation), patch.object(action_module, "_references", return_value=[]) as references:
+        section = action_module._test_selection(client, _selection_config(tmp_path, ai_extensions()), _selection_run())
+    assert section is not None
+    assert references.called is (selected < TOTAL_FILES)
+
+
+def test_reference_throttle_does_not_start_another_batch() -> None:
+    client = MagicMock(spec=GitHubActionsClient)
+    client.list_artifacts.return_value = [artifact(1000 + n, NEWEST_RUN + n) for n in range(100)]
+    response = httpx.Response(403, request=httpx.Request("GET", "https://api.github.com/example"))
+    error = httpx.HTTPStatusError("API rate limit exceeded", request=response.request, response=response)
+    client.read_artifacts.side_effect = lambda ids: [error for _ in ids]
+    assert action_module._references(client, REFERENCE_ARTIFACT, _selection_run(), TOTAL_FILES) == []
+    assert client.read_artifacts.call_count == 1
+
+
+@pytest.mark.parametrize("attempt", [1, 2])
+def test_billing_fetches_attempt_history_only_when_it_can_exist(tmp_path, attempt) -> None:
+    config = _config(tmp_path, post_sticky=False).model_copy(update={"run_attempt": attempt})
+    metadata = _run_metadata().model_copy(update={"run_attempt": attempt})
+    job = _job().model_copy(update={"run_attempt": attempt})
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=metadata),
+        patch.object(GitHubActionsClient, "list_jobs", return_value=[job]) as jobs,
+        patch.object(GitHubActionsClient, "list_commit_statuses", return_value=[_status()]),
+    ):
+        assert run(config, LATER) == 0
+    assert jobs.call_count == attempt
+    report = _report(config)
+    assert report.billing_jobs == report.latest_attempt_jobs
+
+
+def test_reference_throttle_preserves_valid_results_already_in_the_batch() -> None:
+    client = MagicMock(spec=GitHubActionsClient)
+    client.list_artifacts.return_value = [artifact(1000 + n, NEWEST_RUN + n) for n in range(10)]
+    response = httpx.Response(403, request=httpx.Request("GET", "https://api.github.com/example"))
+    error = httpx.HTTPStatusError("API rate limit exceeded", request=response.request, response=response)
+    valid = [full_suite_reference(NEWEST_RUN + n) for n in range(1, 5)]
+    client.read_artifacts.return_value = [error, *(reference.model_dump_json().encode() for reference in valid)]
+    assert action_module._references(client, REFERENCE_ARTIFACT, _selection_run(), TOTAL_FILES) == valid
+    assert client.read_artifacts.call_count == 1
