@@ -72,12 +72,15 @@ const github = strictGithub({
         if (!run) throw new Error(`missing run ${run_id}`);
         return { data: { ...run, workflow_id: input.workflowId } };
       },
-      listWorkflowRuns: async () => { reads.push("runs");
+      listWorkflowRuns: async (args) => { reads.push(args.event === 'push' ? "push-runs" : "runs");
+        const allListed = args.event === 'push'
+          ? (args.created.startsWith('<') ? [] : input.trustedRuns ?? []) : input.indexedRuns ?? input.runs;
+        const listed = input.runPages ? input.runPages[args.page - 1] ?? [] : allListed;
         if (input.failAt === "run-list-rate-limit") throw Object.assign(Error("API rate limit exceeded"), {status:403});
         return {
         data: {
-          total_count: input.totalCount ?? (input.indexedRuns ?? input.runs).length,
-          workflow_runs: (input.indexedRuns ?? input.runs).map((run) => ({
+          total_count: args.event === "push" ? listed.length : input.totalCount ?? listed.length,
+          workflow_runs: listed.map((run) => ({
             ...run,
             workflow_id: input.workflowId,
           })),
@@ -88,9 +91,9 @@ const github = strictGithub({
         if (input.failAt === "jobs-rate-limit") throw Object.assign(Error("API rate limit exceeded"), {status:403});
         if (input.failAt === "jobs" || input.failedJobRunId === run_id) throw new Error("HTTP 502: jobs API unavailable");
         return { data: {
-          jobs: input.jobsByRun?.[run_id] ?? [
+          jobs: (input.jobsByRun?.[run_id] ?? [
             { name: "Security evidence", conclusion: "success" },
-          ],
+          ]).map((job, index) => ({id: run_id * 100 + index, ...job})),
         }};
       },
     },
@@ -98,11 +101,11 @@ const github = strictGithub({
       listForRef: async ({ ref }) => {
         calls.checkRefs.push(ref);
         reads.push(`checks:${ref}`);
-        return { data: { check_runs: input.checkRuns?.[ref] ?? [] } };
+        return { data: { check_runs: (input.checkRuns?.[ref] ?? []).map((check, index) => ({id: index + 1, ...check})) } };
       },
     },
     repos: {
-      listCommitStatusesForRef: async () => ({ data: input.commitStatuses ?? [] }),
+      listCommitStatusesForRef: async () => ({ data: (input.commitStatuses ?? []).map((status, index) => ({id: index + 1, ...status})) }),
       getCommit: async ({ ref }) => {
         calls.commitRefs.push(ref);
         return { data: {
@@ -113,6 +116,8 @@ const github = strictGithub({
         } };
       },
       compareCommitsWithBasehead: async ({ basehead }) => {
+        reads.push(`compare:${basehead}`);
+        if (input.failAt === "compare-rate-limit") throw Object.assign(Error("API rate limit exceeded"), {status:403});
         const comparison = input.comparisons[basehead];
         if (!comparison && basehead.endsWith(`...${input.fallbackBaseSha}`)) {
           return { data: { status: "diverged" } };
@@ -126,7 +131,7 @@ const context = {
   serverUrl: "https://github.com",
   repo: { owner: "gigaverse-app", repo: "example" },
   runId: 9999,
-  payload: { before: input.previousHeadSha },
+  payload: { before: input.previousHeadSha, repository: {default_branch: "main"} },
 };
 const infos = [];
 const proofs = [];
@@ -160,8 +165,14 @@ const core = { warning: (message) => warnings.push(message), info: (message) => 
     nowMs: Date.parse(input.currentTime),
   }));
   }
+  let trustedProof = null;
+  if (input.trustedRuns) {
+    const {trustedPushProof} = require(require('path').join(require('path').dirname(process.argv[1]), '../resolve-lane-evidence/trusted.cjs'));
+    trustedProof = await trustedPushProof({github, context, core, cache: evidenceCache,
+      jobName: input.evidenceJobName, receipt: input.evidenceStepName, nowMs: Date.parse(input.currentTime)});
+  }
   const result = input.lanes ? results : results[0];
-  process.stdout.write(JSON.stringify({ result, warnings, calls, infos, reads, proofs }));
+  process.stdout.write(JSON.stringify({ result, warnings, calls, infos, reads, proofs, trustedProof }));
 })().catch((error) => {
   console.error(error);
   process.exit(1);
@@ -240,7 +251,7 @@ def test_incomplete_run_index_cannot_hide_a_newer_contradiction() -> None:
     scenario["totalCount"] = 101
     observed = _resolve_incremental_base(scenario)
     assert observed["result"] == {"baseSha": FALLBACK_BASE_SHA, "reused": False}
-    assert observed["reads"] == ["run:9999", "runs"]
+    assert observed["reads"] == ["run:9999", "runs", "runs"]
 
 
 def test_rate_limited_index_stops_optional_discovery() -> None:
@@ -270,7 +281,7 @@ def test_explicit_other_pr_owner_cannot_be_recovered_from_matching_branch() -> N
 
 
 @pytest.mark.parametrize("rate_limited", [False, True])
-def test_missing_proof_stops_after_ten_candidates_without_an_ancestor_scan(rate_limited) -> None:
+def test_search_stops_on_throttle_but_not_an_arbitrary_candidate_count(rate_limited) -> None:
     scenario = _same_head_lane_scenario("success", "valid")
     run = scenario["runs"][0]
     scenario.update(sameHeadOnly=False, evidenceJobName="No matching evidence", firstParentSha=SUCCESSFUL_ANCESTOR_SHA)
@@ -279,8 +290,44 @@ def test_missing_proof_stops_after_ten_candidates_without_an_ancestor_scan(rate_
         scenario["failAt"] = "jobs-rate-limit"
     observed = _resolve_incremental_base(scenario)
     assert observed["result"]["reused"] is False
-    assert len([read for read in observed["reads"] if read.startswith("jobs:")]) == (1 if rate_limited else 10)
-    assert observed["calls"]["commitRefs"] == []
+    assert len([read for read in observed["reads"] if read.startswith("jobs:")]) == (1 if rate_limited else 21)
+    if rate_limited:
+        assert observed["calls"]["commitRefs"] == []
+
+
+
+def test_relevant_proof_is_not_discarded_because_ten_other_runs_lacked_it() -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    run = scenario["runs"][0]
+    scenario["runs"] = [run | {"id": n} for n in range(1, 22)]
+    # Run 1 has the receipt; newer unrelated jobs do not erase it.
+    scenario["jobsByRun"].update({str(n): [] for n in range(2, 22)})
+    assert _resolve_incremental_base(scenario)["result"]["reused"] is True
+
+
+def test_check_discovery_does_not_fetch_runs_for_unrelated_jobs() -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    scenario["indexedRuns"] = []
+    scenario["checkRuns"] = {CURRENT_HEAD_SHA: [
+        {"name": "Search validation", "details_url": "https://github.com/gigaverse-app/example/actions/runs/1/job/5"},
+        *[{"name": "Unrelated workflow", "details_url": f"https://github.com/gigaverse-app/example/actions/runs/{n}/job/5"} for n in range(2, 22)],
+    ]}
+    outcome = _resolve_incremental_base(scenario)
+    assert outcome["result"]["reused"] is True
+    assert outcome["calls"]["runIds"] == [1]
+
+
+def test_comparison_throttle_stops_discovery_across_candidates_and_lanes() -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    scenario.update(sameHeadOnly=False, failAt="compare-rate-limit", lanes=["Search validation", "Other lane"])
+    run = scenario["runs"][0]
+    scenario["runs"] = [run | {"id": n} for n in range(1, 22)]
+    scenario["jobsByRun"] = {str(n): scenario["jobsByRun"]["1"] for n in range(1, 22)}
+    outcome = _resolve_incremental_base(scenario)
+    assert not any(result["reused"] for result in outcome["result"])
+    reads = outcome["reads"]
+    assert len([read for read in reads if read.startswith("jobs:")]) == 1
+    assert reads[-1].startswith("compare:")
 
 
 def _resolver_infos(outcome: dict[str, object]) -> list[str]:
@@ -1546,3 +1593,63 @@ def test_missing_newer_job_evidence_cannot_resurrect_conservative_lane_proof():
     scenario = _two_head_lane_scenario("success", "failure")
     scenario.update(headSha="e" * 40, conservativeFailures=True, failedJobRunId=2)
     assert _resolve_incremental_base(scenario)["result"] == {"baseSha": FALLBACK_BASE_SHA, "reused": False}
+
+
+@pytest.mark.parametrize("prior", ["failed", "missing-receipt"])
+def test_pr_refusal_cannot_be_lost_when_trying_a_default_branch_source(prior) -> None:
+    scenario = _same_head_lane_scenario("success", prior)
+    good = _same_head_lane_scenario("success", "valid")
+    scenario["runs"][0]["updated_at"] = CURRENT_TIME
+    scenario["trustedRuns"] = [good["runs"][0] | {"id": 50, "head_sha": "5" * 40}]
+    scenario["jobsByRun"]["50"] = good["jobsByRun"]["1"]
+    outcome = _resolve_incremental_base(scenario)
+    assert (outcome["trustedProof"] is not None) is (prior == "missing-receipt")
+    assert ("jobs:50" in outcome["reads"]) is (prior == "missing-receipt")
+
+
+def test_unavailable_newer_receipt_cannot_expose_an_older_success() -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    newer = scenario["runs"][0] | {"id": 2, "head_sha": "2" * 40, "updated_at": CURRENT_TIME}
+    scenario["runs"].append(newer)
+    scenario["failedJobRunId"] = 2
+    assert _resolve_incremental_base(scenario)["result"]["reused"] is False
+
+
+def test_jobs_from_a_new_rerun_do_not_prove_the_listed_first_attempt() -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    scenario["jobsByRun"]["1"][0]["run_attempt"] = 2
+    assert _resolve_incremental_base(scenario)["result"]["reused"] is False
+
+
+@pytest.mark.parametrize("newer_failure", [False, True])
+def test_second_page_preserves_useful_proof_and_newer_contradictions(newer_failure) -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    good = scenario["runs"][0]
+    unrelated = [good | {"id": n, "pull_requests": [{"number": 999}]} for n in range(2, 102)]
+    if newer_failure:
+        last = good | {"id": 102, "updated_at": CURRENT_TIME}
+        scenario["jobsByRun"]["102"] = [{"id": 102, "name": "Search validation", "conclusion": "failure"}]
+        first = [good, *unrelated[:99]]
+    else:
+        last, first = good, unrelated
+    scenario.update(totalCount=101, runPages=[first, [last]])
+    outcome = _resolve_incremental_base(scenario)
+    assert outcome["result"]["reused"] is not newer_failure
+    assert outcome["reads"].count("runs") == 2
+    assert len([read for read in outcome["reads"] if read.startswith("jobs:")]) == 1
+
+
+def test_a_known_incomplete_github_search_does_not_fetch_more_useless_pages() -> None:
+    scenario = _same_head_lane_scenario("success", "valid")
+    scenario["totalCount"] = 1001
+    outcome = _resolve_incremental_base(scenario)
+    assert outcome["result"]["reused"] is False
+    assert outcome["reads"] == ["run:9999", "runs"]
+
+
+def test_newer_trusted_proof_can_supersede_an_older_pr_failure() -> None:
+    scenario = _same_head_lane_scenario("success", "failed")
+    good = _same_head_lane_scenario("success", "valid")
+    scenario["trustedRuns"] = [good["runs"][0] | {"id": 50, "head_sha": "5" * 40, "updated_at": CURRENT_TIME}]
+    scenario["jobsByRun"]["50"] = good["jobsByRun"]["1"]
+    assert _resolve_incremental_base(scenario)["trustedProof"] is not None

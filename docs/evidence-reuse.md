@@ -6,14 +6,10 @@ A skipped job is not proof that its work passed. CI-esta reuses a lane only when
 
 ## Start with the whole tree
 
-PR evidence discovery reads at most one page of 100 workflow runs and evaluates
-at most ten candidates. If the index is incomplete or the candidate budget is
-exhausted, validation runs afresh. It never reuses an older success while omitted
-runs might contain contradictory evidence. Job details for missing PR ownership
-are fetched only when that candidate is reached, not eagerly for every old run.
-Confirmed 403/429 discovery failures stop optional reads and retain validation.
-These bounds can cost another test execution on a long-lived branch; they prevent
-reuse optimization from exhausting the API budget required by validation itself.
+Discovery searches a complete PR-scoped metadata index and reads candidate jobs
+lazily. The [discovery policy](evidence-discovery.md) explains source selection,
+chronology, listing-lag recovery, cross-source refusal barriers and API failure
+handling. It does not discard valid proof merely because ten other runs preceded it.
 
 Use `gigaverse-app/ci-esta/actions/resolve-lane-evidence@v1` with a `lanes` JSON map of output keys to exact job names. Omitting `input-paths` binds the merged tree, base commit, and head tree. Recreated merge commits can match; changed inputs cannot.
 

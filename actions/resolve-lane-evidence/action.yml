@@ -141,8 +141,9 @@ runs:
           const shared = process.env.DEPENDENCY_TOKEN ? getOctokit(process.env.DEPENDENCY_TOKEN) : null;
           let tested;
           const paths = JSON.parse(process.env.EVIDENCE_INPUT_PATHS || '[]');
+          const evidenceCache = new Map();
           const {proofTarget} = require(`${process.env.GITHUB_ACTION_PATH}/merged.cjs`);
-          const target = await proofTarget({github,context,core,paths,actionPath:process.env.GITHUB_ACTION_PATH,
+          const target = await proofTarget({github,context,core,paths,evidenceCache,actionPath:process.env.GITHUB_ACTION_PATH,
             sha:process.env.TESTED_MERGE_SHA,attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
             afterMerge:process.env.REUSE_AFTER_MERGE === 'true',
             releaseVersion:process.env.REUSE_VERSION_ONLY_RELEASE === 'true'});
@@ -164,11 +165,10 @@ runs:
           if ((context.eventName === 'pull_request' || (context.eventName === 'push' && process.env.REUSE_AFTER_MERGE === 'true')) && Number(process.env.GITHUB_RUN_ATTEMPT) === 1 &&
               pr?.head.repo.full_name === `${context.repo.owner}/${context.repo.repo}`) {
             const { resolveIncrementalPrBase } = require(`${process.env.GITHUB_ACTION_PATH}/../resolve-incremental-pr-base/resolve.cjs`);
-            const evidenceCache = new Map();
             for (const [key, jobName] of Object.entries(lanes)) {
               const result = await resolveIncrementalPrBase({
                 github, context, core, evidenceCache, fallbackBaseSha: pr.base.sha, headSha: pr.head.sha,
-                headRef: pr.head.ref, pullRequestNumber: pr.number,
+                headRef: pr.head.ref, pullRequestNumber: pr.number, pullRequestCreatedAt: pr.created_at,
                 evidenceJobName: jobName, evidenceStepName: receipt,
                 sameHeadOnly: true, maxAgeHours: 24,
                 conservativeFailures: paths.length > 0 || executionContext !== '',
@@ -189,11 +189,10 @@ runs:
           if ((context.eventName === 'pull_request' || (context.eventName === 'push' && process.env.REUSE_AFTER_MERGE === 'true')) &&
               Number(process.env.GITHUB_RUN_ATTEMPT) === 1) {
             const { trustedPushProof } = require(`${process.env.GITHUB_ACTION_PATH}/trusted.cjs`);
-            const trustedCache = new Map();
             for (const [key, jobName] of Object.entries(lanes)) {
               if (reused[key]) continue;
               try {
-                const proof = await trustedPushProof({github, context, core, jobName, receipt, cache: trustedCache});
+                const proof = await trustedPushProof({github, context, core, jobName, receipt, cache: evidenceCache});
                 if (!proof) continue;
                 reused[key] = true;
                 for (const job of proof.jobs) {
@@ -207,6 +206,8 @@ runs:
               }
             }
           }
+          const {evidenceSearch} = require(`${process.env.GITHUB_ACTION_PATH}/../resolve-incremental-pr-base/search.cjs`);
+          evidenceSearch(github, context, evidenceCache).audit(core, 'complete', Object.keys(lanes));
           core.setOutput('reused', JSON.stringify(reused));
           core.setOutput('matrix', JSON.stringify(pendingMatrix(Object.keys(lanes), reused)));
           core.setOutput('admitted-lanes', admit(reused));

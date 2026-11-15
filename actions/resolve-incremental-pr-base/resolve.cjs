@@ -5,15 +5,7 @@ const SHA_PATTERN = /^[0-9a-f]{40}$/;
 // visible segment matches, in order, and no more than this many characters are hidden.
 const MAX_MASKED_RECEIPT_CHARS = 16;
 
-// The workflow runs a commit's check runs belong to, other than this run.
-function runIdsFromCheckRuns(checkRuns, currentRunId) {
-  const runIds = new Set();
-  for (const checkRun of checkRuns) {
-    const match = checkRun.details_url?.match(/\/actions\/runs\/(\d+)/);
-    if (match && Number(match[1]) !== currentRunId) runIds.add(Number(match[1]));
-  }
-  return runIds;
-}
+const {evidenceSearch, matchesJobPattern, relevantRunIds, newestFirst} = require('./search.cjs');
 
 function receiptMatches(name, receipt) {
   if (name === receipt) return true;
@@ -31,9 +23,21 @@ function receiptMatches(name, receipt) {
   }
   return receipt.length - last.length >= at;
 }
+// The same receipt contract applies to PR and trusted default-branch jobs.
+// Reruns can revoke evidence but never issue a new reusable proof.
+function receiptEvidence(run, jobs, {jobName, receipt, headSha, conservativeFailures = false}) {
+  const matching = jobs.filter(job => matchesJobPattern(job.name, jobName));
+  const contradicted = matching.some(job => job.conclusion === 'failure' &&
+    (conservativeFailures || run.head_sha === headSha ||
+      (job.steps || []).some(step => receiptMatches(step.name, receipt))));
+  const provenJobs = run.run_attempt === 1 ? matching.filter(job => job.conclusion === 'success' &&
+    (job.steps || []).some(step => receiptMatches(step.name, receipt) && step.conclusion === 'success')) : [];
+  return {encountered: matching.some(job => (job.steps || []).some(step => receiptMatches(step.name, receipt))),
+    contradicted, jobs: provenJobs, proven: !contradicted && provenJobs.length > 0};
+}
+
 const HOUR_MS = 60 * 60 * 1000;
 const MAX_ANCESTOR_HEADS = 10;
-const MAX_INDEXED_CANDIDATES = 10;
 
 async function resolveIncrementalPrBase({
   github,
@@ -43,6 +47,7 @@ async function resolveIncrementalPrBase({
   headSha,
   headRef,
   pullRequestNumber,
+  pullRequestCreatedAt,
   evidenceJobName,
   evidenceStepName = "",
   pytestEvidence,
@@ -59,19 +64,13 @@ async function resolveIncrementalPrBase({
   // One planning invocation may evaluate several lanes. Share only raw API evidence,
   // never verdicts: each lane still enforces its own receipt and newer-failure revocation.
   // The caller owns this snapshot; it must never survive into another planning invocation.
-  let throttled = false;
-  const readEvidence = async (key, read) => {
-    // Cache the promise before awaiting it, including rejection. A slow API outage
-    // must not repeat once per lane; each caller still handles uncertainty itself.
-    try {
-      if (!evidenceCache.has(key)) evidenceCache.set(key, Promise.resolve().then(read));
-      return await evidenceCache.get(key);
-    } catch (error) {
-      if ([403, 429].includes(error.status)) throttled = true;
-      throw error;
-    }
-  };
+  const search = evidenceSearch(github, context, evidenceCache, nowMs);
+  const checkPatterns = [evidenceJobName, ...(pytestEvidence ? [pytestEvidence.planJobName] : [])];
   const fallback = { baseSha: fallbackBaseSha, reused: false };
+  const refuse = (reason, run) => {
+    search.refuse(evidenceJobName, evidenceStepName, reason, run);
+    return fallback;
+  };
   if (
     !SHA_PATTERN.test(fallbackBaseSha) ||
     !SHA_PATTERN.test(headSha) ||
@@ -90,12 +89,8 @@ async function resolveIncrementalPrBase({
   }
 
   try {
-    const { data: currentRun } = await readEvidence(`run:${context.runId}`, () => github.rest.actions.getWorkflowRun({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      run_id: context.runId,
-    }));
-    const oldestReusableMs = nowMs - maxAgeHours * HOUR_MS;
+    const { data: currentRun } = await search.run(context.runId);
+    const oldestReusableMs = search.nowMs - maxAgeHours * HOUR_MS;
     const reusableConclusions = pytestEvidence || sameHeadOnly || validationEvidence ? ["success", "failure", "cancelled"] : ["success", "cancelled"];
     // Every reason a listed run cannot serve as evidence. An empty list is the only
     // admission; the reasons are logged, because a silent fallback hid for weeks that
@@ -130,9 +125,7 @@ async function resolveIncrementalPrBase({
       if (reasons.length !== 1 || reasons[0] !== `not associated with PR #${pullRequestNumber}`) return;
       unverifiedOwners.add(run.id);
       try {
-        const jobs = await readEvidence(`jobs:${run.id}`, () => github.paginate(github.rest.actions.listJobsForWorkflowRun, {
-          ...context.repo, run_id: run.id, filter: "latest", per_page: 100,
-        }));
+        const jobs = await search.jobs(run.id, run.run_attempt);
         // GitHub may omit pull_requests even while a PR is open. A successful execution
         // marker binds this run to its actual PR and head; a matching branch never suffices.
         const owner = `PR evidence #${pullRequestNumber} head ${run.head_sha}`;
@@ -148,67 +141,55 @@ async function resolveIncrementalPrBase({
     const sameHeadFromCheckRuns = async () => {
       let checkRuns;
       try {
-        checkRuns = await readEvidence(`checks:${headSha}`, () => github.paginate(github.rest.checks.listForRef, {
-          owner: context.repo.owner, repo: context.repo.repo, ref: headSha, per_page: 100,
-        }));
+        checkRuns = await search.checks(headSha);
       } catch (error) {
         core.warning(`Could not inspect checks on ${headSha} (${error.message}); falling back.`);
+        refuse("unavailable head checks");
         return null;
       }
       const runs = [];
-      for (const runId of runIdsFromCheckRuns(checkRuns, context.runId)) {
+      for (const runId of relevantRunIds(checkRuns, context.runId, checkPatterns)) {
         let run;
         try {
-          ({ data: run } = await readEvidence(`run:${runId}`, () => github.rest.actions.getWorkflowRun({
-            owner: context.repo.owner, repo: context.repo.repo, run_id: runId,
-          })));
+          ({ data: run } = await search.run(runId));
         } catch (error) {
           core.warning(`Could not inspect same-head run ${runId} (${error.message}); retaining validation.`);
+          refuse("unavailable head run");
           return null;
         }
         runs.push(run);
       }
       // Check-run transport order cannot let an older success hide newer contradictory proof.
       for (const run of runs.sort(newestFirst)) {
+        if (search.stopped) return null;
         await recoverOwner(run);
-        if (unverifiedOwners.has(run.id)) return null;
+        if (unverifiedOwners.has(run.id)) { refuse("unverified newer PR ownership", run); return null; }
         const reasons = [...rejectionReasons(run), ...(run.head_sha === headSha ? [] : ["different head"])];
         if (reasons.length) {
           reportRejection(run, reasons);
           continue;
         }
         const succeeded = await hasSuccessfulEvidence(run);
-        if (contradictedSameHeadEvidence) return null;
+        if (search.stopped) return null;
+        if (contradictedSameHeadEvidence) { refuse("newer contradictory PR evidence", run); return null; }
         if (succeeded) return admittedReuse(run);
       }
       return null;
     };
     const reportRejection = (run, reasons) =>
       core.info(`Candidate run ${run.id} (${(run.head_sha || "").slice(0, 7)}) rejected: ${reasons.join("; ")}`);
-    const newestFirst = (left, right) => {
-      const leftMs = Date.parse(left.updated_at || left.created_at);
-      const rightMs = Date.parse(right.updated_at || right.created_at);
-      return rightMs - leftMs || right.id - left.id;
-    };
     const evidenceByRunId = new Map();
     const testedMergeByRunId = new Map();
     let contradictedSameHeadEvidence = false;
     const outsideFallbackBaseBySha = new Map();
     // Runs the listing returned in their final state: already judged, never fetched again.
     const listedCompleted = new Set();
-    const matchesJobPattern = (jobName, pattern) => {
-      if (!pattern.includes("*")) {
-        return jobName === pattern || jobName.endsWith(` / ${pattern}`);
-      }
-      const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
-      return new RegExp(`^${escaped}$`).test(jobName);
-    };
     const admittedReuse = async (run) => {
       // Observability is downstream of the verdict. A broken sink cannot revoke
       // proof or admit work which the resolver would otherwise execute.
       if (sameHeadOnly && onReuse) {
         try {
-          const jobs = await evidenceCache.get(`jobs:${run.id}`);
+          const jobs = await search.jobs(run.id, run.run_attempt);
           await onReuse({run, jobs: (jobs || []).filter(job =>
             matchesJobPattern(job.name, evidenceJobName) && job.conclusion === 'success' &&
             (job.steps || []).some(step => receiptMatches(step.name, evidenceStepName) && step.conclusion === 'success'))});
@@ -222,9 +203,7 @@ async function resolveIncrementalPrBase({
       if (evidenceByRunId.has(run.id)) return evidenceByRunId.get(run.id);
       try {
         if (pytestEvidence?.successStatusContext) {
-          const statuses = await github.paginate(github.rest.repos.listCommitStatusesForRef, {
-            ...context.repo, ref: run.head_sha, per_page: 100,
-          });
+          const statuses = await search.statuses(run.head_sha);
           const gate = statuses.find((status) => status.context === pytestEvidence.successStatusContext);
           const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${run.id}`;
           // Bind the gate to this attempt, not another workflow on the same SHA.
@@ -236,13 +215,7 @@ async function resolveIncrementalPrBase({
             return proof;
           }
         }
-        const jobs = await readEvidence(`jobs:${run.id}`, () => github.paginate(github.rest.actions.listJobsForWorkflowRun, {
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          run_id: run.id,
-          filter: "latest",
-          per_page: 100,
-        }));
+        const jobs = await search.jobs(run.id, run.run_attempt);
         if (pytestEvidence) {
           const plan = jobs.find((job) => matchesJobPattern(job.name, pytestEvidence.planJobName));
           const test = jobs.find((job) => matchesJobPattern(job.name, evidenceJobName));
@@ -274,14 +247,12 @@ async function resolveIncrementalPrBase({
         // Inventories use conservativeFailures: mutable advisory/image inputs can
         // change the verdict, and even a failure with an unavailable receipt
         // requires a fresh scan rather than resurrecting earlier success.
-        if (sameHeadOnly && jobs.some((job) =>
-          matchesJobPattern(job.name, evidenceJobName) && job.conclusion === 'failure' &&
-          (conservativeFailures || run.head_sha === headSha ||
-            (job.steps || []).some((step) => receiptMatches(step.name, evidenceStepName))))) {
-          contradictedSameHeadEvidence = true;
-        }
+        const lane = sameHeadOnly ? receiptEvidence(run, jobs, {
+          jobName: evidenceJobName, receipt: evidenceStepName, headSha, conservativeFailures,
+        }) : null;
+        if (lane?.contradicted) contradictedSameHeadEvidence = true;
         const evidenceJobs = jobs.filter((job) => matchesJobPattern(job.name, evidenceJobName));
-        const primaryEvidenceSucceeded = (!sameHeadOnly || run.run_attempt === 1) && evidenceJobs.some(
+        const primaryEvidenceSucceeded = lane ? lane.proven : evidenceJobs.some(
           (job) => job.conclusion === "success" &&
             (!evidenceStepName || (job.steps || []).some(
               (step) => receiptMatches(step.name, evidenceStepName) && step.conclusion === "success",
@@ -329,7 +300,7 @@ async function resolveIncrementalPrBase({
         return proven;
       } catch (error) {
         core.warning(`Could not verify evidence job for run ${run.id} (${error.message}); continuing.`);
-        if ((sameHeadOnly && conservativeFailures) || ((sameHeadOnly || pytestEvidence) && run.head_sha === headSha))
+        if (sameHeadOnly || (pytestEvidence && run.head_sha === headSha))
           contradictedSameHeadEvidence = true;
         evidenceByRunId.set(run.id, false);
         return false;
@@ -340,11 +311,7 @@ async function resolveIncrementalPrBase({
         return outsideFallbackBaseBySha.get(candidateSha);
       }
       try {
-        const { data: comparison } = await github.rest.repos.compareCommitsWithBasehead({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          basehead: `${candidateSha}...${fallbackBaseSha}`,
-        });
+        const { data: comparison } = await search.comparison(candidateSha, fallbackBaseSha);
         const outsideBase = !["ahead", "identical"].includes(comparison.status);
         if (!outsideBase) {
           core.info(
@@ -362,26 +329,14 @@ async function resolveIncrementalPrBase({
       }
     };
 
-    // Reuse is optional. Never paginate a branch's lifetime history just to
-    // avoid validation. A partial index could hide contradictory evidence, so
-    // saturation executes fresh validation instead of inspecting an arbitrary subset.
+    // Metadata is shared once; jobs are read lazily only for eligible candidates.
+    // An arbitrary candidate cutoff loses useful proof. A complete index is needed
+    // because creation order does not order reruns' newer contradictory results.
     try {
-      const response = await readEvidence(`runs:${currentRun.workflow_id}:${headRef}`, () => github.rest.actions.listWorkflowRuns({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        workflow_id: currentRun.workflow_id,
-        event: "pull_request",
-        branch: headRef,
-        per_page: 100,
-      }));
-      const indexedRuns = response.data.workflow_runs;
-      if (response.headers?.link?.includes('rel="next"') ||
-          (Number.isSafeInteger(response.data.total_count)
-            ? response.data.total_count !== indexedRuns.length
-            : indexedRuns.length >= 100)) {
-        core.info("Workflow history exceeds the bounded index; executing fresh validation.");
-        return fallback;
-      }
+      const pr = context.payload.pull_request;
+      const created = pullRequestCreatedAt || (pr?.number === pullRequestNumber && pr.created_at);
+      const indexedRuns = await search.runs({workflow_id: currentRun.workflow_id, branch: headRef,
+        ...(created ? {created: `>=${created}`} : {})});
       const others = indexedRuns.filter((run) => run.id !== context.runId).sort(newestFirst);
       for (const run of others) if (run.status === "completed") listedCompleted.add(run.id);
       for (const run of others.slice(0, 20)) {
@@ -394,28 +349,24 @@ async function resolveIncrementalPrBase({
         return !(run.pull_requests || []).length && run.event === "pull_request" && run.head_branch === headRef &&
           reasons.length === 1 && reasons[0] === `not associated with PR #${pullRequestNumber}`;
       });
-      for (const [index, candidate] of candidates.entries()) {
-        if (index >= MAX_INDEXED_CANDIDATES) {
-          core.info("Evidence candidate budget exhausted; executing fresh validation.");
-          return fallback;
-        }
+      for (const candidate of candidates) {
         // Hydrate only the candidate being evaluated. Once recent proof suffices,
         // older ownerless runs need no job-detail API calls.
         await recoverOwner(candidate);
-        if (throttled) return fallback;
+        if (search.stopped) return fallback;
         // An unverified newer owner cannot disappear and expose an older validation success.
         if (unverifiedOwners.has(candidate.id)) {
           if (!(validationEvidence || sameHeadOnly || pytestEvidence)) continue;
           core.info("Unverified PR ownership prevents advancing the selection base.");
-          return fallback;
+          return refuse("unverified newer PR ownership", candidate);
         }
         if (validationEvidence && candidate.conclusion !== "success") {
           core.info("Newer unsuccessful validation prevents advancing the selection base.");
           return fallback;
         }
         const succeeded = await hasSuccessfulEvidence(candidate);
-        if (throttled) return fallback;
-        if (sameHeadOnly && contradictedSameHeadEvidence) return fallback;
+        if (search.stopped) return fallback;
+        if (sameHeadOnly && contradictedSameHeadEvidence) return refuse("newer contradictory PR evidence", candidate);
         // Revoked same-head pytest evidence leaves ancestor proof, as before same-head reuse.
         if (pytestEvidence && contradictedSameHeadEvidence && candidate.head_sha === headSha) continue;
         if (!succeeded && validationEvidence) return fallback;
@@ -426,13 +377,12 @@ async function resolveIncrementalPrBase({
         // GitHub dynamically associates historical same-branch runs with a
         // newly opened PR. A run whose head has since landed in the base is
         // evidence for the previous PR, not for this recycled branch.
-        if (!(await isOutsideFallbackBase(candidate.head_sha))) continue;
+        if (!(await isOutsideFallbackBase(candidate.head_sha))) {
+          if (search.stopped) return fallback;
+          continue;
+        }
         try {
-          const { data: comparison } = await github.rest.repos.compareCommitsWithBasehead({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            basehead: `${candidate.head_sha}...${headSha}`,
-          });
+          const { data: comparison } = await search.comparison(candidate.head_sha, headSha);
           if (["ahead", "identical"].includes(comparison.status)) {
             core.info(
               `Validated evidence candidate ${candidate.head_sha} from run ${candidate.id} for incremental PR selection.`,
@@ -453,7 +403,10 @@ async function resolveIncrementalPrBase({
         core.warning(`Workflow evidence is throttled; executing fresh validation: ${error.message}`);
         return fallback;
       }
-      core.warning(`Could not list prior workflow runs (${error.message}); trying previous-head checks.`);
+      // A failed/incomplete chronology must not expose an older success through
+      // a second discovery route. Only a complete but lagging index uses checks.
+      core.warning(`Could not establish workflow history (${error.message}); executing fresh validation.`);
+      return refuse("incomplete PR chronology");
     }
 
     if (validationEvidence) return fallback;
@@ -478,11 +431,7 @@ async function resolveIncrementalPrBase({
     for (let depth = 0; depth < MAX_ANCESTOR_HEADS; depth += 1) {
       let firstParentSha;
       try {
-        const { data: commit } = await github.rest.repos.getCommit({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          ref: ancestorSha,
-        });
+        const { data: commit } = await search.commit(ancestorSha);
         firstParentSha = commit.parents[0]?.sha;
         if (
           !SHA_PATTERN.test(firstParentSha || "") ||
@@ -496,13 +445,8 @@ async function resolveIncrementalPrBase({
         break;
       }
       try {
-        const { data: checkResponse } = await github.rest.checks.listForRef({
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          ref: firstParentSha,
-          per_page: 100,
-        });
-        const runIds = runIdsFromCheckRuns(checkResponse.check_runs, context.runId);
+        const checkResponse = await search.checks(firstParentSha);
+        const runIds = relevantRunIds(checkResponse, context.runId, checkPatterns);
         // Enforcement point: the walk exists only for runs the listing has not caught up with,
         // and lag hides only the newest runs. Once an ancestor names a run the listing already
         // returned completed, that run was judged above and every older ancestor's run is
@@ -515,12 +459,9 @@ async function resolveIncrementalPrBase({
         let inspected = 0;
         let ownRun = false;
         for (const runId of runIds) {
+          if (search.stopped) return fallback;
           try {
-            const { data: run } = await readEvidence(`run:${runId}`, () => github.rest.actions.getWorkflowRun({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: runId,
-            }));
+            const { data: run } = await search.run(runId);
             inspected += 1;
             await recoverOwner(run);
             if (recoveredOwners.has(run.id) || (run.pull_requests || []).some((pullRequest) => pullRequest.number === pullRequestNumber)) {
@@ -560,8 +501,10 @@ async function resolveIncrementalPrBase({
     return fallback;
   } catch (error) {
     core.warning(`Could not inspect prior workflow runs (${error.message}); falling back to the pull request base.`);
-    return fallback;
+    return refuse("unavailable PR evidence");
+  } finally {
+    search.audit(core, "pull-request", evidenceJobName);
   }
 }
 
-module.exports = { resolveIncrementalPrBase };
+module.exports = { resolveIncrementalPrBase, receiptEvidence };
