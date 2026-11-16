@@ -1,6 +1,9 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { execFile } = require('node:child_process');
+const { promisify } = require('node:util');
+const execute = promisify(execFile);
 
 // Files the backend-common bump automation owns. A retag rewrites only the pin inside them.
 const PIN_URL = 'github.com/gigaverse-app/backend-common.git';
@@ -8,23 +11,37 @@ const PIN_FILES = new Set(['uv.lock', 'pyproject.toml']);
 const PIN_METADATA = 'backend-common-bump.json';
 const SHA = /^[0-9a-f]{40}$/;
 
+async function localObject(kind, sha) {
+  if (!process.env.GITHUB_WORKSPACE || !SHA.test(sha)) return null;
+  try {
+    const { stdout } = await execute(process.platform === 'win32' ? 'python' : 'python3',
+      ['-I', path.join(__dirname, 'local_git.py'), process.env.GITHUB_WORKSPACE, kind, sha],
+      { timeout: 10000, maxBuffer: 16 * 1024 * 1024, windowsHide: true });
+    return JSON.parse(stdout);
+  } catch {
+    // Optional transport: missing Python, shallow history and large objects keep the API path.
+    return null;
+  }
+}
+
 // Git objects are immutable. Keep promises only for this repository/client and
 // this identity calculation, so concurrent readers share one request without
 // carrying evidence or authentication across invocations.
 function gitObjects(github, repo) {
   const pending = new Map();
-  const read = (method, parameter, sha) => {
+  const read = (method, parameter, kind, sha) => {
     const key = `${method}:${sha}`;
     if (!pending.has(key)) {
-      pending.set(key, github.rest.git[method]({ ...repo, [parameter]: sha }).then(({ data }) => data));
+      pending.set(key, localObject(kind, sha).then(async (local) =>
+        local ?? (await github.rest.git[method]({ ...repo, [parameter]: sha })).data));
     }
     return pending.get(key);
   };
   return {
-    commit: (sha) => read('getCommit', 'commit_sha', sha),
-    tree: (sha) => read('getTree', 'tree_sha', sha),
+    commit: (sha) => read('getCommit', 'commit_sha', 'commit', sha),
+    tree: (sha) => read('getTree', 'tree_sha', 'tree', sha),
     blob: async (sha) => {
-      const data = await read('getBlob', 'file_sha', sha);
+      const data = await read('getBlob', 'file_sha', 'blob', sha);
       return Buffer.from(data.content, data.encoding === 'base64' ? 'base64' : 'utf8').toString('utf8');
     },
   };

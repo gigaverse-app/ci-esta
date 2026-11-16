@@ -39,6 +39,23 @@ Do not persist proof in an Actions cache. Completed run metadata can change on a
 
 `Evidence discovery` log records expose cumulative actual request counts by endpoint class, stop state and refusal reasons. They contain no tokens. Compare counts for the whole invocation rather than adding cumulative per-lane snapshots. The public action records a final snapshot after default-branch fallback too.
 
+### Checkout objects before Git API reads
+
+`resolve-lane-evidence/inputs.cjs` owns immutable object acquisition for lane and
+security inventory identities. It first asks the stdlib-only `local_git.py`
+boundary to read the requested SHA from `GITHUB_WORKSPACE`. Python runs in
+isolated mode. Git replacement refs and partial-clone lazy fetches are disabled;
+the reader verifies the object's SHA before returning the API-compatible shape.
+Working files, including uncommitted lockfile edits, never become evidence.
+
+This changes transport only: input paths, pin normalization, receipt format and
+proof decisions stay unchanged. A missing checkout, Python runtime or object
+falls back to the existing API call for that object. Existing full checkouts
+avoid commit/tree/blob calls; shallow checkouts still save all available reads.
+The dependency repository's pinned commit generally remains one API read per
+identity calculation because its object is absent from the consumer checkout.
+No history fetch or persistent proof cache is added.
+
 ## Optional reporting is a different decision
 
 The reporter does not authorize skips. Sampling belongs to `ci_observability.action`, using the canonical report/reference models:
