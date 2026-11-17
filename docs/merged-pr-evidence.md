@@ -56,6 +56,43 @@ learning, and do not claim whole files for arbitrary case subsets. The automatic
 path admits fresh complete-file observations; it does not infer a missing report
 inventory or certify repository-wide branch-protection rules.
 
+### Busy repositories: collect the automatic observations on the trusted branch
+
+Restore-time discovery reads the latest 300 repository artifacts. A repository that
+uploads more than that between two merges never sees its own observations, and the
+repository-wide artifact listing can fail outright at tens of thousands of artifacts.
+gigaverse-ai had 73,580 artifacts on 2026-11-17; its newest 300 covered under three
+hours and no restore had admitted a merged source.
+
+Run the collector with `automatic-sources: 'true'` from a small trusted-branch
+workflow instead. It walks GitHub's merged pull request inventory, imports the same
+observations `learn-test-timings` already retains, applies the same admission rules,
+and publishes a durable checkpoint that every later restore reads by name. No gate
+list, shard map or freshness declaration is needed.
+
+```yaml
+on:
+  schedule: [{ cron: '17 * * * *' }]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+jobs:
+  collect:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: gigaverse-app/ci-esta/actions/promote-merged-pr-timings@v1
+        with:
+          producer-workflow: tests.yml
+          history-key: unit-linux-py314
+          automatic-sources: 'true'
+```
+
+Then set `merged-pr-learning: 'false'` on `restore-test-timings` so planning reads
+checkpoints only and spends no API calls on discovery.
+
 ### Explicit collector for advanced workflows
 
 Use the collector below when required gates finish before the reporting workflow,
