@@ -32,6 +32,7 @@ from ci_esta.ci_observability.models import (
     RunnerSkuRateV1,
 )
 from ci_esta.ci_observability.report import STICKY_MARKER
+from ci_esta.cli import main as cli_main
 from tests.ci_observability.builders import (
     AI_TIMINGS,
     TOTAL_FILES,
@@ -736,8 +737,8 @@ def test_only_a_green_run_the_change_made_full_records_itself_as_a_reference(
         )
 
 
-def test_a_report_that_posts_no_sticky_reads_no_selection(tmp_path: Path) -> None:
-    config = _selection_config(tmp_path, ai_extensions(), post_sticky=False)
+def test_a_report_without_a_selection_artifact_reads_no_selection(tmp_path: Path) -> None:
+    config = _config(tmp_path, post_sticky=False)
 
     with github_with_artifacts(FakeArtifacts(_explanation()), _selection_run()) as github:
         assert run(config, LATER) == 0
@@ -888,6 +889,52 @@ def test_generic_work_artifact_matches_observed_source(tmp_path, identity):
     client.read_single_file_artifact.return_value = json.dumps(data).encode()
     result = action_module._work_selection(client, config, _run_metadata())
     assert (result is not None) == (identity == "valid")
+
+
+@pytest.mark.parametrize("identity", ["valid", "run", "attempt", "head"])
+def test_report_cli_collects_work_evidence_without_weakening_identity(tmp_path, monkeypatch, identity):
+    from ci_esta.ci_observability.work_selection import WorkDecisionV1, WorkSelectionV1
+
+    plan = WorkSelectionV1(provider="bun", run_id=RUN_ID, run_attempt=RUN_ATTEMPT, head_sha=HEAD_SHA,
+                           input_identity="tested merge tree", decisions=[
+                               WorkDecisionV1(name="Tests", decision="reused", reason="Matching inputs", receipt="proof")
+                           ])
+    updates = {"run": {"run_id": RUN_ID + 1}, "attempt": {"run_attempt": RUN_ATTEMPT + 1},
+               "head": {"head_sha": "b" * 40}, "valid": {}}
+    payload = plan.model_copy(update=updates[identity]).model_dump_json().encode()
+    monkeypatch.setenv("GH_TOKEN", TOKEN)
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=_run_metadata()),
+        patch.object(GitHubActionsClient, "list_jobs", return_value=[_job()]),
+        patch.object(GitHubActionsClient, "list_artifacts", return_value=[artifact(EXPLANATION_ID, RUN_ID)]) as listed,
+        patch.object(GitHubActionsClient, "read_single_file_artifact", return_value=payload),
+        patch.object(GitHubActionsClient, "upsert_sticky") as published,
+    ):
+        assert cli_main([
+            "report", "--repository", REPOSITORY, "--run-id", str(RUN_ID),
+            "--run-attempt", str(RUN_ATTEMPT), "--output-dir", str(tmp_path),
+            "--work-selection-artifact", "ci-work-selection", "--gate", "Tests",
+        ]) == 0
+    listed.assert_any_call("ci-work-selection", run_id=RUN_ID)
+    published.assert_not_called()
+    report = CiObservabilityReportV1.model_validate_json((tmp_path / "ci-observability.json").read_bytes())
+    assert report.collection_status == "complete"
+    assert report.work_selection == (plan if identity == "valid" else None)
+
+
+def test_report_cli_collects_pytest_selection(tmp_path, monkeypatch):
+    monkeypatch.setenv("GH_TOKEN", TOKEN)
+    fake = FakeArtifacts(_explanation())
+    with github_with_artifacts(fake, _run_metadata()):
+        assert cli_main([
+            "report", "--repository", REPOSITORY, "--run-id", str(RUN_ID),
+            "--run-attempt", str(RUN_ATTEMPT), "--output-dir", str(tmp_path),
+            "--test-selection-artifact", EXPLANATION_ARTIFACT, "--gate", "Tests",
+        ]) == 0
+    report = CiObservabilityReportV1.model_validate_json((tmp_path / "ci-observability.json").read_bytes())
+    assert report.test_selection is not None
+    assert report.test_selection.explanation == _explanation()
 
 
 def test_action_default_uses_source_head_instead_of_pull_request_merge_sha(tmp_path):

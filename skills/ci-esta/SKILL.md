@@ -355,6 +355,10 @@ Push the branch, then:
    from BEFORE to the old-layout input to the added jobs and steps plus run-to-run noise, and say so; if one job's
    steps sum to clearly more than in BEFORE, name the added step.
 2. **Report every run** with `ci-esta report ... --gate 'GATE' --critical-path`, as in step 3.
+   On CI-esta 1.17.3+, pass the observer's exact artifact names with
+   `--work-selection-artifact`, `--lane-selection-artifact` and/or
+   `--test-selection-artifact` as applicable. Omitted artifact inputs leave
+   selection unavailable in CLI reports; they do not mean the source run lacked a plan.
 3. **Preserve inventory; prove selection.** Compare the candidate full checkpoint with the original native
    command, entry by entry: environments, suites, files, preloads, isolation, coverage and outcomes.
    For layout-only changes, execution inventory must also match. For affected-test selection, fewer executed

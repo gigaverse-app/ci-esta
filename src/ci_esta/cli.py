@@ -56,6 +56,9 @@ def main(argv: list[str] | None = None) -> int:
     collect.add_argument("--commit-sha", default="")
     collect.add_argument("--gate", action="append", default=[], help="Exact required job name; repeat for multiple gates")
     collect.add_argument("--critical-path", action="store_true", help="Analyze source workflow dependencies as data")
+    collect.add_argument("--work-selection-artifact", default="", help="Exact artifact name for provider-neutral work decisions")
+    collect.add_argument("--lane-selection-artifact", default="", help="Exact artifact name for the pytest-selective lane plan")
+    collect.add_argument("--test-selection-artifact", default="", help="Exact artifact name for pytest-selective explanations")
     collect.add_argument("--output-dir", type=Path, default=Path("ci-esta-report"))
     collect.add_argument("--api-url", default="https://api.github.com")
     render = commands.add_parser("render", help="Render a saved JSON report without network access")
@@ -116,6 +119,9 @@ def main(argv: list[str] | None = None) -> int:
         prometheus_output=args.output_dir / "ci-observability.prom",
         post_sticky=False, append_summary=False,
         analyze_critical_path=args.critical_path,
+        work_selection_artifact=args.work_selection_artifact,
+        lane_selection_artifact=args.lane_selection_artifact,
+        test_selection_artifact=args.test_selection_artifact,
     ), datetime.now(timezone.utc))
 
 
