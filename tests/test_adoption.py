@@ -417,3 +417,37 @@ jobs:
     report = audit(tmp_path)
     assert not {"history-writer", "history-restore", "merged-pr-timing-promotion"}.intersection(
         item["id"] for item in report["suggestions"])
+
+
+def test_bun_action_execution_and_history_are_visible_to_adopters(tmp_path):
+    write(tmp_path, '.github/workflows/test.yml', '''
+name: Native tests
+jobs:
+  unit:
+    steps:
+      - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
+        with:
+          timing-history: ${{ runner.temp }}/bun-history/unit.json
+  gate:
+    needs: unit
+    steps:
+      - uses: gigaverse-app/ci-esta/actions/validation-gate@v1
+''')
+    report = audit(tmp_path)
+    assert report['workflows'][0]['jobs'][0]['test_commands'] == ['bun test']
+    assert any('--workflow test.yml' in step for step in report['next_steps'])
+    assert 'Bun timing-history configured' in report['retention']
+    assert 'verify persistence' in report['retention']
+    assert 'python-selection' not in {item['id'] for item in report['suggestions']}
+
+
+def test_bun_report_action_does_not_claim_test_execution(tmp_path):
+    write(tmp_path, '.github/workflows/report.yml', '''
+jobs:
+  report:
+    steps:
+      - uses: gigaverse-app/ci-esta/actions/report-bun-tests@v1
+''')
+    report = audit(tmp_path)
+    assert report['workflows'][0]['jobs'][0]['test_commands'] == []
+    assert report['retention'] == 'no shared history-key found'

@@ -21,6 +21,7 @@ PACKING_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/pack-matrix-jobs/
 GATE_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/selected-gates/"
 PYTHON_TESTS = re.compile(r"\b(pytest|tox|nox)(?:\s|$)")
 BUN_TESTS = re.compile(r"\bbun\s+test\b")
+BUN_RUNNER = "gigaverse-app/ci-esta/actions/run-bun-tests"
 # Jobs that still run after a failed prerequisite; a gate reached only through one can miss that failure.
 RUNS_AFTER_FAILURE = re.compile(r"always\(\)|!\s*cancelled\(\)|failure\(\)")
 GATE_ACTIONS = ("re-actors/alls-green", "gigaverse-app/ci-esta/actions/validation-gate")
@@ -145,7 +146,8 @@ def _summarize(source: str, parsed: _Source, raw: dict) -> WorkflowSummary:
     for job_id, job in parsed.jobs.items():
         needs = [job.needs] if isinstance(job.needs, str) else list(job.needs)
         commands = [command for step in job.steps if step.run for command in PYTHON_TESTS.findall(step.run)]
-        commands += ["bun test" for step in job.steps if BUN_TESTS.search(step.run)]
+        commands += ["bun test" for step in job.steps
+                     if BUN_TESTS.search(step.run) or step.uses.split("@", 1)[0] == BUN_RUNNER]
         aggregates = any(step.uses.startswith(GATE_ACTIONS) for step in job.steps)
         after_failure = bool(RUNS_AFTER_FAILURE.search(str(job.condition or "")))
         matrix = job.strategy.matrix if job.strategy else None
@@ -200,7 +202,7 @@ def _inventory(root: Path) -> tuple[AdoptionReport, list[tuple[str, str]], list[
                 continue
             report.actions.append(ActionUse(source=source, uses=step.uses, inputs={
                 name: value for name, value in step.inputs.items()
-                if name in {"full", "config", "history-key", "durations", "reuse-after-merge", "reuse-version-only-release"}
+                if name in {"full", "config", "history-key", "durations", "reuse-after-merge", "reuse-version-only-release", "timing-history"}
             }))
             if step.uses.startswith(("./", "$/")):
                 local = root / step.uses[2:]
@@ -350,6 +352,9 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
         advise("history-restore", "History learning is configured without a shared reader. Restore the same lane key before planning, or document the external consumer. Retention stays opt-in.", [item.source for item in writers])
     if readers and not writers:
         advise("history-writer", "History restore is configured without a shared writer. Verify a trusted producer exists for this lane; a read-only consumer may be intentional.", [item.source for item in readers])
+    if any(item.inputs.get("timing-history") for item in ci("run-bun-tests")):
+        bun_history = "Bun timing-history configured; verify persistence and successful-only writers"
+        report.retention = bun_history if report.retention == NO_RETENTION else f"{report.retention}; {bun_history}"
     enforcers = sorted({path for path, command in commands if "zizmor" in command}
                        | {item.source for item in uses("zizmorcore/zizmor-action")}
                        | {name for name in (".pre-commit-config.yaml",)

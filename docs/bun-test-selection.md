@@ -375,3 +375,8 @@ tests alone could not prove: `github.action_path` was empty when evaluated as a
 composite output. The action now exports the planner's resolved filesystem path
 from its running step. A regression protects the output, and the consumer's
 18 real-Git policy controls passed through that output in both measured runs.
+
+The `ci-esta adoption` inventory recognizes `run-bun-tests` as native test
+execution and reports its `timing-history` input separately from pytest history
+keys. The input alone does not prove persistence: verify a successful run saves
+the history and a subsequent run restores it before execution.
