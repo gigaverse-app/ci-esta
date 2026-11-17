@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.0](https://github.com/gigaverse-app/ci-esta/compare/v1.15.4...v1.16.0) (2026-11-17)
+
+
+### Features
+
+* **selection:** reuse portable dependency declarations for Bun ([#215](https://github.com/gigaverse-app/ci-esta/issues/215)) ([84439d6](https://github.com/gigaverse-app/ci-esta/commit/84439d6d4c3e1ff70925c8582f50ad84a7d07a32))
+
 ## [1.15.4](https://github.com/gigaverse-app/ci-esta/compare/v1.15.3...v1.15.4) (2026-11-16)
 
 
