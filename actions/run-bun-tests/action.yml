@@ -22,6 +22,12 @@ inputs:
   shards:
     description: Number of sequential fresh-process batches on this runner, partitioning the complete sorted inventory.
     default: '1'
+  preloads:
+    description: JSON array of repository-relative preload files, executed before each batch. Declare their dependency inputs in the policy.
+    default: '[]'
+  timing-history:
+    description: Optional retained native Bun timing JSON outside the checkout. Used only to balance whole-file batches; successful fresh measurements update it.
+    default: ''
   output-directory:
     description: Fresh output directory outside tracked inputs.
     default: '${{ runner.temp }}/bun-test-selection'
@@ -51,6 +57,8 @@ runs:
         BUN_TEST_VALIDATED_HEAD: ${{ inputs.validated-head }}
         BUN_TEST_FULL: ${{ inputs.full }}
         BUN_TEST_ARGS: ${{ inputs.args }}
+        BUN_TEST_PRELOADS: ${{ inputs.preloads }}
+        BUN_TEST_TIMING_HISTORY: ${{ inputs.timing-history }}
         BUN_TEST_SHARDS: ${{ inputs.shards }}
         BUN_TEST_OUTPUT: ${{ inputs.output-directory }}
       run: |

@@ -69,6 +69,8 @@ class RunRequest(SelectionRequest):
     args: list[str] = Field(default_factory=lambda: ["--isolate", "--parallel"])
     shards: int = Field(default=1, strict=True, ge=1)
     bun: str = "bun"
+    preloads: list[str] = Field(default_factory=list)
+    timing_history: str | None = None
 
 
 class BatchExecution(JsonContract):
