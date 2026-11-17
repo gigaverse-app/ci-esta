@@ -78,6 +78,49 @@ def test_private_sync_credentials_use_process_memory_and_preserve_existing_git_c
     assert list(tmp_path.iterdir()) == []
 
 
+@pytest.mark.parametrize(("requested", "inherited", "expected"), [
+    ("true", None, "1"), ("false", None, None), ("", None, None), ("false", "1", "1"),
+])
+def test_bytecode_compilation_is_opt_in_and_never_overrides_the_callers_own_setting(
+    cache, monkeypatch, requested, inherited, expected
+):
+    monkeypatch.setenv("CACHE_COMPILE_BYTECODE", requested)
+    if inherited is None:
+        monkeypatch.delenv("UV_COMPILE_BYTECODE", raising=False)
+    else:
+        monkeypatch.setenv("UV_COMPILE_BYTECODE", inherited)
+    assert cache.sync_environment().get("UV_COMPILE_BYTECODE") == expected
+
+
+def test_first_party_paths_are_compiled_by_the_environments_own_interpreter(cache, tmp_path):
+    """
+    INVARIANT: after setup, importing a listed first-party module compiles nothing.
+
+    Sixteen test shards starting together each compiled the same modules: collection took a median
+    of 43 s cold and 26 s with bytecode in place (docs/benchmarks/2026-11-17-shard-bytecode.md).
+    """
+    import subprocess
+    import sys
+    subprocess.run([sys.executable, "-m", "venv", str(tmp_path / ".venv")], check=True)
+    package = tmp_path / "src" / "pkg"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("VALUE = 1\n")
+    (tmp_path / "broken").mkdir()
+    (tmp_path / "broken" / "bad.py").write_text("def (:\n")
+
+    cache.compile_first_party(tmp_path.resolve(), cache.compile_paths(tmp_path.resolve(), "src broken"))
+
+    assert list((package / "__pycache__").glob("__init__.*.pyc")), "the package was compiled"
+    assert not list((tmp_path / "broken").glob("__pycache__/*.pyc")), "a syntax error is left for its importer"
+
+
+@pytest.mark.parametrize("value", ["missing", "../outside", "file.py"])
+def test_compile_paths_must_be_directories_inside_the_working_directory(cache, tmp_path, value):
+    (tmp_path / "file.py").write_text("")
+    with pytest.raises(ValueError, match="compile-paths"):
+        cache.compile_paths(tmp_path.resolve(), value)
+
+
 @pytest.mark.parametrize("case", ["valid", "drift", "broken-output"])
 def test_cache_measurement_is_written_only_after_real_locked_sync(tmp_path, case):
     import os

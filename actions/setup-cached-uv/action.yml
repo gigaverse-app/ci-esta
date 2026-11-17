@@ -28,6 +28,15 @@ inputs:
       workspace is a separate volume, set it to a path on that volume, such as
       runner.temp/setup-uv-cache, so uv links packages into .venv instead of copying them.
     default: ''
+  compile-bytecode:
+    description: >-
+      Compile installed packages to bytecode during the sync. Worth it when several Python
+      processes start right afterwards, such as local test shards: each would otherwise compile
+      the same modules for itself, at the same time.
+    default: 'false'
+  compile-paths:
+    description: Space-separated first-party directories to compile after the sync, for example 'src tests'.
+    default: ''
   private-dependency-token:
     description: Optional GitHub read token scoped to the locked sync subprocess, never saved in Git configuration.
     default: ''
@@ -70,6 +79,8 @@ runs:
         CACHE_SCRIPT: ${{ github.action_path }}/../../scripts/ci/environment_cache.py
         CACHE_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         CACHE_SYNC_ARGS: ${{ inputs.sync-args }}
+        CACHE_COMPILE_BYTECODE: ${{ inputs.compile-bytecode }}
+        CACHE_COMPILE_PATHS: ${{ inputs.compile-paths }}
       run: python "$CACHE_SCRIPT" sync
     - name: Record validated cache outcome
       id: measurement
