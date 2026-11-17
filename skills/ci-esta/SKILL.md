@@ -1,14 +1,14 @@
 ---
 name: ci-esta
-description: Set up CI-esta in a GitHub Actions repository from one prompt. Measure completed runs (time to the required check, runner time, critical path), make one change the data supports (pack short matrix jobs, cache environments, balance shards, fix gate gaps, route lanes), prove it with same-head controls and an unchanged test inventory, and open a pull request. Works for any application language.
+description: Adopt CI-esta in GitHub Actions with affected-test selection enabled by default. For full adoption, implement and verify all applicable capabilities, including reuse, caching, learned scheduling, reports, telemetry and full checkpoints. Measure completed runs, preserve the complete test inventory, prove selection with same-head controls, and open a pull request. Works for any application language.
 license: Apache-2.0
 ---
 
 # Set up CI-esta in a repository
 
 You are a coding agent improving the GitHub Actions CI of the repository you are working in. This file is the whole
-procedure. Follow it in order and open a pull request; fix missing shared capabilities upstream instead of copying a runner into the consumer. Step 4 links one recipe per optimization: read the one you
-choose, because it holds the workflow YAML. Other links are for depth only. Links into the CI-esta site point at
+procedure. Follow it in order and open a pull request; fix missing shared capabilities upstream instead of copying a runner into the consumer. Step 4 links recipes: read those needed for the requested scope,
+because they hold the workflow YAML. Other links are for depth only. Links into the CI-esta site point at
 each page's Markdown (`.md`); the same address ending in `/` instead of `.md` is the HTML page.
 
 CI-esta reads completed runs as data and reports the time to the required check, summed runner time, per-job and
@@ -216,10 +216,19 @@ token or run ID is wrong; `matched: false` means `GATE` is not the job's exact n
 
 *Check:* a baseline table with each run's ID, attempt, head, gate time, runner seconds and job count.
 
-## 4. Choose one optimization
+## 4. Implement the requested adoption scope
 
-Apply the first row whenever it holds; it fixes the gate, in addition to any optimization. Of the other rows,
-take the first one from the top whose condition the measurements support, and say which numbers led there.
+Enable affected-test selection for ordinary source changes by default. Use
+[Bun native selection](https://ci-esta.readthedocs.io/en/latest/docs/bun-test-selection.md)
+or pytest-selective, preserving discovery, preloads, contracts and full checkpoints.
+Skipping only documentation changes does not satisfy this requirement. Reserve
+full fallback for actual uncertainty, global inputs and explicit checkpoints.
+
+For full adoption, use the [capability checklist](https://ci-esta.readthedocs.io/en/latest/docs/tutorials/adoption-checklist.md)
+and implement every applicable item. Use measurements to choose the order and
+configuration, not to omit selection, reuse, timing feedback, reporting or telemetry.
+For a narrowly requested optimization, choose the measured change within that scope.
+Apply the gate repair whenever needed, alongside the requested capabilities.
 
 | The report shows | Do | Recipe |
 | --- | --- | --- |
@@ -231,7 +240,7 @@ take the first one from the top whose condition the measurements support, and sa
 | Unrelated jobs run on documentation-only PRs | Whole-lane selection with pytest-selective; keep the existing gate name | [Skip unrelated CI](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/) |
 | Overlapping runs for the same PR (`overlapping_prior_runner_cost`) | Add or scope a `concurrency` group to the PR and workflow; keep full and scheduled runs | [Critical path](https://ci-esta.readthedocs.io/en/latest/docs/critical-path.md) |
 | Identical declared work repeats after it already passed | Completion-evidence reuse, only with eligible and changed-input controls | [Evidence reuse](https://ci-esta.readthedocs.io/en/latest/docs/evidence-reuse.md) |
-| Nothing dominates, or the critical path is a single unavoidable job | Add only the reporting observer (step 5) and report what you found | |
+| Nothing dominates, or the critical path is a single unavoidable job | Retain reporting and complete the requested capability checklist; make no unsupported savings claim | |
 
 Runner capacity and process count are separate choices: do not turn 16 local workers into 16 hosted jobs, and
 remember larger runners are billed even for public repositories.
@@ -342,8 +351,13 @@ Push the branch, then:
    from BEFORE to the old-layout input to the added jobs and steps plus run-to-run noise, and say so; if one job's
    steps sum to clearly more than in BEFORE, name the added step.
 2. **Report every run** with `ci-esta report ... --gate 'GATE' --critical-path`, as in step 3.
-3. **Inventory unchanged.** Compare what ran, entry by entry: tox environments (`--result-json`), nox sessions,
-   JUnit test counts, passed and skipped totals. A shorter run that ran fewer tests is not a result.
+3. **Preserve inventory; prove selection.** Compare the candidate full checkpoint with the original native
+   command, entry by entry: environments, suites, files, preloads, isolation, coverage and outcomes.
+   For layout-only changes, execution inventory must also match. For affected-test selection, fewer executed
+   tests are expected: retain the unchanged complete inventory, selected identities, dependency explanations,
+   contract tests and fresh execution evidence. Compare successful full and selected controls on the same head;
+   prove ordinary source edits select affected tests, while global inputs and uncertainty trigger full execution.
+   Never count removed tests or narrowed discovery as selection savings.
 4. **The gate still fails.** On a throwaway branch, add a test that fails in exactly one job: one CPython version
    that runs nowhere else (for example `assert sys.version_info[:2] != (3, 12)`), not PyPy and not a version that
    another operating system also runs. Confirm `GATE` fails; every extra failing job costs another rerun. Run the
