@@ -71,7 +71,31 @@ def sync_environment() -> dict[str, str]:
             env[f"GIT_CONFIG_VALUE_{index}"] = helper
             index += 1
         env["GIT_CONFIG_COUNT"] = str(index)
+    if env.get("CACHE_COMPILE_BYTECODE") == "true":
+        # uv compiles every installed module once, in parallel. Left to the consumers, each
+        # process that starts next compiles the modules it imports for itself.
+        env["UV_COMPILE_BYTECODE"] = "1"
     return env
+
+
+def compile_paths(root: Path, value: str) -> list[Path]:
+    """First-party directories to compile; a missing or escaping path is a caller error."""
+    paths = []
+    for name in value.split():
+        path = (root / name).resolve()
+        if not path.is_relative_to(root) or not path.is_dir():
+            raise ValueError(f"compile-paths entry is not a directory inside the working directory: {name}")
+        paths.append(path)
+    return paths
+
+
+def compile_first_party(root: Path, paths: list[Path]) -> None:
+    """Best effort: a file that does not compile is reported by the test that imports it, not here."""
+    if not paths:
+        return
+    python = root / ".venv" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    subprocess.run([str(python), "-m", "compileall", "-q", "-j", "0", *map(str, paths)],
+                   cwd=root, check=False, stdout=subprocess.DEVNULL)
 
 
 def main() -> None:
@@ -85,10 +109,12 @@ def main() -> None:
     else:
         started = time.monotonic()
         usable = validate(root)
+        first_party = compile_paths(root, os.environ.get("CACHE_COMPILE_PATHS", ""))
         print(f"Restored environment usable: {usable}; verifying locked dependencies")
         # Always synchronize: restored environments are acceleration, never validation receipts.
         subprocess.run(["uv", "sync", "--locked", "--python", sys.executable, *sync_arguments(args)],
                        cwd=root, check=True, env=sync_environment())
+        compile_first_party(root, first_party)
         if output_path := os.environ.get("GITHUB_OUTPUT"):
             try:
                 with open(output_path, "a") as output:

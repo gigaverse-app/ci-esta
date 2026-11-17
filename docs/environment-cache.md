@@ -147,6 +147,16 @@ jobs. The [2026-11-17 measurement](benchmarks/2026-11-17-self-hosted-disk.md)
 recorded 40 seconds less setup overhead per job with this and an earlier
 service start.
 
+When the job starts several Python processes right after setup, such as local
+test shards, set `compile-bytecode: 'true'` and list your own source
+directories in `compile-paths` (for example `src tests`). uv installs without
+bytecode, so otherwise every shard compiles the modules it imports for itself,
+all at the same time. Sixteen cold shards finished collecting in a median of
+26 s with bytecode in place and 43 s without, for about 3 s of extra setup
+([2026-11-17 measurement](benchmarks/2026-11-17-shard-bytecode.md)). A job that
+starts one process gains little. A file in `compile-paths` that does not compile
+is skipped; the test that imports it reports the error.
+
 ## Measure before claiming a saving
 
 Compare a cold default-branch push and a subsequent warm run with the same
