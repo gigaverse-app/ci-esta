@@ -24,3 +24,12 @@ def test_caller_uv_version_controls_install_and_environment_identity():
     assert install['with']['version'] == '${{ inputs.uv-version }}'
     identity = next(s for s in steps if s.get('id') == 'identity')
     assert '${{ inputs.uv-version }}' in identity['env']['CACHE_VARIANT']
+
+
+def test_uv_cache_location_is_caller_owned_and_defaults_to_setup_uv():
+    """An empty path keeps setup-uv's own choice; a caller path reaches it unchanged."""
+    action = yaml.safe_load(Path('actions/setup-cached-uv/action.yml').read_text())
+    assert action['inputs']['uv-cache-path']['default'] == ''
+    install = next(s for s in action['runs']['steps'] if 'astral-sh/setup-uv@' in s.get('uses', ''))
+    assert install['with']['cache-local-path'] == '${{ inputs.uv-cache-path }}'
+    assert install['with']['enable-cache'] is True
