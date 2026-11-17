@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.0](https://github.com/gigaverse-app/ci-esta/compare/v1.18.1...v1.19.0) (2026-11-17)
+
+
+### Features
+
+* **cache:** compile bytecode once before parallel test shards ([#234](https://github.com/gigaverse-app/ci-esta/issues/234)) ([be8c4cf](https://github.com/gigaverse-app/ci-esta/commit/be8c4cf33ff9194a64781a4e7bb1d9b777eb7b4e))
+
 ## [1.18.1](https://github.com/gigaverse-app/ci-esta/compare/v1.18.0...v1.18.1) (2026-11-17)
 
 
