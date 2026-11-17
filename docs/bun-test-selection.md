@@ -142,6 +142,34 @@ missing or forged reuse plans fall back to full. An explicit full override wins.
 Keep generated inventory/reports outside the worktree (for example RUNNER_TEMP).
 Unsupported runtime versions and missing inventory fail visibly.
 
+## Preloads and retained scheduling history
+
+Use the shared runner for compatibility suites as well as the default suite:
+
+```yaml
+- uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
+  with:
+    inventory: ${{ runner.temp }}/zod4-inventory.json
+    policy: .github/test-selection.json
+    preloads: '["scripts/zod-4-runtime.preload.ts"]'
+    args: '["--isolate"]'
+    shards: '6'
+    timing-history: ${{ runner.temp }}/bun-history/zod4.json
+```
+
+`preloads` accepts repository-relative files, preserving their order before every
+Bun batch. A changed explicit preload forces full execution. Declare its other
+non-import inputs and setup dependencies in the policy as well.
+
+Restore and save `timing-history` with the repository's cache policy, separating
+runtime, OS, lockfile and compatibility lane. It must live outside the checkout.
+The runner balances complete files using retained native Bun millisecond costs;
+missing or malformed history retains deterministic batching. Fresh per-batch
+timing files alone prove execution. Successful complete execution updates costs
+for observed files and prunes files outside the current inventory. Failure does
+not update history. Historical costs never grant completion receipts or skipped
+work. Measure batch/setup overhead before claiming elapsed-time savings.
+
 ## Whole-lane planning
 
 The adapter above narrows files inside one `bun test` run. To skip whole jobs, use

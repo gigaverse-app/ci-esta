@@ -76,3 +76,53 @@ def test_python_executor_retains_a_real_bun_failure(repository, tmp_path):
     assert result.mode == "scoped"
     assert result.exit_code != 0
     assert result.executed_files == ["src/value.test.ts"]
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+def test_preloads_and_history_preserve_fresh_execution(repository, tmp_path):
+    root, git, base = repository
+    (root / 'setup.ts').write_text('globalThis.ready = 42;')
+    (root / 'src/value.test.ts').write_text(
+        "import {test,expect} from 'bun:test'; test('preload',()=>expect(globalThis.ready).toBe(42));")
+    git('add', '.')
+    git('commit', '-qm', 'preload fixture')
+    inventory = tmp_path / 'inventory.json'
+    inventory.write_text(json.dumps({'schema_version':'ci-esta/bun-inventory/v1',
+                                    'files':['src/value.test.ts'], 'alwaysRunFiles':[]}))
+    history = tmp_path / 'history.json'
+    history.write_text(json.dumps({'files': {'src/value.test.ts': 100, 'src/old.test.ts': 500}}))
+    result = run_bun_tests(RunRequest(cwd=root, base=base, full=True, inventory_file=str(inventory),
+        policy_file='policy.json', output_directory=tmp_path / 'execution',
+        preloads=['setup.ts'], timing_history=str(history)))
+    assert result.exit_code == 0
+    assert result.executed_files == ['src/value.test.ts']
+    learned = json.loads(history.read_text())['files']
+    assert set(learned) == {'src/value.test.ts'}
+    assert learned['src/value.test.ts'] >= 0
+
+
+def test_learned_batches_balance_whole_files():
+    from ci_esta.testing.bun.execution import balanced_batches
+    assert balanced_batches(['a', 'b', 'c', 'd'], 2, {'a': 9, 'b': 8, 'c': 2, 'd': 1}) == [['a', 'd'], ['b', 'c']]
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+def test_history_never_proves_unchanged_files_or_learns_failures(repository, tmp_path):
+    root, git, base = repository
+    (root / 'src/other.test.ts').write_text("import {test} from 'bun:test'; test('other',()=>{});")
+    git('add', '.')
+    git('commit', '-qm', 'other test')
+    base = git('rev-parse', 'HEAD')
+    (root / 'src/value.ts').write_text('export const value = 2;')
+    git('add', '.')
+    git('commit', '-qm', 'failing affected test')
+    inventory = tmp_path / 'inventory.json'
+    inventory.write_text(json.dumps({'schema_version':'ci-esta/bun-inventory/v1',
+        'files':['src/value.test.ts','src/other.test.ts'], 'alwaysRunFiles':[]}))
+    history = tmp_path / 'history.json'
+    original = json.dumps({'files':{'src/value.test.ts':9,'src/other.test.ts':99}})
+    history.write_text(original)
+    result = run_bun_tests(RunRequest(cwd=root, base=base, inventory_file=str(inventory),
+        policy_file='policy.json', output_directory=tmp_path/'execution', timing_history=str(history), shards=2))
+    assert result.mode == 'scoped'
+    assert result.exit_code != 0
+    assert result.executed_files == ['src/value.test.ts']
+    assert history.read_text() == original

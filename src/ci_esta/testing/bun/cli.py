@@ -27,6 +27,8 @@ def request_from_env() -> RunRequest:
         output_directory=Path(os.environ["BUN_TEST_OUTPUT"]),
         args=json.loads(os.environ.get("BUN_TEST_ARGS") or '["--isolate","--parallel"]'),
         shards=int(os.environ.get("BUN_TEST_SHARDS") or "1"),
+        preloads=json.loads(os.environ.get("BUN_TEST_PRELOADS") or "[]"),
+        timing_history=os.environ.get("BUN_TEST_TIMING_HISTORY") or None,
     )
 
 

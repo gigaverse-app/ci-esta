@@ -7,7 +7,7 @@ license: Apache-2.0
 # Set up CI-esta in a repository
 
 You are a coding agent improving the GitHub Actions CI of the repository you are working in. This file is the whole
-procedure. Follow it in order and open one pull request. Step 4 links one recipe per optimization: read the one you
+procedure. Follow it in order and open a pull request; fix missing shared capabilities upstream instead of copying a runner into the consumer. Step 4 links one recipe per optimization: read the one you
 choose, because it holds the workflow YAML. Other links are for depth only. Links into the CI-esta site point at
 each page's Markdown (`.md`); the same address ending in `/` instead of `.md` is the HTML page.
 
@@ -22,8 +22,16 @@ human keeps merging, required-check settings, runner groups and secrets.
 - Never print, log or commit a token. Credentials go in environment variables, never in arguments.
 - Never change repository settings, rulesets, required checks, runner groups or secrets. Stop and tell the human,
   with the exact step, when the next move needs one.
-- Make **one** optimization (plus a gate fix if step 2 finds a gap). Keep every existing test, required check,
-  coverage threshold and full or scheduled run.
+- Test selection is integral and enabled by default for adoption: use Bun native affected selection or
+  pytest-selective as appropriate. Preserve inventory, contracts, isolation and full checkpoints. Optional
+  means a consumer can explicitly opt out; it does not authorize an agent to omit selection.
+- A request for **full adoption** includes every applicable capability: selection, lane planning, validated
+  evidence reuse, measured setup/cache, learned timing and scheduling, strict gates, PR reports, telemetry
+  and full checkpoints. Track each through implementation and verification. Do not silently defer them.
+  A missing destination or access is a concrete blocker to resolve, not an opt-out. Explain genuinely
+  inapplicable features (for example a floating compatibility probe cannot reuse a locked-environment receipt).
+- For a narrowly scoped optimization, choose one measured improvement. That limit never narrows an
+  explicit full-adoption request. Keep every existing test, required check, coverage threshold and full run.
 - Offer `ci-esta checkpoint init` for a weekly full checkpoint. It generates a small adopter-owned schedule
   using `gigaverse-app/ci-esta/actions/weekly-checkpoint@v1`; configure the target workflows, ref and inputs
   as needed. Verify each target runs full validation on `workflow_dispatch` and bypasses receipt reuse.
@@ -233,7 +241,7 @@ trial), so time to `GATE` can grow by a few seconds while runner seconds fall. P
 fall and the median time to `GATE` stays inside the old layout's same-head range. Report both numbers either way,
 including a small gate-time cost.
 
-*Check:* one row chosen, with the report numbers that justify it.
+*Check:* selection is active by default; the requested capability inventory is implemented and verified, or has explicit concrete blockers. For a narrow optimization, identify the measured change.
 
 ## 5. Implement
 
@@ -310,7 +318,7 @@ jobs:
   repository already uses for it, SHA or tag; only the CI-esta action stays `@v1`. If the repository runs zizmor, add
   `# zizmor: ignore[dangerous-triggers]` above `workflow_run` with that reason. Post PR comments
   (`post-sticky: 'true'`, `pull-requests: write`) only if the human asks for them.
-- Never add a sticky comment, external telemetry, evidence reuse or selection the task did not choose.
+- Full adoption selects the applicable capabilities above. For narrower reporting-only tasks, keep the requested scope. Do not reinterpret full adoption as reporting-only.
 
 *Check:* the repository's own workflow linters pass (`actionlint`, `zizmor` or pre-commit, whichever it uses), and
 `ci-esta check-workflow --workflow .github/workflows/FILE.yml --gate 'GATE'` passes. Run it after the gate exists.
