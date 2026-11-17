@@ -7,10 +7,17 @@ description: A staged tutorial and completion checklist covering reporting, sele
 
 See the [selection and evidence policy](../test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
 
-Start with one workflow and its required gate. Measure it, choose the most useful
-change, and keep that change only after checking its result. You do not need to
-enable every action. Mark a capability **adopted**, **not applicable**, or
-**deferred with a reason**; an unchecked catalog is not an adoption plan.
+Start with one workflow and its required gate. Affected-test selection is integral
+and enabled by default, using Bun's native selection or pytest-selective. Optional
+support lets the consumer explicitly opt out; agents must not silently omit it.
+
+For **full adoption**, track and verify selection, lane planning, validated result
+reuse, measured setup/cache, learned scheduling, strict gates, PR reporting,
+telemetry and full checkpoints. Specialist actions need not be installed when they
+do not apply. Mark each applicable capability configured and live-verified, or
+identify the concrete blocker. Deferral requires agreement on the reduced scope.
+Reporting and caching alone do not complete full adoption. Fix shared adapter gaps
+upstream rather than introducing a parallel consumer implementation.
 
 This tutorial gives the order, acceptance checks and rollback choices. Linked
 recipes own the complete configurations. Use the
@@ -57,7 +64,7 @@ ci-esta render ci-esta-report/ci-observability.json \
   PR comments are wanted; measure observer overhead separately.
 
 **Done when:** you can name the blocking cost and show the source evidence.
-If reporting is the only useful change, stopping here is a valid adoption.
+Reporting-only work is complete only when reporting was the requested scope. It is not full adoption.
 
 ### Keep one tested revision across jobs
 

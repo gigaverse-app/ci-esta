@@ -1,5 +1,8 @@
 ![CI-esta: Let proven work rest. Measure the rest.](https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/banner.png?v=e68364fbb504)
 
+
+Affected-test selection is part of the default adoption path. Full adoption means all applicable capabilities in the [adoption checklist](docs/tutorials/adoption-checklist.md), including validated reuse, learned scheduling, PR reports and telemetry. Reporting-only setup is a narrower scope.
+
 # CI-esta: make GitHub Actions faster, with evidence
 
 **Set it up with your coding agent.** Give Claude Code, Codex, Cursor or any coding agent in your repository this

@@ -1,5 +1,8 @@
 # Improve one CI cost first
 
+
+Affected-test selection is part of the default adoption path. Full adoption means all applicable capabilities in the [adoption checklist](tutorials/adoption-checklist.md), including validated reuse, learned scheduling, PR reports and telemetry. Reporting-only setup is a narrower scope.
+
 See the [selection and evidence policy](test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
 
 For a staged rollout across the toolkit, use the
