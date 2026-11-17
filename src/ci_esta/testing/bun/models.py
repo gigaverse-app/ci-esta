@@ -13,6 +13,9 @@ from ci_esta.measurements import MeasurementIdentity
 #: A Bun test file name: what the inventory, the planner's module graph and plan-work's runtime check accept.
 TEST_FILE = re.compile(r"[._](?:test|spec)\.[cm]?[jt]sx?$")
 
+BUN_ENVIRONMENT_NAMES = ("package.json", "bun.lock", "bun.lockb", "bunfig*.toml", "tsconfig*.json", ".bun-version")
+BUN_ENVIRONMENT_FILES = [pattern for name in BUN_ENVIRONMENT_NAMES for pattern in (name, f"**/{name}")]
+
 
 class JsonContract(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
@@ -24,8 +27,11 @@ class SelectionRequest(JsonContract):
     validated_head: str = ""
     full: bool = False
     checkpoint_reason: str | None = ""
-    policy_file: str = ".github/test-selection.json"
+    policy_file: str = ""
     always_run_files: list[str] = Field(default_factory=list)
+    test_files: list[str] | None = None
+    bun: str = "bun"
+    preloads: list[str] = Field(default_factory=list)
 
 
 class SelectionPlan(JsonContract):
@@ -36,6 +42,7 @@ class SelectionPlan(JsonContract):
     fallback: bool = False
     reason: str = "Full checkpoint requested"
     validated_head: str | None = None
+    selected_files: list[str] | None = None
 
 
 class Reader(JsonContract):
@@ -68,8 +75,6 @@ class RunRequest(SelectionRequest):
     output_directory: Path
     args: list[str] = Field(default_factory=lambda: ["--isolate", "--parallel"])
     shards: int = Field(default=1, strict=True, ge=1)
-    bun: str = "bun"
-    preloads: list[str] = Field(default_factory=list)
     timing_history: str | None = None
 
 
@@ -97,6 +102,7 @@ class BunExecution(JsonContract):
     runner_label: str | None = None
     total_files: int
     always_run_files: list[str] = Field(default_factory=list)
+    selected_files: list[str] | None = None
     executed_files: list[str] | None
     executions: list[BatchExecution] = Field(default_factory=list)
     duration_ms: float | None = None
@@ -106,7 +112,10 @@ class BunExecution(JsonContract):
     @computed_field
     @property
     def complete(self) -> bool:
-        return execution_is_complete(self.mode, self.executed_files, self.total_files, self.always_run_files)
+        return execution_is_complete(self.mode, self.executed_files, self.total_files, self.always_run_files) and (
+            self.selected_files is None or (self.executed_files is not None
+                                           and set(self.selected_files).issubset(self.executed_files))
+        )
 
 
 class ReportContext(MeasurementIdentity):

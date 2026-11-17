@@ -1,4 +1,4 @@
-# Improve one CI cost first
+# Adopt CI-esta with affected-test selection
 
 
 Affected-test selection is part of the default adoption path. Full adoption means all applicable capabilities in the [adoption checklist](tutorials/adoption-checklist.md), including validated reuse, learned scheduling, PR reports and telemetry. Reporting-only setup is a narrower scope.
@@ -14,6 +14,22 @@ installation is already the problem, replace those setup steps directly. Use
 root/short paths below use `@v1` for automatic compatible 1.x upgrades.
 Keep `@v1` even if other actions are SHA-pinned; pin these to a SHA only when your
 tooling rejects tags ([pinning policy](actions.md#availability-and-pinning)).
+
+## Enable affected-test selection
+
+Use [Bun native selection](bun-test-selection.md) or
+[pytest-selective](https://github.com/gigaverse-app/pytest-selective) for ordinary
+source changes. Preserve the original full test inventory, preloads, isolation,
+coverage and contract tests. Keep manual and scheduled full checkpoints. A policy
+that only skips documentation while every source edit runs everything is not the
+default adoption path.
+
+Verify a successful source-edit control that selects fewer files and a successful
+full control on the same head. Record the selected identities and execution evidence;
+global inputs, missing history and uncertain dependencies must still expand to full
+execution. The [adoption checklist](tutorials/adoption-checklist.md) covers the remaining
+capabilities and their acceptance checks. The reporting and caching recipes below
+are components of that setup, not a replacement for it.
 
 ## Report a completed workflow
 

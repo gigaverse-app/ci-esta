@@ -15,8 +15,9 @@ The public action is `gigaverse-app/ci-esta/actions/run-bun-tests`; see
 dependencies. CI-esta owns the adapter in Python and automatically prepares its
 locked, isolated tool environment, shared with reporting and timing actions.
 It does not use or change the application virtual environment or lockfile. Bun owns static/transitive
-imports, aliases and literal dynamic imports through
-[`--changed=<base>`](https://bun.sh/blog/bun-v1.4). The adapter owns conservative
+imports, aliases and literal dynamic imports through its native bundler graph.
+CI-esta combines those edges with [portable dependency declarations](dependency-declarations.md)
+and executes the selected files. The adapter owns conservative
 admission, exact repository inventory, full fallback, execution and reporting.
 
 The repository owns discovery, global inputs, preload/setup, coverage policy,
@@ -35,7 +36,6 @@ prepared interpreter without installing dependencies in the application:
   id: tests
   with:
     inventory: ${{ runner.temp }}/bun-inventory.json
-    policy: .github/test-selection.json
 - name: Verify repository policy
   env:
     PYTHONPATH: ${{ steps.tests.outputs.python-path }}
@@ -69,37 +69,29 @@ The `alwaysRunFiles` subset executes even when no application tests are affected
 Use it for repository structure, source-scanning and filesystem contracts that an
 import graph cannot represent. Their helpers remain explicit policy inputs.
 
-2. Commit a repository-owned policy:
+2. Declare inputs that imports cannot express next to their readers. For example,
+`src/catalog.ts.gv-dependency.yaml`:
 
-```json
-{
-  "schema_version": "ci-esta/bun-policy/v1",
-  "scopedRoots": ["src/features/"],
-  "runtimeRoots": ["src/"],
-  "sourceExtensions": [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts"],
-  "unaffectedPaths": ["README.md"],
-  "unaffectedRoots": ["docs/"],
-  "reviewedReaders": {}
-}
+```yaml
+dependencies:
+  - inputs: ["//fixtures/catalog/*.json"]
+    kind: content
+    reason: Loaded from disk by the catalog reader.
 ```
 
-Roots end in `/`. Only Markdown under `unaffectedRoots` is unaffected; a script
-under docs is not documentation. Inputs outside the declared source/docs scope
-run the full inventory. Include every runtime/helper root used by scoped tests
-in `runtimeRoots`; application-specific globals stay outside `scopedRoots`.
-Locks, packages, patches, preload, tsconfig, assets and CI files should normally
-remain global full-suite inputs. Narrow the scope only with consumer evidence.
+The format and parser are pytest-selective's, shared with Python projects through
+the lightweight `selective-deps` package. Directory manifests can
+group readers, `kind: import` follows the declared input's imports, and `kind: content`
+reads only its bytes. No reader hashes or repository-wide exception registry are
+needed. A content change selects the reader's dependent tests, not every test.
 
-The adapter detects common opaque reads (`Bun.file`, `fs`, `readFile`, computed
-imports and `import.meta.glob`). A reader outside always-run files forces full
-execution unless `reviewedReaders[path]` declares its exact Git `blob` and a list
-of literal `inputs` (trailing `/` means a directory). Changes to those inputs
-run the full suite. Review the code before recording `git hash-object <reader>`;
-never automatically refresh fingerprints just to regain selection. Even comment
-matches require review. This conservative lexical check is a guard, not proof
-that every possible runtime dependency has been discovered. External service
-state, runtime-generated imports and environment-dependent selection require a
-full/conformance policy of their own.
+Declarations are reviewed input contracts, not automatic discovery of every runtime
+read. Declare computed imports, filesystem reads and subprocess inputs that the
+native graph cannot see. Keep full checkpoints and separate policies for external
+state. Invalid declarations fail with their source location. Environment changes,
+preload dependencies, removed files and unmodeled non-import inputs run the full
+inventory. Existing callers can still explicitly supply the legacy `policy` JSON;
+new adoptions should omit it and use shared declarations.
 
 3. Invoke after dependency installation and inventory generation:
 
@@ -108,7 +100,6 @@ full/conformance policy of their own.
 - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
   with:
     inventory: ${{ runner.temp }}/bun-inventory.json
-    policy: .github/test-selection.json
     shards: '8'
     args: '["--isolate","--parallel"]'
     output-directory: ${{ runner.temp }}/bun-test-selection
@@ -127,16 +118,16 @@ to a subset or lower a floor to make it pass. Coverage lanes should stay full.
 
 `shards` means sequential fresh-process batches on one runner, not a matrix.
 The adapter partitions the complete sorted inventory once. On a full run each
-batch runs unchanged; on a scoped run each batch separates always-run contracts
-from candidates passed to Bun. Both preserve the supplied isolation/parallelism
+batch runs unchanged; on a scoped run each batch executes its selected files and
+always-run contracts. Both preserve the supplied isolation/parallelism
 flags. Empty groups never invoke Bun. All batches finish and any failed batch
 keeps the final exit code nonzero. Supported flags are isolation, parallelism,
 timeout, concurrency, seed, randomization and dots; selection/output flags are
 owned by the adapter. There is no retry of a failed selected test as a full run
 that could conceal its failure.
 
-Missing/invalid history, an invalid recorded merge parent, dirty tracked files, untracked inputs, malformed policy,
-unknown paths, symlinks, renames/deletions and changed reader fingerprints execute
+Missing/invalid history, an invalid recorded merge parent, dirty tracked files, untracked inputs,
+unknown inputs and renames/deletions execute
 the full inventory. Optional persisted plans are recomputed at execution; stale,
 missing or forged reuse plans fall back to full. An explicit full override wins.
 Keep generated inventory/reports outside the worktree (for example RUNNER_TEMP).
@@ -150,7 +141,6 @@ Use the shared runner for compatibility suites as well as the default suite:
 - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
   with:
     inventory: ${{ runner.temp }}/zod4-inventory.json
-    policy: .github/test-selection.json
     preloads: '["scripts/zod-4-runtime.preload.ts"]'
     args: '["--isolate"]'
     shards: '6'
@@ -158,8 +148,8 @@ Use the shared runner for compatibility suites as well as the default suite:
 ```
 
 `preloads` accepts repository-relative files, preserving their order before every
-Bun batch. A changed explicit preload forces full execution. Declare its other
-non-import inputs and setup dependencies in the policy as well.
+Bun batch. A changed preload or transitive preload input forces full execution.
+Declare its non-import inputs using the same sidecar or directory-manifest format.
 
 Restore and save `timing-history` with the repository's cache policy, separating
 runtime, OS, lockfile and compatibility lane. It must live outside the checkout.
@@ -252,7 +242,7 @@ it would fail anyway. The fallback reason quotes the first line of Bun's output 
 error, such as `error: Could not resolve: "./missing" (src/a.ts:1)`, not a warning printed before it. A file read at runtime by path (`Bun.file("fixtures/x.json")`), a script a
 test spawns, or a computed `import(name)` is invisible to the module graph; import it, keep it
 under the lane's roots, or list it in the lane's `inputs`. A change under a lane's roots selects
-that lane whether or not a test imports it. Inside a selected lane, `run-bun-tests` and `--changed`
+that lane whether or not a test imports it. Inside a selected lane, `run-bun-tests` uses the same native graph and declarations to
 still narrow the files that run.
 
 The graph is built in one `Bun.build()` call per round, with the entry list in a file rather
@@ -271,13 +261,15 @@ from ci_esta.testing.bun.models import RunRequest
 
 result = run_bun_tests(RunRequest(
     cwd=Path("/checkout/app"), inventory_file="/tmp/bun-inventory.json",
-    policy_file=".github/test-selection.json", base="<full comparison SHA>",
+    base="<full comparison SHA>",
     output_directory=Path("/tmp/bun-execution"),
 ))
 raise SystemExit(result.exit_code)
 ```
 
-Install `ci-esta[selection]` in the tool environment. The GitHub action uses the
+Install `ci-esta` for this native API; the Python selector extra is not needed for
+the Bun graph and portable declarations. Whole-lane planning still uses
+`ci-esta[selection]`. The GitHub action uses the
 pinned checkout and lockfile. Selection policy, Git proof, inventory checks,
 process orchestration and report models live in Python; Bun owns its native
 import traversal and test process. Python's native dependency graph remains in

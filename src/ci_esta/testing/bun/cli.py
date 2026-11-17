@@ -21,7 +21,7 @@ def request_from_env() -> RunRequest:
     reason = full_checkpoint_reason(os.environ.get("BUN_TEST_FULL") or "auto")
     return RunRequest(
         inventory_file=os.environ["BUN_TEST_INVENTORY"],
-        policy_file=os.environ.get("BUN_TEST_POLICY") or ".github/test-selection.json",
+        policy_file=os.environ.get("BUN_TEST_POLICY") or "",
         base=os.environ.get("BUN_TEST_BASE", ""), validated_head=os.environ.get("BUN_TEST_VALIDATED_HEAD", ""),
         full=reason is not None, checkpoint_reason=reason,
         output_directory=Path(os.environ["BUN_TEST_OUTPUT"]),

@@ -126,3 +126,88 @@ def test_history_never_proves_unchanged_files_or_learns_failures(repository, tmp
     assert result.exit_code != 0
     assert result.executed_files == ['src/value.test.ts']
     assert history.read_text() == original
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+@pytest.mark.parametrize('directory_manifest', [False, True])
+def test_shared_declarations_select_and_execute_only_the_bun_reader(repository, tmp_path, directory_manifest):
+    """A non-import input reaches its reader through pytest-selective's real format."""
+    from ci_esta.testing.bun.graph import test_inputs
+
+    root, git, _ = repository
+    (root / 'fixtures').mkdir()
+    (root / 'fixtures/value.txt').write_text('one')
+    (root / 'src/value.ts').write_text(
+        "import {readFileSync} from 'node:fs'; "
+        "export const value = readFileSync(new URL('../fixtures/value.txt', import.meta.url), 'utf8');")
+    (root / 'src/value.test.ts').write_text(
+        "import {test,expect} from 'bun:test'; import {value} from './value'; test('read',()=>expect(value).toBeTruthy());")
+    (root / 'src/other.test.ts').write_text("import {test} from 'bun:test'; test('unrelated',()=>{});")
+    manifest = 'src/.gv-dependencies.yaml' if directory_manifest else 'src/value.ts.gv-dependency.yaml'
+    (root / manifest).write_text(
+        'dependencies:\n  - inputs: ["//fixtures/*.txt"]\n    kind: content\n'
+        + ('    readers: ["value.ts"]\n' if directory_manifest else ''))
+    git('add', '.')
+    git('commit', '-qm', 'declared reader')
+    base = git('rev-parse', 'HEAD')
+    (root / 'fixtures/value.txt').write_text('two')
+    git('add', '.')
+    git('commit', '-qm', 'change content')
+    files = git('ls-files').splitlines()
+    graph = test_inputs(root, ['src/value.test.ts', 'src/other.test.ts'], 'bun', set(files))
+    assert 'fixtures/value.txt' in graph['src/value.test.ts']
+    assert 'fixtures/value.txt' not in graph['src/other.test.ts']
+    inventory = tmp_path / 'inventory.json'
+    inventory.write_text(json.dumps({'schema_version': 'ci-esta/bun-inventory/v1',
+                                    'files': ['src/value.test.ts', 'src/other.test.ts'], 'alwaysRunFiles': []}))
+    result = run_bun_tests(RunRequest(cwd=root, base=base, inventory_file=str(inventory),
+                                    output_directory=tmp_path / 'execution', args=['--isolate']))
+    assert result.mode == 'scoped' and not result.fallback
+    assert result.exit_code == 0 and result.complete
+    assert result.executed_files == ['src/value.test.ts']
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+def test_invalid_shared_declaration_fails_instead_of_becoming_a_successful_fallback(repository):
+    from selective_deps import DependencyDeclarationError
+
+    root, git, base = repository
+    (root / 'src/value.ts.gv-dependency.yaml').write_text('dependencies:\n  - inputs: ["//missing.txt"]\n')
+    git('add', '.')
+    git('commit', '-qm', 'invalid declaration')
+    with pytest.raises(DependencyDeclarationError, match='matches no tracked files'):
+        plan_affected_tests(SelectionRequest(cwd=root, base=base))
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+@pytest.mark.parametrize('kind,selected', [('content', []), ('import', ['src/reader.test.ts'])])
+def test_portable_content_edges_do_not_follow_the_read_files_imports(repository, kind, selected):
+    root, git, _ = repository
+    (root / 'src/leaf.ts').write_text('export const leaf = 1;')
+    (root / 'src/value.ts').write_text("export {leaf as value} from './leaf';")
+    (root / 'src/reader.test.ts').write_text("import {test} from 'bun:test'; test('reader',()=>{});")
+    (root / 'src/reader.test.ts.gv-dependency.yaml').write_text(
+        f'dependencies:\n  - inputs: [value.ts]\n    kind: {kind}\n')
+    git('add', '.')
+    git('commit', '-qm', 'content and import fixture')
+    base = git('rev-parse', 'HEAD')
+    (root / 'src/leaf.ts').write_text('export const leaf = 2;')
+    git('add', '.')
+    git('commit', '-qm', 'change transitive import')
+    plan = plan_affected_tests(SelectionRequest(cwd=root, base=base, test_files=['src/reader.test.ts']))
+    assert not plan.fallback
+    assert plan.selected_files == selected
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+def test_declared_preload_dependencies_expand_the_full_suite(repository):
+    root, git, _ = repository
+    (root / 'setup.ts').write_text("import './src/value';")
+    git('add', '.')
+    git('commit', '-qm', 'preload')
+    base = git('rev-parse', 'HEAD')
+    (root / 'src/value.ts').write_text('export const value = 2;')
+    git('add', '.')
+    git('commit', '-qm', 'change preload dependency')
+    plan = plan_affected_tests(SelectionRequest(cwd=root, base=base, preloads=['setup.ts']))
+    assert plan.mode == 'full' and 'preload' in plan.reason

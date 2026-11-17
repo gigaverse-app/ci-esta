@@ -13,8 +13,10 @@ Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/lates
 ```
 
 The agent checks your repository's conventions (required check, action pinning, AI policy, tox/nox/uv), measures
-completed runs, makes one change the numbers support, proves it on the same commit with an unchanged test inventory
-and a failing probe, and opens a draft pull request. Merging, required checks, runner groups and secrets stay with
+completed runs, enables affected-test selection by default, and implements the requested adoption scope.
+For full adoption it tracks every applicable capability through verification. It preserves the complete test
+inventory, proves selection with successful same-head full and selected controls and a failing gate probe,
+and opens a draft pull request. Merging, required checks, runner groups and secrets stay with
 you. To do it by hand, start with the [quickstart](docs/quickstart.md) or
 [measure your first run](docs/tutorials/measure-critical-path.md).
 

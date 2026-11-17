@@ -3,11 +3,24 @@
 import json
 import re
 import subprocess
+from fnmatch import fnmatchcase
 from pathlib import Path
 
-from ci_esta.git import git
+from selective_deps import DependencyDeclarationError, is_declaration
+
+from ci_esta.git import git, tracked_files
 from ci_esta.testing.baseline_policy import validated_comparison
-from ci_esta.testing.bun.models import TEST_FILE, BunPolicy, Inventory, SelectionPlan, SelectionRequest
+from ci_esta.testing.bun.discovery import test_files
+from ci_esta.testing.bun.graph import MODULE, test_inputs, test_preloads
+from ci_esta.testing.bun.models import (
+    BUN_ENVIRONMENT_NAMES,
+    TEST_FILE,
+    BunPolicy,
+    Inventory,
+    SelectionPlan,
+    SelectionRequest,
+)
+from ci_esta.testing.dependencies import declared_edges
 
 OPAQUE_DEPENDENCY = re.compile(
     r"\b(?:Bun\s*\.\s*file|readFile(?:Sync)?|import\s*\.\s*meta\s*\.\s*glob)\b"
@@ -47,6 +60,35 @@ def _policy(request: SelectionRequest) -> BunPolicy:
     return policy
 
 
+def _declared_plan(request: SelectionRequest, plan: SelectionPlan, changes: list[tuple[str, str]]) -> SelectionPlan:
+    """Bun imports plus the shared portable declarations, without a hash registry."""
+    files = set(tracked_files(request.cwd))
+    declared_edges(request.cwd, files)  # Invalid declarations must not become a successful full fallback.
+    for status, path in changes:
+        environment = any(fnmatchcase(Path(path).name, pattern) for pattern in BUN_ENVIRONMENT_NAMES)
+        if status not in {'A', 'M'} or environment:
+            plan.reason = f"Full suite for environment or removed input: {path}"
+            return plan
+    tests = request.test_files if request.test_files is not None else test_files(files)
+    preloads = sorted(set(test_preloads(request.cwd, files)) | set(request.preloads))
+    if not set(tests + preloads).issubset(files):
+        raise ValueError('Test inventory or preloads are outside the tracked inputs')
+    graph = test_inputs(request.cwd, sorted(set(tests + preloads)), request.bun, files)
+    changed = set(plan.changed_files)
+    if any(graph[preload] & changed for preload in preloads):
+        plan.reason = 'Full suite for a changed preload dependency'
+        return plan
+    modeled = set().union(*graph.values()) if graph else set()
+    for path in changed - modeled:
+        if not MODULE.search(path) and not path.endswith('.md') and not is_declaration(path):
+            plan.reason = f"Full suite for an undeclared non-import input: {path}"
+            return plan
+    plan.selected_files = sorted({test for test in tests if graph[test] & changed} | set(request.always_run_files))
+    plan.mode = 'scoped' if plan.selected_files else 'none'
+    plan.reason = f"Bun import graph and shared dependency declarations against {plan.base}; {len(plan.selected_files)} affected files"
+    return plan
+
+
 def plan_affected_tests(request: SelectionRequest) -> SelectionPlan:
     plan = SelectionPlan(reason=request.checkpoint_reason or "Full checkpoint requested",
                          fallback="fallback" in (request.checkpoint_reason or ""),
@@ -60,12 +102,14 @@ def plan_affected_tests(request: SelectionRequest) -> SelectionPlan:
         ).base
         if git(request.cwd, "status", "--porcelain", "--untracked-files=no").strip():
             raise ValueError("Tracked worktree differs from the planned commit")
-        policy = _policy(request)
         if git(request.cwd, "ls-files", "--others", "--exclude-standard").strip():
             raise ValueError("Untracked inputs are outside the committed selection contract")
         entries = git(request.cwd, "diff", "--name-status", "--no-renames", "-z", plan.base, plan.tested_sha, "--").split("\0")
         changes = list(zip(entries[0:-1:2], entries[1:-1:2], strict=True))
         plan.changed_files = [path for _, path in changes]
+        if not request.policy_file:
+            return _declared_plan(request, plan, changes)
+        policy = _policy(request)
 
         def source(path: str) -> bool:
             return path.startswith(tuple(policy.scoped_roots)) and Path(path).suffix in policy.source_extensions
@@ -101,6 +145,8 @@ def plan_affected_tests(request: SelectionRequest) -> SelectionPlan:
         plan.mode = "scoped" if count else "none"
         plan.reason = (f"Bun import analysis against {plan.base}; {count} source/test files changed" if count
                        else "Only declared unaffected inputs changed; always-run tests still execute")
+    except DependencyDeclarationError:
+        raise
     except (OSError, ValueError, subprocess.SubprocessError) as error:
         plan.fallback = True
         plan.reason = f"Selection unavailable; run the full suite: {str(error).splitlines()[0]}"

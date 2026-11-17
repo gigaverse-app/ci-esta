@@ -101,6 +101,7 @@ def run_bun_tests(request: RunRequest) -> BunExecution:
     if not re.fullmatch(r"1\.(?:4\.(?:[2-9]|[1-9]\d+)|[5-9]\.\d+|[1-9]\d+\.\d+)", version):
         raise ValueError(f"Bun {version} is outside the verified >=1.4.2 <2 runtime contract")
     request = request.model_copy(update={"always_run_files": inventory.always_run_files,
+                                         "test_files": inventory.files,
                                          "output_directory": request.output_directory.resolve()})
     plan = (read_test_selection(Path(request.plan_file), request) if request.plan_file and not request.full
             else plan_affected_tests(request))
@@ -116,6 +117,10 @@ def run_bun_tests(request: RunRequest) -> BunExecution:
             ([file for file in shard if file in inventory.always_run_files], False),
             ([] if plan.mode == "none" else [file for file in shard if file not in inventory.always_run_files], True),
         ]
+        if plan.mode != 'full' and plan.selected_files is not None:
+            # The shared graph already includes non-import inputs. Bun --changed
+            # would discard readers selected only through those declarations.
+            groups = [([file for file in shard if file in plan.selected_files], False)]
         for files, affected in groups:
             # An empty file list tells Bun to discover the whole repository.
             if files:
