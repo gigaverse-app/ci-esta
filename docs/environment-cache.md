@@ -136,6 +136,17 @@ source-content identity. It validates the restored interpreter and prefix before
 synchronization. A broken environment is removed within the workspace and rebuilt;
 a `.venv` symlink is unlinked without deleting its external target.
 
+On self-hosted runners whose workspace is a separate volume from the home
+directory, such as Actions Runner Controller pods, set
+`uv-cache-path: ${{ runner.temp }}/setup-uv-cache`. `setup-uv` otherwise keeps
+its cache in the home directory there, uv cannot hard-link across filesystems,
+and every package is written twice. This is the location `setup-uv` already
+uses on GitHub-hosted runners, so the input changes nothing there. Leave it
+empty on persistent self-hosted runners that rely on a cache surviving between
+jobs. The [2026-11-17 measurement](benchmarks/2026-11-17-self-hosted-disk.md)
+recorded 40 seconds less setup overhead per job with this and an earlier
+service start.
+
 ## Measure before claiming a saving
 
 Compare a cold default-branch push and a subsequent warm run with the same

@@ -22,6 +22,12 @@ inputs:
   cache-environment:
     description: Restore/save the expanded .venv. Disable when recreating from uv's download cache is faster; locked sync always runs.
     default: 'true'
+  uv-cache-path:
+    description: >-
+      Directory for uv's download cache. Empty keeps setup-uv's default. On self-hosted runners whose
+      workspace is a separate volume, set it to a path on that volume, such as
+      runner.temp/setup-uv-cache, so uv links packages into .venv instead of copying them.
+    default: ''
   private-dependency-token:
     description: Optional GitHub read token scoped to the locked sync subprocess, never saved in Git configuration.
     default: ''
@@ -40,6 +46,7 @@ runs:
         version: ${{ inputs.uv-version }}
         enable-cache: true
         prune-cache: true
+        cache-local-path: ${{ inputs.uv-cache-path }}
     - id: identity
       shell: bash
       env:

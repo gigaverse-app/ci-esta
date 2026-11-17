@@ -33,6 +33,13 @@ Docker finishes pulling and starting the container. The job timeout still
 bounds the image pull. Call `stop` with `always()` to clean up failed starts and
 failed tests. Cancellation before `start` leaves no container to remove.
 
+On runners with slow disks, skip `warm` and call `start` before dependency
+setup. `docker run` waits for pending disk writes, so a start that follows a
+multi-gigabyte install can block for tens of seconds while the pull itself takes
+one. Started first, the container is healthy in about a second and the writes
+flush while tests run. See the
+[2026-11-17 measurement](../../docs/benchmarks/2026-11-17-self-hosted-disk.md).
+
 For existing images on a warm runner, prefetch can add overhead; measure the
 whole job and the health wait on representative selections. This action does
 not infer whether a selected test needs Redis or remove any validation gate.
