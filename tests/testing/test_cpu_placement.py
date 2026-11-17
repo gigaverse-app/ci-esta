@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from ci_esta.testing.cpu_placement import busy_fractions, place_shards, read_cpu_times
+from ci_esta.testing.cpu_placement import busy_fractions, place_shards, read_cores, read_cpu_times
 from ci_esta.testing.local_shards import LocalShardRunConfig, run_local_shards
 
 
@@ -85,3 +85,40 @@ def test_each_shard_process_is_told_its_cpu_where_the_platform_supports_it(tmp_p
     allowed = os.sched_getaffinity(0)
     assert all(int(cpu) in allowed for cpu in told)
     assert len(set(told)) == min(3, len(allowed))
+
+
+HYPERTHREADED = {cpu: cpu % 16 for cpu in range(32)}  # CPU n and n+16 share core n, as on Intel nodes
+
+
+@pytest.mark.parametrize("seed", range(5))
+def test_a_runner_alone_on_a_hyperthreaded_node_gives_every_shard_its_own_core(seed):
+    """
+    INVARIANT: no two shards share a physical core while a free core remains.
+
+    Choosing idle CPUs without regard to cores put pairs of shards on sibling hyperthreads. Full
+    runs alone on a 32-CPU node went from a 161 s mean shard to 185-228 s.
+    """
+    placed = place_shards(range(1, 17), range(32), {}, cores=HYPERTHREADED, rng=random.Random(seed))
+    assert len({HYPERTHREADED[cpu] for cpu in placed.values()}) == 16
+
+
+def test_next_to_a_neighbour_shards_take_the_idle_thread_of_each_core():
+    """A neighbour holds one thread of every core: the other thread is the best that is left."""
+    busy = {cpu: 0.97 for cpu in range(16)} | {cpu: 0.0 for cpu in range(16, 32)}
+    placed = place_shards(range(1, 17), range(32), busy, cores=HYPERTHREADED)
+    assert sorted(placed.values()) == list(range(16, 32))
+
+
+def test_whole_idle_cores_are_used_before_the_free_thread_of_a_busy_core():
+    cores = {0: 0, 4: 0, 1: 1, 5: 1, 2: 2, 6: 2, 3: 3, 7: 3}
+    busy = {0: 0.9, 4: 0.0, 1: 0.0, 5: 0.0, 2: 0.0, 6: 0.0, 3: 0.0, 7: 0.0}
+    placed = place_shards([1, 2, 3], range(8), busy, cores=cores)
+    assert {cores[cpu] for cpu in placed.values()} == {1, 2, 3}
+
+
+def test_core_topology_is_read_from_sibling_lists_and_defaults_to_one_core_per_cpu(tmp_path: Path):
+    for cpu, siblings in {0: "0,2", 2: "0,2", 1: "1-3"}.items():
+        topology = tmp_path / f"cpu{cpu}" / "topology"
+        topology.mkdir(parents=True)
+        (topology / "thread_siblings_list").write_text(siblings + "\n")
+    assert read_cores([0, 1, 2, 5], tmp_path) == {0: 0, 1: 1, 2: 0, 5: 5}

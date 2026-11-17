@@ -63,31 +63,61 @@ def busy_fractions(
     return fractions
 
 
+def read_cores(cpus: Sequence[int], root: Path = Path("/sys/devices/system/cpu")) -> dict[int, int]:
+    """Physical core of each CPU, named by its lowest sibling. A CPU with no topology is its own core."""
+    cores: dict[int, int] = {}
+    for cpu in cpus:
+        core = cpu
+        try:
+            text = (root / f"cpu{cpu}" / "topology" / "thread_siblings_list").read_text().strip()
+            first = text.replace("-", ",").split(",")[0]
+            core = int(first)
+        except (OSError, ValueError):
+            pass
+        cores[cpu] = core
+    return cores
+
+
 def place_shards(
     shards: Sequence[int],
     allowed: Sequence[int],
     busy: Mapping[int, float],
     *,
+    cores: Mapping[int, int] | None = None,
     idle_below: float = IDLE_BELOW,
     rng: random.Random | None = None,
 ) -> dict[int, int]:
-    """One CPU per shard: idle CPUs first, then the least busy.
+    """One CPU per shard: a whole idle core each while they last, then the least busy.
 
     With no spare CPU the mapping wraps over the allowed set in order, which is
-    what callers did before. Idle CPUs are taken in random order so two runners
-    that start in the same instant, each seeing the whole node idle, do not both
-    choose its lowest-numbered CPUs.
+    what callers did before. Otherwise shards first take one hyperthread of each
+    core, idle cores before busy ones, and only then second threads: two shards
+    on the siblings of one core are slower than two on separate cores. Idle
+    cores are taken in random order so two runners that start in the same
+    instant, each seeing the whole node idle, do not both choose the same ones.
     """
     cpus = sorted(set(allowed))
     if not cpus or not shards:
         return {}
     if len(cpus) <= len(shards):
         return {shard: cpus[position % len(cpus)] for position, shard in enumerate(shards)}
-    idle = [cpu for cpu in cpus if busy.get(cpu, 0.0) < idle_below]
-    taken = sorted((cpu for cpu in cpus if cpu not in set(idle)), key=lambda cpu: (busy.get(cpu, 0.0), cpu))
+    core_of = {cpu: (cores or {}).get(cpu, cpu) for cpu in cpus}
+    threads: dict[int, list[int]] = {}
+    for cpu in cpus:
+        threads.setdefault(core_of[cpu], []).append(cpu)
+    for members in threads.values():
+        members.sort(key=lambda cpu: (busy.get(cpu, 0.0), cpu))
+    load = {core: max(busy.get(cpu, 0.0) for cpu in members) for core, members in threads.items()}
+    idle = [core for core in threads if load[core] < idle_below]
     (rng or random.SystemRandom()).shuffle(idle)
-    chosen = sorted((idle + taken)[: len(shards)])
-    return dict(zip(shards, chosen, strict=True))
+    ranked = idle + sorted((core for core in threads if load[core] >= idle_below), key=lambda core: (load[core], core))
+    chosen: list[int] = []
+    depth = 0
+    while len(chosen) < len(shards):
+        # depth 0 gives every core one shard before any core gets a second.
+        chosen += [threads[core][depth] for core in ranked if len(threads[core]) > depth]
+        depth += 1
+    return dict(zip(shards, sorted(chosen[: len(shards)]), strict=True))
 
 
 def allowed_cpus() -> list[int]:
@@ -107,4 +137,4 @@ def plan_shard_cpus(shards: Sequence[int]) -> dict[int, int]:
     if not cpus:
         return {}
     spare = len(cpus) > len(shards)
-    return place_shards(shards, cpus, busy_fractions() if spare else {})
+    return place_shards(shards, cpus, busy_fractions() if spare else {}, cores=read_cores(cpus) if spare else None)
