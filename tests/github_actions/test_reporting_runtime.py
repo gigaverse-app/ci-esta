@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -32,6 +33,26 @@ def test_reporting_and_timing_share_a_locked_isolated_environment(tmp_path):
 
     interpreter = Path(invoke("--prepare"))
     stamp = interpreter.stat().st_mtime_ns
+    source_version = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
+    assert invoke("ci_esta.cli", "--version") == f"ci-esta {source_version} (source)"
+    assert "check-workflow" in invoke("ci_esta", "--help")
+    (consumer / "ci.yml").write_text("""on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: 'true'
+  gate:
+    name: Validation gate
+    needs: [test]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gigaverse-app/ci-esta/actions/validation-gate@v1
+        with:
+          needs: ${{ toJSON(needs) }}
+""")
+    assert "passed" in invoke("ci_esta", "check-workflow", "--workflow", "ci.yml")
     invoke("ci_esta.ci_observability.enrichment", "capture-pytest", "--shard-count", "2",
            "--wall-time", "3", "--total-time", "5", "--out", "timings.json")
     assert json.loads((consumer / "timings.json").read_text())["shard_count"] == 2

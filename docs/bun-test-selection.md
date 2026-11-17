@@ -31,6 +31,10 @@ from `ci_esta.testing.bun.execution`.
 After the action, native Python policy controls can use its pinned source and
 prepared interpreter without installing dependencies in the application:
 
+The same runtime supports `"$CI_ESTA_PYTHON" -m ci_esta check-workflow ...`
+and the other CLI commands. It uses checked-out source without installed CI-esta
+package metadata; `--version` identifies that source version explicitly.
+
 ```yaml
 - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
   id: tests
