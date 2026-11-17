@@ -49,7 +49,7 @@ wheels = [
 
 [[package]]
 name = "ci-esta"
-version = "1.18.1"
+version = "1.19.0"
 source = { editable = "." }
 dependencies = [
     { name = "defusedxml" },
