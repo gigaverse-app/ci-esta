@@ -55,3 +55,18 @@ each under both placements, against 22-23 s alone.
 - CPUs are sampled once, for a quarter of a second, when the pool starts. A
   neighbour that starts later is not seen; random choice among idle CPUs limits
   how badly two simultaneous starts can overlap.
+
+## Follow-up the same day: one shard per physical core
+
+The first version chose idle CPUs at random. On a hyperthreaded node that puts
+some pairs of shards on the two threads of one core, where the index rule had
+given a runner alone on the node sixteen separate cores. Seven full gigaverse-ai
+runs after adoption averaged 185-228 s per shard, against 161 s for the one run
+that had a 32-CPU node to itself before the change; five of the seven were on
+32-CPU nodes. Machines and neighbours differed between those runs, so this is
+an indication, not a controlled result.
+
+Placement now reads each CPU's core from `thread_siblings_list`. Every shard
+takes one thread of a core, fully idle cores first, and second threads are used
+only when cores run out. Next to a neighbour that holds one thread of every
+core, shards take the idle sibling threads, as before.
