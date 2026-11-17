@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.0](https://github.com/gigaverse-app/ci-esta/compare/v1.17.3...v1.18.0) (2026-11-17)
+
+
+### Features
+
+* **shards:** place local shards on idle CPUs ([#230](https://github.com/gigaverse-app/ci-esta/issues/230)) ([c458b4a](https://github.com/gigaverse-app/ci-esta/commit/c458b4aaca5e9fa879e9ffb7eed0d9bef39f3010))
+
 ## [1.17.3](https://github.com/gigaverse-app/ci-esta/compare/v1.17.2...v1.17.3) (2026-11-17)
 
 
