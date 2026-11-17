@@ -50,6 +50,15 @@ ci-esta report --repository OWNER/REPO --run-id RUN_ID --gate 'Validation gate' 
   --critical-path --output-dir ci-esta-report
 ```
 
+For selection-aware CLI reports (CI-esta 1.17.3+), pass the same artifact names
+as the observer: `--work-selection-artifact ci-work-selection-1` for native Bun
+or other provider-neutral decisions, `--lane-selection-artifact test-lane-selection`
+for lane plans, and `--test-selection-artifact test-impact-explanation` for
+pytest-selective explanations. Use the actual uploaded names and source attempt;
+these flags do not infer executed tests or authorize reuse. The shared reporter
+keeps the same artifact identity checks as the action. Without artifact inputs,
+the CLI still reports timing and gates, but selection remains unavailable.
+
 ```yaml
 name: CI report
 on:

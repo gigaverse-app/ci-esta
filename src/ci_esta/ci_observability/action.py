@@ -214,10 +214,10 @@ def _test_selection(client: GitHubActionsClient, config: ActionConfig, run: GitH
     """
     The sticky's test-selection section, when this run planned its tests with an explanation.
 
-    Only reports that post the sticky render it. Anything missing leaves the section out or its
+    Explicit artifact inputs enable collection independently of publication. Anything missing leaves the section out or its
     saving unknown, with a warning; it never costs the rest of the report.
     """
-    if not (config.post_sticky and config.test_selection_artifact):
+    if not config.test_selection_artifact:
         return None
     try:
         explanation = _explanation(client, config.test_selection_artifact, run)

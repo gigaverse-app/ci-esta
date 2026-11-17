@@ -20,6 +20,7 @@ from ci_esta.ci_observability.models import (
     SkippedLaneReferenceV1,
 )
 from ci_esta.ci_observability.report import STICKY_MARKER, sticky_marker
+from ci_esta.cli import main as cli_main
 
 from .builders import artifact
 
@@ -225,7 +226,7 @@ def _lane_config(tmp_path: Path) -> ActionConfig:
     )
 
 
-def _run_with(fake: FakeLaneGitHub, tmp_path: Path) -> tuple[CiObservabilityReportV1, str, str]:
+def _run_with(fake: FakeLaneGitHub, tmp_path: Path, *, cli: bool = False) -> tuple[CiObservabilityReportV1, str, str]:
     config = _lane_config(tmp_path)
     with (
         patch.object(GitHubActionsClient, "get_run", return_value=_run(RUN_ID, head_branch="feature")),
@@ -237,9 +238,28 @@ def _run_with(fake: FakeLaneGitHub, tmp_path: Path) -> tuple[CiObservabilityRepo
         patch.object(GitHubActionsClient, "latest_successful_push_run", return_value=fake.reference_run),
         patch.object(GitHubActionsClient, "upsert_sticky", return_value=1) as upsert,
     ):
+        if cli:
+            assert cli_main([
+                "report", "--repository", REPOSITORY, "--run-id", str(RUN_ID),
+                "--lane-selection-artifact", LANE_ARTIFACT, "--output-dir", str(tmp_path),
+            ]) == 0
+            assert not upsert.called
+            report = CiObservabilityReportV1.model_validate_json((tmp_path / "ci-observability.json").read_bytes())
+            return report, "", (tmp_path / "ci-observability.md").read_text(encoding="utf-8")
         assert run(config, START + timedelta(minutes=5)) == 0
     report = CiObservabilityReportV1.model_validate_json(config.report_output.read_text())
     return report, upsert.call_args.args[1], upsert.call_args.args[2]
+
+
+def test_cli_reports_lanes_and_historical_cost(tmp_path, monkeypatch):
+    monkeypatch.setenv("GH_TOKEN", "token")
+    fake = FakeLaneGitHub(MONGODB_ONLY.model_dump_json().encode(), reference_run=_run(REFERENCE_RUN_ID))
+    report, _, markdown = _run_with(fake, tmp_path, cli=True)
+    assert report.lane_selection is not None
+    assert report.lane_selection.plan == MONGODB_ONLY
+    assert report.lane_selection.reference is not None
+    assert report.lane_selection.reference.runner_seconds == 600
+    assert "Historical cost of skipped jobs: ≈10 runner-min" in markdown
 
 
 def test_the_action_prices_skipped_lanes_against_the_last_full_run(tmp_path: Path) -> None:
