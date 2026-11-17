@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.15.4](https://github.com/gigaverse-app/ci-esta/compare/v1.15.3...v1.15.4) (2026-11-16)
+
+
+### Performance
+
+* **evidence:** read immutable validation inputs from checkout ([#212](https://github.com/gigaverse-app/ci-esta/issues/212)) ([2923a68](https://github.com/gigaverse-app/ci-esta/commit/2923a68348db8a64658ebafb50112f85837a4906))
+
 ## [1.15.3](https://github.com/gigaverse-app/ci-esta/compare/v1.15.2...v1.15.3) (2026-11-15)
 
 
