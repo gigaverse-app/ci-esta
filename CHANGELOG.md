@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.18.1](https://github.com/gigaverse-app/ci-esta/compare/v1.18.0...v1.18.1) (2026-11-17)
+
+
+### Bug fixes
+
+* **shards:** give each shard its own physical core while cores last ([#232](https://github.com/gigaverse-app/ci-esta/issues/232)) ([e92cd4e](https://github.com/gigaverse-app/ci-esta/commit/e92cd4eae465b37bfce5415cc1f2eb7da9b3e8bc))
+
 ## [1.18.0](https://github.com/gigaverse-app/ci-esta/compare/v1.17.3...v1.18.0) (2026-11-17)
 
 
