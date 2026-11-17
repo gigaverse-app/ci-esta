@@ -104,6 +104,40 @@ def test_learned_batches_balance_whole_files():
     from ci_esta.testing.bun.execution import balanced_batches
     assert balanced_batches(['a', 'b', 'c', 'd'], 2, {'a': 9, 'b': 8, 'c': 2, 'd': 1}) == [['a', 'd'], ['b', 'c']]
 
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+@pytest.mark.parametrize('reader', [
+    "import {readFileSync} from 'node:fs'; export const value = Number(readFileSync(new URL('./input.ts', import.meta.url), 'utf8'));",
+    "const name = './input'; export const {value} = await import(name);",
+])
+@pytest.mark.parametrize('declared', [False, True])
+def test_portable_readers_retain_source_only_regressions(repository, tmp_path, reader, declared):
+    root, git, _ = repository
+    content = "1" if 'readFileSync' in reader else 'export const value = 1;'
+    (root / 'src/input.ts').write_text(content)
+    (root / 'src/value.ts').write_text(reader)
+    (root / 'src/unrelated.test.ts').write_text("import {test} from 'bun:test'; test('unrelated',()=>{});")
+    if declared:
+        kind = 'content' if 'readFileSync' in reader else 'import'
+        (root / 'src/value.ts.gv-dependency.yaml').write_text(
+            f'dependencies:\n  - inputs: [input.ts]\n    kind: {kind}\n')
+    git('add', '.')
+    git('commit', '-qm', 'reader')
+    base = git('rev-parse', 'HEAD')
+    (root / 'src/input.ts').write_text(content.replace('1', '0'))
+    git('add', '.')
+    git('commit', '-qm', 'break reader input')
+    inventory = tmp_path / 'inventory.json'
+    files = ['src/unrelated.test.ts', 'src/value.test.ts']
+    inventory.write_text(json.dumps({'schema_version': 'ci-esta/bun-inventory/v1', 'files': files,
+                                     'alwaysRunFiles': []}))
+    result = run_bun_tests(RunRequest(cwd=root, base=base, inventory_file=str(inventory),
+                                     output_directory=tmp_path / 'execution'))
+    assert result.mode == ('scoped' if declared else 'full')
+    assert result.fallback is not declared
+    assert result.executed_files == (['src/value.test.ts'] if declared else files)
+    assert result.exit_code != 0
+
 @pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
 def test_history_never_proves_unchanged_files_or_learns_failures(repository, tmp_path):
     root, git, base = repository
