@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.17.1](https://github.com/gigaverse-app/ci-esta/compare/v1.17.0...v1.17.1) (2026-11-17)
+
+
+### Bug fixes
+
+* **cli:** support the isolated Actions source runtime ([23f4aca](https://github.com/gigaverse-app/ci-esta/commit/23f4acaf5efc10f13adc78b02c8568674d19c8e9))
+* **timings:** let inherited cases and busy repositories teach shard timings ([#222](https://github.com/gigaverse-app/ci-esta/issues/222)) ([53c8c2f](https://github.com/gigaverse-app/ci-esta/commit/53c8c2f10d373ad6aa7e92f504fd0d7a3f900bbb))
+
 ## [1.17.0](https://github.com/gigaverse-app/ci-esta/compare/v1.16.0...v1.17.0) (2026-11-17)
 
 
