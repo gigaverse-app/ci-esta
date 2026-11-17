@@ -19,6 +19,11 @@ identify the concrete blocker. Deferral requires agreement on the reduced scope.
 Reporting and caching alone do not complete full adoption. Fix shared adapter gaps
 upstream rather than introducing a parallel consumer implementation.
 
+Use [portable reader-owned declarations](../dependency-declarations.md) for
+dependencies imports cannot express, including non-Python projects. The same
+pytest-selective format and lightweight parser serve each language adapter;
+manual reader hashes are not part of the default onboarding path.
+
 This tutorial gives the order, acceptance checks and rollback choices. Linked
 recipes own the complete configurations. Use the
 [pytest-selective checklist](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/tutorials/adoption-checklist.md)

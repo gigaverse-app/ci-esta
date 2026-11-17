@@ -2,8 +2,7 @@
 
 Bun's bundler metafile lists every file each test bundles: its imports, followed transitively,
 including text, JSON, style and asset imports. A changed file selects the lanes of the tests that
-bundle it, so a README no test imports selects nothing, with no documentation rule. `bun test --changed`
-still narrows the files inside a selected lane at execution time.
+bundle it, so a README no test imports selects nothing, with no documentation rule. The executor narrows files using these same import and declaration edges.
 
 A test preload declared in a `bunfig*.toml` runs before every test without being imported, so a change
 to it, or to anything it bundles, reaches every Bun lane. Bun's environment files (`package.json`,
@@ -22,13 +21,17 @@ import subprocess
 import tempfile
 import tomllib
 from pathlib import Path, PurePosixPath
+from typing import TYPE_CHECKING
 
-from pytest_selective.ci import Lane
-from pytest_selective.impact_graph import matches, within
+from pytest_selective_declarations import DependencyDeclarationError, file_of
+
+if TYPE_CHECKING:
+    from pytest_selective.ci import Lane
 
 from ci_esta.git import tracked_files
 from ci_esta.testing.bun.discovery import test_files
-from ci_esta.testing.lane_rules import BUN_ENVIRONMENT_FILES
+from ci_esta.testing.bun.models import BUN_ENVIRONMENT_FILES
+from ci_esta.testing.dependencies import declared_edges
 
 BUNFIG = re.compile(r"(?:^|/)bunfig[^/]*\.toml$")
 #: Files Bun parses for further imports; other inputs (styles, images, text) are leaves.
@@ -129,6 +132,7 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
     `node_modules`, which the lockfile covers; an import Bun resolved to a path the planner cannot
     map fails the graph rather than losing the edge.
     """
+    declarations = declared_edges(repo, files)
     edges: dict[str, set[str]] = {}
     pending = list(entries)
     while pending:
@@ -136,6 +140,7 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
         pending = []
         for importer, declared in imports.items():
             targets = edges.setdefault(importer, set())
+            targets.update(declarations.get(importer, ()))
             for item in declared:
                 specifier = str(item.get("path", ""))
                 if BUILTIN.match(specifier) or (
@@ -166,6 +171,9 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
                     and MODULE.search(target)
                 ):
                     pending.append(target)
+            for target in declarations.get(importer, ()):
+                if target not in edges and target not in imports and target in files and MODULE.search(target):
+                    pending.append(target)
         pending = sorted(set(pending))
     if missing := sorted(set(entries) - set(edges)):
         raise ValueError(f"Bun reported no inputs for {', '.join(missing)}")
@@ -177,7 +185,7 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
                 if target not in seen:
                     seen.add(target)
                     queue.append(target)
-        graph[entry] = seen
+        graph[entry] = {file_of(node) for node in seen}
     return graph
 
 
@@ -223,6 +231,7 @@ def bun_lane_reasons(
 
     `environment` is the bun-environment rule's patterns; a change to one runs every Bun lane.
     """
+    from pytest_selective.impact_graph import matches, within
 
     def unmapped_reasons(paths: set[str]) -> dict[str, list[str]]:
         reason = "full-suite fallback: unmapped affected Bun test: " + ", ".join(sorted(paths))
@@ -264,6 +273,8 @@ def bun_lane_reasons(
         preloads = test_preloads(repo, set(files))
         entries = sorted(set(present) | set(preloads))
         graph = test_inputs(repo, entries, executable, set(files)) if present else {}
+    except DependencyDeclarationError:
+        raise
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         reason = f"full-suite fallback: Bun module graph unavailable: {failure(error)}"
         return {name: [reason] for name in (lanes if unclaimed else bun_lanes)}

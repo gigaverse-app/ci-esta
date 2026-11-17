@@ -89,6 +89,7 @@ extra:
   - docs/benchmarks/2026-10-23-toolkit.md
   - docs/benchmarks/2026-10-23-windows-saleor.md
   - docs/bun-test-selection.md
+  - docs/dependency-declarations.md
   - docs/ci-optimization.md
   - docs/critical-path-optimizations.md
   - docs/critical-path.md
@@ -138,6 +139,7 @@ nav:
   - GitHub Actions reference: docs/actions.md
   - Non-Python projects: docs/non-python.md
   - Bun test selection: docs/bun-test-selection.md
+  - Portable dependency declarations: docs/dependency-declarations.md
   - PostgreSQL client setup: docs/postgres-client.md
   - Combine the four tools: docs/integrations.md
   - Related tools: ecosystem.md

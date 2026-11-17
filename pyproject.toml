@@ -11,7 +11,8 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{name = "Gigaverse"}]
-dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7", "filelock>=4.2.1,<5"]
+dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7", "filelock>=4.2.1,<5",
+  "pytest-selective-declarations @ git+https://github.com/gigaverse-app/pytest-selective.git@5fc2cb12658ba867d20f1a21ecc5b1db2a0eb1c6#subdirectory=declarations"]
 keywords = ["github-actions", "ci-observability", "ci-optimization", "continuous-integration", "prometheus"]
 classifiers = ["Intended Audience :: Developers", "Topic :: Software Development :: Build Tools", "Programming Language :: Python :: 3", "Typing :: Typed"]
 
@@ -45,6 +46,10 @@ dev = ["pytest-selective>=1.5.0,<2.0.0", "pytest>=8", "pytest-xdist>=3.6", "ruff
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ci_esta"]
+
+# Remove with the temporary companion source pin before publishing this package.
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
 include = ["actions", "src", "tests", "contracts", "scripts", ".github", "docs", "examples", "README.md", "CONTRIBUTING.md", "PROVENANCE.md", "RELEASING.md", "CHANGELOG.md", "LICENSE", "pyproject.toml", "uv.lock", "importlinter.toml", ".gitattributes"]

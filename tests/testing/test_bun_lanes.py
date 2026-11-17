@@ -365,3 +365,15 @@ def test_unclaimed_filtered_bun_test_cannot_silently_disappear(repository, chang
     result = plan_work(repo, config, base, commit(repo))
     assert all(result.lanes.values()), result.lane_reasons
     assert any("unmapped affected Bun test" in reason for reason in result.lane_reasons["unit"])
+
+
+@pytest.mark.parametrize("path", ["fixtures/runtime.txt", "src/b.ts.gv-dependency.yaml"])
+def test_portable_declarations_reach_only_the_readers_lane(repository, path):
+    repo, _ = repository
+    write(repo, "fixtures/runtime.txt", "initial")
+    write(repo, "src/b.ts.gv-dependency.yaml", 'dependencies:\n  - inputs: ["//fixtures/runtime.txt"]\n    kind: content\n')
+    base = commit(repo)
+    with (repo / path).open("a") as stream:
+        stream.write("\n# changed\n")
+    result = plan_work(repo, lanes(), base, commit(repo))
+    assert result.lanes == {"unit": False, "feature": True}, result.lane_reasons

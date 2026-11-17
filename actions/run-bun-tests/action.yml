@@ -5,8 +5,8 @@ inputs:
     description: JSON file with ci-esta/bun-inventory/v1 files and alwaysRunFiles, produced by repository discovery.
     required: true
   policy:
-    description: Repository-owned selection policy JSON.
-    required: true
+    description: Optional legacy selection policy JSON. Omit to use Bun imports and pytest-selective's portable dependency declarations.
+    default: ''
   base:
     description: Exact comparison commit; use a recorded tested merge together with validated-head. Missing history executes the full inventory.
     default: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -23,7 +23,7 @@ inputs:
     description: Number of sequential fresh-process batches on this runner, partitioning the complete sorted inventory.
     default: '1'
   preloads:
-    description: JSON array of repository-relative preload files, executed before each batch. Declare their dependency inputs in the policy.
+    description: JSON array of repository-relative preload files, executed before each batch. Imports and portable dependency declarations track their inputs.
     default: '[]'
   timing-history:
     description: Optional retained native Bun timing JSON outside the checkout. Used only to balance whole-file batches; successful fresh measurements update it.

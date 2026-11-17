@@ -25,6 +25,10 @@ human keeps merging, required-check settings, runner groups and secrets.
 - Test selection is integral and enabled by default for adoption: use Bun native affected selection or
   pytest-selective as appropriate. Preserve inventory, contracts, isolation and full checkpoints. Optional
   means a consumer can explicitly opt out; it does not authorize an agent to omit selection.
+- Express non-import inputs with pytest-selective's reader-owned sidecars or directory manifests,
+  including for Bun and other non-Python adapters. Reuse the lightweight
+  `pytest-selective-declarations` API rather than a parallel parser or reader-hash registry.
+  See [portable declarations](https://ci-esta.readthedocs.io/en/latest/docs/dependency-declarations.md).
 - A request for **full adoption** includes every applicable capability: selection, lane planning, validated
   evidence reuse, measured setup/cache, learned timing and scheduling, strict gates, PR reports, telemetry
   and full checkpoints. Track each through implementation and verification. Do not silently defer them.

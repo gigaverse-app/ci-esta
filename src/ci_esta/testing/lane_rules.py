@@ -22,13 +22,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pytest_selective.impact_graph import matches
 from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
+from ci_esta.testing.bun.models import BUN_ENVIRONMENT_FILES
+
 PYTHON_ENVIRONMENT = "python-environment"
 BUN_ENVIRONMENT = "bun-environment"
-BUN_ENVIRONMENT_FILES = [
-    pattern
-    for name in ("package.json", "bun.lock", "bun.lockb", "bunfig*.toml", "tsconfig*.json")
-    for pattern in (name, f"**/{name}")
-]
 
 
 class Rule(BaseModel):
