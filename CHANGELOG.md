@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.17.2](https://github.com/gigaverse-app/ci-esta/compare/v1.17.1...v1.17.2) (2026-11-17)
+
+
+### Bug fixes
+
+* **adoption:** recognize native Bun execution and timing history ([6103b14](https://github.com/gigaverse-app/ci-esta/commit/6103b14fbf22b0880f924933a7515f6b0e75b33c))
+
 ## [1.17.1](https://github.com/gigaverse-app/ci-esta/compare/v1.17.0...v1.17.1) (2026-11-17)
 
 
