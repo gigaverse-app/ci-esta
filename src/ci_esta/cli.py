@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import tomllib
 from datetime import datetime, timezone
-from importlib.metadata import version
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from ci_esta.ci_observability.action import ActionConfig, run
@@ -22,9 +23,21 @@ TOKEN_HELP = (
 )
 
 
+def runtime_version() -> str:
+    """Actions use checked-out source without installing this project's metadata."""
+    try:
+        return version("ci-esta")
+    except PackageNotFoundError:
+        project = Path(__file__).resolve().parents[2] / "pyproject.toml"
+        if project.is_file():
+            source = tomllib.loads(project.read_text())["project"]["version"]
+            return f"{source} (source)"
+        return "uninstalled source"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="CI-esta: GitHub Actions timing, cost estimates and evidence")
-    parser.add_argument("--version", action="version", version=f"ci-esta {version('ci-esta')}")
+    parser.add_argument("--version", action="version", version=f"ci-esta {runtime_version()}")
     commands = parser.add_subparsers(dest="command", required=True)
     adoption = commands.add_parser("adoption", help="Read-only adoption inventory and suggestions; never changes CI")
     adoption.add_argument("--root", type=Path, default=Path("."))
