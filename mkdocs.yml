@@ -89,6 +89,7 @@ extra:
   - docs/benchmarks/2026-10-23-toolkit.md
   - docs/benchmarks/2026-10-23-windows-saleor.md
   - docs/benchmarks/2026-11-17-self-hosted-disk.md
+  - docs/benchmarks/2026-11-17-shard-cpus.md
   - docs/bun-test-selection.md
   - docs/dependency-declarations.md
   - docs/ci-optimization.md
@@ -152,6 +153,7 @@ nav:
   - Parallel conformance test results: docs/benchmarks/2026-10-23-critical-execution.md
   - Windows and Saleor bottleneck fixes: docs/benchmarks/2026-10-23-windows-saleor.md
   - Self-hosted runner disk writes: docs/benchmarks/2026-11-17-self-hosted-disk.md
+  - Shard CPU placement on shared nodes: docs/benchmarks/2026-11-17-shard-cpus.md
 - Contributing:
   - Development setup: CONTRIBUTING.md
   - Releasing: RELEASING.md
