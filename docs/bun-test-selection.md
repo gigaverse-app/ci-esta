@@ -80,7 +80,7 @@ dependencies:
 ```
 
 The format and parser are pytest-selective's, shared with Python projects through
-the lightweight `pytest-selective-declarations` package. Directory manifests can
+the lightweight `selective-deps` package. Directory manifests can
 group readers, `kind: import` follows the declared input's imports, and `kind: content`
 reads only its bytes. No reader hashes or repository-wide exception registry are
 needed. A content change selects the reader's dependent tests, not every test.

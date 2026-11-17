@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from pytest_selective_declarations import dependency_edges, is_declaration
+from selective_deps import dependency_edges, is_declaration
 
 
 def declared_edges(repo: Path, files: set[str]) -> dict[str, set[str]]:

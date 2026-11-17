@@ -169,7 +169,7 @@ def test_shared_declarations_select_and_execute_only_the_bun_reader(repository, 
 
 @pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
 def test_invalid_shared_declaration_fails_instead_of_becoming_a_successful_fallback(repository):
-    from pytest_selective_declarations import DependencyDeclarationError
+    from selective_deps import DependencyDeclarationError
 
     root, git, base = repository
     (root / 'src/value.ts.gv-dependency.yaml').write_text('dependencies:\n  - inputs: ["//missing.txt"]\n')

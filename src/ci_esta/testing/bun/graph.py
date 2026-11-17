@@ -23,7 +23,7 @@ import tomllib
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
-from pytest_selective_declarations import DependencyDeclarationError, file_of
+from selective_deps import DependencyDeclarationError, file_of
 
 if TYPE_CHECKING:
     from pytest_selective.ci import Lane

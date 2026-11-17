@@ -27,7 +27,7 @@ human keeps merging, required-check settings, runner groups and secrets.
   means a consumer can explicitly opt out; it does not authorize an agent to omit selection.
 - Express non-import inputs with pytest-selective's reader-owned sidecars or directory manifests,
   including for Bun and other non-Python adapters. Reuse the lightweight
-  `pytest-selective-declarations` API rather than a parallel parser or reader-hash registry.
+  `selective-deps` API rather than a parallel parser or reader-hash registry.
   See [portable declarations](https://ci-esta.readthedocs.io/en/latest/docs/dependency-declarations.md).
 - A request for **full adoption** includes every applicable capability: selection, lane planning, validated
   evidence reuse, measured setup/cache, learned timing and scheduling, strict gates, PR reports, telemetry

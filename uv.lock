@@ -56,8 +56,8 @@ dependencies = [
     { name = "filelock" },
     { name = "httpx" },
     { name = "pydantic" },
-    { name = "pytest-selective-declarations" },
     { name = "pyyaml" },
+    { name = "selective-deps" },
 ]
 
 [package.optional-dependencies]
@@ -96,10 +96,10 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.2,<4" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "pytest", marker = "extra == 'pytest'", specifier = ">=8" },
-    { name = "pytest-selective", marker = "extra == 'pytest'", specifier = ">=1.5.0,<2.0.0" },
-    { name = "pytest-selective", marker = "extra == 'selection'", specifier = ">=1.5.0,<2.0.0" },
-    { name = "pytest-selective-declarations", git = "https://github.com/gigaverse-app/pytest-selective.git?subdirectory=declarations&rev=5fc2cb12658ba867d20f1a21ecc5b1db2a0eb1c6" },
+    { name = "pytest-selective", marker = "extra == 'pytest'", git = "https://github.com/gigaverse-app/pytest-selective.git?rev=da6e5e871f2e37cf0350a3d70e173deca788a86f" },
+    { name = "pytest-selective", marker = "extra == 'selection'", git = "https://github.com/gigaverse-app/pytest-selective.git?rev=da6e5e871f2e37cf0350a3d70e173deca788a86f" },
     { name = "pyyaml", specifier = ">=6,<7" },
+    { name = "selective-deps", git = "https://github.com/gigaverse-app/pytest-selective.git?subdirectory=declarations&rev=da6e5e871f2e37cf0350a3d70e173deca788a86f" },
 ]
 provides-extras = ["selection", "pytest", "postgres"]
 
@@ -113,7 +113,7 @@ dev = [
     { name = "import-linter", specifier = ">=2.5,<3" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
     { name = "pytest", specifier = ">=8" },
-    { name = "pytest-selective", specifier = ">=1.5.0,<2.0.0" },
+    { name = "pytest-selective", git = "https://github.com/gigaverse-app/pytest-selective.git?rev=da6e5e871f2e37cf0350a3d70e173deca788a86f" },
     { name = "pytest-xdist", specifier = ">=3.6" },
     { name = "pyyaml", specifier = ">=6" },
     { name = "ruff", specifier = ">=0.14" },
@@ -654,25 +654,13 @@ wheels = [
 
 [[package]]
 name = "pytest-selective"
-version = "1.5.0"
-source = { registry = "https://pypi.org/simple" }
+version = "1.7.0"
+source = { git = "https://github.com/gigaverse-app/pytest-selective.git?rev=da6e5e871f2e37cf0350a3d70e173deca788a86f#da6e5e871f2e37cf0350a3d70e173deca788a86f" }
 dependencies = [
     { name = "pydantic" },
     { name = "pytest" },
     { name = "pyyaml" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/39/b6/ff2cd58d0bf3fbdfdf96243e0a2561fc3b53d50c293891c1a909419c7cec/pytest_selective-1.5.0.tar.gz", hash = "sha256:bfc93e6481df2204f9e40a1f914e050b062caa03534d7be362484039bd7238aa", size = 671387, upload-time = "2026-11-09T23:19:02.744Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/fd/15b34ca34d2918dd990f7ceaeb8c61c90e34549df111d04982360a75f826/pytest_selective-1.5.0-py3-none-any.whl", hash = "sha256:f4f0dd7aee8adc33e34ffc2119b5f49b479be784fa17f314432fd67f0927079f", size = 116865, upload-time = "2026-11-09T23:19:01.369Z" },
-]
-
-[[package]]
-name = "pytest-selective-declarations"
-version = "1.6.1"
-source = { git = "https://github.com/gigaverse-app/pytest-selective.git?subdirectory=declarations&rev=5fc2cb12658ba867d20f1a21ecc5b1db2a0eb1c6#5fc2cb12658ba867d20f1a21ecc5b1db2a0eb1c6" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "pyyaml" },
+    { name = "selective-deps" },
 ]
 
 [[package]]
@@ -779,6 +767,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/d4/c3b74e1b4808438ea7f14bb914478025e2d51261f60774a54a0fa222ec46/ruff-0.17.2-py3-none-win32.whl", hash = "sha256:6bce7d1f5165701ae18f5df85c65afe78cddfa6c5fb4b9bdb0014d60388f3edd", size = 9870537, upload-time = "2026-10-22T18:37:52.486Z" },
     { url = "https://files.pythonhosted.org/packages/1c/9a/c7da96c2c96d20704cf9027f7a5121da272a8c05f1d1531ba949e3b3df04/ruff-0.17.2-py3-none-win_amd64.whl", hash = "sha256:1b59d447f197bef9ef48a22ba1a6016137753c6099e9bac9c36eb566e422424c", size = 10282826, upload-time = "2026-10-22T18:37:55.2Z" },
     { url = "https://files.pythonhosted.org/packages/81/60/a3604c79cb02777b6cb84da894104021986f06c4bc41375102cc95049a32/ruff-0.17.2-py3-none-win_arm64.whl", hash = "sha256:195ad918027f817c119310ca89a42d347887dfc28934aaa869325e9c5dc9d962", size = 9827036, upload-time = "2026-10-22T18:37:58.031Z" },
+]
+
+[[package]]
+name = "selective-deps"
+version = "1.7.0"
+source = { git = "https://github.com/gigaverse-app/pytest-selective.git?subdirectory=declarations&rev=da6e5e871f2e37cf0350a3d70e173deca788a86f#da6e5e871f2e37cf0350a3d70e173deca788a86f" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "pyyaml" },
 ]
 
 [[package]]

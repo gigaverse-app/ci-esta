@@ -38,7 +38,7 @@ graph that skips work. Removed files and uncertain native graph construction
 retain full fallback. Declarations cannot establish test completion or discover
 unobserved external state, so retain full checkpoints and execution evidence.
 
-For another language adapter, install only `pytest-selective-declarations` and
+For another language adapter, install only `selective-deps` and
 call its `dependency_edges(manifests, files, revision=...)` API. It consumes manifest
 bytes and tracked paths supplied by the adapter; it does not install pytest, load
 the Python selector, inspect imports, open caches or call Git. The parser is the

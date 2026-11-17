@@ -6,7 +6,7 @@ import subprocess
 from fnmatch import fnmatchcase
 from pathlib import Path
 
-from pytest_selective_declarations import DependencyDeclarationError, is_declaration
+from selective_deps import DependencyDeclarationError, is_declaration
 
 from ci_esta.git import git, tracked_files
 from ci_esta.testing.baseline_policy import validated_comparison
