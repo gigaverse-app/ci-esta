@@ -5,12 +5,12 @@ import subprocess
 from fnmatch import fnmatchcase
 from pathlib import Path
 
-from selective_deps import DependencyDeclarationError, is_declaration
+from selective_deps import DependencyDeclarationError
 
 from ci_esta.git import git, tracked_files
 from ci_esta.testing.baseline_policy import validated_comparison
 from ci_esta.testing.bun.discovery import test_files
-from ci_esta.testing.bun.graph import MODULE, OPAQUE_DEPENDENCY, test_inputs, test_preloads
+from ci_esta.testing.bun.graph import OPAQUE_DEPENDENCY, test_inputs, test_preloads, unmodeled_inputs
 from ci_esta.testing.bun.models import (
     BUN_ENVIRONMENT_NAMES,
     TEST_FILE,
@@ -72,11 +72,9 @@ def _declared_plan(request: SelectionRequest, plan: SelectionPlan, changes: list
     if any(graph[preload] & changed for preload in preloads):
         plan.reason = 'Full suite for a changed preload dependency'
         return plan
-    modeled = set().union(*graph.values()) if graph else set()
-    for path in changed - modeled:
-        if not MODULE.search(path) and not path.endswith('.md') and not is_declaration(path):
-            plan.reason = f"Full suite for an undeclared non-import input: {path}"
-            return plan
+    if unknown := unmodeled_inputs(changed, graph):
+        plan.reason = f"Full suite for an undeclared non-import input: {unknown[0]}"
+        return plan
     plan.selected_files = sorted({test for test in tests if graph[test] & changed} | set(request.always_run_files))
     plan.mode = 'scoped' if plan.selected_files else 'none'
     plan.reason = f"Bun import graph and shared dependency declarations against {plan.base}; {len(plan.selected_files)} affected files"

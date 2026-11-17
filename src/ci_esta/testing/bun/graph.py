@@ -23,7 +23,7 @@ import tomllib
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
-from selective_deps import DependencyDeclarationError, file_of
+from selective_deps import DependencyDeclarationError, file_of, is_declaration
 
 if TYPE_CHECKING:
     from pytest_selective.ci import Lane
@@ -36,6 +36,15 @@ from ci_esta.testing.dependencies import declared_edges
 BUNFIG = re.compile(r"(?:^|/)bunfig[^/]*\.toml$")
 #: Files Bun parses for further imports; other inputs (styles, images, text) are leaves.
 MODULE = re.compile(r"\.(?:[cm]?[jt]sx?|json)$")
+
+
+def unmodeled_inputs(changed: set[str], graph: dict[str, set[str]]) -> list[str]:
+    """The same unknown-input fallback for lane admission and individual test selection."""
+    modeled = set().union(*graph.values()) if graph else set()
+    return sorted(path for path in changed - modeled
+                  if not MODULE.search(path) and not path.endswith(".md") and not is_declaration(path))
+
+
 #: Runtime built-ins, never repository files.
 BUILTIN = re.compile(r"^(?:bun|node):")
 #: A line of Bun's output that says why the graph failed, rather than a warning before it.
@@ -293,6 +302,9 @@ def bun_lane_reasons(
         raise
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         reason = f"full-suite fallback: Bun module graph unavailable: {failure(error)}"
+        return {name: [reason] for name in (lanes if unclaimed else bun_lanes)}
+    if unknown := unmodeled_inputs(changed, graph):
+        reason = f"full-suite fallback: undeclared non-import input: {unknown[0]}"
         return {name: [reason] for name in (lanes if unclaimed else bun_lanes)}
     preload_changed = any(graph[path] & changed for path in preloads if present)
     if unmapped := {test for test in unclaimed if preload_changed or graph[test] & changed}:

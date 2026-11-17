@@ -392,3 +392,16 @@ def test_full_contract_lane_does_not_disable_other_lanes_selection(repository, a
     write(repo, "src/b.ts", "import { a } from './a'; export const b = a + 2;")
     result = plan_work(repo, config, base, commit(repo))
     assert result.lanes == {"unit": not already_admitted, "feature": True, "contracts": True}, result.lane_reasons
+
+
+def test_lane_admission_cannot_skip_file_selection_unknown_input_fallback(repository):
+    from ci_esta.testing.bun.models import SelectionRequest
+    from ci_esta.testing.bun.selection import plan_affected_tests
+
+    repo, base = repository
+    write(repo, "unknown-input.bin", "changed")
+    head = commit(repo)
+    selection = plan_affected_tests(SelectionRequest(cwd=repo, base=base))
+    assert selection.mode == "full"
+    result = plan_work(repo, lanes(), base, head)
+    assert all(result.lanes.values()), result.lane_reasons
