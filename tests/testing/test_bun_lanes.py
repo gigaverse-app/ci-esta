@@ -215,6 +215,8 @@ def react_native(tmp_path: Path) -> tuple[Path, str]:
     )
     # A computed `require`, for which Bun records a `bun:wrap` import.
     write(tmp_path, "src/load.ts", "export const load = (name: string) => require(name);\n")
+    # This fixture exports the function without invoking it; no repository input is read.
+    write(tmp_path, "src/load.ts.gv-dependency.yaml", "dependencies: []\n")
     # Two tests share `[dir]/[name]`: Bun's default output naming gives both the same path.
     write(
         tmp_path,

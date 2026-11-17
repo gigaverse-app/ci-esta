@@ -38,6 +38,13 @@ graph that skips work. Removed files and uncertain native graph construction
 retain full fallback. Declarations cannot establish test completion or discover
 unobserved external state, so retain full checkpoints and execution evidence.
 
+A reachable filesystem reader or computed import without a declaration makes
+the graph uncertain and runs the full suite. Declare its actual inputs to enable
+selection. For code that only writes output, or dynamically loads external
+packages already covered by the lockfile, a file sidecar containing
+`dependencies: []` records that review without inventing repository inputs.
+Use this only after checking the reader; it is not a blanket exemption.
+
 For another language adapter, install only `selective-deps` and
 call its `dependency_edges(manifests, files, revision=...)` API. It consumes manifest
 bytes and tracked paths supplied by the adapter; it does not install pytest, load

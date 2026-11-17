@@ -1,7 +1,6 @@
 """Admit Bun's native selection only when Git and repository declarations prove its scope."""
 
 import json
-import re
 import subprocess
 from fnmatch import fnmatchcase
 from pathlib import Path
@@ -11,7 +10,7 @@ from selective_deps import DependencyDeclarationError, is_declaration
 from ci_esta.git import git, tracked_files
 from ci_esta.testing.baseline_policy import validated_comparison
 from ci_esta.testing.bun.discovery import test_files
-from ci_esta.testing.bun.graph import MODULE, test_inputs, test_preloads
+from ci_esta.testing.bun.graph import MODULE, OPAQUE_DEPENDENCY, test_inputs, test_preloads
 from ci_esta.testing.bun.models import (
     BUN_ENVIRONMENT_NAMES,
     TEST_FILE,
@@ -21,11 +20,6 @@ from ci_esta.testing.bun.models import (
     SelectionRequest,
 )
 from ci_esta.testing.dependencies import declared_edges
-
-OPAQUE_DEPENDENCY = re.compile(
-    r"\b(?:Bun\s*\.\s*file|readFile(?:Sync)?|import\s*\.\s*meta\s*\.\s*glob)\b"
-    r"|[\"'](?:node:)?fs(?:/promises)?[\"']|\b(?:import|require)\s*\(\s*(?!\s*[\"'])[^\s]"
-)
 
 
 def safe_path(value: str) -> bool:

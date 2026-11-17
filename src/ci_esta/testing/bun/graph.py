@@ -41,6 +41,11 @@ BUILTIN = re.compile(r"^(?:bun|node):")
 #: A line of Bun's output that says why the graph failed, rather than a warning before it.
 FAILURE = re.compile(r"\berror\b|could not|cannot|panic", re.IGNORECASE)
 
+OPAQUE_DEPENDENCY = re.compile(
+    r"\b(?:Bun\s*\.\s*file|readFile(?:Sync)?|import\s*\.\s*meta\s*\.\s*glob)\b"
+    r"|[\"'](?:node:)?fs(?:/promises)?[\"']|\b(?:import|require)\s*\(\s*(?!\s*[\"'])[^\s]"
+)
+
 
 def normalized(path: str) -> str:
     return path.replace("\\", "/").removeprefix("./")
@@ -139,6 +144,10 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
         imports = build_imports(repo, pending, bun, files)
         pending = []
         for importer, declared in imports.items():
+            if (importer in files and MODULE.search(importer) and importer not in declarations
+                    and OPAQUE_DEPENDENCY.search((repo / importer).read_text(encoding="utf-8"))):
+                # Imports alone cannot prove the dependencies of runtime file reads.
+                raise ValueError(f"Undeclared non-import dependencies in {importer}; add a reader-owned declaration")
             targets = edges.setdefault(importer, set())
             targets.update(declarations.get(importer, ()))
             for item in declared:
