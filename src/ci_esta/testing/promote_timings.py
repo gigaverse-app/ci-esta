@@ -31,8 +31,12 @@ def main() -> None:
         policy = PromotionPolicy(
             repository=os.environ["GITHUB_REPOSITORY"], branch=branch,
             workflow=os.environ["INPUT_PRODUCER_WORKFLOW"], key=os.environ["INPUT_HISTORY_KEY"],
-            gates=json.loads(os.environ["INPUT_REQUIRED_GATES"]),
+            gates=json.loads(os.environ.get("INPUT_REQUIRED_GATES") or "[]"),
             shards=json.loads(os.environ.get("INPUT_EXPECTED_SHARDS", '{"all":1}')),
+            # Import what learn-test-timings already retains on every PR run. The
+            # collector then requires the whole producer green before merge and
+            # pytest's own execution identity, instead of named gates and shards.
+            automatic=os.environ.get("INPUT_AUTOMATIC_SOURCES", "false") == "true",
         )
         now = datetime.now(timezone.utc)
         state = combine_histories(action_histories(client, policy.key), policy.key, now)

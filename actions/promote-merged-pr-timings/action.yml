@@ -5,8 +5,14 @@ inputs:
     description: Producer workflow filename, including .yml or .yaml.
     required: true
   required-gates:
-    description: JSON array of exact producer job names that must have passed before merge.
-    required: true
+    description: JSON array of exact producer job names that must have passed before merge. Required unless automatic-sources is true.
+    default: '[]'
+  automatic-sources:
+    description: >-
+      Import the observations learn-test-timings already retains on every PR run, with no
+      fresh-reports declaration, gate names or shard map. Every job of the producer run must
+      have finished green before the merge.
+    default: 'false'
   history-key:
     description: Stable environment key shared with learn/restore-test-timings.
     required: true
@@ -46,6 +52,7 @@ runs:
         GH_TOKEN: ${{ inputs.github-token }}
         INPUT_PRODUCER_WORKFLOW: ${{ inputs.producer-workflow }}
         INPUT_REQUIRED_GATES: ${{ inputs.required-gates }}
+        INPUT_AUTOMATIC_SOURCES: ${{ inputs.automatic-sources }}
         INPUT_HISTORY_KEY: ${{ inputs.history-key }}
         INPUT_EXPECTED_SHARDS: ${{ inputs.expected-shards }}
         INPUT_PULL_REQUEST: ${{ inputs.pull-request }}

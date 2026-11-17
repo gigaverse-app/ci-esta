@@ -1,6 +1,7 @@
 """Learn scheduling hints from real pytest reports without trusting broken evidence."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -8,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from ci_esta.testing.cli import main
+from ci_esta.testing.junit import learn_junit_timings
 from ci_esta.testing.timing_feedback import main as feedback
 
 
@@ -35,6 +37,43 @@ def test_real_pytest_report_drives_exact_file_shards(tmp_path, monkeypatch):
     planned = "\n".join(path.read_text() for path in Path("splits").glob("*.txt"))
     assert "tests/test_one.py" in planned
     assert "tests/test_two.py" in planned
+
+
+def test_cases_inherited_from_a_library_teach_the_module_that_collected_them(tmp_path, monkeypatch):
+    """
+    INVARIANT: a case costs the test module pytest collected it from, not the file that defines it.
+
+    Contract suites inherit their test methods from an installed package, so xunit1 reports name a
+    site-packages file for them. Counting those cases as unmapped stopped a whole run from teaching.
+    """
+    monkeypatch.chdir(tmp_path)
+    library = tmp_path / "site-packages" / "contracts"
+    library.mkdir(parents=True)
+    (library / "__init__.py").write_text("")
+    (library / "base.py").write_text("class Contract:\n    def test_holds(self):\n        assert True\n")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_contract.py").write_text(
+        "from contracts.base import Contract\n\n\nclass TestMine(Contract):\n    pass\n"
+    )
+    (tests / "test_plain.py").write_text("def test_passes():\n    assert True\n")
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", "tests", "-o", "junit_family=xunit1",
+         "--junitxml=timings.xml", "-p", "no:cacheprovider"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=False,
+        env={**os.environ, "PYTHONPATH": str(tmp_path / "site-packages")},
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    report = Path("timings.xml").read_text().replace("\\", "/")
+    assert 'file="site-packages/contracts/base.py"' in report, "pytest names the library file"
+
+    learned = learn_junit_timings([Path("timings.xml")])
+
+    assert set(learned.durations) == {"tests/test_contract.py", "tests/test_plain.py"}
+    assert learned.unmapped_cases == 0
 
 
 @pytest.mark.parametrize(
