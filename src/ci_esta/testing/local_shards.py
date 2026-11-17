@@ -12,6 +12,7 @@ from pathlib import Path
 from pydantic import Field
 
 from ci_esta.measurements import MeasurementIdentity, ShardInterval, ShardPoolMeasurement
+from ci_esta.testing.cpu_placement import plan_shard_cpus
 from ci_esta.testing.runner_pools import ShardRange
 
 
@@ -91,6 +92,11 @@ def run_local_shards(config: LocalShardRunConfig) -> int:
     origin = time.monotonic()
     starts: dict[int, float] = {}
     intervals: list[ShardInterval] = []
+    # One CPU per shard, chosen once for the whole pool. Advisory: a shard command
+    # pins itself (taskset) only if it reads CI_ESTA_SHARD_CPU.
+    cpus = plan_shard_cpus(list(config.shard_indices))
+    if cpus:
+        print("Shard CPUs: " + " ".join(f"{shard}:{cpu}" for shard, cpu in sorted(cpus.items())), flush=True)
     try:
         for shard_index in config.shard_indices:
             log_path = config.log_dir / f"group-{shard_index}.log"
@@ -100,6 +106,8 @@ def run_local_shards(config: LocalShardRunConfig) -> int:
                 "GV_PYTEST_SHARD_INDEX": str(shard_index),
                 "GV_PYTEST_SHARD_COUNT": str(config.shard_count),
             }
+            if shard_index in cpus:
+                environment["CI_ESTA_SHARD_CPU"] = str(cpus[shard_index])
             with log_path.open("wb") as log:
                 starts[shard_index] = time.monotonic() - origin
                 process = subprocess.Popen(

@@ -23,6 +23,14 @@ ci-esta-resources ci-esta-pytest run-local --shards 12 --log-dir shard-logs -- \
 ```
 
 `run-local` supplies each command's `GV_PYTEST_SHARD_INDEX` and `GV_PYTEST_SHARD_COUNT`.
+On Linux it also sets `CI_ESTA_SHARD_CPU`, one distinct CPU per shard. A shard
+command that pins itself should use it, for example
+`taskset --cpu-list "$CI_ESTA_SHARD_CPU" pytest ...`, and not derive a CPU from
+the shard index: runner pods without a CPU limit see their whole node, so "the
+first N CPUs" collide with a neighbouring pod. `run-local` samples per-CPU load
+for a quarter of a second and prefers idle CPUs; with no spare CPU it wraps over
+the allowed set in order. The
+[2026-11-17 measurement](benchmarks/2026-11-17-shard-cpus.md) has the numbers.
 Use pytest-selective's duration-balanced assignments inside each process. Always
 run the completion gate against the planned global shard count; resource logs
 and successful subprocess startup are not evidence that tests completed.
