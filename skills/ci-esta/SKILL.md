@@ -154,8 +154,10 @@ Expected: a pinning line, one line per workflow with its triggers, job count and
 matrix and test jobs, `not behind the gate: ...` when some jobs cannot fail the gate, suggestions such as
 `gate-indirect` (a gate that reaches test jobs only through an `if: always()` job) or `matrix-setup`, and numbered
 next steps with the exact `gh run list` and `ci-esta report` commands. It reads files only and changes nothing.
-Its first line reports `timing retention`: a `history-key` keeps learned test timings between runs for
-timing-balanced pytest shards. `no shared history-key found` is normal; nothing in this procedure needs one.
+Its first line reports `timing retention`: pytest uses `history-key`; native Bun execution uses
+`timing-history`. These are scheduling inputs, not execution receipts. A configured input is only a
+static hint: verify successful-only writes and restoration in a later hosted run. A missing input
+identifies work remaining for full adoption; it does not authorize omitting learned scheduling.
 
 When adopting shared timing history, default to the last green validation of a merged PR.
 Follow [merged-PR timing promotion](https://ci-esta.readthedocs.io/en/latest/docs/merged-pr-evidence/):
