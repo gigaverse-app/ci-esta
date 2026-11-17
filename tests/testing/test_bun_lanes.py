@@ -379,3 +379,16 @@ def test_portable_declarations_reach_only_the_readers_lane(repository, path):
         stream.write("\n# changed\n")
     result = plan_work(repo, lanes(), base, commit(repo))
     assert result.lanes == {"unit": False, "feature": True}, result.lane_reasons
+
+
+@pytest.mark.parametrize("already_admitted", [True, False])
+def test_full_contract_lane_does_not_disable_other_lanes_selection(repository, already_admitted):
+    repo, _ = repository
+    write(repo, "tests/contracts/repository.test.ts", TEST.format(
+        imports="import { readFileSync } from 'node:fs'; readFileSync('README.md');"))
+    config = lanes()
+    config.lanes["contracts"] = Lane(roots=["tests/contracts"], inputs=["*" if already_admitted else "README.md"])
+    base = commit(repo)
+    write(repo, "src/b.ts", "import { a } from './a'; export const b = a + 2;")
+    result = plan_work(repo, config, base, commit(repo))
+    assert result.lanes == {"unit": not already_admitted, "feature": True, "contracts": True}, result.lane_reasons

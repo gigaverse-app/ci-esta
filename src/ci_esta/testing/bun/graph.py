@@ -235,6 +235,8 @@ def bun_lane_reasons(
     changed: set[str],
     bun: str = "bun",
     environment: list[str] | None = BUN_ENVIRONMENT_FILES,
+    *,
+    admitted: set[str] | None = None,
 ) -> dict[str, list[str]]:
     """Reasons each lane with Bun tests is selected; lanes without Bun tests are absent.
 
@@ -257,11 +259,16 @@ def bun_lane_reasons(
     unclaimed = {test for test in candidates if not any(lane.contains_test(test) for lane in lanes.values())}
     if removed := unclaimed & deleted:
         return unmapped_reasons(removed)
-    lane_tests = {name: [test for test in tests if lane.contains_test(test)] for name, lane in lanes.items()}
+    # Keep every lane in membership checks, but only build graphs needed to decide
+    # pending work. An admitted full-contract lane cannot justify skipping anything.
+    admitted = admitted or set()
+    lane_tests = {name: [test for test in tests if lane.contains_test(test)]
+                  for name, lane in lanes.items() if name not in admitted}
     lane_deleted = {
-        name: [path for path in test_files(deleted) if lane.contains_test(path)] for name, lane in lanes.items()
+        name: [path for path in test_files(deleted) if lane.contains_test(path)]
+        for name, lane in lanes.items() if name not in admitted
     }
-    bun_lanes = [name for name in lanes if lane_tests[name] or lane_deleted[name]]
+    bun_lanes = [name for name in lane_tests if lane_tests[name] or lane_deleted[name]]
     if not bun_lanes and not unclaimed:
         return {}
     reasons: dict[str, list[str]] = {

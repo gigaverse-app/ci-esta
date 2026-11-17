@@ -84,7 +84,10 @@ def plan_work(
             }
         )
     # Bun tests reach lanes through Bun's own module graph, built from the checked-out head.
-    bun_reasons = bun_lane_reasons(repo, config.lanes, set(result.changed), bun, bun_environment)
+    bun_reasons = bun_lane_reasons(
+        repo, config.lanes, set(result.changed), bun, bun_environment,
+        admitted={name for name, selected in result.lanes.items() if selected},
+    )
     # A job that builds the package runs when the package's inputs change, as the build tools list them.
     package_lanes = after.package_lanes()
     if package_lanes - {lane for lane, selected in result.lanes.items() if selected}:

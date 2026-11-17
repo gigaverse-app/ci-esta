@@ -69,6 +69,15 @@ The `alwaysRunFiles` subset executes even when no application tests are affected
 Use it for repository structure, source-scanning and filesystem contracts that an
 import graph cannot represent. Their helpers remain explicit policy inputs.
 
+For separate contract jobs, declare their complete `roots` and `test_patterns`
+in the lane configuration as well as `inputs: ["*"]`. Run that lane with
+`full: true`. CI-esta keeps these tests in lane membership, but does not build
+their dependency graph after the input policy has already admitted the lane.
+This preserves full repository contracts without disabling selection for unrelated
+functional lanes. Omitting contract membership leaves unclaimed tests and retains
+the safe full fallback. A pending lane with an undeclared runtime reader still
+runs in full; only already-admitted work can avoid graph analysis.
+
 2. Declare inputs that imports cannot express next to their readers. For example,
 `src/catalog.ts.gv-dependency.yaml`:
 
