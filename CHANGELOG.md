@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.17.0](https://github.com/gigaverse-app/ci-esta/compare/v1.16.0...v1.17.0) (2026-11-17)
+
+
+### Features
+
+* **cache:** let the uv cache share the workspace volume on self-hosted runners ([#218](https://github.com/gigaverse-app/ci-esta/issues/218)) ([7bf1f51](https://github.com/gigaverse-app/ci-esta/commit/7bf1f5145a8a72f92c8b30d266ba5cd44c7a60d0))
+
+
+### Bug fixes
+
+* **bun:** apply unknown-input fallback before lane admission ([1738435](https://github.com/gigaverse-app/ci-esta/commit/1738435c0f485d791b825964448c3dd276758d04))
+* **bun:** keep admitted contracts out of pending lane graphs ([859fd87](https://github.com/gigaverse-app/ci-esta/commit/859fd87f069e0788401e24e1569d1aeb3e2ebf9f))
+* **bun:** retain full fallback for undeclared runtime readers ([b852498](https://github.com/gigaverse-app/ci-esta/commit/b8524981c55490a0e81af267b646c6e3f7c63e7c))
+
 ## [1.16.0](https://github.com/gigaverse-app/ci-esta/compare/v1.15.4...v1.16.0) (2026-11-17)
 
 
