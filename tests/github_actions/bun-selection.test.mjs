@@ -13,9 +13,12 @@ function command(operation, input) {
     input: JSON.stringify(input), encoding: "utf8", env: pythonEnv, stdio: ["pipe", "pipe", "inherit"],
   }));
 }
-const planAffectedTests = options => command("plan", { options });
-const readTestSelection = (path, options) => command("read-plan", { path, options });
-const runBunTests = options => command("run", options);
+// These are legacy-policy compatibility controls. The default graph/declaration API
+// is exercised with real Bun execution in tests/testing/test_bun_python_api.py.
+const legacyOptions = options => ({ policyFile: ".github/test-selection.json", ...options });
+const planAffectedTests = options => command("plan", { options: legacyOptions(options) });
+const readTestSelection = (path, options) => command("read-plan", { path, options: legacyOptions(options) });
+const runBunTests = options => command("run", legacyOptions(options));
 const readInventory = (path, cwd) => command("inventory", { path, cwd });
 
 const policy = { schema_version: "ci-esta/bun-policy/v1", scopedRoots: ["packages/features/", "packages/components/"],
