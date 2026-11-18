@@ -359,6 +359,9 @@ def test_lane_evidence_without_a_receipt_step_is_flagged(tmp_path):
     # A receipt published under another output name, like pytest-selective's contract-receipt, still counts.
     named = RECEIPT.replace("outputs.receipt", "outputs.contract-receipt")
     assert "reuse-receipt" not in reuse_suggestions(tmp_path, MARKER, named)
+    # A reusable workflow names the step after the receipt its caller passes as an input.
+    passed = RECEIPT.replace("needs.plan.outputs.receipt", "inputs.validation-receipt")
+    assert "reuse-receipt" not in reuse_suggestions(tmp_path, MARKER, passed)
 
 
 def test_reuse_without_merge_reuse_needs_no_marker(tmp_path):
@@ -521,3 +524,44 @@ jobs:
     jobs = {job["id"]: job for job in audit(tmp_path)["workflows"][0]["jobs"]}
     assert [job_id for job_id, job in jobs.items() if job["gate_candidate"]] == ["gate"]
     assert not jobs["unit"]["judges_results"]
+
+
+REVIEWED = """reviewed:
+  - suggestion: gate-indirect
+    evidence: .github/workflows/device.yml
+    match: "gate 'verdict'"
+    reason: The verdict reports the load measurement only; baselines are graded separately by design.
+  - suggestion: matrix-setup
+    evidence: .github/workflows/gone.yml
+    reason: Removed workflow.
+"""
+
+
+def test_reviewed_decisions_move_findings_out_of_open_suggestions_and_flag_stale_ones(tmp_path):
+    workflow = DEVICE_CHAIN.replace(
+        "      - run: node publish-verdicts.js",
+        "      - run: node publish-verdicts.js\n        env:\n          RESULTS: ${{ needs.load.result }}")
+    write(tmp_path, ".github/workflows/device.yml", workflow)
+    write(tmp_path, ".github/workflows/measure.yml", "on: workflow_call\njobs: {run: {steps: [{run: measure}]}}")
+    write(tmp_path, ".github/ci-esta-reviewed.yaml", REVIEWED)
+    report = audit(tmp_path)
+    assert "gate-indirect" not in {item["id"] for item in report["suggestions"]}
+    assert [entry["suggestion"]["id"] for entry in report["reviewed"]] == ["gate-indirect"]
+    assert report["reviewed"][0]["decision"]["reason"].startswith("The verdict reports")
+    assert [entry["evidence"] for entry in report["stale_reviews"]] == [".github/workflows/gone.yml"]
+    text = subprocess.run([sys.executable, "-m", "ci_esta.cli", "adoption", "--root", str(tmp_path)],
+                          capture_output=True, text=True).stdout
+    assert "Reviewed in .github/ci-esta-reviewed.yaml (1):" in text and "Stale entries" in text
+
+
+@pytest.mark.parametrize("content", [
+    "reviewed:\n  - suggestion: gate-indirect\n    evidence: x.yml\n",  # no reason
+    "reviewed:\n  - suggestion: gate-indirect\n    evidence: x.yml\n    reason: ''\n",
+    "reviewed:\n  - suggestion: gate-indirect\n    evidence: x.yml\n    reason: r\n    because: typo\n",
+    "reviewed: []\n",
+])
+def test_a_decision_without_a_reason_or_with_unknown_keys_fails_loudly(tmp_path, content):
+    write(tmp_path, ".github/ci-esta-reviewed.yaml", content)
+    result = subprocess.run([sys.executable, "-m", "ci_esta.cli", "adoption", "--root", str(tmp_path)],
+                            capture_output=True, text=True)
+    assert result.returncode == 2 and "ci-esta-reviewed.yaml" in result.stderr

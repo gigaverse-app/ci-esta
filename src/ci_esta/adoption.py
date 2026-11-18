@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ci_esta.workflow_graph import matrix_combinations, prerequisites
 
@@ -119,11 +119,44 @@ RETENTION_HELP = (
 )
 
 
+REVIEWED_FILE = ".github/ci-esta-reviewed.yaml"
+
+
+class ReviewedDecision(BaseModel):
+    """A suggestion the repository reviewed and decided against, with the reason a reader needs."""
+
+    model_config = ConfigDict(extra="forbid")
+    suggestion: str = Field(min_length=1)
+    evidence: str = Field(min_length=1)
+    #: Text the advice must contain, to pin one finding (a gate's name) among several in one file.
+    match: str = ""
+    reason: str = Field(min_length=1)
+
+    def covers(self, item: "Suggestion") -> bool:
+        return item.id == self.suggestion and self.evidence in item.evidence and self.match in item.advice
+
+
+class ReviewedFile(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reviewed: list[ReviewedDecision] = Field(min_length=1)
+
+
+class Reviewed(BaseModel):
+    """A current finding and the recorded decision that covers it."""
+
+    suggestion: Suggestion
+    decision: ReviewedDecision
+
+
 class AdoptionReport(BaseModel):
     files: list[str] = Field(default_factory=list)
     actions: list[ActionUse] = Field(default_factory=list)
     workflows: list[WorkflowSummary] = Field(default_factory=list)
     suggestions: list[Suggestion] = Field(default_factory=list)
+    #: Suggestions the repository's REVIEWED_FILE records as decided, with its reasons.
+    reviewed: list[Reviewed] = Field(default_factory=list)
+    #: Recorded decisions no current suggestion matches: the finding is gone, so delete them.
+    stale_reviews: list[ReviewedDecision] = Field(default_factory=list)
     retention: str = NO_RETENTION
     pinning: str = "no external actions found"
     project_files: list[str] = Field(default_factory=list)
@@ -337,7 +370,9 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
         advise("reporting", "No completed-run reporter found. Measure with `ci-esta report` first (see next steps); "
                "add the observer workflow once the change can merge to the default branch.", observed)
     evidence = ci("resolve-lane-evidence")
-    if evidence and not any(re.search(r"outputs\.[a-z0-9_-]*receipt(?![a-z0-9_-])", name) for _, name in job_steps):
+    # A called workflow names its step after the receipt the caller passes in, as `inputs.<name>receipt`.
+    if evidence and not any(re.search(r"(?:outputs|inputs)\.[a-z0-9_-]*receipt(?![a-z0-9_-])", name)
+                            for _, name in job_steps):
         advise("reuse-receipt", "resolve-lane-evidence is wired, but no job step is named after its receipt output. Without a final successful step named with the receipt, no run can ever be reused.", [item.source for item in evidence])
     after_merge = [item for item in evidence if str(item.inputs.get("reuse-after-merge", "")).lower() == "true"]
     marker = re.compile(r"PR evidence #\$\{\{\s*github\.event\.pull_request\.number\s*\}\}")
@@ -375,7 +410,29 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
     report.pinning = _pinning(report.actions, enforcers)
     report.next_steps = _next_steps(report)
     report.limitations.append("Static wiring only: expressions, scripts and remote actions are not executed. Presence does not prove successful runs, equivalent lane keys, cache hits or savings. Required checks live in repository settings, not in workflow files.")
+    _apply_reviews(Path(root), report)
     return report
+
+
+def _apply_reviews(root: Path, report: AdoptionReport) -> None:
+    """Move suggestions the repository recorded as decided into `reviewed`; an invalid file fails loudly."""
+    path = root / REVIEWED_FILE
+    if not path.is_file():
+        return
+    try:
+        decisions = ReviewedFile.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")) or {}).reviewed
+    except (yaml.YAMLError, ValidationError) as error:
+        raise ValueError(f"{REVIEWED_FILE}: {error}") from error
+    open_items = []
+    for item in report.suggestions:
+        decision = next((decision for decision in decisions if decision.covers(item)), None)
+        if decision is None:
+            open_items.append(item)
+        else:
+            report.reviewed.append(Reviewed(suggestion=item, decision=decision))
+    report.suggestions = open_items
+    used = [entry.decision for entry in report.reviewed]
+    report.stale_reviews = [decision for decision in decisions if decision not in used]
 
 
 def render(report: AdoptionReport) -> str:
@@ -409,6 +466,14 @@ def render(report: AdoptionReport) -> str:
     lines.extend(f"- {item.id}: {item.advice}\n  Evidence: {', '.join(item.evidence)}\n  Guide: {item.guide}" for item in report.suggestions)
     if not report.suggestions:
         lines.append("No suggestions from these checks. Review the full adoption checklist for uninspected capabilities.")
+    if report.reviewed:
+        lines.append(f"Reviewed in {REVIEWED_FILE} ({len(report.reviewed)}):")
+        lines.extend(f"- {entry.suggestion.id} ({', '.join(entry.suggestion.evidence)}): {entry.decision.reason}"
+                     for entry in report.reviewed)
+    if report.stale_reviews:
+        lines.append(f"Stale entries in {REVIEWED_FILE}; their finding is no longer reported, so delete them:")
+        lines.extend(f"- {entry.suggestion} ({entry.evidence}){f' matching {entry.match!r}' if entry.match else ''}"
+                     for entry in report.stale_reviews)
     if report.next_steps:
         lines.append("Next steps:")
         lines.extend(f"{index}. {step}" for index, step in enumerate(report.next_steps, start=1))
