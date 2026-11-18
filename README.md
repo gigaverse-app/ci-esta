@@ -36,6 +36,8 @@ A test gate that would take an estimated **52 minutes** to run the full suite on
 
 [Runner setup and diagnostics](https://ci-esta.readthedocs.io/en/latest/docs/runners-and-diagnostics/) · [All actions](actions/README.md) · [Contribute](CONTRIBUTING.md) · [License](LICENSE)
 
+[Detailed adoption reference](ADOPTION-REFERENCE.md) — action recipes, execution profiles, benchmarks and evidence checks.
+
 <details>
 <summary>Project quality checks</summary>
 

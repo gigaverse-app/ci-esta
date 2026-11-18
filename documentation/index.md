@@ -1,40 +1,14 @@
 ---
-title: CI-esta documentation
-description: Find what is delaying CI, then verify the improvement.
+title: CI-esta
+description: Spend less time waiting for CI and use fewer paid runner minutes.
+hide:
+  - navigation
+  - toc
 ---
 
-# Spend less time waiting for CI
-
-Get your pull requests green sooner and spend less on GitHub Actions. CI-esta runs the checks your change needs, reuses passing results where it can, and splits the remaining tests across workers.
-
-Free and open source under Apache 2.0. It runs in your existing workflows on hosted or self-hosted runners. You pay your usual runner costs.
-
-## Try it on one pull request
-
-Paste this into your coding agent from the root of your repository:
-
-```text
-Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it.
-```
-
-Your agent opens a pull request with the workflow changes and measurements. You can review which checks ran, how long you waited, and how much runner time they used.
-
-[Quickstart](https://ci-esta.readthedocs.io/en/latest/docs/quickstart/){ .md-button .md-button--primary } [Adoption guide](https://ci-esta.readthedocs.io/en/latest/docs/tutorials/adoption-checklist/){ .md-button }
-
-## What happens on your next push?
-
-| When you… | CI-esta can… |
-| --- | --- |
-| Edit one function | Follow its dependencies and select the affected Python or Bun tests. |
-| Push again after a passing run | Reuse a successful check when the recorded inputs and scope match. |
-| Change code covered only by unit tests | Skip unrelated lanes. A lane is a group of checks, such as database integration tests, that CI can run or reuse independently. |
-| Install the same dependencies repeatedly | Restore a matching environment, check it and sync it with your lockfile. |
-| Wait on the last slow shard | Use recorded test durations to balance work across parallel workers. |
-
-The PR report shows what ran, what was reused and which job kept you waiting. Scheduled full runs exercise the complete suite.
-
-## How much time could you save?
-
-A test gate that would take an estimated **52 minutes** to run the full suite on one runner took **5.1 minutes** on ordinary PRs. That's about **90% less waiting**. Your savings depend on how much work your changes touch. [See the case study](https://ci-esta.readthedocs.io/en/latest/case-study/).
-
-![Example PR report showing which job held up the gate](assets/report-example.png)
+<div class="lp ci">
+<header><div><p class="brand">CI-esta</p><h1>Spend less time waiting for green.</h1><p>Run fewer checks on each pull request and use fewer paid runner minutes. CI-esta works inside your existing GitHub Actions workflows.</p><a class="cta" href="#try-it">Set up with one prompt ↓</a><p class="sub">Free · Apache 2.0 · Bring your own runners</p></div>
+<aside><small>Time to the test gate</small><strong>90%<span style="font-size:.32em;letter-spacing:-.03em"> less</span></strong><p>Full suite on one runner · 52 min (est.)</p><div class="bar"></div><p>Typical PR gate · 5.1 min</p><div class="bar short" style="width:10%"></div><a href="https://ci-esta.readthedocs.io/en/latest/case-study/">Read the monorepo case study ↗</a></aside></header>
+<section class="setup" id="try-it"><h2>Try it on your next PR.</h2><p>Open your repository in your coding agent and paste this prompt. Review the proposed workflow and its measurements in a pull request.</p><pre id="first-command">Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it.</pre><button type="button" hidden data-copy="first-command">Copy setup prompt</button><span role="status" aria-live="polite"></span><p><a href="https://ci-esta.readthedocs.io/en/latest/docs/quickstart/">Set it up by hand →</a></p></section>
+<section><h2>Where your CI time goes.</h2><div class="grid"><article><h3>Run affected tests</h3><p>Trace a Python or Bun change to the tests that exercise it, including indirect dependencies.</p></article><article><h3>Reuse passing checks</h3><p>Carry a successful result forward when the new push has matching inputs and scope.</p></article><article><h3>Skip entire lanes</h3><p>A lane groups checks that can run independently. A unit-only change can skip the database lane before its runner starts.</p></article><article><h3>Restore dependencies</h3><p>Reuse a matching environment and sync it with the lockfile.</p></article><article><h3>Balance slow tests</h3><p>Use timings from earlier runs to spread work across parallel workers.</p></article><article><h3>See what held up the merge</h3><p>Read the PR report for time to green, total runner time and the slowest job.</p></article></div></section>
+<footer><a href="https://github.com/gigaverse-app/ci-esta">GitHub</a> · <a href="https://ci-esta.readthedocs.io/en/latest/docs/tutorials/adoption-checklist/">Adoption guide</a> · <a href="https://ci-esta.readthedocs.io/en/latest/docs/actions/">Actions reference</a></footer></div>
