@@ -25,6 +25,8 @@ BUN_RUNNER = "gigaverse-app/ci-esta/actions/run-bun-tests"
 # Jobs that still run after a failed prerequisite; a gate reached only through one can miss that failure.
 RUNS_AFTER_FAILURE = re.compile(r"always\(\)|!\s*cancelled\(\)|failure\(\)")
 GATE_ACTIONS = ("re-actors/alls-green", "gigaverse-app/ci-esta/actions/validation-gate")
+#: An expression that reads prerequisites' outcomes: what makes a job a gate rather than ordered work.
+JUDGES_RESULTS = re.compile(r"needs\.(?:\*|[\w-]+)\.result|toJSON\(\s*needs\s*\)")
 # Planners whose output decides which entries share a runner; a matrix read from one is already packed.
 PACKING_ACTIONS = ("gigaverse-app/ci-esta/actions/plan-runner-pools", "gigaverse-app/ci-esta/actions/plan-pytest-shards")
 SHA_REF = re.compile(r"@[0-9a-f]{40}$")
@@ -35,6 +37,7 @@ class _Step(BaseModel):
     uses: str = ""
     run: str = ""
     inputs: dict[str, Scalar] = Field(default_factory=dict, alias="with")
+    env: dict[str, Scalar] = Field(default_factory=dict)
 
 
 class _Strategy(BaseModel):
@@ -87,6 +90,8 @@ class JobSummary(BaseModel):
     #: `if: always()`, `!cancelled()` or `failure()`: the job runs, and can succeed, after a prerequisite failed.
     runs_after_failure: bool = False
     gate_candidate: bool = False
+    #: Its steps read prerequisites' results; adding a job to `needs` is what a gap fix needs then.
+    judges_results: bool = False
 
 
 class WorkflowSummary(BaseModel):
@@ -150,13 +155,20 @@ def _summarize(source: str, parsed: _Source, raw: dict) -> WorkflowSummary:
                      if BUN_TESTS.search(step.run) or step.uses.split("@", 1)[0] == BUN_RUNNER]
         aggregates = any(step.uses.startswith(GATE_ACTIONS) for step in job.steps)
         after_failure = bool(RUNS_AFTER_FAILURE.search(str(job.condition or "")))
+        # A reusable-workflow call does work of its own; `always()` there orders it (one device, one tunnel),
+        # it does not aggregate.
+        reusable_call = bool(job.uses) and not job.steps
+        # Steps, not `if`: a condition that reads results decides whether the job runs, not its verdict.
+        expressions = [text for step in job.steps
+                       for text in (step.run, *map(str, step.env.values()), *map(str, step.inputs.values()))]
         matrix = job.strategy.matrix if job.strategy else None
         packed_by = next((need for need in needs if need in planners
                           and re.search(rf"needs\.{re.escape(need)}\.outputs\.", str(matrix))), None)
         jobs.append(JobSummary(
             id=job_id, name=job.name or job_id, needs=needs, matrix=matrix is not None, packed_by=packed_by,
             matrix_size=_matrix_size(matrix), test_commands=sorted(set(commands)), runs_after_failure=after_failure,
-            gate_candidate=aggregates or (after_failure and len(needs) >= 2),
+            gate_candidate=aggregates or (after_failure and len(needs) >= 2 and not reusable_call and not commands),
+            judges_results=aggregates or any(JUDGES_RESULTS.search(text) for text in expressions),
         ))
     summary = WorkflowSummary(source=source, name=parsed.name or source, triggers=_triggers(raw), jobs=jobs)
     if summary.gates:
@@ -301,7 +313,8 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
         advise("bun-reporting", "Consider run-bun-tests for selection and evidence, or report-bun-tests around an existing executor. Keep the project's Bun runner and policy.", bun)
     for flow in report.workflows:
         by_id = {job.id: job for job in flow.jobs}
-        for gate in flow.gates:
+        # A gate that judges through artifacts or reports cannot be fixed by `needs`; only result readers can.
+        for gate in (gate for gate in flow.gates if gate.judges_results):
             for need in gate.needs:
                 prerequisite = by_id.get(need)
                 if prerequisite is None or not prerequisite.runs_after_failure:

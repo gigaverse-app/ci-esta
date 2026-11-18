@@ -451,3 +451,73 @@ jobs:
     report = audit(tmp_path)
     assert report['workflows'][0]['jobs'][0]['test_commands'] == []
     assert report['retention'] == 'no shared history-key found'
+
+
+DEVICE_CHAIN = """
+name: Device measurement
+on: [workflow_dispatch]
+jobs:
+  prepare: {steps: [{run: echo plan}]}
+  baseline-1: {needs: prepare, uses: ./.github/workflows/measure.yml}
+  baseline-2: {needs: [prepare, baseline-1], if: always(), uses: ./.github/workflows/measure.yml}
+  baseline-report:
+    needs: [prepare, baseline-1, baseline-2]
+    if: always()
+    steps:
+      - run: test "${{ needs.baseline-1.result }}" = success
+  load:
+    needs: [prepare, baseline-report]
+    if: always()
+    uses: ./.github/workflows/measure.yml
+  verdict:
+    needs: [prepare, load]
+    if: always()
+    steps:
+      - uses: actions/download-artifact@v4
+      - run: node publish-verdicts.js
+"""
+
+
+def test_ordered_reusable_work_and_artifact_verdicts_are_not_told_to_widen_needs(tmp_path):
+    # Sequential device measurements use always() to keep one device busy in turn; they do work, not aggregate.
+    write(tmp_path, ".github/workflows/device.yml", DEVICE_CHAIN)
+    write(tmp_path, ".github/workflows/measure.yml", "on: workflow_call\njobs: {run: {steps: [{run: measure}]}}")
+    report = audit(tmp_path)
+    jobs = {job["id"]: job for job in next(f for f in report["workflows"] if f["source"].endswith("device.yml"))["jobs"]}
+    assert not jobs["load"]["gate_candidate"] and not jobs["baseline-2"]["gate_candidate"]
+    assert jobs["baseline-report"]["judges_results"] and not jobs["verdict"]["judges_results"]
+    # The verdict reads artifacts, so adding jobs to its `needs` would not change what it reports.
+    assert "gate-indirect" not in {item["id"] for item in report["suggestions"]}
+
+
+def test_a_step_env_reading_results_makes_a_gate_that_needs_direct_prerequisites(tmp_path):
+    workflow = DEVICE_CHAIN.replace(
+        "      - run: node publish-verdicts.js",
+        "      - run: node publish-verdicts.js\n        env:\n          RESULTS: ${{ needs.load.result }}")
+    write(tmp_path, ".github/workflows/device.yml", workflow)
+    write(tmp_path, ".github/workflows/measure.yml", "on: workflow_call\njobs: {run: {steps: [{run: measure}]}}")
+    advice = {item["id"]: item["advice"] for item in audit(tmp_path)["suggestions"]}
+    assert "gate 'verdict' reaches baseline-report only through 'load'" in advice["gate-indirect"]
+
+
+def test_test_lanes_and_admission_conditions_are_work_not_gates(tmp_path):
+    workflow = """
+name: CI
+on: [push]
+jobs:
+  base: {steps: [{run: echo base}]}
+  plan: {steps: [{run: echo plan}]}
+  unit:
+    needs: [base, plan]
+    if: ${{ !cancelled() && needs.base.result == 'success' }}
+    steps: [{run: bun test}]
+  gate:
+    needs: [base, plan, unit]
+    if: always()
+    steps:
+      - run: test "${{ needs.unit.result }}" = success
+"""
+    write(tmp_path, ".github/workflows/ci.yml", workflow)
+    jobs = {job["id"]: job for job in audit(tmp_path)["workflows"][0]["jobs"]}
+    assert [job_id for job_id, job in jobs.items() if job["gate_candidate"]] == ["gate"]
+    assert not jobs["unit"]["judges_results"]
