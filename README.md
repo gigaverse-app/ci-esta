@@ -1,154 +1,58 @@
 ![CI-esta: Let proven work rest. Measure the rest.](https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/banner.png?v=e68364fbb504)
 
-
 # CI-esta
 
-**Get a 10× shorter test gate when most tests are unrelated to a change.** In our Django monorepo, PRs reached the test gate in 5.1 minutes against an estimated 52 minutes for the full suite on one runner. Across the two backend repos, billed minutes per merged PR fell from 285 to 163. Cost per merged PR per 1,000 tests fell 29% in the monorepo and 38% in microservices. [Read the measurements](https://ci-esta.readthedocs.io/en/latest/case-study/).
+Get your pull requests green sooner and spend less on GitHub Actions. CI-esta runs the checks your change needs, reuses passing results where it can, and splits the remaining tests across workers.
 
-- **Select affected tests.** Follow each change through Python or Bun dependencies to the tests that exercise it.
-- **Reuse passing checks.** When a prior successful run proves the same inputs and scope, carry its result forward.
-- **Plan reusable lanes.** A lane is a named group of checks, such as unit tests or integration tests, that CI can run, skip or reuse independently.
-- **Cache dependencies.** Restore a matching environment, validate it and synchronize it with the lockfile.
-- **Balance shards automatically.** Use timings from successful runs to distribute slow tests across parallel workers.
-- **See what saved time.** The PR report shows the jobs that held up the gate and the total runner time they consumed. Full checkpoints still exercise the whole suite.
+Free and open source under Apache 2.0. It runs in your existing workflows on hosted or self-hosted runners. You pay your usual runner costs.
 
-**Set it up with your coding agent.** Give Claude Code, Codex, Cursor or any coding agent in your repository this
-one prompt:
+## Try it on one pull request
+
+Paste this into your coding agent from the root of your repository:
 
 ```text
 Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it.
 ```
 
-The agent checks your repository's conventions (required check, action pinning, AI policy, tox/nox/uv), measures
-completed runs, enables affected-test selection by default, and implements the requested adoption scope.
-For full adoption it tracks every applicable capability through verification. It preserves the complete test
-inventory, proves selection with successful same-head full and selected controls and a failing gate probe,
-and opens a draft pull request. Merging, required checks, runner groups and secrets stay with
-you. To do it by hand, start with the [quickstart](docs/quickstart.md) or
-[measure your first run](docs/tutorials/measure-critical-path.md).
+Your agent opens a pull request with the workflow changes and measurements. You can review which checks ran, how long you waited, and how much runner time they used.
 
-See the [selection and evidence policy](docs/test-selection-policy.md) for the scenario map, tested Git identities, reruns and Python/JavaScript setup.
+[Quickstart](https://ci-esta.readthedocs.io/en/latest/docs/quickstart/) · [Adoption guide](https://ci-esta.readthedocs.io/en/latest/docs/tutorials/adoption-checklist/) · [GitHub Actions reference](https://ci-esta.readthedocs.io/en/latest/docs/actions/)
 
-[![Documentation](https://readthedocs.org/projects/ci-esta/badge/?version=latest)](https://ci-esta.readthedocs.io/en/latest/)
+## What happens on your next push?
 
-[Read the documentation](https://ci-esta.readthedocs.io/en/latest/) · [Related tools](https://ci-esta.readthedocs.io/en/latest/ecosystem/)
+| When you… | CI-esta can… |
+| --- | --- |
+| Edit one function | Follow its dependencies and select the affected Python or Bun tests. |
+| Push again after a passing run | Reuse a successful check when the recorded inputs and scope match. |
+| Change code covered only by unit tests | Skip unrelated lanes. A lane is a group of checks, such as database integration tests, that CI can run or reuse independently. |
+| Install the same dependencies repeatedly | Restore a matching environment, check it and sync it with your lockfile. |
+| Wait on the last slow shard | Use recorded test durations to balance work across parallel workers. |
 
-See what holds up your PR, avoid repeating validated work, and run the remaining
-tests efficiently. CI-esta adds reports, environment caching, reusable execution
-evidence and test scheduling to your existing GitHub Actions workflows. No account,
-hosted service or application-language change is required.
+The PR report shows what ran, what was reused and which job kept you waiting. Scheduled full runs exercise the complete suite.
 
-[![CI](https://github.com/gigaverse-app/ci-esta/actions/workflows/ci.yml/badge.svg)](https://github.com/gigaverse-app/ci-esta/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/ci-esta)](https://pypi.org/project/ci-esta/)
-[![Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+## Follow a change through CI
 
-## Choose your first improvement
+Suppose you change how checkout rounds a discount. CI follows the changed code to the pricing and checkout tests. A database integration lane runs if its tests depend on the change. On your next push, a lane can reuse its earlier pass when its inputs still match. The PR report shows what ran again and why.
 
-Use the [adoption tutorial and checklist](docs/tutorials/adoption-checklist.md)
-to choose an order, verify each improvement and find every action/CLI capability.
-Run `ci-esta adoption --root .` for a read-only inventory with source-linked
-suggestions. It helps find gaps; successful hosted runs and measurements verify
-whether an integration is useful.
+## How much time could you save?
 
-| Your problem | What you gain | Start here |
-| --- | --- | --- |
-| You need to show whether an optimization helped | Verified before/after gate, runner and step comparisons tied to exact source runs | [Measured impact](docs/measured-impact.md) |
-| You cannot tell what keeps a PR waiting | A sticky report with gate latency, dependency critical path, step timings and runner usage | [Report one workflow](docs/quickstart.md#report-a-completed-workflow) |
-| Jobs reinstall the same dependencies | A validated environment restore that repairs broken caches and always synchronizes the lock | [Replace your setup steps](docs/quickstart.md#cache-your-python-environment) |
-| Unaffected tests start expensive services | Python file or whole-job selection before setup, with explanations | [Add pytest-selective](https://github.com/gigaverse-app/pytest-selective) |
-| A new revision repeats work that already passed | Reuse a matching completed lane, including a passing lane from a workflow where another lane failed | [Evidence reuse](docs/evidence-reuse.md) |
-| One test shard keeps everyone waiting | Learn file costs from JUnit; balance work inside one larger runner, across runners, or both | [Runnable shard recipe](examples/pytest-shards/README.md) |
-| Missing shard results could look green | Verify completion receipts and require every planned pool before passing the gate | [Completion and gates](docs/ci-optimization.md#close-the-timing-feedback-loop) |
-| Tests hang or use less CPU than expected | Process/thread diagnostics, cgroup limits and live shard progress | [Runner diagnostics](docs/runners-and-diagnostics.md#resource-and-pytest-diagnostics) |
+A test gate that would take an estimated **52 minutes** to run the full suite on one runner took **5.1 minutes** on ordinary PRs. That's about **90% less waiting**. Your savings depend on how much work your changes touch. [See the case study](https://ci-esta.readthedocs.io/en/latest/case-study/).
 
-## Start with one action
+[Runner setup and diagnostics](https://ci-esta.readthedocs.io/en/latest/docs/runners-and-diagnostics/) · [All actions](actions/README.md) · [Contribute](CONTRIBUTING.md) · [License](LICENSE)
 
-In an existing uv test job, keep checkout and your test command. Replace Python
-setup, uv setup and dependency installation with:
+## Go deeper
 
-```yaml
-- uses: actions/checkout@v7
-- uses: gigaverse-app/ci-esta/actions/setup-cached-uv@v1
-  with:
-    python-version: '3.12'
-    sync-args: '--group test'
-- run: uv run --no-sync pytest
-```
+- [Select affected tests](https://ci-esta.readthedocs.io/en/latest/docs/test-selection-policy/)
+- [Reuse passing checks](https://ci-esta.readthedocs.io/en/latest/docs/evidence-reuse/)
+- [Plan independent lanes](https://ci-esta.readthedocs.io/en/latest/docs/selected-gates/)
+- [Cache environments](https://ci-esta.readthedocs.io/en/latest/docs/environment-cache/)
+- [Balance test shards](https://ci-esta.readthedocs.io/en/latest/docs/learned-test-timings/)
+- [Read the PR report](https://ci-esta.readthedocs.io/en/latest/docs/github-actions-observability/)
 
-Use your project's interpreter and dependency groups. Every action lives under
-`actions/NAME`. Use `gigaverse-app/ci-esta/actions/ci-observability@v1` for reports.
+[Detailed adoption reference](ADOPTION-REFERENCE.md) — action recipes, execution profiles, benchmarks and evidence checks.
 
-Use `actions/NAME@v1` for automatic Actions API upgrades. That alias is
-independent of Python package versions. Older `.github/actions/NAME` and top-level
-named callers must migrate to `actions/NAME`; each action has one implementation.
-[Action API and versioning](docs/actions.md).
-
-[Copy the complete reporting or cache workflow](docs/quickstart.md). The actions
-set up their own tools; using them does not require adding CI-esta to your app.
-For Python execution commands and plugins, install `ci-esta[pytest]` in the test
-environment. Reporting and evidence actions also work with non-Python projects;
-[Bun users have a native selection adapter](docs/bun-test-selection.md).
-
-## Agent setup in depth
-
-The one prompt above fetches [the agent setup procedure](skills/ci-esta/SKILL.md),
-published byte for byte at `agent-setup.md` with an [`llms.txt`](https://ci-esta.readthedocs.io/en/latest/llms.txt)
-index. To install it as a skill instead, see [agent skill installation](docs/agents.md).
-Updating the Python package does not update an installed agent skill.
-
-## Results you can inspect
-
-| Change | Observed result | Evidence |
-| --- | --- | --- |
-| Route a README change with pytest-selective | 627 → 48 runner-seconds; 211 → 26 seconds elapsed | [Matched selection runs](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/benchmarks/2026-10-22-routing.md) |
-| Optimize a full conformance suite's execution | Required gate 538 → 282 seconds, retaining all 982 integration cases per variant and validators | [Full execution comparison](docs/benchmarks/2026-10-23-critical-execution.md) |
-| Remove Windows Git startup overhead | Full gate 249 → 185 seconds with existing cases, platform matrix and coverage retained | [Fresh control and raw reports](docs/benchmarks/2026-10-23-windows-saleor.md) |
-
-These are scenario-specific observations. Selection savings belong to
-pytest-selective and the consumer's declared inputs; they are not receipt-reuse
-savings. Runner-seconds are summed execution, not a billing invoice. Measure your
-own cold/warm setup, full/selected runs and runner layouts before claiming a gain.
-
-## How the safeguards fit
-
-A duration estimate changes where a test runs, never whether it belongs in the
-plan. An environment cache accelerates setup; locked synchronization still runs.
-A completion receipt can justify reusing the same declared work, but an old green
-workflow alone cannot. Missing or contradictory proof executes the work again.
-Explicit reruns and scheduled full checks retain their meaning.
-
-Input declarations, service isolation and conformance requirements belong to your
-project. [Evidence reuse](docs/evidence-reuse.md) and [strict gates](docs/selected-gates.md)
-explain these boundaries. The [optimization guide](docs/ci-optimization.md) connects
-selection, timing feedback, execution and measurement in order.
-
-## Further documentation
-
-- [Public actions](docs/actions.md) and [full toolkit catalog](actions/README.md)
-- [Critical path and slack](docs/critical-path.md), [cost reporting](docs/github-actions-observability.md), and [environment caching](docs/environment-cache.md)
-- [Learned timings](docs/learned-test-timings.md), [runner pools](docs/runners-and-diagnostics.md), and [Python CI tuning](docs/python-ci-tuning.md)
-- [Integrations](docs/integrations.md), [alternatives](docs/alternatives.md), and [revision-bound adoption audit](docs/adoption-audit.md)
-- [Contributing](CONTRIBUTING.md), [releases](RELEASING.md), and [source provenance](PROVENANCE.md)
-
-Install the CLI with `uv tool install --upgrade --refresh 'ci-esta[selection]>=1.11,<2'` (Python 3.11+);
-`--refresh` lets uv see a release published in the last few minutes, and `ci-esta --version` confirms which
-release is on `PATH`.
-Base reporting alone (`pip install ci-esta`) needs neither pytest nor pytest-selective.
-For fixtures, schemas, source scanners, and subprocess helpers, follow the
-[pytest-selective sidecar tutorial](https://github.com/gigaverse-app/pytest-selective/blob/main/docs/tutorials/sidecar-dependencies.md).
-Declare inputs at their readers so unrelated documentation does not select tests.
-
-Use `ci-esta[selection]` for Python selection reports or `ci-esta[pytest]` for
-pytest execution tools. Before 1.0, review each minor release's migration notes.
-
-### Test execution profiles
-
-Separate affected work from special-occasion execution with [test execution policy](docs/test-execution-policy.md). The JSON planner works with pytest, Bun, Playwright and custom runners; resource resolution is optional.
-
-New policy adopters can declare work directly in `plan-test-policy` without a
-policy file. CI-esta provides ordinary, full, weekly, smoke, performance and probe
-defaults. Optional configuration contains only exceptional metadata and profile
-overrides; existing selectors remain authoritative for work IDs.
+<details>
+<summary>Project quality checks</summary>
 
 <!-- dry-lint-progress:start -->
 <a href="https://github.com/gigaverse-app/dry-lint"><picture><source media="(prefers-color-scheme: dark)" srcset="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?theme=dark&amp;key=cfe8d51e3678507c54e1b07ca48075c79bc0ce43b98f12b051d8d66f002901c9&amp;name=gigaverse-app%2Fci-esta&amp;cleaned=20&amp;remaining=0&amp;dismissed=0"><img alt="dry-lint in gigaverse-app/ci-esta: new duplicates kept out of its pull requests, 20 old duplicates cleaned up, 0 remaining" src="https://dry-lint-counter.gigaverse-oss.workers.dev/v1/sign.svg?key=cfe8d51e3678507c54e1b07ca48075c79bc0ce43b98f12b051d8d66f002901c9&amp;name=gigaverse-app%2Fci-esta&amp;cleaned=20&amp;remaining=0&amp;dismissed=0" width="100%"></picture></a>
@@ -164,11 +68,6 @@ overrides; existing selectors remain authoritative for work IDs.
 
 Retired means a side was removed, or (functions only) the judge now finds the pair separate. It is not a count of refactors. Dismissals stay separate; an uninitialized model baseline is unknown.
 <!-- dry-lint-progress:end -->
-
-## Model-connected evidence checks
-
-The [merged-PR evidence contract](https://github.com/gigaverse-app/ci-esta/blob/main/docs/merged-pr-evidence.md)
-replays a Quint lifecycle model through the actual collector and timing store.
 
 <!-- pytest-quint-connect:start -->
 <!-- pytest-quint-connect:contracts merged-pr-evidence -->
@@ -246,3 +145,5 @@ replays a Quint lifecycle model through the actual collector and timing store.
 
 <sub>Generated by [pytest-quint-connect](https://github.com/gigaverse-app/pytest-quint-connect) from contract receipts; [what a passing run proves](https://github.com/gigaverse-app/pytest-quint-connect/blob/v1.4.1/docs/limits.md).</sub>
 <!-- pytest-quint-connect:end -->
+
+</details>

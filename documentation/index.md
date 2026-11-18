@@ -1,97 +1,15 @@
 ---
-title: CI-esta documentation
-description: Find what is delaying CI, then verify the improvement.
+title: CI-esta
+description: Spend less time waiting for CI and use fewer paid runner minutes.
+hide:
+  - navigation
+  - toc
 ---
 
-![CI-esta](../docs/assets/banner.svg)
-
-# Make pull requests faster with CI-esta
-
-**Get a 10× shorter test gate when most tests are unrelated to a change.** In our Django monorepo, PRs reached the test gate in 5.1 minutes against an estimated 52 minutes for the full suite on one runner. Across the two backend repos, billed minutes per merged PR fell from 285 to 163. Cost per merged PR per 1,000 tests fell 29% in the monorepo and 38% in microservices. [Read the measurements](https://ci-esta.readthedocs.io/en/latest/case-study/).
-
-- **Select affected tests.** Follow each change through Python or Bun dependencies to the tests that exercise it.
-- **Reuse passing checks.** When a prior successful run proves the same inputs and scope, carry its result forward.
-- **Plan reusable lanes.** A lane is a named group of checks, such as unit tests or integration tests, that CI can run, skip or reuse independently.
-- **Cache dependencies.** Restore a matching environment, validate it and synchronize it with the lockfile.
-- **Balance shards automatically.** Use timings from successful runs to distribute slow tests across parallel workers.
-- **See what saved time.** The PR report shows the jobs that held up the gate and the total runner time they consumed. Full checkpoints still exercise the whole suite.
-
-## Set it up with your coding agent
-
-Give Claude Code, Codex, Cursor or any coding agent in your repository this one prompt:
-
-```text
-Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it.
-```
-
-The agent measures completed runs, makes one change the numbers support, proves it on the same commit with an
-unchanged test inventory, and opens a draft pull request; merging, required checks and repository settings stay
-with you. [Read the procedure it follows](../skills/ci-esta/SKILL.md), or set it up by hand:
-
-[Measure your first run](../docs/tutorials/measure-critical-path.md){ .md-button .md-button--primary }
-[Add the reporting action](../docs/quickstart.md){ .md-button }
-
-## Read a completed run
-
-```bash
-uv tool install --upgrade --refresh 'ci-esta[selection]>=1.11,<2'  # --refresh: see releases from the last minutes
-ci-esta --version                                                   # confirm the release on PATH
-export GH_TOKEN="$(gh auth token)"   # or any token that can read the run
-ci-esta report --repository owner/project --run-id 123456 --run-attempt 1 \
-  --gate 'Validation gate' --critical-path --output-dir report
-```
-
-Use your repository, run ID, attempt and exact required job name. The CLI needs
-Python 3.11+ and read access to the run and workflow sources. Open
-`report/ci-observability.md`; check collection completeness before trusting a
-number. No hosted CI-esta account is needed.
-
-```mermaid
-flowchart LR
-  A[Completed Actions run] --> B[Job + step timings]
-  W[Workflow dependencies] --> C[Critical-path analysis]
-  B --> C
-  C --> D[One measured change]
-  D --> E[Same checks + before/after report]
-```
-
-## Use the report to choose a change
-
-| What dominates | Next step |
-| --- | --- |
-| Repeated Python environment setup | [Validated environment caching](../docs/environment-cache.md) |
-| Uneven test workers | [Learned timings and complete shards](../docs/learned-test-timings.md) |
-| Unrelated jobs start on every edit | [pytest-selective lane routing](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/) |
-| Identical work already passed | [Completion evidence reuse](../docs/evidence-reuse.md) |
-| A short job spends a long time waiting | [Critical paths and admission delays](../docs/critical-path.md) |
-
-Keep the observer outside the validation gate. Reports do not grant a pass;
-[required gates](../docs/selected-gates.md) still check every required test and
-validator. Missing timings remain unavailable, and runner-seconds are not billing.
-
-## One bottleneck, measured before and after
-
-![Windows critical-path comparison: gate elapsed 249 to 185 seconds, execution path 242 to 177 seconds](assets/critical-path-comparison.svg)
-
-The Windows case retained all existing test outcomes. These are individual hosted
-observations with runner variation, not a stable average. The [case study](../docs/benchmarks/2026-10-23-windows-saleor.md)
-includes source runs, test inventories and the slower control that must not be
-cherry-picked as the baseline.
-
-## What the report looks like
-
-![CI-esta report showing a 3 minute 5 second gate and the slow Windows job](assets/report-example.png)
-
-Rendered from the CLI's real report for [run 39919114589, attempt 1](https://github.com/gigaverse-app/pytest-selective/actions/runs/39919114589).
-The absent reuse and cache measurements stay unmeasured. Rounded runner-minutes
-in the report are distinct from the unrounded runner-seconds used in comparisons.
-[Report fields and interpretation](../docs/github-actions-observability.md).
-
-## Related tools and support
-
-[Choose a related tool](ecosystem.md) when you also need test selection, CI
-measurement or background-work guarantees. Each project works independently.
-
-`latest` follows main and can contain APIs newer than your installed package.
-Check the release notes for that version. [Report an issue](https://github.com/gigaverse-app/ci-esta/issues)
-with a minimal reproducer, or read [the contribution guide](../CONTRIBUTING.md).
+<div class="lp ci">
+<header><div><p class="brand">CI-esta</p><h1>Spend less time waiting for green.</h1><p>Run fewer checks on each pull request and use fewer paid runner minutes. CI-esta works inside your existing GitHub Actions workflows.</p><a class="cta" href="#try-it">Set up with one prompt ↓</a><p class="sub">Free · Apache 2.0 · Bring your own runners</p></div>
+<aside><small>Time to the test gate</small><strong>90%<span style="font-size:.32em;letter-spacing:-.03em"> less</span></strong><p>Full suite on one runner · 52 min (est.)</p><div class="bar"></div><p>Typical PR gate · 5.1 min</p><div class="bar short" style="width:10%"></div><a href="https://ci-esta.readthedocs.io/en/latest/case-study/">Read the monorepo case study ↗</a></aside></header>
+<section class="setup" id="try-it"><h2>Try it on your next PR.</h2><p>Open your repository in your coding agent and paste this prompt. Review the proposed workflow and its measurements in a pull request.</p><pre id="first-command">Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it.</pre><button type="button" hidden data-copy="first-command">Copy setup prompt</button><span role="status" aria-live="polite"></span><p><a href="https://ci-esta.readthedocs.io/en/latest/docs/quickstart/">Set it up by hand →</a></p></section>
+<section><h2>Where your CI time goes.</h2><div class="grid"><article><h3>Run affected tests</h3><p>Trace a Python or Bun change to the tests that exercise it, including indirect dependencies.</p></article><article><h3>Reuse passing checks</h3><p>Carry a successful result forward when the new push has matching inputs and scope.</p></article><article><h3>Skip entire lanes</h3><p>A lane groups checks that can run independently. A unit-only change can skip the database lane before its runner starts.</p></article><article><h3>Restore dependencies</h3><p>Reuse a matching environment and sync it with the lockfile.</p></article><article><h3>Balance slow tests</h3><p>Use timings from earlier runs to spread work across parallel workers.</p></article><article><h3>See what held up the merge</h3><p>Read the PR report for time to green, total runner time and the slowest job.</p></article></div></section>
+<section><h2>Follow a checkout change.</h2><p>Suppose you change how checkout rounds a discount. CI follows the changed code to the pricing and checkout tests. A database integration lane runs if its tests depend on the change. On your next push, a lane can reuse its earlier pass when its inputs still match. The PR report shows what ran again and why.</p><p><a href="https://ci-esta.readthedocs.io/en/latest/docs/test-selection-policy/">Select affected tests</a> · <a href="https://ci-esta.readthedocs.io/en/latest/docs/evidence-reuse/">Reuse passing checks</a> · <a href="https://ci-esta.readthedocs.io/en/latest/docs/selected-gates/">Plan independent lanes</a> · <a href="https://ci-esta.readthedocs.io/en/latest/docs/environment-cache/">Cache environments</a> · <a href="https://ci-esta.readthedocs.io/en/latest/docs/learned-test-timings/">Balance test shards</a> · <a href="https://ci-esta.readthedocs.io/en/latest/docs/github-actions-observability/">Read the PR report</a></p></section>
+<footer><a href="https://github.com/gigaverse-app/ci-esta">GitHub</a> · <a href="https://ci-esta.readthedocs.io/en/latest/docs/tutorials/adoption-checklist/">Adoption guide</a> · <a href="https://ci-esta.readthedocs.io/en/latest/docs/actions/">Actions reference</a></footer></div>

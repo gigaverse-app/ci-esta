@@ -5,7 +5,7 @@ description: A staged tutorial and completion checklist covering reporting, sele
 
 # Adopt CI-esta, one measured improvement at a time
 
-Start with one pull request. Compare the time until its required check passes, the sum of billed runner minutes and the cost at your runner rates. Our monorepo reached its test gate in 5.1 minutes against a 52-minute full-suite estimate. For guided setup, give your coding agent this prompt:
+Try CI-esta on one workflow you regularly wait for. It’s free, runs on your existing runners, and your coding agent can prepare the setup for review. Paste this into your agent:
 
 ```text
 Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it.
