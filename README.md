@@ -30,11 +30,24 @@ Your agent opens a pull request with the workflow changes and measurements. You 
 
 The PR report shows what ran, what was reused and which job kept you waiting. Scheduled full runs exercise the complete suite.
 
+## Follow a change through CI
+
+Suppose you change how checkout rounds a discount. CI follows the changed code to the pricing and checkout tests. A database integration lane runs if its tests depend on the change. On your next push, a lane can reuse its earlier pass when its inputs still match. The PR report shows what ran again and why.
+
 ## How much time could you save?
 
 A test gate that would take an estimated **52 minutes** to run the full suite on one runner took **5.1 minutes** on ordinary PRs. That's about **90% less waiting**. Your savings depend on how much work your changes touch. [See the case study](https://ci-esta.readthedocs.io/en/latest/case-study/).
 
 [Runner setup and diagnostics](https://ci-esta.readthedocs.io/en/latest/docs/runners-and-diagnostics/) · [All actions](actions/README.md) · [Contribute](CONTRIBUTING.md) · [License](LICENSE)
+
+## Go deeper
+
+- [Select affected tests](https://ci-esta.readthedocs.io/en/latest/docs/test-selection-policy/)
+- [Reuse passing checks](https://ci-esta.readthedocs.io/en/latest/docs/evidence-reuse/)
+- [Plan independent lanes](https://ci-esta.readthedocs.io/en/latest/docs/selected-gates/)
+- [Cache environments](https://ci-esta.readthedocs.io/en/latest/docs/environment-cache/)
+- [Balance test shards](https://ci-esta.readthedocs.io/en/latest/docs/learned-test-timings/)
+- [Read the PR report](https://ci-esta.readthedocs.io/en/latest/docs/github-actions-observability/)
 
 [Detailed adoption reference](ADOPTION-REFERENCE.md) — action recipes, execution profiles, benchmarks and evidence checks.
 
