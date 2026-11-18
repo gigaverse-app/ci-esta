@@ -16,6 +16,12 @@ from ci_esta.testing.bun.models import BunExecution, ReportContext, RunRequest, 
 from ci_esta.testing.bun.report import work_selection_report
 from ci_esta.testing.bun.selection import plan_affected_tests, read_inventory, read_test_selection, safe_path
 
+LEGACY_POLICY_WARNING = (
+    "::warning title=CI-esta legacy Bun policy::The policy input and its reviewedReaders hashes are deprecated. "
+    "Migrate to dependency declarations: "
+    "https://ci-esta.readthedocs.io/en/latest/docs/dependency-declarations/#migrate-from-a-reviewedreaders-policy"
+)
+
 
 def request_from_env() -> RunRequest:
     reason = full_checkpoint_reason(os.environ.get("BUN_TEST_FULL") or "auto")
@@ -49,6 +55,8 @@ def main() -> int:
     try:
         if args.operation == "run":
             request = RunRequest.model_validate_json(sys.stdin.read()) if args.json_input else request_from_env()
+            if request.policy_file and not args.json_input and os.environ.get("GITHUB_ACTIONS") == "true":
+                print(LEGACY_POLICY_WARNING)
             result = run_bun_tests(request)
             if args.json_input:
                 print(result.model_dump_json(by_alias=True))

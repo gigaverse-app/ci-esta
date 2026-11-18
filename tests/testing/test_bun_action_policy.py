@@ -35,3 +35,18 @@ def test_invalid_override_is_not_silently_treated_as_selective(monkeypatch):
     monkeypatch.setenv("BUN_TEST_FULL", "typo")
     with pytest.raises(argparse.ArgumentTypeError, match="full must be"):
         request_from_env()
+
+
+@pytest.mark.parametrize("policy,warned", [("policy.json", True), ("", False)])
+def test_actions_runs_with_a_legacy_policy_warn_to_migrate(tmp_path, monkeypatch, capsys, policy, warned):
+    from ci_esta.testing.bun import cli
+    from ci_esta.testing.bun.models import BunExecution
+
+    monkeypatch.setattr("sys.argv", ["cli", "run"])
+    monkeypatch.setenv("GITHUB_ACTIONS", "true")
+    monkeypatch.setenv("BUN_TEST_INVENTORY", "inventory.json")
+    monkeypatch.setenv("BUN_TEST_OUTPUT", str(tmp_path))
+    monkeypatch.setenv("BUN_TEST_POLICY", policy)
+    monkeypatch.setattr(cli, "run_bun_tests", lambda request: BunExecution.model_construct(exit_code=0))
+    assert cli.main() == 0
+    assert ("::warning title=CI-esta legacy Bun policy::" in capsys.readouterr().out) is warned
