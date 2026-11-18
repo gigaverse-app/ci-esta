@@ -33,11 +33,16 @@ def render(audit: DeclarationAudit) -> str:
     return "\n\n".join([*sections, f"Authoring rules: {GUIDE}"])
 
 
-def report(repo: Path, roots: list[str], bun: str, as_json: bool) -> int:
-    """Exit 2 while a reachable reader is undeclared: selection cannot narrow until it is."""
+def report(repo: Path, roots: list[str], bun: str, as_json: bool, strict: bool = False) -> int:
+    """Exit 2 while a reachable reader is undeclared: selection cannot narrow until it is.
+
+    `strict` also fails (exit 1) on unreached or ungrouped declarations, so CI keeps them tidy.
+    """
     files = set(tracked_files(repo))
     tests = set(test_files(tracked_files(repo, *roots) if roots else files))
     entries = sorted(tests | set(test_preloads(repo, files)))
     audit = audit_declarations(repo, entries, shutil.which(bun) or bun, files)
     print(audit.model_dump_json(indent=2) if as_json else render(audit))
-    return 2 if audit.undeclared else 0
+    if audit.undeclared:
+        return 2
+    return 1 if strict and (audit.unreached or audit.crowded) else 0

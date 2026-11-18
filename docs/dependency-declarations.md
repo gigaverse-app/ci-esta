@@ -58,6 +58,14 @@ lists everything at once:
 It exits 2 while any reader is undeclared and prints *Declarations are complete* when
 nothing is left. Run it again before opening the pull request.
 
+Add it to a CI job that has Bun dependencies installed, with `--strict` so declarations
+no test reaches and directories of sidecars also fail (exit 1):
+
+```yaml
+- name: Dependency declarations are complete and grouped
+  run: ci-esta bun-declarations --strict --root packages --root apps/web
+```
+
 ## Which files need a declaration
 
 The Bun adapter treats a reachable module as uncertain, and runs the full suite,

@@ -34,6 +34,7 @@ human keeps merging, required-check settings, runner groups and secrets.
   repository inputs; `reason` instead of copied comments. For Bun, run `ci-esta bun-declarations` with
   the lanes' roots first: it lists every undeclared reader, declarations no test reaches and directories
   to merge in one run. Run it again before opening the PR and act on every line it prints.
+  Add `ci-esta bun-declarations --strict --root …` to a CI job with Bun installed so the result stays clean.
 - A request for **full adoption** includes every applicable capability: selection, lane planning, validated
   evidence reuse, measured setup/cache, learned timing and scheduling, strict gates, PR reports, telemetry
   and full checkpoints. Track each through implementation and verification. Do not silently defer them.

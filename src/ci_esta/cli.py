@@ -58,6 +58,8 @@ def main(argv: list[str] | None = None) -> int:
                               help="Only tests under this path; repeat for several. Default: every tracked test")
     declarations.add_argument("--bun", default="bun", help="Bun executable")
     declarations.add_argument("--json", action="store_true")
+    declarations.add_argument("--strict", action="store_true",
+                              help="Also fail on declarations no test reaches and directories with several sidecars")
     collect = commands.add_parser("report", help="Read a GitHub Actions run and save JSON, Markdown and Prometheus")
     collect.add_argument("--repository", required=True, help="owner/repository")
     collect.add_argument("--run-id", required=True, type=int)
@@ -110,7 +112,7 @@ def main(argv: list[str] | None = None) -> int:
         from ci_esta.testing.bun.declarations_report import report as declarations_report
 
         try:
-            return declarations_report(args.repo, args.root, args.bun, args.json)
+            return declarations_report(args.repo, args.root, args.bun, args.json, args.strict)
         except ValueError as error:
             print(f"ci-esta bun-declarations: {error}", file=sys.stderr)
             return 1

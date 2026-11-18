@@ -362,17 +362,26 @@ def test_declaration_audit_lists_what_to_declare_delete_and_merge(repository, ca
 
     assert main(['bun-declarations', '--repo', str(root), '--json']) == 2
     audit = json.loads(capsys.readouterr().out)
+    assert main(['bun-declarations', '--repo', str(root), '--strict']) == 2
+    capsys.readouterr()
     assert audit == {
         'undeclared': ['src/right.ts'],
         'unreached': ['tools/unused.ts'],
         'crowded': {'src': ['src/left.ts.gv-dependency.yaml', 'src/value.ts.gv-dependency.yaml']},
     }
 
+    (root / 'src/right.ts.gv-dependency.yaml').write_text('dependencies: [{inputs: [data.json], kind: content}]')
+    git('add', '.')
+    git('commit', '-qm', 'declare the last reader')
+    assert main(['bun-declarations', '--repo', str(root)]) == 0
+    assert main(['bun-declarations', '--repo', str(root), '--strict']) == 1
+    capsys.readouterr()
+    (root / 'src/right.ts.gv-dependency.yaml').unlink()
     for sidecar in ('src/left.ts', 'src/value.ts', 'tools/unused.ts'):
         (root / f'{sidecar}.gv-dependency.yaml').unlink()
     (root / 'src/.gv-dependencies.yaml').write_text(
         'dependencies: [{readers: [left.ts, right.ts], inputs: [data.json], kind: content}]')
     git('add', '-A')
     git('commit', '-qm', 'one manifest')
-    assert main(['bun-declarations', '--repo', str(root)]) == 0
+    assert main(['bun-declarations', '--repo', str(root), '--strict']) == 0
     assert 'Declarations are complete' in capsys.readouterr().out
