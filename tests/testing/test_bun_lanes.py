@@ -8,7 +8,9 @@ import pytest
 from pytest_selective.ci import Lane, LaneConfig
 from pytest_selective.impact_models import ImpactConfig
 
+from ci_esta.git import tracked_files
 from ci_esta.testing.bun.graph import failure
+from ci_esta.testing.bun.graph import test_inputs as build_test_inputs
 from ci_esta.testing.work_plan import plan_work
 from tests.testing.git_repo import commit, write
 
@@ -405,3 +407,13 @@ def test_lane_admission_cannot_skip_file_selection_unknown_input_fallback(reposi
     assert selection.mode == "full"
     result = plan_work(repo, lanes(), base, head)
     assert all(result.lanes.values()), result.lane_reasons
+
+
+def test_repository_bun_readers_have_complete_dependency_graph():
+    """The shipped graph skips prose and keeps both subprocess entry points reachable."""
+    repo = Path(__file__).resolve().parents[2]
+    readers = ["tests/github_actions/bun-selection.test.mjs", "tests/github_actions/deployment-observer.test.mjs"]
+    graph = build_test_inputs(repo, readers, "bun", set(tracked_files(repo)))
+    assert all("README.md" not in graph[reader] for reader in readers)
+    assert "src/ci_esta/testing/bun/cli.py" in graph[readers[0]]
+    assert {"actions/observe-deployment/run.mjs", "actions/observe-deployment/observe.mjs"} <= graph[readers[1]]

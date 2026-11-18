@@ -1,8 +1,8 @@
 dependencies:
   - readers: ["bun-selection.test.mjs"]
-    inputs: ["//src/ci_esta/**/*.py", "//src/ci_esta/testing/bun/metafile.ts"]
+    inputs: ["//src/ci_esta/**/*.py"]
     kind: import
-    reason: The test launches the Python Bun CLI with src on PYTHONPATH, including its native graph builder. Its Git repositories and inventories are temporary fixtures.
+    reason: The test launches the Python Bun CLI with src on PYTHONPATH, using its legacy policy against temporary Git repositories and inventories.
   - readers: ["deployment-observer.test.mjs"]
     inputs: ["//actions/observe-deployment/run.mjs"]
     kind: import
