@@ -53,11 +53,16 @@ FAILURE = re.compile(r"\berror\b|could not|cannot|panic", re.IGNORECASE)
 #: Source that names repository inputs the import graph cannot see: filesystem reads and
 #: inspection, computed imports, and module-relative paths (how a reader names a sibling
 #: to read or execute). Writes, temp directories and removal are not inputs, so importing
-#: `node:fs` alone does not require a declaration.
+#: `node:fs` alone does not require a declaration. Names that are also ordinary words
+#: (`stat`, `access`, `watch`...) count only in their `Sync` form, as an `fs`/`promises`
+#: member, or when imported from `fs`.
+_AMBIGUOUS_READ = r"(?:stat|lstat|access|exists|cp|glob|watch)"
 OPAQUE_DEPENDENCY = re.compile(
     r"\b(?:Bun\s*\.\s*(?:file|Glob)|import\s*\.\s*meta\s*\.\s*glob"
-    r"|(?:readFile|readdir|opendir|readlink|realpath|copyFile|cp|stat|lstat|access|exists|glob|watch)(?:Sync)?"
-    r"|createReadStream|watchFile)\b"
+    r"|(?:readFile|readdir|opendir|readlink|realpath|copyFile)(?:Sync)?"
+    rf"|createReadStream|watchFile|{_AMBIGUOUS_READ}Sync)\b"
+    rf"|\b(?:fs|fsp|promises)\s*\.\s*{_AMBIGUOUS_READ}\s*\("
+    rf"|\bimport\s*\{{[^}}]*\b{_AMBIGUOUS_READ}\b[^}}]*\}}\s*from\s*[\"'](?:node:)?fs(?:/promises)?[\"']"
     r"|\b(?:import|require)\s*\(\s*(?!\s*[\"'])[^\s]"
     r"|\bnew\s+URL\s*\([^)]*\bimport\s*\.\s*meta\s*\.\s*url\b"
     r"|\bimport\s*\.\s*meta\s*\.\s*(?:dir|dirname|filename|path)\b"
