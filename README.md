@@ -1,9 +1,16 @@
 ![CI-esta: Let proven work rest. Measure the rest.](https://raw.githubusercontent.com/gigaverse-app/ci-esta/main/docs/assets/banner.png?v=e68364fbb504)
 
 
-Affected-test selection is part of the default adoption path. Full adoption means all applicable capabilities in the [adoption checklist](docs/tutorials/adoption-checklist.md), including validated reuse, learned scheduling, PR reports and telemetry. Reporting-only setup is a narrower scope.
+# CI-esta
 
-# CI-esta: make GitHub Actions faster, with evidence
+**Get a 10× shorter test gate when most tests are unrelated to a change.** In our Django monorepo, PRs reached the test gate in 5.1 minutes against an estimated 52 minutes for the full suite on one runner. Across the two backend repos, billed minutes per merged PR fell from 285 to 163. Cost per merged PR per 1,000 tests fell 29% in the monorepo and 38% in microservices. [Read the measurements](https://ci-esta.readthedocs.io/en/latest/case-study/).
+
+- **Select affected tests.** Follow each change through Python or Bun dependencies to the tests that exercise it.
+- **Reuse passing checks.** When a prior successful run proves the same inputs and scope, carry its result forward.
+- **Plan reusable lanes.** A lane is a named group of checks, such as unit tests or integration tests, that CI can run, skip or reuse independently.
+- **Cache dependencies.** Restore a matching environment, validate it and synchronize it with the lockfile.
+- **Balance shards automatically.** Use timings from successful runs to distribute slow tests across parallel workers.
+- **See what saved time.** The PR report shows the jobs that held up the gate and the total runner time they consumed. Full checkpoints still exercise the whole suite.
 
 **Set it up with your coding agent.** Give Claude Code, Codex, Cursor or any coding agent in your repository this
 one prompt:
