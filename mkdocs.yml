@@ -93,6 +93,7 @@ extra:
   - docs/benchmarks/2026-11-17-shard-bytecode.md
   - docs/bun-test-selection.md
   - docs/dependency-declarations.md
+  - docs/python-api.md
   - docs/ci-optimization.md
   - docs/critical-path-optimizations.md
   - docs/critical-path.md
@@ -143,6 +144,7 @@ nav:
   - Non-Python projects: docs/non-python.md
   - Bun test selection: docs/bun-test-selection.md
   - Portable dependency declarations: docs/dependency-declarations.md
+  - Supported Python API: docs/python-api.md
   - PostgreSQL client setup: docs/postgres-client.md
   - Combine the four tools: docs/integrations.md
   - Related tools: ecosystem.md

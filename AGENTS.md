@@ -47,6 +47,14 @@ Release Please derives versions and changelogs from Conventional Commits. Let
 it prepare the release PR; do not hand-edit versions for ordinary changes.
 Merging a release PR authorizes PyPI publication after CI. Follow RELEASING.md.
 
+Every release advances the `v1` action tag that adopters run, so the commit type
+is a promise to them. Follow the [supported Python API](docs/python-api.md)
+stability rules: removing or renaming a listed name is `feat!` (keep an alias for
+a minor release first), and changing what a check reports for an unchanged
+repository, such as the Bun reader detector flagging more files, is `feat` with
+the adopter's next step in the PR body. Never import or document a name outside
+that page as an adopter interface.
+
 ## Shared agent instructions
 
 Edit this root `AGENTS.md` as the single source for Codex and Claude.

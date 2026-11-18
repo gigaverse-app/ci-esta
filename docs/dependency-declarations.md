@@ -130,6 +130,30 @@ dependencies:
 `{stem}` and `inputs: []` need `selective-deps` 1.8.0 or later. With older
 releases, a file sidecar containing `dependencies: []` records the same review.
 
+## Migrate from a reviewedReaders policy
+
+The deprecated `policy` input of `run-bun-tests` scans every tracked file under
+`runtimeRoots`, pins each reviewed reader to its Git blob, and runs the full suite
+whenever any reviewed input changes. Every edit to a reader means a new hash, and a
+detection change upstream can flag files no test even imports. Declarations cover
+only readers a test reaches, carry no hashes, and select just the tests that reach a
+changed input.
+
+1. Remove the `policy` input, and any step that writes a per-lane policy file.
+2. Run `ci-esta bun-declarations --root …` with each lane's test roots. Declare only
+   the readers it lists. A reviewed reader that no test reaches needs nothing.
+3. Carry each listed reader's reviewed `inputs` into a manifest, minus:
+   - environment files (`package.json`, `bun.lock`, `bunfig*.toml`, `tsconfig*.json`),
+     which already run the full suite when they change;
+   - inputs that affect every test, such as `patches/`. Undeclared, a change to them
+     runs the full suite; declared, it would select only this reader's tests.
+   An entry with `"inputs": []` becomes `inputs: []` with a `reason`.
+4. Drop `scopedRoots`, `runtimeRoots`, `unaffectedPaths` and `unaffectedRoots`. The
+   import graph decides scope; Markdown that no reader declares selects no tests, and
+   any other unmodeled file still runs the full suite.
+5. Replace hand-written reader checks and hash-refresh scripts with the
+   `ci-esta bun-declarations --strict` CI step above.
+
 For another language adapter, install only `selective-deps` and
 call its `dependency_edges(manifests, files, revision=...)` API. It consumes manifest
 bytes and tracked paths supplied by the adapter; it does not install pytest, load

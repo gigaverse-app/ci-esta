@@ -23,10 +23,8 @@ admission, exact repository inventory, full fallback, execution and reporting.
 The repository owns discovery, global inputs, preload/setup, coverage policy,
 explicit full checkpoints, required check names and always-run contracts.
 The JSON boundary avoids importing arbitrary consumer code into the planner or
-hardcoding a monorepo layout in CI-esta. It also works without GitHub Actions:
-import `SelectionRequest` / `RunRequest` from `ci_esta.testing.bun.models`,
-`plan_affected_tests` from `ci_esta.testing.bun.selection`, and `run_bun_tests`
-from `ci_esta.testing.bun.execution`.
+hardcoding a monorepo layout in CI-esta. It also works without GitHub Actions
+through the [supported Python API](python-api.md); import nothing outside it.
 
 After the action, native Python policy controls can use its pinned source and
 prepared interpreter without installing dependencies in the application:
@@ -109,8 +107,8 @@ read. Declare computed imports, filesystem reads and subprocess inputs that the
 native graph cannot see. Keep full checkpoints and separate policies for external
 state. Invalid declarations fail with their source location. Environment changes,
 preload dependencies, removed files and unmodeled non-import inputs run the full
-inventory. Existing callers can still explicitly supply the legacy `policy` JSON;
-new adoptions should omit it and use shared declarations.
+inventory. The legacy `policy` JSON is deprecated and warns in Actions;
+[migrate it to declarations](dependency-declarations.md#migrate-from-a-reviewedreaders-policy).
 
 3. Invoke after dependency installation and inventory generation:
 
