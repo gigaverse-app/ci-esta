@@ -96,10 +96,10 @@ requires-dist = [
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = ">=3.2,<4" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "pytest", marker = "extra == 'pytest'", specifier = ">=8" },
-    { name = "pytest-selective", marker = "extra == 'pytest'", specifier = ">=1.8.0,<2" },
-    { name = "pytest-selective", marker = "extra == 'selection'", specifier = ">=1.8.0,<2" },
+    { name = "pytest-selective", marker = "extra == 'pytest'", specifier = ">=1.9.0,<2" },
+    { name = "pytest-selective", marker = "extra == 'selection'", specifier = ">=1.9.0,<2" },
     { name = "pyyaml", specifier = ">=6,<7" },
-    { name = "selective-deps", specifier = ">=1.8.0,<2" },
+    { name = "selective-deps", specifier = ">=1.9.0,<2" },
 ]
 provides-extras = ["selection", "pytest", "postgres"]
 
@@ -113,7 +113,7 @@ dev = [
     { name = "import-linter", specifier = ">=2.5,<3" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2,<4" },
     { name = "pytest", specifier = ">=8" },
-    { name = "pytest-selective", specifier = ">=1.8.0,<2" },
+    { name = "pytest-selective", specifier = ">=1.9.0,<2" },
     { name = "pytest-xdist", specifier = ">=3.6" },
     { name = "pyyaml", specifier = ">=6" },
     { name = "ruff", specifier = ">=0.14" },
@@ -654,7 +654,7 @@ wheels = [
 
 [[package]]
 name = "pytest-selective"
-version = "1.8.0"
+version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
@@ -662,9 +662,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "selective-deps" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4f/f9/5bd225d2aa3d124c7cfa4142490102f473ef503fc30362aa4d94c23ef0eb/pytest_selective-1.8.0.tar.gz", hash = "sha256:869697f586e343153f3ef361cfaa1d38316707e89148f88fff7362d4ff60e61d", size = 694828, upload-time = "2026-11-18T11:05:11.451Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/41/9c/9bc849ea42ebc2b253700ae918e00b99da49f26adfc3179772819427ae34/pytest_selective-1.9.0.tar.gz", hash = "sha256:89989cd0f12a8aaa804072b1d275219169af1ad19ec5e61782ea8f3e3cd14a98", size = 698782, upload-time = "2026-11-18T15:08:53.994Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/e2/69c7240d2f836b0155a34b203d796a01d763ffd5e5bdc7262fe84da5d9b7/pytest_selective-1.8.0-py3-none-any.whl", hash = "sha256:9acb06b73fcb560ef112d22c38407e765989730c188ed4caea66b2f7db79434a", size = 118718, upload-time = "2026-11-18T11:05:08.988Z" },
+    { url = "https://files.pythonhosted.org/packages/ff/6b/a976cb707bd1a9f2c1b4d584d7a83b76be9a6232c23969a738e4f0c9675c/pytest_selective-1.9.0-py3-none-any.whl", hash = "sha256:1c951fdf24275a215eca621d53070ee96a1e7f738944ce3619cb599a3022e178", size = 119842, upload-time = "2026-11-18T15:08:51.131Z" },
 ]
 
 [[package]]
@@ -775,15 +775,15 @@ wheels = [
 
 [[package]]
 name = "selective-deps"
-version = "1.8.0"
+version = "1.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b1/b8/67b3661856806b8f105903a21c82847cb3ea73543680ffbebadfb9d2210f/selective_deps-1.8.0.tar.gz", hash = "sha256:74973f8a8e1cd71d62d8a1acd4a5b81912e9879086c0f223ca686fd20dbc7ac4", size = 9564, upload-time = "2026-11-18T11:05:12.513Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/f0/4129fd387b2d06cc1def39d89029a9b2036e77522428704d2e001c871479/selective_deps-1.9.0.tar.gz", hash = "sha256:71b63b66658d88bddf04f6dc6c2e8003967a8aa94f9f62aa3b96912a2fdb5e25", size = 9831, upload-time = "2026-11-18T15:08:55.216Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cf/bb/3d44424b2bcd883adcaddd032290aefacdc02101f90047aa738686a13430/selective_deps-1.8.0-py3-none-any.whl", hash = "sha256:122c4cbb51c04004a26f657c3253c70c2981c77fb6fd46b944db5c4d801c2307", size = 11084, upload-time = "2026-11-18T11:05:10.355Z" },
+    { url = "https://files.pythonhosted.org/packages/8b/7c/fcff839adee509e7f41b2a1f44d23e860b292a54e35cb7fbe9e937bad5f1/selective_deps-1.9.0-py3-none-any.whl", hash = "sha256:db7691f8d5d7c2cb9b5d036d93ebd64ff43208dd24d02d4ab0062baa1ce5a8bd", size = 11425, upload-time = "2026-11-18T15:08:52.516Z" },
 ]
 
 [[package]]

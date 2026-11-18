@@ -23,7 +23,7 @@ import tomllib
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
-from selective_deps import SIDECAR_SUFFIX, DependencyDeclarationError, file_of, is_declaration
+from selective_deps import DependencyDeclarationError, crowded_sidecars, file_of, is_declaration
 
 if TYPE_CHECKING:
     from pytest_selective.ci import Lane
@@ -165,14 +165,10 @@ def audit_declarations(repo: Path, entries: list[str], bun: str, files: set[str]
     declarations = declared_edges(repo, files)
     edges, undeclared = module_edges(repo, entries, bun, files, declarations)
     reached = set(edges) | {file_of(node) for targets in edges.values() for node in targets}
-    sidecars: dict[str, list[str]] = {}
-    for path in sorted(files):
-        if path.endswith(SIDECAR_SUFFIX):
-            sidecars.setdefault(posixpath.dirname(path) or ".", []).append(path)
     return DeclarationAudit(
         undeclared=undeclared,
         unreached=sorted(reader for reader in declarations if reader not in reached and MODULE.search(reader)),
-        crowded={directory: paths for directory, paths in sidecars.items() if len(paths) > 1},
+        crowded=crowded_sidecars(files),
     )
 
 
