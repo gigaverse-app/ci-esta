@@ -23,14 +23,15 @@ import tomllib
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
-from selective_deps import DependencyDeclarationError, file_of, is_declaration
+from selective_deps import SIDECAR_SUFFIX, DependencyDeclarationError, file_of, is_declaration
 
 if TYPE_CHECKING:
     from pytest_selective.ci import Lane
 
 from ci_esta.git import tracked_files
 from ci_esta.testing.bun.discovery import test_files
-from ci_esta.testing.bun.models import BUN_ENVIRONMENT_FILES
+from ci_esta.testing.bun.models import BUN_ENVIRONMENT_FILES, DeclarationAudit
+from ci_esta.testing.bun.readers import names_untracked_inputs
 from ci_esta.testing.dependencies import declared_edges
 
 BUNFIG = re.compile(r"(?:^|/)bunfig[^/]*\.toml$")
@@ -50,24 +51,6 @@ BUILTIN = re.compile(r"^(?:bun|node):")
 #: A line of Bun's output that says why the graph failed, rather than a warning before it.
 FAILURE = re.compile(r"\berror\b|could not|cannot|panic", re.IGNORECASE)
 
-#: Source that names repository inputs the import graph cannot see: filesystem reads and
-#: inspection, computed imports, and module-relative paths (how a reader names a sibling
-#: to read or execute). Writes, temp directories and removal are not inputs, so importing
-#: `node:fs` alone does not require a declaration. Names that are also ordinary words
-#: (`stat`, `access`, `watch`...) count only in their `Sync` form, as an `fs`/`promises`
-#: member, or when imported from `fs`.
-_AMBIGUOUS_READ = r"(?:stat|lstat|access|exists|cp|glob|watch)"
-OPAQUE_DEPENDENCY = re.compile(
-    r"\b(?:Bun\s*\.\s*(?:file|Glob)|import\s*\.\s*meta\s*\.\s*glob"
-    r"|(?:readFile|readdir|opendir|readlink|realpath|copyFile)(?:Sync)?"
-    rf"|createReadStream|watchFile|{_AMBIGUOUS_READ}Sync)\b"
-    rf"|\b(?:fs|fsp|promises)\s*\.\s*{_AMBIGUOUS_READ}\s*\("
-    rf"|\bimport\s*\{{[^}}]*\b{_AMBIGUOUS_READ}\b[^}}]*\}}\s*from\s*[\"'](?:node:)?fs(?:/promises)?[\"']"
-    r"|\b(?:import|require)\s*\(\s*(?!\s*[\"'])[^\s]"
-    r"|\bnew\s+URL\s*\([^)]*\bimport\s*\.\s*meta\s*\.\s*url\b"
-    r"|\bimport\s*\.\s*meta\s*\.\s*(?:dir|dirname|filename|path)\b"
-    r"|\b__(?:dirname|filename)\b"
-)
 
 
 def normalized(path: str) -> str:
@@ -153,6 +136,52 @@ def build_imports(repo: Path, entries: list[str], bun: str, files: set[str]) -> 
 def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> dict[str, set[str]]:
     """Each entry file's transitive repository inputs, from Bun's import edges.
 
+    Every reachable module whose source names untracked inputs needs a declaration; all of them are
+    reported together, so one run lists the complete set to declare.
+    """
+    edges, undeclared = module_edges(repo, entries, bun, files, declared_edges(repo, files))
+    if undeclared:
+        # Imports alone cannot prove the dependencies of runtime file reads.
+        raise ValueError(
+            f"Undeclared non-import dependencies in {', '.join(undeclared)}; add reader-owned declarations "
+            "(`ci-esta bun-declarations` lists them with the reads it found)"
+        )
+    if missing := sorted(set(entries) - set(edges)):
+        raise ValueError(f"Bun reported no inputs for {', '.join(missing)}")
+    graph = {}
+    for entry in entries:
+        seen, queue = {entry}, [entry]
+        while queue:
+            for target in edges.get(queue.pop(), ()):
+                if target not in seen:
+                    seen.add(target)
+                    queue.append(target)
+        graph[entry] = {file_of(node) for node in seen}
+    return graph
+
+
+def audit_declarations(repo: Path, entries: list[str], bun: str, files: set[str]) -> DeclarationAudit:
+    """What an adopter must add, may delete and should merge, from one traversal of every test."""
+    declarations = declared_edges(repo, files)
+    edges, undeclared = module_edges(repo, entries, bun, files, declarations)
+    reached = set(edges) | {file_of(node) for targets in edges.values() for node in targets}
+    sidecars: dict[str, list[str]] = {}
+    for path in sorted(files):
+        if path.endswith(SIDECAR_SUFFIX):
+            sidecars.setdefault(posixpath.dirname(path) or ".", []).append(path)
+    return DeclarationAudit(
+        undeclared=undeclared,
+        unreached=sorted(reader for reader in declarations if reader not in reached and MODULE.search(reader)),
+        crowded={directory: paths for directory, paths in sidecars.items() if len(paths) > 1},
+    )
+
+
+def module_edges(
+    repo: Path, entries: list[str], bun: str, files: set[str], declarations: dict[str, set[str]]
+) -> tuple[dict[str, set[str]], list[str]]:
+    """Direct import and declaration edges of every module reachable from `entries`, and the reachable
+    modules that name untracked inputs without a declaration.
+
     Bun leaves an import it tree-shakes away unresolved (`external` with its relative specifier) and
     does not parse that module, so such modules are resolved here and built as further entry points
     until no new file appears. Package and built-in imports (`bun:test`, and `bun:wrap`, which Bun
@@ -160,17 +189,16 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
     `node_modules`, which the lockfile covers; an import Bun resolved to a path the planner cannot
     map fails the graph rather than losing the edge.
     """
-    declarations = declared_edges(repo, files)
     edges: dict[str, set[str]] = {}
+    undeclared: set[str] = set()
     pending = list(entries)
     while pending:
         imports = build_imports(repo, pending, bun, files)
         pending = []
         for importer, declared in imports.items():
             if (importer in files and MODULE.search(importer) and importer not in declarations
-                    and OPAQUE_DEPENDENCY.search((repo / importer).read_text(encoding="utf-8"))):
-                # Imports alone cannot prove the dependencies of runtime file reads.
-                raise ValueError(f"Undeclared non-import dependencies in {importer}; add a reader-owned declaration")
+                    and names_untracked_inputs((repo / importer).read_text(encoding="utf-8"))):
+                undeclared.add(importer)
             targets = edges.setdefault(importer, set())
             targets.update(declarations.get(importer, ()))
             for item in declared:
@@ -207,18 +235,7 @@ def test_inputs(repo: Path, entries: list[str], bun: str, files: set[str]) -> di
                 if target not in edges and target not in imports and target in files and MODULE.search(target):
                     pending.append(target)
         pending = sorted(set(pending))
-    if missing := sorted(set(entries) - set(edges)):
-        raise ValueError(f"Bun reported no inputs for {', '.join(missing)}")
-    graph = {}
-    for entry in entries:
-        seen, queue = {entry}, [entry]
-        while queue:
-            for target in edges.get(queue.pop(), ()):
-                if target not in seen:
-                    seen.add(target)
-                    queue.append(target)
-        graph[entry] = {file_of(node) for node in seen}
-    return graph
+    return edges, sorted(undeclared)
 
 
 def failure(error: Exception) -> str:

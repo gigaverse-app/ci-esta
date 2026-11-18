@@ -92,6 +92,10 @@ dependencies:
     reason: Loaded from disk by the catalog reader.
 ```
 
+Run `ci-esta bun-declarations --root <test root>` first: it lists every reader to
+declare, declarations no test reaches and directories to merge, in one run
+([audit](dependency-declarations.md#start-with-the-audit)).
+
 The format and parser are pytest-selective's, shared with Python projects through
 the lightweight `selective-deps` package. Prefer one directory manifest per
 directory; [authoring rules](dependency-declarations.md#author-one-manifest-per-directory)
