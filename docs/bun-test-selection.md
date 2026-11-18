@@ -130,6 +130,10 @@ set a base and `full: false`. Reruns execute their selected scope without receip
 reuse. For validated incremental PR selection, use the
 [complete tested-merge workflow](../examples/bun-tests/workflow.yml) and pass
 `validated-head` with its recorded merge; missing proof retains a full checkpoint.
+`validated-head` proves a `pull_request` merge commit, whose second parent is the PR
+head. A workflow triggered by `push` tests the head itself: pass the earlier green head
+as `base` and omit `validated-head`, because ancestry is then the proof. Passing
+`validated-head` there fails the merge check and runs the full suite.
 Unreferenced documentation must not start tests. Do not apply a whole-suite coverage floor
 to a subset or lower a floor to make it pass. Coverage lanes should stay full.
 
