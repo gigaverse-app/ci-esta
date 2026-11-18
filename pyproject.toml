@@ -12,13 +12,13 @@ license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [{name = "Gigaverse"}]
 dependencies = ["httpx>=0.28,<1", "pydantic>=2.11,<3", "defusedxml>=0.7,<1", "pyyaml>=6,<7", "filelock>=4.2.1,<5",
-  "selective-deps>=1.8.0,<2"]
+  "selective-deps>=1.9.0,<2"]
 keywords = ["github-actions", "ci-observability", "ci-optimization", "continuous-integration", "prometheus"]
 classifiers = ["Intended Audience :: Developers", "Topic :: Software Development :: Build Tools", "Programming Language :: Python :: 3", "Typing :: Typed"]
 
 [project.optional-dependencies]
-selection = ["pytest-selective>=1.8.0,<2"]
-pytest = ["pytest>=8", "pytest-selective>=1.8.0,<2"]
+selection = ["pytest-selective>=1.9.0,<2"]
+pytest = ["pytest>=8", "pytest-selective>=1.9.0,<2"]
 postgres = ["psycopg[binary]>=3.2,<4"]
 
 [project.scripts]
@@ -42,7 +42,7 @@ ci_esta_provenance = "ci_esta.testing.pytest_provenance"
 
 [dependency-groups]
 contracts = ["pytest>=8", "pytest-quint-connect>=1.4.1,<2"]
-dev = ["pytest-selective>=1.8.0,<2", "pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3", "psycopg[binary]>=3.2,<4"]
+dev = ["pytest-selective>=1.9.0,<2", "pytest>=8", "pytest-xdist>=3.6", "ruff>=0.14", "pyyaml>=6", "build>=1.2", "import-linter>=2.5,<3", "psycopg[binary]>=3.2,<4"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/ci_esta"]
