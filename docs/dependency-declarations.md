@@ -38,12 +38,63 @@ graph that skips work. Removed files and uncertain native graph construction
 retain full fallback. Declarations cannot establish test completion or discover
 unobserved external state, so retain full checkpoints and execution evidence.
 
-A reachable filesystem reader or computed import without a declaration makes
-the graph uncertain and runs the full suite. Declare its actual inputs to enable
-selection. For code that only writes output, or dynamically loads external
-packages already covered by the lockfile, a file sidecar containing
-`dependencies: []` records that review without inventing repository inputs.
-Use this only after checking the reader; it is not a blanket exemption.
+## Which files need a declaration
+
+The Bun adapter treats a reachable module as uncertain, and runs the full suite,
+when its source can name repository inputs the import graph cannot see:
+
+- filesystem reads and inspection: `readFile`, `readdir`, `stat`, `exists`,
+  `access`, `copyFile`, `cp`, `glob`, `createReadStream`, `Bun.file`, `Bun.Glob`,
+  `import.meta.glob`;
+- computed `import(...)` or `require(...)`;
+- module-relative paths: `new URL("…", import.meta.url)`, `import.meta.dir`,
+  `import.meta.dirname`, `__dirname`. These are how a test names a sibling script
+  to execute or a fixture to read.
+
+Writing, appending, creating temporary directories and removing files are not
+inputs. A module that only does those needs no declaration.
+
+## Author one manifest per directory
+
+When several readers in one directory need declarations, write one
+`.gv-dependencies.yaml` instead of a sidecar per file. Reserve file sidecars for
+a lone reader. A directory with five sidecars is a review smell.
+
+```yaml
+dependencies:
+  - readers: ["report.test.mjs", "upload.test.mjs"]
+    inputs: ["{stem}.mjs"]
+    kind: import
+    reason: Each contract test executes its sibling script in a subprocess.
+
+  - readers: ["report.mjs", "summarize.test.mjs"]
+    inputs: []
+    reason: Reads only generated reports and temporary fixtures.
+
+  - readers: ["docs-index.test.mjs"]
+    inputs: ["//scripts/generate-docs-index.ts"]
+    kind: import
+    reason: Copies and executes the index generator.
+```
+
+- **`kind` follows what the reader does with the file.** Executing it (a
+  subprocess, `spawn`, `Bun.spawn`, `execFile`, dynamic import) is `kind: import`,
+  so changes to what the script imports select the reader. Reading its bytes is
+  `kind: content`. A test that runs a sibling script declared as `content`
+  misses regressions in that script's imports.
+- **`{stem}`** is the reader's file name before its first dot: `report.test.mjs`
+  pairs with `report.mjs`. Every matched reader must have its sibling.
+- **`inputs: []`** records a reader reviewed as having no repository inputs. It
+  requires `reason`. Check the reader first: if it reads any tracked file, declare
+  that file instead.
+- **Explain with `reason`**, not YAML comments. Never copy the same comment across
+  files.
+- **Keep inputs as narrow as the reader.** `//**/*.md` or a whole application tree
+  is correct only when the reader really scans all of it; otherwise name the
+  directory or files it reads.
+
+`{stem}` and `inputs: []` need `selective-deps` 1.8.0 or later. With older
+releases, a file sidecar containing `dependencies: []` records the same review.
 
 For another language adapter, install only `selective-deps` and
 call its `dependency_edges(manifests, files, revision=...)` API. It consumes manifest

@@ -28,7 +28,11 @@ human keeps merging, required-check settings, runner groups and secrets.
 - Express non-import inputs with pytest-selective's reader-owned sidecars or directory manifests,
   including for Bun and other non-Python adapters. Reuse the lightweight
   `selective-deps` API rather than a parallel parser or reader-hash registry.
-  See [portable declarations](https://ci-esta.readthedocs.io/en/latest/docs/dependency-declarations.md).
+  Follow [the authoring rules](https://ci-esta.readthedocs.io/en/latest/docs/dependency-declarations.md):
+  one `.gv-dependencies.yaml` per directory, not a sidecar per file; `kind: import` for scripts a reader
+  executes; `{stem}` for sibling pairs; `inputs: []` with a `reason` for reviewed readers without
+  repository inputs; `reason` instead of copied comments. Before opening the PR, count new declaration
+  files per directory and merge any directory with more than one.
 - A request for **full adoption** includes every applicable capability: selection, lane planning, validated
   evidence reuse, measured setup/cache, learned timing and scheduling, strict gates, PR reports, telemetry
   and full checkpoints. Track each through implementation and verification. Do not silently defer them.
