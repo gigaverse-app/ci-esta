@@ -48,8 +48,23 @@ These commands use a separate tool environment; no application dependency is
 needed. The command follows local composite actions and reusable workflows. It suggests
 reporting, selection, shared checkpoint defaults and timing-feedback gaps with
 source paths. It never modifies files, enables retention or fails CI for optional
-advice. `--ignore SUGGESTION_ID` suppresses advice you have reviewed without
-hiding the detected action inventory. Remote workflows and arbitrary scripts
+advice. `--ignore SUGGESTION_ID` suppresses a whole kind of advice for one run.
+To keep a reviewed decision with the repository, record it in
+`.github/ci-esta-reviewed.yaml`; the report then lists it under *Reviewed* with
+your reason instead of as open advice:
+
+```yaml
+reviewed:
+  - suggestion: gate-indirect                       # the suggestion id
+    evidence: .github/workflows/perf-device-run.yml # one of its evidence paths
+    match: "gate 'Publish KeepSnappy result'"       # optional: text the advice must contain
+    reason: Reports only the KeepSnappy measurement and is not green when nothing was measured.
+```
+
+Every entry needs a `reason`, and unknown keys are rejected. An entry whose
+finding is no longer reported is listed as stale, so delete it. Record a decision
+only after checking the evidence: a gate-indirect finding is a real gap when the
+gate can pass after its hidden prerequisite failed. Remote workflows and arbitrary scripts
 remain explicit inspection limits. A configured action is not evidence of a
 successful run, compatible timing lanes or measured savings.
 

@@ -95,7 +95,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "adoption":
         from ci_esta.adoption import inspect
         from ci_esta.adoption import render as render_adoption
-        report = inspect(args.root, ignore=set(args.ignore))
+        try:
+            report = inspect(args.root, ignore=set(args.ignore))
+        except ValueError as error:
+            print(f"ci-esta adoption: {error}", file=sys.stderr)
+            return 2
         print(report.model_dump_json(indent=2) if args.json else render_adoption(report))
         return 0
     if args.command == "check-workflow":

@@ -138,6 +138,10 @@ ci-esta --version                                                     # expect c
 ci-esta adoption --root .
 ```
 
+Act on each suggestion or record why not: after checking the evidence (run timings, required checks, how a
+verdict fails), add an entry with a `reason` to `.github/ci-esta-reviewed.yaml` so the next reader sees the
+decision instead of the same open advice. Delete entries the report lists as stale.
+
 `--refresh` makes uv re-read the package index: without it, uv's cache can miss a release published in the last
 few minutes and report that only older versions exist. `--upgrade` replaces an older installed copy. If
 `ci-esta --version` prints a usage message or a version below the floor, an older copy is earlier on `PATH`
