@@ -5,12 +5,16 @@ description: Find what is delaying CI, then verify the improvement.
 
 ![CI-esta](../docs/assets/banner.svg)
 
-# Find what is delaying CI, then verify the improvement.
+# Make pull requests faster with CI-esta
 
-CI-esta reports GitHub Actions jobs, steps and dependency critical paths. Start
-with a completed run, find the work delaying your required gate, and choose a
-change you can measure: caching, parallel tests, lane selection or reuse of
-previously completed equivalent work.
+**Get a 10× shorter test gate when most tests are unrelated to a change.** In our Django monorepo, PRs reached the test gate in 5.1 minutes against an estimated 52 minutes for the full suite on one runner. Across the two backend repos, billed minutes per merged PR fell from 285 to 163. Cost per merged PR per 1,000 tests fell 29% in the monorepo and 38% in microservices. [Read the measurements](https://ci-esta.readthedocs.io/en/latest/case-study/).
+
+- **Select affected tests.** Follow each change through Python or Bun dependencies to the tests that exercise it.
+- **Reuse passing checks.** When a prior successful run proves the same inputs and scope, carry its result forward.
+- **Plan reusable lanes.** A lane is a named group of checks, such as unit tests or integration tests, that CI can run, skip or reuse independently.
+- **Cache dependencies.** Restore a matching environment, validate it and synchronize it with the lockfile.
+- **Balance shards automatically.** Use timings from successful runs to distribute slow tests across parallel workers.
+- **See what saved time.** The PR report shows the jobs that held up the gate and the total runner time they consumed. Full checkpoints still exercise the whole suite.
 
 ## Set it up with your coding agent
 

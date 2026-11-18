@@ -1,5 +1,11 @@
 # Adopt CI-esta with affected-test selection
 
+Start with one pull request. Compare the time until its required check passes, the sum of billed runner minutes and the cost at your runner rates. Our monorepo reached its test gate in 5.1 minutes against a 52-minute full-suite estimate. For guided setup, give your coding agent this prompt:
+
+```text
+Set up CI-esta in this repository. Fetch https://ci-esta.readthedocs.io/en/latest/agent-setup.md and follow it.
+```
+
 
 Affected-test selection is part of the default adoption path. Full adoption means all applicable capabilities in the [adoption checklist](tutorials/adoption-checklist.md), including validated reuse, learned scheduling, PR reports and telemetry. Reporting-only setup is a narrower scope.
 
