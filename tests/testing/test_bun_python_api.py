@@ -273,6 +273,12 @@ def test_declared_preload_dependencies_expand_the_full_suite(repository):
     ("const path = require.resolve('./fixture.json');", True),
     ("const worker = new Worker('./detector.worker.ts');", True),
     ("const socket = server.open(); dialog.open('x');", False),
+    ("// Direct import (not the barrel) keeps the chunk small.\nimport {a} from './a';", False),
+    ("/* A library declares it at import (through codegen) */ export const view = 1;", False),
+    ("const retries = 2; // readFileSync('data.json') was removed", False),
+    ("const url = 'https://example.test'; readFileSync('data.json');", True),
+    ("const text = `// not a comment ${1}`; const { value } = await import(name);", True),
+    ("const pattern = /\"/; readFileSync('data.json');", True),
 ])
 def test_only_reads_and_module_relative_paths_need_a_declaration(source, opaque):
     from ci_esta.testing.bun.readers import names_untracked_inputs
