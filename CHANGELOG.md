@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.21.0](https://github.com/gigaverse-app/ci-esta/compare/v1.20.1...v1.21.0) (2026-11-18)
+
+
+### Features
+
+* **adoption:** count only result-judging jobs as gates ([#247](https://github.com/gigaverse-app/ci-esta/issues/247)) ([9c411f9](https://github.com/gigaverse-app/ci-esta/commit/9c411f90ca083f43f18f87c8507b59528c02d929))
+
 ## [1.20.1](https://github.com/gigaverse-app/ci-esta/compare/v1.20.0...v1.20.1) (2026-11-18)
 
 
