@@ -59,7 +59,8 @@ OPAQUE_DEPENDENCY = re.compile(
     r"|(?:readFile|readdir|opendir|readlink|realpath|copyFile|cp|stat|lstat|access|exists|glob|watch)(?:Sync)?"
     r"|createReadStream|watchFile)\b"
     r"|\b(?:import|require)\s*\(\s*(?!\s*[\"'])[^\s]"
-    r"|\bnew\s+URL\s*\(\s*[\"'`]\.\.?/|\bimport\s*\.\s*meta\s*\.\s*(?:dir|dirname|filename|path)\b"
+    r"|\bnew\s+URL\s*\([^)]*\bimport\s*\.\s*meta\s*\.\s*url\b"
+    r"|\bimport\s*\.\s*meta\s*\.\s*(?:dir|dirname|filename|path)\b"
     r"|\b__(?:dirname|filename)\b"
 )
 

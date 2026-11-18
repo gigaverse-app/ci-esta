@@ -47,7 +47,7 @@ when its source can name repository inputs the import graph cannot see:
   `access`, `copyFile`, `cp`, `glob`, `createReadStream`, `Bun.file`, `Bun.Glob`,
   `import.meta.glob`;
 - computed `import(...)` or `require(...)`;
-- module-relative paths: `new URL("./…", import.meta.url)`, `import.meta.dir`,
+- module-relative paths: `new URL("…", import.meta.url)`, `import.meta.dir`,
   `import.meta.dirname`, `__dirname`. These are how a test names a sibling script
   to execute or a fixture to read.
 

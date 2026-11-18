@@ -255,6 +255,8 @@ def test_declared_preload_dependencies_expand_the_full_suite(repository):
     ("import {copyFileSync} from 'node:fs'; copyFileSync('a', 'b');", True),
     ("const files = new Bun.Glob('*.json').scanSync('.');", True),
     ("import {spawnSync} from 'node:child_process'; spawnSync('node', [new URL('./run.mjs', import.meta.url)]);", True),
+    ("const script = fileURLToPath(new URL('run.sh', import.meta.url));", True),
+    ("if (process.argv[1] === fileURLToPath(import.meta.url)) main();", False),
     ("import {join} from 'node:path'; Bun.spawn(['bun', join(import.meta.dir, 'run.ts')]);", True),
     ("const run = require('path').join(__dirname, 'run.js');", True),
 ])
