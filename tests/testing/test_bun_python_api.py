@@ -385,3 +385,24 @@ def test_declaration_audit_lists_what_to_declare_delete_and_merge(repository, ca
     git('commit', '-qm', 'one manifest')
     assert main(['bun-declarations', '--repo', str(root), '--strict']) == 0
     assert 'Declarations are complete' in capsys.readouterr().out
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+@pytest.mark.parametrize('changed,mode,selected', [
+    ('docs/guide.md', 'none', ['src/contract.test.ts']),
+    ('src/value.ts', 'scoped', ['src/contract.test.ts', 'src/value.test.ts']),
+])
+def test_always_run_tests_alone_report_no_affected_work(repository, changed, mode, selected):
+    root, git, _ = repository
+    (root / 'src/contract.test.ts').write_text("import {test} from 'bun:test'; test('contract',()=>{});")
+    git('add', '.')
+    git('commit', '-qm', 'contract')
+    base = git('rev-parse', 'HEAD')
+    (root / changed).parent.mkdir(exist_ok=True)
+    (root / changed).write_text('changed' if changed.endswith('.md') else 'export const value = 2;')
+    git('add', '.')
+    git('commit', '-qm', 'change')
+    plan = plan_affected_tests(SelectionRequest(
+        cwd=root, base=base, test_files=['src/contract.test.ts', 'src/value.test.ts'],
+        always_run_files=['src/contract.test.ts']))
+    assert (plan.mode, plan.selected_files) == (mode, selected)
