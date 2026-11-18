@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.19.1](https://github.com/gigaverse-app/ci-esta/compare/v1.19.0...v1.19.1) (2026-11-18)
+
+
+### Bug fixes
+
+* **bun:** follow fs bindings, report every undeclared reader, audit declarations ([#238](https://github.com/gigaverse-app/ci-esta/issues/238)) ([d23365f](https://github.com/gigaverse-app/ci-esta/commit/d23365f719e9608a0d6e38f49b9f95a0f18f3038))
+* **bun:** require declarations only for reads and module-relative paths ([#236](https://github.com/gigaverse-app/ci-esta/issues/236)) ([9042ea7](https://github.com/gigaverse-app/ci-esta/commit/9042ea736679d00bc8ce87029799547b6b8143db))
+
 ## [1.19.0](https://github.com/gigaverse-app/ci-esta/compare/v1.18.1...v1.19.0) (2026-11-17)
 
 
