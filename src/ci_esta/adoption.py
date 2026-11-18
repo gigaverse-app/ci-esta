@@ -368,7 +368,9 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
         advise("reporting", "No completed-run reporter found. Measure with `ci-esta report` first (see next steps); "
                "add the observer workflow once the change can merge to the default branch.", observed)
     evidence = ci("resolve-lane-evidence")
-    if evidence and not any(re.search(r"outputs\.[a-z0-9_-]*receipt(?![a-z0-9_-])", name) for _, name in job_steps):
+    # A called workflow names its step after the receipt the caller passes in, as `inputs.<name>receipt`.
+    if evidence and not any(re.search(r"(?:outputs|inputs)\.[a-z0-9_-]*receipt(?![a-z0-9_-])", name)
+                            for _, name in job_steps):
         advise("reuse-receipt", "resolve-lane-evidence is wired, but no job step is named after its receipt output. Without a final successful step named with the receipt, no run can ever be reused.", [item.source for item in evidence])
     after_merge = [item for item in evidence if str(item.inputs.get("reuse-after-merge", "")).lower() == "true"]
     marker = re.compile(r"PR evidence #\$\{\{\s*github\.event\.pull_request\.number\s*\}\}")

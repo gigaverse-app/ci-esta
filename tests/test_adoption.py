@@ -359,6 +359,9 @@ def test_lane_evidence_without_a_receipt_step_is_flagged(tmp_path):
     # A receipt published under another output name, like pytest-selective's contract-receipt, still counts.
     named = RECEIPT.replace("outputs.receipt", "outputs.contract-receipt")
     assert "reuse-receipt" not in reuse_suggestions(tmp_path, MARKER, named)
+    # A reusable workflow names the step after the receipt its caller passes as an input.
+    passed = RECEIPT.replace("needs.plan.outputs.receipt", "inputs.validation-receipt")
+    assert "reuse-receipt" not in reuse_suggestions(tmp_path, MARKER, passed)
 
 
 def test_reuse_without_merge_reuse_needs_no_marker(tmp_path):
