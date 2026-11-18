@@ -43,7 +43,6 @@ jobs:
       - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
         with:
           inventory: ${{ runner.temp }}/bun-inventory.json
-          policy: .github/test-selection.json
           base: ${{ steps.previous.outputs.tested-merge-sha || github.event.pull_request.base.sha || github.event.before }}
           validated-head: ${{ steps.previous.outputs.reused == 'true' && steps.previous.outputs.base-sha || '' }}
           full: ${{ github.event_name == 'pull_request' && steps.previous.outputs.reused != 'true' && 'true' || 'auto' }}
