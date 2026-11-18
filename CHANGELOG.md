@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.20.1](https://github.com/gigaverse-app/ci-esta/compare/v1.20.0...v1.20.1) (2026-11-18)
+
+
+### Documentation
+
+* **bun:** drop the deprecated policy from the example and cover push-triggered CI ([#245](https://github.com/gigaverse-app/ci-esta/issues/245)) ([18dd1ee](https://github.com/gigaverse-app/ci-esta/commit/18dd1ee1802bf3d4af0e478d340902ae7c0c53a3))
+* show what CI saves and how to get started ([#243](https://github.com/gigaverse-app/ci-esta/issues/243)) ([bf2a5fd](https://github.com/gigaverse-app/ci-esta/commit/bf2a5fd36408424400c15344eaed855bfeb89db1))
+
 ## [1.20.0](https://github.com/gigaverse-app/ci-esta/compare/v1.19.1...v1.20.0) (2026-11-18)
 
 
