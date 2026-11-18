@@ -150,6 +150,7 @@ nav:
   - Related tools: ecosystem.md
   - Compare alternatives: docs/alternatives.md
 - Benchmarks and evidence:
+  - When CI can be 10× faster and cheaper: adoption-case-studies.md
   - "From the trenches: faster, cheaper CI": case-study.md
   - CI routing and reporting results: docs/benchmarks/2026-10-22.md
   - Toolkit adoption and critical paths: docs/benchmarks/2026-10-23-toolkit.md

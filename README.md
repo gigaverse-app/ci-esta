@@ -34,9 +34,11 @@ The PR report shows what ran, what was reused and which job kept you waiting. Sc
 
 Suppose you change how checkout rounds a discount. CI follows the changed code to the pricing and checkout tests. A database integration lane runs if its tests depend on the change. On your next push, a lane can reuse its earlier pass when its inputs still match. The PR report shows what ran again and why.
 
-## How much time could you save?
+## Where can CI be 10× faster and cost one-tenth as much?
 
-A test gate that would take an estimated **52 minutes** to run the full suite on one runner took **5.1 minutes** on ordinary PRs. That's about **90% less waiting**. Your savings depend on how much work your changes touch. [See the case study](https://ci-esta.readthedocs.io/en/latest/case-study/).
+On three unchanged nights, CI-esta gave a browser workflow its verdict in **38–41 seconds**. Running its full checkpoint on those same commits took **15–16 minutes**. Across the three pairs that is **24× faster at 1/12 the estimated runner cost**, including the jobs that decide what to run. [See the six runs and cost calculation](https://ci-esta.readthedocs.io/en/latest/adoption-case-studies/).
+
+When a change *did* need the browsers, the team cut the workflow from **14m 56s to 5m 30s**. All 16 journeys passed exactly once in both runs. The faster build and balanced shards cost an estimated **0.6¢ more** per run. [See the PR benchmark](https://ci-esta.readthedocs.io/en/latest/adoption-case-studies/#when-all-16-browser-journeys-must-run) · [Read the Django monorepo case study](https://ci-esta.readthedocs.io/en/latest/case-study/).
 
 [Runner setup and diagnostics](https://ci-esta.readthedocs.io/en/latest/docs/runners-and-diagnostics/) · [All actions](actions/README.md) · [Contribute](CONTRIBUTING.md) · [License](LICENSE)
 
