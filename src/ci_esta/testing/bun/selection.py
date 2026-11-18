@@ -76,9 +76,11 @@ def _declared_plan(request: SelectionRequest, plan: SelectionPlan, changes: list
     if unknown := unmodeled_inputs(changed, graph):
         plan.reason = f"Full suite for an undeclared non-import input: {unknown[0]}"
         return plan
-    plan.selected_files = sorted({test for test in tests if graph[test] & changed} | set(request.always_run_files))
-    plan.mode = 'scoped' if plan.selected_files else 'none'
-    plan.reason = f"Bun import graph and shared dependency declarations against {plan.base}; {len(plan.selected_files)} affected files"
+    affected = {test for test in tests if graph[test] & changed} - set(request.always_run_files)
+    plan.selected_files = sorted(affected | set(request.always_run_files))
+    plan.mode = 'scoped' if affected else 'none'
+    plan.reason = (f"Bun import graph and shared dependency declarations against {plan.base}; {len(affected)} affected files"
+                   if affected else "No test reaches a changed file; always-run tests still execute")
     return plan
 
 
