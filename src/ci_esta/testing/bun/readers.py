@@ -4,6 +4,7 @@ A match requires a reader-owned declaration (or makes the graph uncertain). Read
 paths, computed imports and module-relative paths count; writes, temporary directories and removal
 do not, so importing `node:fs` alone is not a read. Names that are also ordinary words (`stat`,
 `access`, `watch`...) count only when they are reached through an `fs` binding the file creates.
+Comments are ignored, so prose such as "a direct import (not the barrel)" is not a computed import.
 """
 
 import re
@@ -51,7 +52,40 @@ def _fs_bindings(source: str) -> tuple[set[str], set[str]]:
     return namespaces, named
 
 
+def _without_comments(source: str) -> str:
+    """Drop `//` and `/* */` comments, keeping string and template literals intact.
+
+    Regex literals are not parsed: a quote inside one reads as a string to the end of its line,
+    which only keeps text and so can only ask for a declaration, never hide a read.
+    """
+    kept: list[str] = []
+    index, length, quote = 0, len(source), ""
+    while index < length:
+        char = source[index]
+        if quote:
+            kept.append(source[index:index + 2] if char == "\\" else char)
+            index += 2 if char == "\\" else 1
+            if char == quote or (char == "\n" and quote != "`"):
+                quote = ""
+        elif char in "'\"`":
+            quote = char
+            kept.append(char)
+            index += 1
+        elif source.startswith("//", index):
+            end = source.find("\n", index)
+            index = length if end < 0 else end
+        elif source.startswith("/*", index):
+            end = source.find("*/", index + 2)
+            index = length if end < 0 else end + 2
+            kept.append(" ")
+        else:
+            kept.append(char)
+            index += 1
+    return "".join(kept)
+
+
 def names_untracked_inputs(source: str) -> bool:
+    source = _without_comments(source)
     if _UNAMBIGUOUS.search(source):
         return True
     namespaces, named = _fs_bindings(source)

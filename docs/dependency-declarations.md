@@ -82,7 +82,8 @@ when its source can name repository inputs the import graph cannot see:
   names a sibling script to execute, a worker to start or a fixture to read.
 
 Writing, appending, creating temporary directories and removing files are not
-inputs. A module that only does those needs no declaration.
+inputs. A module that only does those needs no declaration. Comments are ignored,
+so prose such as `// a direct import (not the barrel)` is not a computed import.
 
 Detection reads source text; it cannot see a path built from the working directory,
 such as `spawnSync("bash", ["scripts/check.sh"])` or a Bun shell command naming a
