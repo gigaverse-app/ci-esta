@@ -93,9 +93,11 @@ dependencies:
 ```
 
 The format and parser are pytest-selective's, shared with Python projects through
-the lightweight `selective-deps` package. Directory manifests can
-group readers, `kind: import` follows the declared input's imports, and `kind: content`
-reads only its bytes. No reader hashes or repository-wide exception registry are
+the lightweight `selective-deps` package. Prefer one directory manifest per
+directory; [authoring rules](dependency-declarations.md#author-one-manifest-per-directory)
+cover which files need one, `{stem}` sibling pairs and reviewed readers with no inputs.
+`kind: import` follows the declared input's imports (use it for executed scripts),
+and `kind: content` reads only its bytes. No reader hashes or repository-wide exception registry are
 needed. A content change selects the reader's dependent tests, not every test.
 
 Declarations are reviewed input contracts, not automatic discovery of every runtime

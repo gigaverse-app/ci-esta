@@ -50,9 +50,17 @@ BUILTIN = re.compile(r"^(?:bun|node):")
 #: A line of Bun's output that says why the graph failed, rather than a warning before it.
 FAILURE = re.compile(r"\berror\b|could not|cannot|panic", re.IGNORECASE)
 
+#: Source that names repository inputs the import graph cannot see: filesystem reads and
+#: inspection, computed imports, and module-relative paths (how a reader names a sibling
+#: to read or execute). Writes, temp directories and removal are not inputs, so importing
+#: `node:fs` alone does not require a declaration.
 OPAQUE_DEPENDENCY = re.compile(
-    r"\b(?:Bun\s*\.\s*file|readFile(?:Sync)?|import\s*\.\s*meta\s*\.\s*glob)\b"
-    r"|[\"'](?:node:)?fs(?:/promises)?[\"']|\b(?:import|require)\s*\(\s*(?!\s*[\"'])[^\s]"
+    r"\b(?:Bun\s*\.\s*(?:file|Glob)|import\s*\.\s*meta\s*\.\s*glob"
+    r"|(?:readFile|readdir|opendir|readlink|realpath|copyFile|cp|stat|lstat|access|exists|glob|watch)(?:Sync)?"
+    r"|createReadStream|watchFile)\b"
+    r"|\b(?:import|require)\s*\(\s*(?!\s*[\"'])[^\s]"
+    r"|\bnew\s+URL\s*\(\s*[\"'`]\.\.?/|\bimport\s*\.\s*meta\s*\.\s*(?:dir|dirname|filename|path)\b"
+    r"|\b__(?:dirname|filename)\b"
 )
 
 

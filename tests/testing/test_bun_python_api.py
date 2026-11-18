@@ -245,3 +245,63 @@ def test_declared_preload_dependencies_expand_the_full_suite(repository):
     git('commit', '-qm', 'change preload dependency')
     plan = plan_affected_tests(SelectionRequest(cwd=root, base=base, preloads=['setup.ts']))
     assert plan.mode == 'full' and 'preload' in plan.reason
+
+
+@pytest.mark.parametrize('source,opaque', [
+    ("import {mkdtempSync, writeFileSync, rmSync} from 'node:fs'; writeFileSync('out.json', '{}');", False),
+    ("import * as fs from 'node:fs/promises'; await fs.appendFile(process.env.GITHUB_OUTPUT, 'x');", False),
+    ("import {readFileSync} from 'node:fs'; readFileSync('data.json');", True),
+    ("import {existsSync} from 'node:fs'; existsSync('data.json');", True),
+    ("import {copyFileSync} from 'node:fs'; copyFileSync('a', 'b');", True),
+    ("const files = new Bun.Glob('*.json').scanSync('.');", True),
+    ("import {spawnSync} from 'node:child_process'; spawnSync('node', [new URL('./run.mjs', import.meta.url)]);", True),
+    ("import {join} from 'node:path'; Bun.spawn(['bun', join(import.meta.dir, 'run.ts')]);", True),
+    ("const run = require('path').join(__dirname, 'run.js');", True),
+])
+def test_only_reads_and_module_relative_paths_need_a_declaration(source, opaque):
+    from ci_esta.testing.bun.graph import OPAQUE_DEPENDENCY
+    assert bool(OPAQUE_DEPENDENCY.search(source)) is opaque
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+def test_a_write_only_helper_keeps_selection_without_a_declaration(repository):
+    root, git, _ = repository
+    (root / 'src/report.ts').write_text(
+        "import {writeFileSync} from 'node:fs'; export const report = (v: number) => writeFileSync('out.json', String(v));")
+    (root / 'src/report.test.ts').write_text(
+        "import {test} from 'bun:test'; import {report} from './report'; test('report',()=>report(1));")
+    git('add', '.')
+    git('commit', '-qm', 'write-only helper')
+    base = git('rev-parse', 'HEAD')
+    (root / 'src/report.ts').write_text((root / 'src/report.ts').read_text() + '\n')
+    git('add', '.')
+    git('commit', '-qm', 'touch helper')
+    plan = plan_affected_tests(SelectionRequest(cwd=root, base=base,
+                                                test_files=['src/report.test.ts', 'src/value.test.ts']))
+    assert not plan.fallback
+    assert plan.selected_files == ['src/report.test.ts']
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+@pytest.mark.parametrize('declared', [False, True])
+def test_a_test_running_its_sibling_script_needs_an_import_declaration(repository, declared):
+    root, git, _ = repository
+    (root / 'src/leaf.ts').write_text('export const leaf = 1;')
+    (root / 'src/run.ts').write_text("import {leaf} from './leaf'; console.log(leaf);")
+    (root / 'src/run.test.ts').write_text(
+        "import {test} from 'bun:test'; "
+        "test('run',()=>{Bun.spawnSync(['bun', new URL('./run.ts', import.meta.url).pathname]);});")
+    if declared:
+        (root / 'src/run.test.ts.gv-dependency.yaml').write_text(
+            'dependencies:\n  - inputs: ["run.ts"]\n    kind: import\n')
+    git('add', '.')
+    git('commit', '-qm', 'subprocess test')
+    base = git('rev-parse', 'HEAD')
+    (root / 'src/leaf.ts').write_text('export const leaf = 2;')
+    git('add', '.')
+    git('commit', '-qm', 'change what the script imports')
+    plan = plan_affected_tests(SelectionRequest(cwd=root, base=base,
+                                                test_files=['src/run.test.ts', 'src/value.test.ts']))
+    assert plan.fallback is not declared
+    if declared:
+        assert plan.selected_files == ['src/run.test.ts']
