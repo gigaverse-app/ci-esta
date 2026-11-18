@@ -142,8 +142,10 @@ class ReviewedFile(BaseModel):
 
 
 class Reviewed(BaseModel):
+    """A current finding and the recorded decision that covers it."""
+
     suggestion: Suggestion
-    reason: str
+    decision: ReviewedDecision
 
 
 class AdoptionReport(BaseModel):
@@ -427,10 +429,10 @@ def _apply_reviews(root: Path, report: AdoptionReport) -> None:
         if decision is None:
             open_items.append(item)
         else:
-            report.reviewed.append(Reviewed(suggestion=item, reason=decision.reason))
+            report.reviewed.append(Reviewed(suggestion=item, decision=decision))
     report.suggestions = open_items
-    report.stale_reviews = [decision for decision in decisions
-                            if not any(decision.covers(entry.suggestion) for entry in report.reviewed)]
+    used = [entry.decision for entry in report.reviewed]
+    report.stale_reviews = [decision for decision in decisions if decision not in used]
 
 
 def render(report: AdoptionReport) -> str:
@@ -466,7 +468,7 @@ def render(report: AdoptionReport) -> str:
         lines.append("No suggestions from these checks. Review the full adoption checklist for uninspected capabilities.")
     if report.reviewed:
         lines.append(f"Reviewed in {REVIEWED_FILE} ({len(report.reviewed)}):")
-        lines.extend(f"- {entry.suggestion.id} ({', '.join(entry.suggestion.evidence)}): {entry.reason}"
+        lines.extend(f"- {entry.suggestion.id} ({', '.join(entry.suggestion.evidence)}): {entry.decision.reason}"
                      for entry in report.reviewed)
     if report.stale_reviews:
         lines.append(f"Stale entries in {REVIEWED_FILE}; their finding is no longer reported, so delete them:")

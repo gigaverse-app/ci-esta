@@ -547,7 +547,7 @@ def test_reviewed_decisions_move_findings_out_of_open_suggestions_and_flag_stale
     report = audit(tmp_path)
     assert "gate-indirect" not in {item["id"] for item in report["suggestions"]}
     assert [entry["suggestion"]["id"] for entry in report["reviewed"]] == ["gate-indirect"]
-    assert report["reviewed"][0]["reason"].startswith("The verdict reports")
+    assert report["reviewed"][0]["decision"]["reason"].startswith("The verdict reports")
     assert [entry["evidence"] for entry in report["stale_reviews"]] == [".github/workflows/gone.yml"]
     text = subprocess.run([sys.executable, "-m", "ci_esta.cli", "adoption", "--root", str(tmp_path)],
                           capture_output=True, text=True).stdout
