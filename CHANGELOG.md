@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.20.0](https://github.com/gigaverse-app/ci-esta/compare/v1.19.1...v1.20.0) (2026-11-18)
+
+
+### Features
+
+* **bun:** ignore comments when detecting readers ([#240](https://github.com/gigaverse-app/ci-esta/issues/240)) ([46a66c5](https://github.com/gigaverse-app/ci-esta/commit/46a66c5074902279e6b810b63c6ff3a36c7cc1d0))
+* **bun:** report no affected work when declarations select only always-run tests ([#241](https://github.com/gigaverse-app/ci-esta/issues/241)) ([365c7e9](https://github.com/gigaverse-app/ci-esta/commit/365c7e9a49f3d3580e9831076fe92eb2ea59079a))
+
+
+### Bug fixes
+
+* **api:** list the adopter Python API and test every name in it ([#239](https://github.com/gigaverse-app/ci-esta/issues/239)) ([6724d67](https://github.com/gigaverse-app/ci-esta/commit/6724d674bb8d4bf695f6a0977aff6080e66baa43))
+
 ## [1.19.1](https://github.com/gigaverse-app/ci-esta/compare/v1.19.0...v1.19.1) (2026-11-18)
 
 
