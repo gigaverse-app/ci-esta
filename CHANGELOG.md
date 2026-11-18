@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.22.0](https://github.com/gigaverse-app/ci-esta/compare/v1.21.0...v1.22.0) (2026-11-18)
+
+
+### Features
+
+* **adoption:** record reviewed decisions with reasons in the repository ([#250](https://github.com/gigaverse-app/ci-esta/issues/250)) ([a0c088a](https://github.com/gigaverse-app/ci-esta/commit/a0c088a87aafe94f69a8fe9ac1bf2ef3460f2284))
+
+
+### Documentation
+
+* help new adopters try the tools on their own changes ([#248](https://github.com/gigaverse-app/ci-esta/issues/248)) ([2dd0ed6](https://github.com/gigaverse-app/ci-esta/commit/2dd0ed661ceda821daaef979a79ef5f0c59ef899))
+
 ## [1.21.0](https://github.com/gigaverse-app/ci-esta/compare/v1.20.1...v1.21.0) (2026-11-18)
 
 
