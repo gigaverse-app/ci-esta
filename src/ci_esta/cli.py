@@ -49,6 +49,15 @@ def main(argv: list[str] | None = None) -> int:
     audit.add_argument("--repo", type=Path, default=Path("."))
     audit.add_argument("--gate", default="Validation gate",
                        help="The aggregate job's exact name; keep an existing required check's name")
+    declarations = commands.add_parser(
+        "bun-declarations",
+        help="List Bun readers to declare, declarations no test reaches, and sidecars to merge",
+    )
+    declarations.add_argument("--repo", type=Path, default=Path("."))
+    declarations.add_argument("--root", action="append", default=[],
+                              help="Only tests under this path; repeat for several. Default: every tracked test")
+    declarations.add_argument("--bun", default="bun", help="Bun executable")
+    declarations.add_argument("--json", action="store_true")
     collect = commands.add_parser("report", help="Read a GitHub Actions run and save JSON, Markdown and Prometheus")
     collect.add_argument("--repository", required=True, help="owner/repository")
     collect.add_argument("--run-id", required=True, type=int)
@@ -97,6 +106,14 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         print(checked)
         return 0
+    if args.command == "bun-declarations":
+        from ci_esta.testing.bun.declarations_report import report as declarations_report
+
+        try:
+            return declarations_report(args.repo, args.root, args.bun, args.json)
+        except ValueError as error:
+            print(f"ci-esta bun-declarations: {error}", file=sys.stderr)
+            return 1
     if args.command == "render":
         report = CiObservabilityReportV1.model_validate_json(args.report.read_bytes())
         for path, content in ((args.markdown, render_markdown(report)), (args.prometheus, render_prometheus(report))):

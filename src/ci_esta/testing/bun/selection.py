@@ -10,7 +10,7 @@ from selective_deps import DependencyDeclarationError
 from ci_esta.git import git, tracked_files
 from ci_esta.testing.baseline_policy import validated_comparison
 from ci_esta.testing.bun.discovery import test_files
-from ci_esta.testing.bun.graph import OPAQUE_DEPENDENCY, test_inputs, test_preloads, unmodeled_inputs
+from ci_esta.testing.bun.graph import test_inputs, test_preloads, unmodeled_inputs
 from ci_esta.testing.bun.models import (
     BUN_ENVIRONMENT_NAMES,
     TEST_FILE,
@@ -19,6 +19,7 @@ from ci_esta.testing.bun.models import (
     SelectionPlan,
     SelectionRequest,
 )
+from ci_esta.testing.bun.readers import names_untracked_inputs
 from ci_esta.testing.dependencies import declared_edges
 
 
@@ -126,7 +127,7 @@ def plan_affected_tests(request: SelectionRequest) -> SelectionPlan:
                 raise ValueError(f"Non-regular source input: {path}")
             if Path(path).suffix not in policy.source_extensions:
                 continue
-            if OPAQUE_DEPENDENCY.search((request.cwd / path).read_text()):
+            if names_untracked_inputs((request.cwd / path).read_text()):
                 reader = policy.reviewed_readers.get(path)
                 if reader is not None and reader.blob == blob:
                     continue

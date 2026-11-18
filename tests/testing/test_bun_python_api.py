@@ -262,10 +262,21 @@ def test_declared_preload_dependencies_expand_the_full_suite(repository):
     ("if (process.argv[1] === fileURLToPath(import.meta.url)) main();", False),
     ("import {join} from 'node:path'; Bun.spawn(['bun', join(import.meta.dir, 'run.ts')]);", True),
     ("const run = require('path').join(__dirname, 'run.js');", True),
+    ("import * as files from 'node:fs/promises'; await files.stat('data.json');", True),
+    ("import nodeFs from 'node:fs'; nodeFs.promises.access('data.json');", True),
+    ("const { access } = require('node:fs/promises'); await access('data.json');", True),
+    ("const { stat: inspect } = await import('node:fs/promises'); await inspect('data.json');", True),
+    ("import {promises as disk} from 'node:fs'; await disk.open('data.json');", True),
+    ("import * as files from 'node:fs/promises'; await files.writeFile('out.json', '{}');", False),
+    ("const handle = openSync('data.json', 'r');", True),
+    ("const path = import.meta.resolve('./fixture.json');", True),
+    ("const path = require.resolve('./fixture.json');", True),
+    ("const worker = new Worker('./detector.worker.ts');", True),
+    ("const socket = server.open(); dialog.open('x');", False),
 ])
 def test_only_reads_and_module_relative_paths_need_a_declaration(source, opaque):
-    from ci_esta.testing.bun.graph import OPAQUE_DEPENDENCY
-    assert bool(OPAQUE_DEPENDENCY.search(source)) is opaque
+    from ci_esta.testing.bun.readers import names_untracked_inputs
+    assert names_untracked_inputs(source) is opaque
 
 
 @pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
@@ -310,3 +321,58 @@ def test_a_test_running_its_sibling_script_needs_an_import_declaration(repositor
     assert plan.fallback is not declared
     if declared:
         assert plan.selected_files == ['src/run.test.ts']
+
+
+def _commit_readers(root, git):
+    (root / 'src/data.json').write_text('1')
+    for name in ('left', 'right'):
+        (root / f'src/{name}.ts').write_text(
+            "import {readFileSync} from 'node:fs'; export const v = readFileSync(new URL('./data.json', import.meta.url));")
+        (root / f'src/{name}.test.ts').write_text(
+            f"import {{test}} from 'bun:test'; import {{v}} from './{name}'; test('{name}',()=>{{v;}});")
+    git('add', '.')
+    git('commit', '-qm', 'two undeclared readers')
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+def test_every_undeclared_reader_is_reported_in_one_error(repository):
+    from ci_esta.testing.bun.graph import test_inputs
+
+    root, git, _ = repository
+    _commit_readers(root, git)
+    files = set(git('ls-files').splitlines())
+    with pytest.raises(ValueError, match=r'Undeclared non-import dependencies in src/left\.ts, src/right\.ts;'):
+        test_inputs(root, ['src/left.test.ts', 'src/right.test.ts'], 'bun', files)
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+def test_declaration_audit_lists_what_to_declare_delete_and_merge(repository, capsys):
+    from ci_esta.cli import main
+
+    root, git, _ = repository
+    _commit_readers(root, git)
+    reviewed = 'dependencies: []'
+    (root / 'src/value.ts.gv-dependency.yaml').write_text(reviewed)
+    (root / 'tools').mkdir()
+    (root / 'tools/unused.ts').write_text("import {readFileSync} from 'node:fs'; readFileSync('x');")
+    (root / 'tools/unused.ts.gv-dependency.yaml').write_text(reviewed)
+    (root / 'src/left.ts.gv-dependency.yaml').write_text('dependencies: [{inputs: [data.json], kind: content}]')
+    git('add', '.')
+    git('commit', '-qm', 'some declarations')
+
+    assert main(['bun-declarations', '--repo', str(root), '--json']) == 2
+    audit = json.loads(capsys.readouterr().out)
+    assert audit == {
+        'undeclared': ['src/right.ts'],
+        'unreached': ['tools/unused.ts'],
+        'crowded': {'src': ['src/left.ts.gv-dependency.yaml', 'src/value.ts.gv-dependency.yaml']},
+    }
+
+    for sidecar in ('src/left.ts', 'src/value.ts', 'tools/unused.ts'):
+        (root / f'{sidecar}.gv-dependency.yaml').unlink()
+    (root / 'src/.gv-dependencies.yaml').write_text(
+        'dependencies: [{readers: [left.ts, right.ts], inputs: [data.json], kind: content}]')
+    git('add', '-A')
+    git('commit', '-qm', 'one manifest')
+    assert main(['bun-declarations', '--repo', str(root)]) == 0
+    assert 'Declarations are complete' in capsys.readouterr().out

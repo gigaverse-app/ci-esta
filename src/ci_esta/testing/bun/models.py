@@ -126,3 +126,14 @@ class ReportContext(MeasurementIdentity):
     @property
     def attempt(self) -> int:
         return self.run_attempt
+
+
+class DeclarationAudit(JsonContract):
+    """Declarations to add, delete and merge, from one traversal of every Bun test."""
+
+    #: Reachable modules that name untracked inputs without a declaration; selection falls back to full.
+    undeclared: list[str]
+    #: Declared readers no test reaches; their declarations change no selection.
+    unreached: list[str]
+    #: Directories holding more than one file sidecar, which one `.gv-dependencies.yaml` can replace.
+    crowded: dict[str, list[str]]
