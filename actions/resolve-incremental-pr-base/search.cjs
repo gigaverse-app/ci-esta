@@ -3,6 +3,7 @@
 // Positive verdicts remain lane-specific. Refusals are scoped to the job and
 // receipt so a fallback source cannot erase a decision to execute.
 const SESSION = Symbol('ci-esta evidence search');
+const READ_AHEAD = 8;
 
 function newestFirst(left, right) {
   return Date.parse(right.updated_at || right.created_at) - Date.parse(left.updated_at || left.created_at)
@@ -127,6 +128,15 @@ class EvidenceSearch {
     if (attempt !== undefined && jobs.some(job => job.run_attempt !== undefined && job.run_attempt !== attempt))
       throw new Error(`Run ${id} changed attempts during evidence discovery`);
     return jobs;
+  }
+  // Starts the job reads for the next `width` runs so a newest-first walk waits on one
+  // round trip per window, not per run. The walk still awaits each run in order; a
+  // read-ahead failure surfaces only when the walk reaches that run.
+  readAheadJobs(runs, from, width = READ_AHEAD) {
+    for (const run of runs.slice(from, from + width)) {
+      if (this.stopped) return;
+      this.jobs(run.id, run.run_attempt).catch(() => {});
+    }
   }
   checks(sha) {
     return this.collection('checks', this.github.rest.checks.listForRef, {ref: sha}, 'check_runs');
