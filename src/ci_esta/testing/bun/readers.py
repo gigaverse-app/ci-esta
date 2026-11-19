@@ -52,36 +52,24 @@ def _fs_bindings(source: str) -> tuple[set[str], set[str]]:
     return namespaces, named
 
 
-def _without_comments(source: str) -> str:
-    """Drop `//` and `/* */` comments, keeping string and template literals intact.
+# Single and double quotes end at an unescaped newline. Templates may span lines.
+# Match literals first so comment markers inside them survive unchanged. Each
+# alternative consumes disjoint characters, including a backslash escape.
+_LITERALS_AND_COMMENTS = re.compile(
+    r"'(?:[^'\\\n]++|\\.)*+'?"
+    r'|"(?:[^"\\\n]++|\\.)*+"?'
+    r"|`(?:[^`\\]++|\\.)*+`?"
+    r"|(?P<line>//[^\n]*)|(?P<block>/\*.*?(?:\*/|\Z))",
+    re.DOTALL,
+)
 
-    Regex literals are not parsed: a quote inside one reads as a string to the end of its line,
-    which only keeps text and so can only ask for a declaration, never hide a read.
-    """
-    kept: list[str] = []
-    index, length, quote = 0, len(source), ""
-    while index < length:
-        char = source[index]
-        if quote:
-            kept.append(source[index:index + 2] if char == "\\" else char)
-            index += 2 if char == "\\" else 1
-            if char == quote or (char == "\n" and quote != "`"):
-                quote = ""
-        elif char in "'\"`":
-            quote = char
-            kept.append(char)
-            index += 1
-        elif source.startswith("//", index):
-            end = source.find("\n", index)
-            index = length if end < 0 else end
-        elif source.startswith("/*", index):
-            end = source.find("*/", index + 2)
-            index = length if end < 0 else end + 2
-            kept.append(" ")
-        else:
-            kept.append(char)
-            index += 1
-    return "".join(kept)
+
+def _without_comments(source: str) -> str:
+    """Drop comments while preserving quoted text and line boundaries."""
+    if "//" not in source and "/*" not in source:
+        return source
+    replacements = {"line": "", "block": " "}
+    return _LITERALS_AND_COMMENTS.sub(lambda match: replacements.get(match.lastgroup, match[0]), source)
 
 
 def names_untracked_inputs(source: str) -> bool:
