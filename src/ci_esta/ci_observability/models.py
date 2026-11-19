@@ -9,7 +9,16 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, SerializeAsAny, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    SerializeAsAny,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
 from ci_esta.ci_observability.critical_path import CriticalPathResult
 from ci_esta.ci_observability.impact import ImpactResult
@@ -195,6 +204,28 @@ class ObservedStepV1(GitHubStepV1):
     wall_seconds: float | None
 
 
+class RunnerCpuAllocation(BaseModel):
+    """Whole job reservation; usage is known only for covered counter intervals."""
+    pool: str
+    cores: float = Field(gt=0, allow_inf_nan=False)
+    occupied_seconds: float = Field(gt=0)
+    covered_seconds: float = 0
+    used_core_seconds: float | None = None
+    peak_sampled_cores: float | None = None
+
+    @computed_field
+    @property
+    def allocated_core_seconds(self) -> float:
+        return self.cores * self.occupied_seconds
+
+    @computed_field
+    @property
+    def unused_core_seconds(self) -> float | None:
+        if self.used_core_seconds is None:
+            return None
+        return self.covered_seconds * self.cores - self.used_core_seconds
+
+
 class ObservedJobV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -220,6 +251,7 @@ class ObservedJobV1(BaseModel):
     runner_labels: list[str] = Field(default_factory=list)
     runner_name: str | None = None
     runner_group_name: str | None = None
+    cpu_allocation: RunnerCpuAllocation | None = None
     steps: list[ObservedStepV1] = Field(default_factory=list)
 
 
@@ -245,6 +277,7 @@ class RunnerSkuRateV1(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     sku: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,63}$")
+    allocated_cores: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     runner_label: str = Field(min_length=1, max_length=128)
     usd_per_minute: Decimal | None = Field(default=None, ge=0)
 
