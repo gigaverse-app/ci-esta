@@ -61,6 +61,17 @@ OFFICIAL_LABEL_SKUS = {
 PUBLIC_FREE_SKUS = frozenset(STANDARD_LABEL_SKUS.values())
 
 
+def standard_cores(label: str, repository_private: bool | None) -> int | None:
+    """Standard hosted specifications from GitHub's github-hosted-runners reference."""
+    sku = STANDARD_LABEL_SKUS.get(label)
+    if sku == "actions_linux_slim":
+        return 1
+    if sku in {"actions_linux", "actions_linux_arm", "actions_windows", "actions_windows_arm"}:
+        if repository_private is not None:
+            return 2 if repository_private else 4
+    return None
+
+
 def matching_rate(job: ObservedJobV1, rates: list[RunnerSkuRateV1],
                   repository_private: bool | None) -> RunnerSkuRateV1 | None:
     matches = [rate for rate in rates if rate.runner_label in job.runner_labels]

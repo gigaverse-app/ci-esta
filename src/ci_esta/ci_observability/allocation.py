@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from ci_esta.ci_observability import markdown
 from ci_esta.ci_observability.models import ObservedJobV1, RunnerCpuAllocation, RunnerSkuRateV1
+from ci_esta.ci_observability.pricing import STANDARD_LABEL_SKUS, standard_cores
 
 
 class CounterSeries(BaseModel):
@@ -35,18 +36,27 @@ def measure(counter: CounterSeries, start: float, end: float, allocation: Runner
         allocation.peak_sampled_cores = max(cores, allocation.peak_sampled_cores or 0)
 
 
-def collect(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1], url: str, namespace: str) -> list[ObservedJobV1]:
-    sizes = {r.runner_label: r.allocated_cores for r in rates if r.allocated_cores is not None}
+def collect(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1], url: str | None, namespace: str,
+            *, repository_private: bool | None = None) -> list[ObservedJobV1]:
+    catalog = {r.runner_label: r for r in rates}
     with httpx.Client(timeout=5, trust_env=False) as client:
         def read(job: ObservedJobV1) -> ObservedJobV1:
-            labels = sizes.keys() & job.runner_labels
-            if (len(labels) != 1 or not job.runner_name or not job.started_at or not job.completed_at
+            labels = catalog.keys() & job.runner_labels
+            if (len(labels) > 1 or not job.runner_name or not job.started_at or not job.completed_at
                     or not job.wall_seconds or job.status != "completed" or job.conclusion == "skipped"):
                 return job
-            label = next(iter(labels))
-            cores = sizes[label]
-            assert cores is not None and job.started_at and job.completed_at and job.wall_seconds
+            label = next(iter(labels), job.runner_labels[0] if len(job.runner_labels) == 1 else "")
+            rate = catalog.get(label)
+            cores = rate.allocated_cores if rate else None
+            standard_hosted = len(job.runner_labels) == 1 and job.runner_group_name in (None, "GitHub Actions")
+            if cores is None and standard_hosted and (not rate or rate.sku == STANDARD_LABEL_SKUS.get(label)):
+                cores = standard_cores(label, repository_private)
+            if cores is None:
+                return job
             allocation = RunnerCpuAllocation(pool=label, cores=cores, occupied_seconds=job.wall_seconds)
+            allocated_job = job.model_copy(update={"cpu_allocation": allocation})
+            if not url or not rate or rate.allocated_cores is None or job.runner_group_name == "GitHub Actions":
+                return allocated_job
             start, end = job.started_at.timestamp(), job.completed_at.timestamp()
             # The pod cgroup includes the runner, Docker daemon and child containers exactly once.
             selector = ('container_cpu_usage_seconds_total{container="",cpu="total",id=~".*pod[^/]+[.]slice",'
@@ -61,7 +71,7 @@ def collect(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1], url: str, n
             except (httpx.HTTPError, ValueError):
                 # Resource observations are optional and independent per job.
                 pass
-            return job.model_copy(update={"cpu_allocation": allocation})
+            return allocated_job
 
         with ThreadPoolExecutor(max_workers=6) as executor:
             return list(executor.map(read, jobs))

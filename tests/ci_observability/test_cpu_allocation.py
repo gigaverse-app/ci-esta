@@ -7,6 +7,25 @@ from ci_esta.ci_observability.models import GitHubJobV1, RunnerCpuAllocation, Ru
 from ci_esta.ci_observability.report import _observe_job
 
 
+@pytest.mark.parametrize(("labels", "private", "expected"), [
+    (["ubuntu-latest"], True, 2), (["ubuntu-latest"], False, 4),
+    (["ubuntu-latest"], None, None), (["ubuntu-slim"], None, 1),
+    (["self-hosted", "ubuntu-latest"], True, None), (["custom"], None, 6),
+])
+def test_reservations_without_cpu_samples(labels, private, expected):
+    start, end = [datetime.fromtimestamp(t, UTC) for t in (100, 115)]
+    job = _observe_job(GitHubJobV1(id=2, name="build", labels=labels, runner_name="runner", status="completed",
+                                   started_at=start, completed_at=end), start, end)
+    rate = RunnerSkuRateV1(sku="custom", runner_label="custom", allocated_cores=6)
+    row, = allocation.collect([job], [rate], None, "runners", repository_private=private)
+    if expected is None:
+        assert row.cpu_allocation is None
+    else:
+        assert row.cpu_allocation.allocated_core_seconds == expected * 15
+        assert row.cpu_allocation.unused_core_seconds is None
+        assert row.cpu_allocation.used_core_seconds is None
+
+
 def test_accounting_clips_scrapes_and_keeps_bursts_above_reservation():
     a = RunnerCpuAllocation(pool="light", cores=2, occupied_seconds=20)
     allocation.measure(allocation.CounterSeries(values=[(5, 0), (15, 30), (25, 60), (35, 90)]), 10, 30, a)
