@@ -22,6 +22,8 @@ def work_selection_report(execution: BunExecution, context: ReportContext) -> Wo
                 duration_seconds=duration / 1000 if duration is not None and math.isfinite(duration) else None,
                 cpu_count=execution.cpu_count, worker_limit=execution.workers, runner_label=execution.runner_label,
                 tested_sha=execution.tested_sha, base_sha=execution.base or None, runtime=f"Bun {execution.bun_version}",
+                previous_failures=execution.previous_failures,
+                previous_failures_outcome=execution.previous_failures_outcome,
             ),
         )],
     )

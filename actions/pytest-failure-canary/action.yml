@@ -23,8 +23,14 @@ inputs:
     description: Current consumer checkout used to discard deleted, renamed, or escaping test paths.
     required: false
     default: "."
+  test-files:
+    description: >-
+      Which runner wrote the reports. `pytest` (default) resolves modules from the classname;
+      `bun` reads each testcase's file and accepts TypeScript and JavaScript test files.
+    required: false
+    default: pytest
   output:
-    description: Newline-delimited pytest path file to write.
+    description: Newline-delimited test path file to write.
     required: false
     default: pytest-failure-canary.txt
 
@@ -101,4 +107,5 @@ runs:
         INPUT_MAX_FILES: ${{ inputs.max-files }}
         INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
         INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_TEST_FILES: ${{ inputs.test-files }}
       run: uv run --no-project --python 3.14 --with "pydantic>=2.11,<3" --with "defusedxml>=0.7,<0.8" python -m ci_esta.testing.canary_action

@@ -76,6 +76,10 @@ class RunRequest(SelectionRequest):
     args: list[str] = Field(default_factory=lambda: ["--isolate", "--parallel"])
     shards: int = Field(default=1, strict=True, ge=1)
     timing_history: str | None = None
+    #: Repository-relative test files that failed in the previous run: re-run first, even when unaffected.
+    previous_failures: list[str] = Field(default_factory=list)
+    #: Stop after the first batch when those files still fail: a fast answer, recorded as incomplete.
+    stop_on_previous_failure: bool = True
 
 
 class BatchExecution(JsonContract):
@@ -85,6 +89,15 @@ class BatchExecution(JsonContract):
     duration_ms: float
     executed_files: list[str] | None
     error: str | None = None
+    #: `previous-failures` runs the files that failed last time before every other batch.
+    kind: Literal["batch", "previous-failures"] = "batch"
+    #: Files with a failed or errored test in this batch's JUnit report; None when the report is missing.
+    failed_files: list[str] | None = None
+
+    @property
+    def report_name(self) -> str:
+        return "previous-failures" if self.kind == "previous-failures" else (
+            f"{self.shard - 1}-{'affected' if self.affected else 'full'}")
 
 
 class BunExecution(JsonContract):
@@ -108,6 +121,17 @@ class BunExecution(JsonContract):
     duration_ms: float | None = None
     exit_code: int
     receipt: str | None = None
+    #: Inventory files that failed in the previous run and ran first in this one.
+    previous_failures: list[str] = Field(default_factory=list)
+    #: `stopped`: they failed again, so the remaining batches did not run (fast answer, never a pass).
+    previous_failures_outcome: Literal["none", "passed", "failed", "stopped"] = "none"
+
+    @computed_field
+    @property
+    def failed_files(self) -> list[str] | None:
+        if any(batch.failed_files is None for batch in self.executions):
+            return None
+        return sorted({file for batch in self.executions for file in batch.failed_files or []})
 
     @computed_field
     @property

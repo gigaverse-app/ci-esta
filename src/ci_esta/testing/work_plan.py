@@ -40,11 +40,39 @@ def plan_work(
     full: bool = False,
     bun: str = "bun",
     rules: list[Rule] | None = None,
+    previous_failures: list[str] | None = None,
 ) -> LanePlan:
     """pytest-selective's lane plan, with CI changes routed through the workflow graph.
 
     `rules` are the rules in force (`ci-esta lanes` lists them); None keeps the built-in defaults.
+    `previous_failures` are test files that failed in the previous run: their lanes run even when this
+    change reaches none of them, so a fix elsewhere still has to prove them.
     """
+    result = _plan_changes(repo, config, base, head, full=full, bun=bun, rules=rules)
+    return admit_previous_failures(result, config, previous_failures or [])
+
+
+def admit_previous_failures(result: LanePlan, config: LaneConfig, failures: list[str]) -> LanePlan:
+    """Select every lane that owns a previously failing test file, naming the file as the reason."""
+    lanes, evidence = dict(result.lanes), {name: list(values) for name, values in result.lane_reasons.items()}
+    for name, lane in config.lanes.items():
+        owned = [file for file in failures if lane.contains_test(file)]
+        if owned and not lanes.get(name):
+            lanes[name] = True
+            evidence[name] = [f"previous failure: {file}" for file in owned]
+    return result.model_copy(update={"lanes": lanes, "lane_reasons": evidence})
+
+
+def _plan_changes(
+    repo: Path,
+    config: LaneConfig,
+    base: str,
+    head: str,
+    *,
+    full: bool,
+    bun: str,
+    rules: list[Rule] | None,
+) -> LanePlan:
     rules = effective([], []) if rules is None else rules
     python = by_name(rules, PYTHON_ENVIRONMENT)
     if python is None or python.origin != "built-in":
@@ -214,7 +242,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--github-output", type=Path)
     parser.add_argument("--bun", default="bun", help="Bun executable, for repositories with Bun tests")
     parser.add_argument("--summary", type=Path, help="append a readable table of the plan (step summary)")
+    parser.add_argument("--previous-failures", type=Path,
+                        help="newline-delimited test files that failed last time; their lanes always run")
     args = parser.parse_args(argv)
+    failures = ([line.strip() for line in args.previous_failures.read_text(encoding="utf-8").splitlines()
+                 if line.strip()] if args.previous_failures and args.previous_failures.is_file() else [])
     baseline = comparison(
         args.repo,
         args.base,
@@ -230,7 +262,8 @@ def main(argv: list[str] | None = None) -> int:
         resolved = resolve(args.repo, args.base, args.head, args.config)
         config = resolved.config
         result = plan_work(
-            args.repo, config, args.base, args.head, full=args.full is not None, bun=args.bun, rules=resolved.rules
+            args.repo, config, args.base, args.head, full=args.full is not None, bun=args.bun, rules=resolved.rules,
+            previous_failures=failures,
         )
         if args.full is not None:
             result.reason = args.full

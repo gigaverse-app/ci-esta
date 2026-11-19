@@ -16,6 +16,7 @@ from ci_esta.github_outputs import append_outputs
 from ci_esta.testing.bun.models import BatchExecution, BunExecution, ReportContext, RunRequest
 from ci_esta.testing.bun.report import work_selection_report
 from ci_esta.testing.bun.selection import plan_affected_tests, read_inventory, read_test_selection, safe_path
+from ci_esta.testing.junit import BUN_SUFFIXES, plan_failure_canary
 
 ARGUMENT = re.compile(
     r"(?:--isolate|--parallel(?:=[1-9]\d*)?|--timeout=[1-9]\d*|--max-concurrency=[1-9]\d*"
@@ -38,13 +39,21 @@ def write_json(path: Path, value: BaseModel) -> None:
 report_context = partial(ReportContext.from_environment, required=True)
 
 
-def _execute_batch(request: RunRequest, index: int, files: list[str], affected: bool, base: str) -> BatchExecution:
-    timings = request.output_directory / f"timings-{index}-{'affected' if affected else 'full'}.json"
+def _execute_batch(request: RunRequest, index: int, files: list[str], affected: bool, base: str,
+                   kind: str = "batch") -> BatchExecution:
+    name = BatchExecution(shard=index + 1, affected=affected, exit_code=0, duration_ms=0, executed_files=None,
+                          kind=kind).report_name
+    timings = request.output_directory / f"timings-{name}.json"
+    junit = request.output_directory / f"junit-{name}.xml"
     timings.write_text('{"version":1,"files":{}}')
+    junit.unlink(missing_ok=True)
     command = [request.bun, "test", *(f"./{file}" for file in files), *request.args,
                *(arg for path in request.preloads for arg in ["--preload", f"./{path}"]),
-               *([f"--changed={base}"] if affected else []), f"--timings={timings}", "--update-timings"]
-    print(f"Bun batch {index + 1}/{request.shards}: {'affected' if affected else 'full'}, {len(files)} candidate files", file=sys.stderr)
+               *([f"--changed={base}"] if affected else []), f"--timings={timings}", "--update-timings",
+               "--reporter=junit", f"--reporter-outfile={junit}"]
+    label = ("previous failures first" if kind == "previous-failures"
+             else f"batch {index + 1}/{request.shards}: {'affected' if affected else 'full'}")
+    print(f"Bun {label}, {len(files)} candidate files", file=sys.stderr)
     before = time.perf_counter()
     error = None
     try:
@@ -62,8 +71,17 @@ def _execute_batch(request: RunRequest, index: int, files: list[str], affected: 
         executed = sorted(values)
     except (OSError, ValueError):
         pass
-    return BatchExecution(shard=index + 1, affected=affected, exit_code=status,
-                          duration_ms=(time.perf_counter() - before) * 1000, executed_files=executed, error=error)
+    failed = None
+    if junit.is_file():
+        report = plan_failure_canary([junit], max_files=max(len(files), 1), working_directory=request.cwd,
+                                     suffixes=BUN_SUFFIXES)
+        failed = report.selected_files if report.valid_report_count else None
+        # A failing process whose report names no failed file broke outside a test (a load error): unknown.
+        if status and not failed:
+            failed = None
+    return BatchExecution(shard=index + 1, affected=affected, exit_code=status, kind=kind,
+                          duration_ms=(time.perf_counter() - before) * 1000, executed_files=executed, error=error,
+                          failed_files=failed)
 
 
 def balanced_batches(files: list[str], count: int, costs: dict[str, float]) -> list[list[str]]:
@@ -108,11 +126,30 @@ def run_bun_tests(request: RunRequest) -> BunExecution:
     if any(path in plan.changed_files for path in request.preloads):
         plan.mode = "full"
         plan.reason = "Full suite for changed explicit preload"
+    # Files that failed last time run first, even when this change does not reach them: a fix elsewhere must
+    # still prove them, and a still-red PR gets its answer from one small batch.
+    previous = [file for file in dict.fromkeys(request.previous_failures) if file in inventory.files]
+    if previous and plan.mode != "full":
+        if plan.selected_files is not None:
+            plan.selected_files = sorted(set(plan.selected_files) | set(previous))
+        if plan.mode == "none":
+            plan.mode = "scoped"
+        plan.reason = f"{plan.reason}; {len(previous)} previously failing files run first"
     request.output_directory.mkdir(parents=True, exist_ok=True)
     write_json(request.output_directory / "test-selection.json", plan)
     executions = []
     started = time.perf_counter()
-    for index, shard in enumerate(balanced_batches(inventory.files, request.shards, costs)):
+    outcome = "none"
+    if previous:
+        first = _execute_batch(request, 0, previous, False, plan.base, kind="previous-failures")
+        executions.append(first)
+        outcome = "failed" if first.exit_code else "passed"
+        if first.exit_code and request.stop_on_previous_failure:
+            outcome = "stopped"
+            print(f"Previously failing files still fail; skipping the remaining batches "
+                  f"(stop-on-previous-failure). Failed: {', '.join(first.failed_files or previous)}", file=sys.stderr)
+    for index, shard in enumerate([] if outcome == "stopped" else balanced_batches(
+            [file for file in inventory.files if file not in previous], request.shards, costs)):
         groups = [(shard, False)] if plan.mode == "full" else [
             ([file for file in shard if file in inventory.always_run_files], False),
             ([] if plan.mode == "none" else [file for file in shard if file not in inventory.always_run_files], True),
@@ -134,13 +171,14 @@ def run_bun_tests(request: RunRequest) -> BunExecution:
         total_files=len(inventory.files), always_run_files=inventory.always_run_files, executed_files=executed,
         executions=executions, duration_ms=(time.perf_counter() - started) * 1000,
         exit_code=next((batch.exit_code for batch in reversed(executions) if batch.exit_code), 0),
+        previous_failures=previous, previous_failures_outcome=outcome,
     )
     if not result.complete and result.exit_code == 0:
         print("Bun execution inventory is incomplete; successful processes alone cannot establish validation", file=sys.stderr)
         result.exit_code = 1
     if history is not None and result.exit_code == 0:
         for batch in executions:
-            timings = request.output_directory / f"timings-{batch.shard - 1}-{'affected' if batch.affected else 'full'}.json"
+            timings = request.output_directory / f"timings-{batch.report_name}.json"
             observed = Timings.model_validate_json(timings.read_text()).files
             costs.update({path: value for path, value in observed.items() if path in (result.executed_files or [])})
         history.parent.mkdir(parents=True, exist_ok=True)

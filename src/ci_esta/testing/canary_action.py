@@ -7,13 +7,16 @@ from __future__ import annotations
 import os
 from collections import Counter
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from ci_esta.github_outputs import append_outputs
 from ci_esta.testing.artifacts import find_artifacts
 from ci_esta.testing.junit import (
+    BUN_SUFFIXES,
     DEFAULT_CANARY_MAX_FILES,
+    PYTEST_SUFFIXES,
     PytestFailureCanaryPlan,
     format_failure_canary_summary,
     plan_failure_canary,
@@ -35,6 +38,8 @@ class CanaryConfig(BaseModel):
     output: Path
     max_files: int = DEFAULT_CANARY_MAX_FILES
     working_directory: Path = Path(".")
+    #: Which runner wrote the reports: pytest names modules by classname, Bun names files directly.
+    test_files: Literal["pytest", "bun"] = "pytest"
 
     @model_validator(mode="after")
     def validate_bounds(self) -> "CanaryConfig":
@@ -74,6 +79,7 @@ def build_canary(config: CanaryConfig) -> CanaryActionResult:
         junit_files,
         max_files=config.max_files,
         working_directory=config.working_directory,
+        suffixes=BUN_SUFFIXES if config.test_files == "bun" else PYTEST_SUFFIXES,
     )
     write_failure_canary_file(plan, config.output)
     expected_names = Counter(
@@ -106,6 +112,7 @@ def main() -> int:
         max_files=int(os.environ.get("INPUT_MAX_FILES", str(DEFAULT_CANARY_MAX_FILES))),
         output=Path(os.environ["INPUT_OUTPUT"]),
         working_directory=Path(os.environ.get("INPUT_WORKING_DIRECTORY", ".")),
+        test_files=os.environ.get("INPUT_TEST_FILES") or "pytest",
     )
     result = build_canary(config)
     _append_action_outputs(config, result)

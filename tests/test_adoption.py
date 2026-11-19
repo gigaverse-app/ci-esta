@@ -565,3 +565,44 @@ def test_a_decision_without_a_reason_or_with_unknown_keys_fails_loudly(tmp_path,
     result = subprocess.run([sys.executable, "-m", "ci_esta.cli", "adoption", "--root", str(tmp_path)],
                             capture_output=True, text=True)
     assert result.returncode == 2 and "ci-esta-reviewed.yaml" in result.stderr
+
+
+BUN_LANE = """
+name: Tests
+on: [pull_request]
+jobs:
+  unit:
+    steps:
+%s      - uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
+        with:
+          inventory: inventory.json
+%s
+"""
+RESOLVE = """      - id: failures
+        uses: gigaverse-app/ci-esta/actions/resolve-previous-failures@v1
+        with: {artifact-pattern: 'bun-test-*', test-files: bun}
+"""
+
+
+@pytest.mark.parametrize(("resolve", "fed", "advised"), [
+    ("", "", True),
+    (RESOLVE, "", True),  # resolved but never handed to the runner
+    (RESOLVE, "          previous-failures: ${{ steps.failures.outputs.failures-file }}", False),
+])
+def test_failed_first_is_advised_until_the_runner_gets_previous_failures(tmp_path, resolve, fed, advised):
+    write(tmp_path, ".github/workflows/tests.yml", BUN_LANE % (resolve, fed))
+    suggestions = {item["id"]: item for item in audit(tmp_path)["suggestions"]}
+    assert ("failed-first" in suggestions) is advised
+    if advised:
+        assert suggestions["failed-first"]["evidence"] == [".github/workflows/tests.yml"]
+        assert suggestions["failed-first"]["guide"].endswith("/docs/failed-first/")
+
+
+def test_failed_first_opt_out_is_a_recorded_decision(tmp_path):
+    write(tmp_path, ".github/workflows/tests.yml", BUN_LANE % ("", ""))
+    write(tmp_path, ".github/ci-esta-reviewed.yaml",
+          "reviewed:\n  - suggestion: failed-first\n    evidence: .github/workflows/tests.yml\n"
+          "    reason: Every run is full and takes under a minute.\n")
+    report = audit(tmp_path)
+    assert "failed-first" not in {item["id"] for item in report["suggestions"]}
+    assert [entry["suggestion"]["id"] for entry in report["reviewed"]] == ["failed-first"]

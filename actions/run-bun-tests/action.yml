@@ -28,6 +28,19 @@ inputs:
   timing-history:
     description: Optional retained native Bun timing JSON outside the checkout. Used only to balance whole-file batches; successful fresh measurements update it.
     default: ''
+  previous-failures:
+    description: >-
+      Newline-delimited test files that failed in the previous run, for example from
+      resolve-previous-failures. They run first, in their own batch, even when this change
+      does not reach them. Empty or missing means no previous failures.
+    required: false
+    default: ''
+  stop-on-previous-failure:
+    description: >-
+      'true' (default) stops after the previous-failures batch when it fails again: a fast answer,
+      recorded as an incomplete run and never as a pass. 'false' runs every batch regardless.
+    required: false
+    default: 'true'
   output-directory:
     description: Fresh output directory outside tracked inputs.
     default: '${{ runner.temp }}/bun-test-selection'
@@ -61,6 +74,8 @@ runs:
         BUN_TEST_TIMING_HISTORY: ${{ inputs.timing-history }}
         BUN_TEST_SHARDS: ${{ inputs.shards }}
         BUN_TEST_OUTPUT: ${{ inputs.output-directory }}
+        BUN_TEST_PREVIOUS_FAILURES: ${{ inputs.previous-failures }}
+        BUN_TEST_STOP_ON_PREVIOUS_FAILURE: ${{ inputs.stop-on-previous-failure }}
       run: |
         export PYTHONPATH="$SHARED_ACTION_PATH/../../src"
         CI_ESTA_PYTHON=$(bash "$SHARED_ACTION_PATH/../../scripts/ci/tool-runtime.sh" --prepare)

@@ -29,6 +29,10 @@ class WorkExecutionV1(BaseModel):
     worker_limit: int | None = Field(default=None, gt=0)
     runner_label: str | None = Field(default=None, min_length=1, max_length=128)
     runtime: str = Field(min_length=1, max_length=100)
+    #: Test files that failed in the previous run and ran first in this one.
+    previous_failures: list[str] = Field(default_factory=list, max_length=100000)
+    #: `stopped`: they failed again and the rest was skipped for a fast answer.
+    previous_failures_outcome: Literal["none", "passed", "failed", "stopped"] = "none"
 
     @model_validator(mode="after")
     def consistent_inventory(self):
@@ -119,6 +123,23 @@ def render_work_selection(plan: WorkSelectionV1) -> str:
     return "\n".join(lines)
 
 
+def _render_previous_failures(execution: WorkExecutionV1) -> list[str]:
+    """The failed-first answer, stated first because it is what a red PR is waiting for."""
+    count = len(execution.previous_failures)
+    if not count:
+        return []
+    noun = "file" if count == 1 else "files"
+    verdict = {
+        "passed": f"**Failed first: the {count} previously failing {noun} now pass**, checked before everything else.",
+        "failed": f"**Failed first: {count} previously failing {noun} ran first and still fail.**",
+        "stopped": (f"**Failed first: {count} previously failing {noun} still fail**, so the remaining tests were "
+                    "skipped for a fast answer. This run is not a pass; push a fix to re-check."),
+    }[execution.previous_failures_outcome]
+    listed = [f"- {markdown.code(file)}" for file in execution.previous_failures[:10]]
+    more = [f"{count - 10} more are retained in the JSON report."] if count > 10 else []
+    return [verdict, "", *listed, *more, ""]
+
+
 def _render_execution(name: str, execution: WorkExecutionV1) -> list[str]:
     from ci_esta.ci_observability.enrichment.primitives import format_seconds
 
@@ -134,6 +155,7 @@ def _render_execution(name: str, execution: WorkExecutionV1) -> list[str]:
                   "File-count reduction is not a measured time saving.", ""]
     if execution.mode == "reused":
         lines += ["Prior validation reused; no tests executed in this attempt.", ""]
+    lines += _render_previous_failures(execution)
     lines += ["<details><summary>Test inventory and selection inputs</summary>", "",
               f"Tested commit: {markdown.code(execution.tested_sha)}. "
               f"Selection base: {markdown.code(execution.base_sha or 'not applicable')}.", "",

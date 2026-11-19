@@ -224,3 +224,32 @@ def test_composite_action_exposes_planner_inputs_and_outputs() -> None:
     ):
         assert f"  {action_output}:" in action
     assert "python -m ci_esta.testing.canary_action" in action
+
+
+BUN_JUNIT = """<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="bun test" tests="3" failures="1">
+  <testsuite name="src/a.test.ts" file="src/a.test.ts" tests="1" failures="0">
+    <testcase name="ok" classname="" time="0.1" file="src/a.test.ts" line="2" />
+  </testsuite>
+  <testsuite name="src/b.test.tsx" file="src/b.test.tsx" tests="2" failures="1">
+    <testcase name="bad" classname="" time="0.1" file="src/b.test.tsx" line="2"><failure message="no"/></testcase>
+    <testcase name="fine" classname="" time="0.1" file="src/b.test.tsx" line="3" />
+  </testsuite>
+</testsuites>
+"""
+
+
+@pytest.mark.parametrize(("test_files", "expected"), [("bun", ["src/b.test.tsx"]), ("pytest", [])])
+def test_bun_reports_name_their_failed_files_only_when_asked(tmp_path: Path, test_files: str, expected: list) -> None:
+    (tmp_path / "src").mkdir()
+    for name in ("a.test.ts", "b.test.tsx"):
+        (tmp_path / "src" / name).write_text("")
+    (tmp_path / "artifacts").mkdir()
+    (tmp_path / "artifacts/junit-previous-failures.xml").write_text(BUN_JUNIT)
+    result = build_canary(CanaryConfig(
+        artifact_directory=tmp_path / "artifacts", junit_pattern="junit-*.xml", shard_count=1,
+        output=tmp_path / "failures.txt", working_directory=tmp_path, test_files=test_files,
+        junit_name_template="junit-{shard}.xml"))
+    assert result.selected_files == expected
+    # pytest mode never turns a TypeScript path into a pytest argument: it counts the case as unresolvable.
+    assert result.invalid_path_count == (0 if test_files == "bun" else 1)

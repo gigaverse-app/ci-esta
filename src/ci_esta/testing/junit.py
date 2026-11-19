@@ -102,7 +102,12 @@ def _parse_junit(path: Path) -> Element | None:
         return None
 
 
-def _safe_relative_test_path(value: str | None) -> str | None:
+#: Test file suffixes a prior-failure report may name, per runner. Bun reports name the file directly.
+PYTEST_SUFFIXES = (".py",)
+BUN_SUFFIXES = (".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts")
+
+
+def _safe_relative_test_path(value: str | None, suffixes: tuple[str, ...] = PYTEST_SUFFIXES) -> str | None:
     if not value:
         return None
     if any(ord(character) < 32 or ord(character) == 127 for character in value):
@@ -116,7 +121,7 @@ def _safe_relative_test_path(value: str | None) -> str | None:
         or path.is_absolute()
         or PureWindowsPath(normalized).is_absolute()
         or ".." in path.parts
-        or path.suffix != ".py"
+        or path.suffix not in suffixes
     ):
         return None
     return path.as_posix()
@@ -136,7 +141,9 @@ def _is_current_test_file(file_path: str, working_directory: Path) -> bool:
     return candidate.is_relative_to(workspace) and candidate.is_file()
 
 
-def _testcase_file_path(testcase: Element, working_directory: Path) -> str | None:
+def _testcase_file_path(
+    testcase: Element, working_directory: Path, suffixes: tuple[str, ...] = PYTEST_SUFFIXES
+) -> str | None:
     """
     Resolve a testcase to a safe current file across pytest JUnit families.
 
@@ -159,7 +166,7 @@ def _testcase_file_path(testcase: Element, working_directory: Path) -> str | Non
             candidate = _safe_relative_test_path(f"{'/'.join(parts[:length])}.py")
             if candidate is not None and _is_current_test_file(candidate, working_directory):
                 return candidate
-    return _safe_relative_test_path(declared) if declared is not None else None
+    return _safe_relative_test_path(declared, suffixes) if declared is not None else None
 
 
 def junit_file_duration(path: Path) -> float | None:
@@ -252,6 +259,7 @@ def plan_failure_canary(
     paths: list[Path],
     max_files: int = DEFAULT_CANARY_MAX_FILES,
     working_directory: Path = Path("."),
+    suffixes: tuple[str, ...] = PYTEST_SUFFIXES,
 ) -> PytestFailureCanaryPlan:
     """
     Select whole files with prior terminal failures, most failures first.
@@ -278,7 +286,7 @@ def plan_failure_canary(
             if not terminal:
                 continue
             terminal_failure_count += 1
-            file_path = _testcase_file_path(testcase, working_directory)
+            file_path = _testcase_file_path(testcase, working_directory, suffixes)
             if file_path is None:
                 invalid_path_count += 1
                 continue

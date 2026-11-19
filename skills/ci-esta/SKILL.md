@@ -35,6 +35,10 @@ human keeps merging, required-check settings, runner groups and secrets.
   the lanes' roots first: it lists every undeclared reader, declarations no test reaches and directories
   to merge in one run. Run it again before opening the PR and act on every line it prints.
   Add `ci-esta bun-declarations --strict --root …` to a CI job with Bun installed so the result stays clean.
+- **Re-run what failed first** whenever selection runs: `resolve-previous-failures` (Bun or pytest JUnit) feeds
+  `run-bun-tests` `previous-failures`, or the pytest changed-files list plus `ci-esta-pytest canary-run`. Previous
+  failures are re-selected even when untouched, and a still-red PR stops after that batch. Upload each run's JUnit so the
+  next run can read it. See [failed-first](https://ci-esta.readthedocs.io/en/latest/docs/failed-first/).
 - A request for **full adoption** includes every applicable capability: selection, lane planning, validated
   evidence reuse, measured setup/cache, learned timing and scheduling, strict gates, PR reports, telemetry
   and full checkpoints. Track each through implementation and verification. Do not silently defer them.

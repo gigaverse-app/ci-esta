@@ -1,0 +1,131 @@
+name: Resolve previous test failures
+description: >-
+  Find the test files that failed in this branch's previous run of the same workflow, from its
+  JUnit artifacts, so the next run re-checks them first. Works for pytest and Bun reports.
+
+inputs:
+  artifact-pattern:
+    description: >-
+      Artifact name glob of the previous run's test reports, for example `pytest-results-*`
+      or `bun-test-unit-*`.
+    required: true
+  junit-pattern:
+    description: Glob, relative to the downloaded artifacts, of the JUnit reports inside them.
+    required: false
+    default: '**/junit-*.xml'
+  test-files:
+    description: >-
+      Which runner wrote the reports: `pytest` resolves modules from the classname, `bun` reads
+      each testcase's file.
+    required: true
+  max-files:
+    description: Most failed files to return, the most-failing first.
+    required: false
+    default: '100'
+  output:
+    description: Newline-delimited file of failed test paths to write (empty when there are none).
+    required: false
+    default: previous-failures.txt
+  working-directory:
+    description: Checkout used to drop deleted, renamed or escaping paths.
+    required: false
+    default: '.'
+  github-token:
+    description: Token with actions:read to list runs and download their artifacts.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  failures-file:
+    description: Path of the written failures file; always written, possibly empty.
+    value: ${{ inputs.output }}
+  has-failures:
+    description: Whether the previous run left runnable failed test files.
+    value: ${{ steps.plan.outputs.has_files || 'false' }}
+  failure-count:
+    description: Number of failed test files written.
+    value: ${{ steps.plan.outputs.selected_file_count || '0' }}
+  run-id:
+    description: The previous failed run whose reports were read; empty when there was none.
+    value: ${{ steps.previous.outputs.run-id }}
+
+runs:
+  using: composite
+  steps:
+    - name: Find the previous failed run of this workflow on this branch
+      id: previous
+      uses: actions/github-script@v9
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          // The newest completed run decides: after a green run there is nothing left to re-check.
+          // Cancelled runs are skipped because concurrency cancels superseded pushes mid-run.
+          const branch = context.payload.pull_request?.head?.ref || context.ref.replace(/^refs\/heads\//, '');
+          const { data: current } = await github.rest.actions.getWorkflowRun({
+            ...context.repo, run_id: context.runId });
+          const { data } = await github.rest.actions.listWorkflowRuns({
+            ...context.repo, workflow_id: current.workflow_id, branch, status: 'completed', per_page: 20 });
+          const previous = data.workflow_runs.find(run => run.id !== context.runId && run.conclusion !== 'cancelled'
+            && run.conclusion !== 'skipped');
+          const failed = previous && previous.conclusion === 'failure';
+          core.info(previous ? `Previous run ${previous.id} on ${branch}: ${previous.conclusion}`
+                             : `No previous completed run on ${branch}`);
+          core.setOutput('run-id', failed ? String(previous.id) : '');
+
+    - name: Prepare an empty failures file
+      shell: bash
+      env:
+        OUTPUT: ${{ inputs.output }}
+      run: |
+        mkdir -p "$(dirname "$OUTPUT")"
+        : > "$OUTPUT"
+
+    - name: Download the previous run's test reports
+      if: ${{ steps.previous.outputs.run-id != '' }}
+      continue-on-error: true
+      uses: actions/download-artifact@v8
+      with:
+        github-token: ${{ inputs.github-token }}
+        run-id: ${{ steps.previous.outputs.run-id }}
+        pattern: ${{ inputs.artifact-pattern }}
+        path: ${{ runner.temp }}/previous-failure-reports
+
+    - name: Discover caller uv
+      id: caller-uv
+      if: ${{ steps.previous.outputs.run-id != '' }}
+      shell: bash
+      run: |
+        if uv_path=$(type -P uv) && [ -x "$uv_path" ]; then
+          echo "available=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "available=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - if: ${{ steps.previous.outputs.run-id != '' && steps.caller-uv.outputs.available != 'true' }}
+      uses: astral-sh/setup-uv@v10.0.1
+      with:
+        enable-cache: false
+
+    - name: Plan the previously failed test files
+      id: plan
+      if: ${{ steps.previous.outputs.run-id != '' }}
+      continue-on-error: true
+      shell: bash
+      env:
+        PYTHONPATH: ${{ github.action_path }}/../../src
+        INPUT_ARTIFACT_DIRECTORY: ${{ runner.temp }}/previous-failure-reports
+        INPUT_JUNIT_PATTERN: ${{ inputs.junit-pattern }}
+        # Completeness is not claimed here: any report that names a failure is enough to re-check it.
+        INPUT_JUNIT_NAME_TEMPLATE: 'unused-{shard}.xml'
+        INPUT_SHARD_COUNT: '1'
+        INPUT_MAX_FILES: ${{ inputs.max-files }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_TEST_FILES: ${{ inputs.test-files }}
+      run: |
+        if [ ! -d "$INPUT_ARTIFACT_DIRECTORY" ]; then
+          echo "The previous run left no matching test reports; nothing to re-check first."
+          exit 0
+        fi
+        uv run --no-project --python 3.14 --with "pydantic>=2.11,<3" --with "defusedxml>=0.7,<0.8" \
+          python -m ci_esta.testing.canary_action

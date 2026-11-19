@@ -168,6 +168,11 @@ Use the shared runner for compatibility suites as well as the default suite:
     timing-history: ${{ runner.temp }}/bun-history/zod4.json
 ```
 
+Each batch also writes a JUnit report (`junit-*.xml`) into the output directory. Upload it, and
+the next run can [re-run what failed first](failed-first.md) through `previous-failures`: those
+files run in their own first batch, even when the change does not reach them, and by default the
+run stops there if they still fail.
+
 `preloads` accepts repository-relative files, preserving their order before every
 Bun batch. A changed preload or transitive preload input forces full execution.
 Declare its non-import inputs using the same sidecar or directory-manifest format.
