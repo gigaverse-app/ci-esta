@@ -454,7 +454,9 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         from ci_esta.ci_observability.allocation import collect
         allocated_jobs = collect(report.billing_jobs, config.runner_sku_rates, os.environ.get("INPUT_RUNNER_PROMETHEUS_URL"),
                                  os.environ.get("INPUT_RUNNER_NAMESPACE") or "arc-runners",
-                                 repository_private=run_metadata.repository.private if run_metadata.repository else None)
+                                 repository_private=run_metadata.repository.private if run_metadata.repository else None,
+                                 resource_steps=set(os.environ.get("INPUT_RUNNER_CPU_LOG_STEPS", "").splitlines()),
+                                 read_job_log=lambda job_id: client.job_log(job_id, max_bytes=16 * 1024 * 1024))
         report = report.model_copy(update={"billing_jobs": allocated_jobs})
         reference_to_record = _own_reference(report, config, run_metadata, observed_at)
     except Exception as error:

@@ -1,7 +1,10 @@
-"""CPU capacity occupied by completed jobs on one-pod-per-job Kubernetes runners."""
+"""CPU reservations and measured counter intervals for completed CI jobs."""
 import json
 import math
+import re
+from collections.abc import Callable, Iterator, Set
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from itertools import pairwise
 
 import httpx
@@ -9,7 +12,7 @@ from pydantic import BaseModel
 
 from ci_esta.ci_observability import markdown
 from ci_esta.ci_observability.models import ObservedJobV1, RunnerCpuAllocation, RunnerSkuRateV1
-from ci_esta.ci_observability.pricing import STANDARD_LABEL_SKUS, standard_cores
+from ci_esta.ci_observability.pricing import GITHUB_SKU_PRICES, STANDARD_LABEL_SKUS, standard_cores
 
 
 class CounterSeries(BaseModel):
@@ -36,8 +39,60 @@ def measure(counter: CounterSeries, start: float, end: float, allocation: Runner
         allocation.peak_sampled_cores = max(cores, allocation.peak_sampled_cores or 0)
 
 
+RESOURCE_LINE = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}T[\d:.]+Z) \[ci-test-resource\] "
+    r"(?:(initial cpu\.stat|final cpu\.stat)$|(?:  |cpu\.stat )usage_usec (\d+)(?: .*)?$)", re.MULTILINE,
+)
+
+
+def resource_counters(log: str) -> Iterator[CounterSeries]:
+    """Read each invocation of ci-esta-resources separately, including cancelled commands."""
+    samples: list[tuple[float, float]] = []
+    active = final = False
+    for match in RESOURCE_LINE.finditer(log.replace("\r\n", "\n")):
+        marker = match[2]
+        if marker == "initial cpu.stat":
+            if samples:
+                yield CounterSeries(values=samples)
+            samples = []
+            active, final = True, False
+        elif active and marker == "final cpu.stat":
+            final = True
+        elif active and match[3] is not None:
+            time = datetime.fromisoformat(match[1]).timestamp()
+            # Startup prints two reads in milliseconds. Log delivery is too
+            # coarse to interpret such pairs as peaks in CPU usage.
+            if not samples or time - samples[-1][0] >= 1:
+                samples.append((time, int(match[3]) / 1_000_000))
+            if final:
+                yield CounterSeries(values=samples)
+                samples = []
+                active = final = False
+    if samples:
+        yield CounterSeries(values=samples)
+
+
+def measure_log(job: ObservedJobV1, step_names: Set[str], read_job_log: Callable[[int], str],
+                allocation: RunnerCpuAllocation) -> None:
+    assert job.started_at and job.completed_at
+    windows = [(max(step.started_at, job.started_at).timestamp(), min(step.completed_at, job.completed_at).timestamp())
+               for step in job.steps if step.name in step_names and step.started_at and step.completed_at]
+    if not windows:
+        return
+    try:
+        for counter in resource_counters(read_job_log(job.job_id)):
+            for start, end in windows:
+                if start <= counter.values[0][0] < end:
+                    measure(counter, start, end, allocation)
+                    break
+    except (httpx.HTTPError, ValueError, OverflowError):
+        # Optional diagnostics must never stop an otherwise complete report.
+        return
+
+
 def collect(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1], url: str | None, namespace: str,
-            *, repository_private: bool | None = None) -> list[ObservedJobV1]:
+            *, repository_private: bool | None = None, resource_steps: Set[str] = frozenset(),
+            read_job_log: Callable[[int], str] | None = None) -> list[ObservedJobV1]:
     catalog = {r.runner_label: r for r in rates}
     with httpx.Client(timeout=5, trust_env=False) as client:
         def read(job: ObservedJobV1) -> ObservedJobV1:
@@ -55,6 +110,13 @@ def collect(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1], url: str | 
                 return job
             allocation = RunnerCpuAllocation(pool=label, cores=cores, occupied_seconds=job.wall_seconds)
             allocated_job = job.model_copy(update={"cpu_allocation": allocation})
+            sku = rate.sku if rate else STANDARD_LABEL_SKUS.get(label, "")
+            dedicated_vm = (standard_hosted and sku in {"actions_linux", "actions_linux_arm"}
+                            or sku in GITHUB_SKU_PRICES and sku.startswith("linux_"))
+            if dedicated_vm and resource_steps and read_job_log:
+                measure_log(job, resource_steps, read_job_log, allocation)
+                if allocation.covered_seconds:
+                    return allocated_job
             if not url or not rate or rate.allocated_cores is None or job.runner_group_name == "GitHub Actions":
                 return allocated_job
             start, end = job.started_at.timestamp(), job.completed_at.timestamp()
@@ -85,7 +147,7 @@ def section(jobs: list[ObservedJobV1]) -> list[str]:
     total = sum(a.allocated_core_seconds for _, a in rows)
     covered = sum(a.covered_seconds * a.cores for _, a in rows)
     unused = sum(a.unused_core_seconds for _, a in rows if a.unused_core_seconds is not None)
-    details = ["Unused = covered reservation minus pod CPU time. Bursts above reservation appear as negative values. "
+    details = ["Unused = covered reservation minus measured CPU time. Bursts above reservation appear as negative values. "
                "Peak is the fastest sampled interval. Missing intervals are excluded.", "",
                "| Job (attempt) | Pool | Reserved cores | Coverage | Used / unused core-s | Peak cores | Queue |",
                "|---|---|---:|---:|---:|---:|---:|"]

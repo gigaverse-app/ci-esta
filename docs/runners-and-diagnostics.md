@@ -198,6 +198,23 @@ visibility is known. The single-core Ubuntu runner has the same size in both cas
 Usage and unused CPU stay unknown until the collector has measured CPU samples.
 See [GitHub-hosted runner specifications](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 
+On a dedicated GitHub-hosted Linux VM, the report can reuse CPU samples already emitted
+by `ci-esta-resources`. Set `CI_TEST_RESOURCE_OBSERVABILITY=true` in the measured step.
+Pass its exact step name in `runner-cpu-log-steps` on the reporting action or reusable
+workflow, one name per line. For larger hosted runners, map the label to its Linux
+GitHub SKU and core count. For example, a report can declare
+
+```yaml
+runner-cpu-log-steps: |
+  Run concurrent pytest shards
+```
+
+The wrapper measures the root cgroup of the dedicated VM. Use these steps only when
+that cgroup covers the whole VM. The report reads the matching job log after completion.
+It counts observed intervals within the named step. Setup and other steps remain unknown.
+Uninstrumented jobs, shared single-core containers and unavailable logs contribute no log
+samples. The reporting limit is 16 MiB per log.
+
 For ephemeral Kubernetes runners, run the report where it can reach a trusted Prometheus
 server. Set `runner-prometheus-url` and `runner-namespace` on the reporting action or
 reusable report workflow. The reusable workflow accepts `reporter-runner` for this purpose.
