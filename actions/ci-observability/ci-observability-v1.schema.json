@@ -791,6 +791,17 @@
           "default": null,
           "title": "Runner Group Name"
         },
+        "cpu_allocation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RunnerCpuAllocation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "steps": {
           "items": {
             "$ref": "#/$defs/ObservedStepV1"
@@ -1356,6 +1367,61 @@
         "billed_attempts"
       ],
       "title": "RunnerCostV1",
+      "type": "object"
+    },
+    "RunnerCpuAllocation": {
+      "description": "Whole job reservation; usage is known only for covered counter intervals.",
+      "properties": {
+        "pool": {
+          "title": "Pool",
+          "type": "string"
+        },
+        "cores": {
+          "exclusiveMinimum": 0,
+          "title": "Cores",
+          "type": "number"
+        },
+        "occupied_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Occupied Seconds",
+          "type": "number"
+        },
+        "covered_seconds": {
+          "default": 0,
+          "title": "Covered Seconds",
+          "type": "number"
+        },
+        "used_core_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Used Core Seconds"
+        },
+        "peak_sampled_cores": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Peak Sampled Cores"
+        }
+      },
+      "required": [
+        "pool",
+        "cores",
+        "occupied_seconds"
+      ],
+      "title": "RunnerCpuAllocation",
       "type": "object"
     },
     "RunnerSkuCostV1": {

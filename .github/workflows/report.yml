@@ -26,6 +26,16 @@ on:
         description: Explicit gate selectors; empty leaves gate latency unassessed.
         type: string
         default: '[]'
+      reporter-runner:
+        description: Runner with access to the configured telemetry endpoint.
+        type: string
+        default: ubuntu-latest
+      runner-prometheus-url:
+        type: string
+        default: ''
+      runner-namespace:
+        type: string
+        default: arc-runners
       runner-sku-rates-json:
         description: Runner-label to GitHub SKU mappings; omit usd_per_minute for catalog prices or set it to override.
         type: string
@@ -73,7 +83,7 @@ on:
 
 jobs:
   report:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.reporter-runner }}
     timeout-minutes: 5
     concurrency:
       group: ci-esta-publish-${{ github.repository }}-${{ inputs.post-sticky && inputs.pull-request-number || github.run_id }}
@@ -95,6 +105,8 @@ jobs:
           commit-sha: ${{ inputs.head-sha }}
           pull-request-number: ${{ inputs.pull-request-number }}
           required-gates-json: ${{ inputs.required-gates-json }}
+          runner-prometheus-url: ${{ inputs.runner-prometheus-url }}
+          runner-namespace: ${{ inputs.runner-namespace }}
           runner-sku-rates-json: ${{ inputs.runner-sku-rates-json }}
           job-dependencies-json: ${{ inputs.job-dependencies-json }}
           analyze-critical-path: ${{ inputs.analyze-critical-path }}

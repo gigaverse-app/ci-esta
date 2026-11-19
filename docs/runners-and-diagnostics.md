@@ -188,3 +188,28 @@ checkpoint. Follow the [tested-tree policy and setup](test-selection-policy.md#w
 for PR-head versus synthetic-merge comparisons, parent validation and main reverts.
 Keep explicit full checkpoints and invalidate completion markers when the execution
 contract changes.
+
+## CPU allocation in the CI report
+
+For ephemeral Kubernetes runners, run the report where it can reach a trusted Prometheus
+server. Set `runner-prometheus-url` and `runner-namespace` on the reporting action or
+reusable report workflow. The reusable workflow accepts `reporter-runner` for this purpose.
+In `runner-sku-rates-json`, set `allocated_cores` for each measured label to the CPU
+reservation configured on that pool. Keep this value in sync when resizing a pool.
+A runner label containing “8” can represent a pod requesting six cores.
+
+The collector matches the exact GitHub runner name to the pod in that namespace.
+It reads the cumulative cAdvisor CPU counter of the Linux systemd pod cgroup, including
+Docker sidecars. It interpolates at job boundaries between scrapes at most 75 seconds
+apart. Missing edges, long gaps, counter resets and ambiguous series contribute no
+measured seconds. Use a dedicated namespace with unique, single-use runner names.
+
+The sticky ranks jobs from all attempts by unused measured core-seconds. Compare coverage,
+observed peak cores and gate latency before changing a runner size. The JSON retains job
+IDs and per-job evidence. Each published Prometheus snapshot also contains
+`ci_runner_cpu_{allocated,covered,used,unused}_core_seconds` by configured pool.
+These gauges describe the reported run, including retries. For exact cross-run totals,
+deduplicate JSON reports by run and job ID. A periodic sum of scraped snapshot gauges
+would count the same run repeatedly. With incomplete coverage, subtract CPU usage only
+from the covered reservation. Negative values mean the pod burst above its request.
+Time spent waiting for assignment and idle fleet capacity between jobs have separate costs.

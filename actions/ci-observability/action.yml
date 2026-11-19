@@ -69,6 +69,12 @@ inputs:
     description: Whether to append the rendered report to GITHUB_STEP_SUMMARY.
     required: false
     default: "true"
+  runner-prometheus-url:
+    description: Trusted Prometheus base URL with Kubernetes cAdvisor counters, for runner labels with allocated_cores.
+    default: ''
+  runner-namespace:
+    description: Namespace containing the single-use runner pods.
+    default: arc-runners
   runner-sku-rates-json:
     description: >
       Optional JSON array mapping runner_label to a GitHub billing sku.
@@ -163,6 +169,8 @@ runs:
         INPUT_PROMETHEUS_OUTPUT: ${{ inputs.prometheus-output }}
         INPUT_POST_STICKY: ${{ inputs.post-sticky }}
         INPUT_APPEND_SUMMARY: ${{ inputs.append-summary }}
+        INPUT_RUNNER_PROMETHEUS_URL: ${{ inputs.runner-prometheus-url }}
+        INPUT_RUNNER_NAMESPACE: ${{ inputs.runner-namespace }}
         INPUT_RUNNER_SKU_RATES_JSON: ${{ inputs.runner-sku-rates-json }}
         INPUT_TEST_SELECTION_ARTIFACT: ${{ inputs.test-selection-artifact }}
         INPUT_FULL_SUITE_REFERENCE_ARTIFACT: ${{ inputs.full-suite-reference-artifact }}

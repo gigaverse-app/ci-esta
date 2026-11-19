@@ -608,6 +608,8 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
                     f"Earlier attempts: **{format_seconds(prior)}**. "
                     "The runner badge includes all attempts; CI gates passed describes the latest attempt.", ""]
     sharding = render_sharding(report)
+    from ci_esta.ci_observability import allocation
+    sections += allocation.section(report.billing_jobs)
     sections += [render_avoided_work(report), *([sharding] if sharding else []),
                  markdown.report_section("CI time and cost", [],
                                          ["Configured CI gates only. Reviews, draft status, conflicts and deployment decisions are not assessed.", "",
@@ -948,4 +950,6 @@ def render_prometheus(report: CiObservabilityReportV1) -> str:
             continue
         lines.append(f"# TYPE {metric} gauge")
         lines.append(f"{metric}{{{labels}}} {float(value)}")
+    from ci_esta.ci_observability import allocation
+    lines.extend(allocation.metrics(report.billing_jobs))
     return "\n".join(lines) + "\n"
