@@ -36,6 +36,19 @@ For a change that needed browser coverage, the team profiled the build and each 
 
 That is **2.7× faster for 0.6¢ extra** on this pair of hosted runs. The required check now compares reported case IDs against the planned inventory. In replay it caught a missing shard report, an omitted test, a skipped test and a duplicate that preserved the total count. The original gate passed all four fixtures. [Combined benchmark](https://github.com/gigaverse-app/gigaverse-web-app/pull/4489#issuecomment-6989923184) · [Coverage check replay](https://github.com/gigaverse-app/gigaverse-web-app/pull/4489#issuecomment-6989749916)
 
+## When file selection saves more runner time than waiting time
+
+A Bun pull request appeared to change the lockfile because the target branch had advanced. Passing the first parent of the verified PR merge from the lane planner to file selection removed that unrelated change. The team ran App Checks four times on the same merge commit with the same workflow and runners. Only the base input differed, and the second pair reversed dispatch order. All four executor lanes ran and every gate passed.
+
+| Mean of two hosted runs per base | Stale event base | Verified merge parent |
+| --- | ---: | ---: |
+| Unit and CI-script files executed per run | 817 + 12 | 328 + 0 |
+| Time to the required check | 2m 43s | 2m 33s |
+| Sum of job durations | 372s | 301.5s |
+| Estimated cost at the tested runner rates | 30.6¢ | 26.4¢ |
+
+Selection reduced runner time by 19% and estimated cost by 14% on this checkout. The gate improved by 6%. Planning took longer on the selective runs, and the gate also waited for the parallel build. Measure the last job the gate needs before converting a reduction in test count into a latency claim. [Public run data](../docs/benchmarks/2026-11-19-bun-selection.json) · [Hosted benchmark](https://github.com/gigaverse-app/gigaverse-web-app/pull/4495#issuecomment-7007279380) · [Pass the planner base to Bun](../docs/bun-test-selection.md#whole-lane-planning)
+
 ## What to measure on your first PR
 
 Pick one expensive workflow. For selection, compare a forced full run and an affected run on the same revision. Record which work legitimately skipped and why. For a faster execution strategy, compare the test identities and outcomes in both runs. In each experiment, measure time to the required verdict and total runner cost separately. Include planning, setup and per-job rounding. Your mix of unchanged and affected runs determines the overall return. [One-PR quickstart](../docs/quickstart.md) · [How to publish a measured comparison](../docs/measured-impact.md)
