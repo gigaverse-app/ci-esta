@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.23.0](https://github.com/gigaverse-app/ci-esta/compare/v1.22.0...v1.23.0) (2026-11-19)
+
+
+### Features
+
+* **failed-first:** re-run what failed last time first, for Bun and pytest ([#255](https://github.com/gigaverse-app/ci-esta/issues/255)) ([33cc729](https://github.com/gigaverse-app/ci-esta/commit/33cc7292b4a110a9de70dec7cc7bb83dd831a9e2))
+
+
+### Bug fixes
+
+* **ci:** declare subprocess inputs for Bun selection ([#251](https://github.com/gigaverse-app/ci-esta/issues/251)) ([0baed0b](https://github.com/gigaverse-app/ci-esta/commit/0baed0befe95172216c7dd148ab92d7968b1c9ad))
+
+
+### Documentation
+
+* show where CI-esta beats 10× on time and runner cost ([#253](https://github.com/gigaverse-app/ci-esta/issues/253)) ([fbcacfa](https://github.com/gigaverse-app/ci-esta/commit/fbcacfa43665dba36b0f5a236068d49e73c104f9))
+
 ## [1.22.0](https://github.com/gigaverse-app/ci-esta/compare/v1.21.0...v1.22.0) (2026-11-18)
 
 
