@@ -40,6 +40,21 @@ read the previous run's reports before running:
 
 The job needs `actions: read` to list runs and download their artifacts.
 
+When `plan-work` decides which whole lanes run, give it the same file (resolved with an
+`artifact-pattern` that matches every lane's reports). A lane that owns a previous failure
+runs even when the push reaches none of its tests, with the reason `previous failure: <file>`:
+
+```yaml
+- id: failures
+  uses: gigaverse-app/ci-esta/actions/resolve-previous-failures@v1
+  with: {artifact-pattern: 'bun-test-*', test-files: bun}
+- uses: gigaverse-app/ci-esta/actions/plan-work@v1
+  with:
+    config: .github/test-lanes.json
+    base: ${{ needs.base.outputs.base }}
+    previous-failures: ${{ steps.failures.outputs.failures-file }}
+```
+
 A custom runner that calls `python -m ci_esta.testing.bun.cli run --json-input` passes
 the same fields in its request: `previous_failures` (a list of repository-relative test
 files) and `stop_on_previous_failure`.

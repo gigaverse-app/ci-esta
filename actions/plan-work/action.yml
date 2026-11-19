@@ -18,6 +18,12 @@ inputs:
   full:
     description: 'auto preserves selection on PR/push reruns and runs full for manual/scheduled/release checkpoints or test:full. Override with true or false.'
     default: auto
+  previous-failures:
+    description: >-
+      Newline-delimited test files that failed in the previous run (resolve-previous-failures). Every lane
+      owning one runs, even when the change reaches none of its tests.
+    required: false
+    default: ''
   artifact-name:
     description: Upload the lane plan under this name for CI-esta's report. Empty skips the upload.
     default: test-lane-selection
@@ -61,10 +67,12 @@ runs:
         PLAN_BASE: ${{ inputs.base }}
         PLAN_PR_HEAD: ${{ inputs.pr-head }}
         PLAN_FULL: ${{ inputs.full }}
+        PLAN_PREVIOUS_FAILURES: ${{ inputs.previous-failures }}
       run: |
         uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../..[selection]" \
           python -m ci_esta.testing.work_plan ${PLAN_CONFIG:+--config "$PLAN_CONFIG"} --base "$PLAN_BASE" --pr-head "$PLAN_PR_HEAD" \
           --full "$PLAN_FULL" --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY" \
+          ${PLAN_PREVIOUS_FAILURES:+--previous-failures "$PLAN_PREVIOUS_FAILURES"} \
           | tee test-lanes.json
     - if: ${{ inputs.artifact-name != '' }}
       uses: actions/upload-artifact@v7

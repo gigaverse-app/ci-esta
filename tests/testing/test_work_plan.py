@@ -509,3 +509,23 @@ def test_reading_a_workflow_does_not_execute_its_jobs(repository):
     assert result.lanes == {"unit": False, "live": True}, result.lane_reasons
     head = change(repo, ".github/workflows/live.yml", "runs-on: ubuntu-latest", "runs-on: ubuntu-24.04")
     assert plan_work(repo, lanes_config(), base, head).lanes == {"unit": True, "live": True}
+
+
+def test_previous_failures_admit_the_lanes_that_own_them_and_name_why():
+    from pytest_selective.ci import Lane, LaneConfig, LanePlan
+    from pytest_selective.impact_models import ImpactConfig
+
+    from ci_esta.testing.work_plan import admit_previous_failures
+
+    config = LaneConfig(graph=ImpactConfig(module_roots=["."], test_roots=["src"]), global_inputs=[], lanes={
+        "unit": Lane(roots=["src"], exclude_patterns=["*.integration.test.*"]),
+        "integration": Lane(roots=["src"], test_patterns=["*.integration.test.*"]),
+    })
+    planned = LanePlan(lanes={"unit": True, "integration": False}, selected=["unit"], changed=["README.md"],
+                       reason="docs only", lane_reasons={"unit": ["changed: src/a.ts"], "integration": []})
+    result = admit_previous_failures(planned, config, ["src/b.integration.test.ts", "src/gone.test.ts"])
+    assert result.lanes == {"unit": True, "integration": True}
+    assert result.lane_reasons["integration"] == ["previous failure: src/b.integration.test.ts"]
+    # An already selected lane keeps its own reasons.
+    assert result.lane_reasons["unit"] == ["changed: src/a.ts"]
+    assert admit_previous_failures(planned, config, []) == planned
