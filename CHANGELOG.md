@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.24.0](https://github.com/gigaverse-app/ci-esta/compare/v1.23.0...v1.24.0) (2026-11-19)
+
+
+### Features
+
+* **plan-work:** expose the selection base to downstream jobs ([#256](https://github.com/gigaverse-app/ci-esta/issues/256)) ([9c48f72](https://github.com/gigaverse-app/ci-esta/commit/9c48f722aea8191dbb39fea9c0fc6c5c0a8eb905))
+
+
+### Performance
+
+* **evidence:** read default-branch push runs eight at a time ([#258](https://github.com/gigaverse-app/ci-esta/issues/258)) ([fadf663](https://github.com/gigaverse-app/ci-esta/commit/fadf6632b56d8e8b4fc0c1b311dc3b87566adcda))
+
 ## [1.23.0](https://github.com/gigaverse-app/ci-esta/compare/v1.22.0...v1.23.0) (2026-11-19)
 
 
