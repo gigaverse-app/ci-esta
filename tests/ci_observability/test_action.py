@@ -233,6 +233,20 @@ def test_run_writes_all_outputs_summary_and_sticky(
         assert upsert.call_args.args[0] == PR_NUMBER
 
 
+def test_report_publishes_hosted_reservation_without_prometheus(tmp_path, monkeypatch):
+    monkeypatch.delenv("INPUT_RUNNER_PROMETHEUS_URL", raising=False)
+    config = _config(tmp_path, post_sticky=False)
+    job = _job().model_copy(update={"labels": ["ubuntu-slim"], "runner_name": "GitHub Actions 12"})
+    with (
+        patch.object(GitHubActionsClient, "get_run", return_value=_run_metadata()),
+        patch.object(GitHubActionsClient, "list_jobs", return_value=[job]),
+        patch.object(GitHubActionsClient, "list_commit_statuses", return_value=[_status()]),
+    ):
+        assert run(config, LATER) == 0
+    assert 'ci_runner_cpu_allocated_core_seconds{pool="ubuntu-slim"}' in config.prometheus_output.read_text()
+    assert "ci_runner_cpu_unused_core_seconds" not in config.prometheus_output.read_text()
+
+
 def test_historical_attempt_recovers_exact_metadata_and_jobs(tmp_path):
     config = _config(tmp_path, post_sticky=False)
     current = _run_metadata().model_copy(update={"run_attempt": RUN_ATTEMPT + 1})

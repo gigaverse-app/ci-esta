@@ -191,6 +191,13 @@ contract changes.
 
 ## CPU allocation in the CI report
 
+CI-esta reports reserved core-seconds for completed jobs even without a CPU metrics
+endpoint. It uses the caller's `allocated_cores` for custom labels, and GitHub's
+published sizes for recognized standard Linux and Windows labels when repository
+visibility is known. The single-core Ubuntu runner has the same size in both cases.
+Usage and unused CPU stay unknown until the collector has measured CPU samples.
+See [GitHub-hosted runner specifications](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+
 For ephemeral Kubernetes runners, run the report where it can reach a trusted Prometheus
 server. Set `runner-prometheus-url` and `runner-namespace` on the reporting action or
 reusable report workflow. The reusable workflow accepts `reporter-runner` for this purpose.

@@ -451,11 +451,11 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         report = report.model_copy(update={"measurements": measurements, "measurement_errors": measurement_errors,
                                            "work_selection": _work_selection(client, config, run_metadata),
                                            "measured_impact": collect_impact(client, config.impact_comparisons)})
-        if endpoint := os.environ.get("INPUT_RUNNER_PROMETHEUS_URL"):
-            from ci_esta.ci_observability.allocation import collect
-            allocated_jobs = collect(report.billing_jobs, config.runner_sku_rates, endpoint,
-                    os.environ.get("INPUT_RUNNER_NAMESPACE") or "arc-runners")
-            report = report.model_copy(update={"billing_jobs": allocated_jobs})
+        from ci_esta.ci_observability.allocation import collect
+        allocated_jobs = collect(report.billing_jobs, config.runner_sku_rates, os.environ.get("INPUT_RUNNER_PROMETHEUS_URL"),
+                                 os.environ.get("INPUT_RUNNER_NAMESPACE") or "arc-runners",
+                                 repository_private=run_metadata.repository.private if run_metadata.repository else None)
+        report = report.model_copy(update={"billing_jobs": allocated_jobs})
         reference_to_record = _own_reference(report, config, run_metadata, observed_at)
     except Exception as error:
         report = build_unavailable_report(
