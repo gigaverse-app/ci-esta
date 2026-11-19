@@ -8,37 +8,15 @@
     "CacheMeasurement": {
       "additionalProperties": false,
       "properties": {
-        "run_id": {
-          "minimum": 0,
-          "title": "Run Id",
-          "type": "integer"
-        },
-        "run_attempt": {
-          "minimum": 1,
-          "title": "Run Attempt",
-          "type": "integer"
-        },
         "head_sha": {
           "pattern": "^(?:[0-9a-f]{40})?$",
           "title": "Head Sha",
-          "type": "string"
-        },
-        "schema_version": {
-          "const": "ci-esta/cache/v1",
-          "default": "ci-esta/cache/v1",
-          "title": "Schema Version",
           "type": "string"
         },
         "job": {
           "maxLength": 200,
           "minLength": 1,
           "title": "Job",
-          "type": "string"
-        },
-        "scope": {
-          "maxLength": 1000,
-          "minLength": 1,
-          "title": "Scope",
           "type": "string"
         },
         "outcome": {
@@ -50,6 +28,28 @@
             "unavailable"
           ],
           "title": "Outcome",
+          "type": "string"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "ci-esta/cache/v1",
+          "default": "ci-esta/cache/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Scope",
           "type": "string"
         },
         "sync_seconds": {
@@ -73,39 +73,6 @@
     "CacheOperationMeasurement": {
       "additionalProperties": false,
       "properties": {
-        "run_id": {
-          "minimum": 0,
-          "title": "Run Id",
-          "type": "integer"
-        },
-        "run_attempt": {
-          "minimum": 1,
-          "title": "Run Attempt",
-          "type": "integer"
-        },
-        "head_sha": {
-          "pattern": "^(?:[0-9a-f]{40})?$",
-          "title": "Head Sha",
-          "type": "string"
-        },
-        "schema_version": {
-          "const": "ci-esta/cache-operation/v1",
-          "default": "ci-esta/cache-operation/v1",
-          "title": "Schema Version",
-          "type": "string"
-        },
-        "job": {
-          "maxLength": 200,
-          "minLength": 1,
-          "title": "Job",
-          "type": "string"
-        },
-        "scope": {
-          "maxLength": 1000,
-          "minLength": 1,
-          "title": "Scope",
-          "type": "string"
-        },
         "cache_kind": {
           "enum": [
             "download",
@@ -113,6 +80,17 @@
             "tool"
           ],
           "title": "Cache Kind",
+          "type": "string"
+        },
+        "head_sha": {
+          "pattern": "^(?:[0-9a-f]{40})?$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "job": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Job",
           "type": "string"
         },
         "outcome": {
@@ -124,18 +102,6 @@
             "unavailable"
           ],
           "title": "Outcome",
-          "type": "string"
-        },
-        "restore_step": {
-          "default": "",
-          "maxLength": 500,
-          "title": "Restore Step",
-          "type": "string"
-        },
-        "save_step": {
-          "default": "",
-          "maxLength": 500,
-          "title": "Save Step",
           "type": "string"
         },
         "restore_seconds": {
@@ -151,6 +117,22 @@
           "default": null,
           "title": "Restore Seconds"
         },
+        "restore_step": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Restore Step",
+          "type": "string"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
         "save_seconds": {
           "anyOf": [
             {
@@ -164,18 +146,23 @@
           "default": null,
           "title": "Save Seconds"
         },
-        "sync_seconds": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Sync Seconds"
+        "save_step": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Save Step",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": "ci-esta/cache-operation/v1",
+          "default": "ci-esta/cache-operation/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "scope": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Scope",
+          "type": "string"
         },
         "sync_outcome": {
           "anyOf": [
@@ -194,6 +181,19 @@
           ],
           "default": null,
           "title": "Sync Outcome"
+        },
+        "sync_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sync Seconds"
         }
       },
       "required": [
@@ -220,19 +220,6 @@
     "CriticalPathResult": {
       "additionalProperties": false,
       "properties": {
-        "status": {
-          "enum": [
-            "complete",
-            "unavailable"
-          ],
-          "title": "Status",
-          "type": "string"
-        },
-        "reason": {
-          "default": "",
-          "title": "Reason",
-          "type": "string"
-        },
         "elapsed_seconds": {
           "anyOf": [
             {
@@ -244,6 +231,13 @@
           ],
           "default": null,
           "title": "Elapsed Seconds"
+        },
+        "execution_path": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Execution Path",
+          "type": "array"
         },
         "execution_seconds": {
           "anyOf": [
@@ -257,6 +251,13 @@
           "default": null,
           "title": "Execution Seconds"
         },
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/PathNode"
+          },
+          "title": "Nodes",
+          "type": "array"
+        },
         "observed_path": {
           "items": {
             "type": "string"
@@ -264,19 +265,18 @@
           "title": "Observed Path",
           "type": "array"
         },
-        "execution_path": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Execution Path",
-          "type": "array"
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
         },
-        "nodes": {
-          "items": {
-            "$ref": "#/$defs/PathNode"
-          },
-          "title": "Nodes",
-          "type": "array"
+        "status": {
+          "enum": [
+            "complete",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
         }
       },
       "required": [
@@ -288,14 +288,6 @@
     "DirectPrerequisiteV1": {
       "additionalProperties": false,
       "properties": {
-        "job_id": {
-          "title": "Job Id",
-          "type": "string"
-        },
-        "result": {
-          "title": "Result",
-          "type": "string"
-        },
         "display_name": {
           "anyOf": [
             {
@@ -307,6 +299,14 @@
           ],
           "default": null,
           "title": "Display Name"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "result": {
+          "title": "Result",
+          "type": "string"
         }
       },
       "required": [
@@ -327,25 +327,14 @@
     "ImageReuseMeasurement": {
       "additionalProperties": false,
       "properties": {
-        "run_id": {
-          "minimum": 0,
-          "title": "Run Id",
-          "type": "integer"
-        },
-        "run_attempt": {
-          "minimum": 1,
-          "title": "Run Attempt",
-          "type": "integer"
+        "digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
         },
         "head_sha": {
           "pattern": "^(?:[0-9a-f]{40})?$",
           "title": "Head Sha",
-          "type": "string"
-        },
-        "schema_version": {
-          "const": "ci-esta/image/v1",
-          "default": "ci-esta/image/v1",
-          "title": "Schema Version",
           "type": "string"
         },
         "job": {
@@ -354,15 +343,26 @@
           "title": "Job",
           "type": "string"
         },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "ci-esta/image/v1",
+          "default": "ci-esta/image/v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
         "scope": {
           "maxLength": 1000,
           "minLength": 1,
           "title": "Scope",
-          "type": "string"
-        },
-        "digest": {
-          "pattern": "^sha256:[0-9a-f]{64}$",
-          "title": "Digest",
           "type": "string"
         }
       },
@@ -380,6 +380,40 @@
     "ImpactComparison": {
       "additionalProperties": false,
       "properties": {
+        "after": {
+          "$ref": "#/$defs/RunReference"
+        },
+        "before": {
+          "$ref": "#/$defs/RunReference"
+        },
+        "comparison": {
+          "default": "same_head",
+          "enum": [
+            "same_head",
+            "workflow_change"
+          ],
+          "title": "Comparison",
+          "type": "string"
+        },
+        "context": {
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Context",
+          "type": "string"
+        },
+        "job": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Job"
+        },
         "label": {
           "maxLength": 100,
           "minLength": 1,
@@ -395,25 +429,6 @@
           "title": "Metric",
           "type": "string"
         },
-        "before": {
-          "$ref": "#/$defs/RunReference"
-        },
-        "after": {
-          "$ref": "#/$defs/RunReference"
-        },
-        "job": {
-          "anyOf": [
-            {
-              "maxLength": 200,
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Job"
-        },
         "steps": {
           "items": {
             "type": "string"
@@ -421,21 +436,6 @@
           "maxItems": 10,
           "title": "Steps",
           "type": "array"
-        },
-        "context": {
-          "maxLength": 400,
-          "minLength": 1,
-          "title": "Context",
-          "type": "string"
-        },
-        "comparison": {
-          "default": "same_head",
-          "enum": [
-            "same_head",
-            "workflow_change"
-          ],
-          "title": "Comparison",
-          "type": "string"
         }
       },
       "required": [
@@ -451,8 +451,18 @@
     "ImpactResult": {
       "additionalProperties": false,
       "properties": {
-        "request": {
-          "$ref": "#/$defs/ImpactComparison"
+        "after_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After Seconds"
         },
         "before_seconds": {
           "anyOf": [
@@ -467,19 +477,6 @@
           "default": null,
           "title": "Before Seconds"
         },
-        "after_seconds": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "After Seconds"
-        },
         "error": {
           "anyOf": [
             {
@@ -491,6 +488,9 @@
           ],
           "default": null,
           "title": "Error"
+        },
+        "request": {
+          "$ref": "#/$defs/ImpactComparison"
         }
       },
       "required": [
@@ -503,20 +503,17 @@
     "ObservedGateV1": {
       "additionalProperties": false,
       "properties": {
-        "kind": {
-          "$ref": "#/$defs/GateKind"
-        },
-        "identity": {
-          "title": "Identity",
-          "type": "string"
-        },
-        "display_name": {
-          "title": "Display Name",
-          "type": "string"
-        },
-        "status": {
-          "title": "Status",
-          "type": "string"
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Completed At"
         },
         "conclusion": {
           "anyOf": [
@@ -529,32 +526,16 @@
           ],
           "title": "Conclusion"
         },
-        "matched": {
-          "title": "Matched",
-          "type": "boolean"
+        "direct_prerequisites": {
+          "items": {
+            "$ref": "#/$defs/DirectPrerequisiteV1"
+          },
+          "title": "Direct Prerequisites",
+          "type": "array"
         },
-        "observed_job_id": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Observed Job Id"
-        },
-        "completed_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Completed At"
+        "display_name": {
+          "title": "Display Name",
+          "type": "string"
         },
         "elapsed_from_creation_seconds": {
           "anyOf": [
@@ -578,12 +559,31 @@
           ],
           "title": "Elapsed From Run Start Seconds"
         },
-        "direct_prerequisites": {
-          "items": {
-            "$ref": "#/$defs/DirectPrerequisiteV1"
-          },
-          "title": "Direct Prerequisites",
-          "type": "array"
+        "identity": {
+          "title": "Identity",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/GateKind"
+        },
+        "matched": {
+          "title": "Matched",
+          "type": "boolean"
+        },
+        "observed_job_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Observed Job Id"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
         }
       },
       "required": [
@@ -605,48 +605,6 @@
     "ObservedJobV1": {
       "additionalProperties": false,
       "properties": {
-        "job_id": {
-          "title": "Job Id",
-          "type": "integer"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "run_attempt": {
-          "title": "Run Attempt",
-          "type": "integer"
-        },
-        "status": {
-          "title": "Status",
-          "type": "string"
-        },
-        "conclusion": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Conclusion"
-        },
-        "timing_status": {
-          "$ref": "#/$defs/TimingStatus"
-        },
-        "started_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Started At"
-        },
         "completed_at": {
           "anyOf": [
             {
@@ -659,27 +617,27 @@
           ],
           "title": "Completed At"
         },
-        "wall_seconds": {
+        "conclusion": {
           "anyOf": [
             {
-              "type": "number"
+              "type": "string"
             },
             {
               "type": "null"
             }
           ],
-          "title": "Wall Seconds"
+          "title": "Conclusion"
         },
-        "start_offset_seconds": {
+        "cpu_allocation": {
           "anyOf": [
             {
-              "type": "number"
+              "$ref": "#/$defs/RunnerCpuAllocation"
             },
             {
               "type": "null"
             }
           ],
-          "title": "Start Offset Seconds"
+          "default": null
         },
         "end_offset_seconds": {
           "anyOf": [
@@ -692,17 +650,13 @@
           ],
           "title": "End Offset Seconds"
         },
-        "queued_offset_seconds": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Queued Offset Seconds"
+        "job_id": {
+          "title": "Job Id",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
         },
         "queue_seconds": {
           "anyOf": [
@@ -715,6 +669,18 @@
           ],
           "default": null,
           "title": "Queue Seconds"
+        },
+        "queued_offset_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Queued Offset Seconds"
         },
         "rounded_minutes": {
           "anyOf": [
@@ -738,6 +704,41 @@
           ],
           "title": "Rounding Waste Seconds"
         },
+        "run_attempt": {
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "runner_group_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runner Group Name"
+        },
+        "runner_labels": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Runner Labels",
+          "type": "array"
+        },
+        "runner_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runner Name"
+        },
         "seconds_to_save_minute": {
           "anyOf": [
             {
@@ -760,36 +761,32 @@
           ],
           "title": "Seconds Until Next Minute"
         },
-        "runner_labels": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Runner Labels",
-          "type": "array"
-        },
-        "runner_name": {
+        "start_offset_seconds": {
           "anyOf": [
             {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start Offset Seconds"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
               "type": "string"
             },
             {
               "type": "null"
             }
           ],
-          "default": null,
-          "title": "Runner Name"
+          "title": "Started At"
         },
-        "runner_group_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Runner Group Name"
+        "status": {
+          "title": "Status",
+          "type": "string"
         },
         "steps": {
           "items": {
@@ -797,6 +794,20 @@
           },
           "title": "Steps",
           "type": "array"
+        },
+        "timing_status": {
+          "$ref": "#/$defs/TimingStatus"
+        },
+        "wall_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Wall Seconds"
         }
       },
       "required": [
@@ -823,17 +834,18 @@
       "additionalProperties": false,
       "description": "Step timestamps explain job time; they are never separately billed.",
       "properties": {
-        "number": {
-          "title": "Number",
-          "type": "integer"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "status": {
-          "title": "Status",
-          "type": "string"
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completed At"
         },
         "conclusion": {
           "anyOf": [
@@ -846,6 +858,14 @@
           ],
           "default": null,
           "title": "Conclusion"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "number": {
+          "title": "Number",
+          "type": "integer"
         },
         "started_at": {
           "anyOf": [
@@ -860,18 +880,9 @@
           "default": null,
           "title": "Started At"
         },
-        "completed_at": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Completed At"
+        "status": {
+          "title": "Status",
+          "type": "string"
         },
         "timing_status": {
           "$ref": "#/$defs/TimingStatus"
@@ -901,14 +912,6 @@
     "OverlappingRunCostV1": {
       "additionalProperties": false,
       "properties": {
-        "run_id": {
-          "title": "Run Id",
-          "type": "integer"
-        },
-        "head_sha": {
-          "title": "Head Sha",
-          "type": "string"
-        },
         "conclusion": {
           "anyOf": [
             {
@@ -925,6 +928,17 @@
           "title": "Created At",
           "type": "string"
         },
+        "head_sha": {
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "runner_cost": {
+          "$ref": "#/$defs/RunnerCostV1"
+        },
         "updated_at": {
           "anyOf": [
             {
@@ -936,9 +950,6 @@
             }
           ],
           "title": "Updated At"
-        },
-        "runner_cost": {
-          "$ref": "#/$defs/RunnerCostV1"
         }
       },
       "required": [
@@ -955,28 +966,6 @@
     "OverlappingRunnerCostV1": {
       "additionalProperties": false,
       "properties": {
-        "runs": {
-          "items": {
-            "$ref": "#/$defs/OverlappingRunCostV1"
-          },
-          "title": "Runs",
-          "type": "array"
-        },
-        "raw_runner_seconds": {
-          "default": 0.0,
-          "title": "Raw Runner Seconds",
-          "type": "number"
-        },
-        "estimated_rounded_runner_minutes": {
-          "default": 0,
-          "title": "Estimated Rounded Runner Minutes",
-          "type": "integer"
-        },
-        "rounding_waste_seconds": {
-          "default": 0.0,
-          "title": "Rounding Waste Seconds",
-          "type": "number"
-        },
         "estimated_cost_usd": {
           "anyOf": [
             {
@@ -991,6 +980,28 @@
           ],
           "default": null,
           "title": "Estimated Cost Usd"
+        },
+        "estimated_rounded_runner_minutes": {
+          "default": 0,
+          "title": "Estimated Rounded Runner Minutes",
+          "type": "integer"
+        },
+        "raw_runner_seconds": {
+          "default": 0.0,
+          "title": "Raw Runner Seconds",
+          "type": "number"
+        },
+        "rounding_waste_seconds": {
+          "default": 0.0,
+          "title": "Rounding Waste Seconds",
+          "type": "number"
+        },
+        "runs": {
+          "items": {
+            "$ref": "#/$defs/OverlappingRunCostV1"
+          },
+          "title": "Runs",
+          "type": "array"
         }
       },
       "title": "OverlappingRunnerCostV1",
@@ -999,17 +1010,6 @@
     "PathNode": {
       "additionalProperties": false,
       "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "needs": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Needs",
-          "type": "array"
-        },
         "conclusion": {
           "anyOf": [
             {
@@ -1021,13 +1021,24 @@
           ],
           "title": "Conclusion"
         },
+        "delay_seconds": {
+          "title": "Delay Seconds",
+          "type": "number"
+        },
         "execution_seconds": {
           "title": "Execution Seconds",
           "type": "number"
         },
-        "delay_seconds": {
-          "title": "Delay Seconds",
-          "type": "number"
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "needs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Needs",
+          "type": "array"
         },
         "slack_seconds": {
           "title": "Slack Seconds",
@@ -1077,37 +1088,15 @@
     "ReuseMeasurement": {
       "additionalProperties": false,
       "properties": {
-        "run_id": {
-          "minimum": 0,
-          "title": "Run Id",
-          "type": "integer"
-        },
-        "run_attempt": {
-          "minimum": 1,
-          "title": "Run Attempt",
-          "type": "integer"
-        },
-        "head_sha": {
-          "pattern": "^(?:[0-9a-f]{40})?$",
-          "title": "Head Sha",
-          "type": "string"
-        },
-        "schema_version": {
-          "const": "ci-esta/reuse/v1",
-          "default": "ci-esta/reuse/v1",
-          "title": "Schema Version",
-          "type": "string"
-        },
-        "receipt": {
-          "maxLength": 1000,
-          "minLength": 1,
-          "title": "Receipt",
-          "type": "string"
-        },
         "execution_context": {
           "default": "",
           "maxLength": 4000,
           "title": "Execution Context",
+          "type": "string"
+        },
+        "head_sha": {
+          "pattern": "^(?:[0-9a-f]{40})?$",
+          "title": "Head Sha",
           "type": "string"
         },
         "lanes": {
@@ -1116,6 +1105,28 @@
           },
           "title": "Lanes",
           "type": "array"
+        },
+        "receipt": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Receipt",
+          "type": "string"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "ci-esta/reuse/v1",
+          "default": "ci-esta/reuse/v1",
+          "title": "Schema Version",
+          "type": "string"
         }
       },
       "required": [
@@ -1130,22 +1141,17 @@
     "ReusedLane": {
       "additionalProperties": false,
       "properties": {
-        "lane": {
-          "maxLength": 200,
-          "minLength": 1,
-          "title": "Lane",
-          "type": "string"
-        },
         "job": {
           "maxLength": 500,
           "minLength": 1,
           "title": "Job",
           "type": "string"
         },
-        "source_run_id": {
-          "minimum": 1,
-          "title": "Source Run Id",
-          "type": "integer"
+        "lane": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Lane",
+          "type": "string"
         },
         "source_attempt": {
           "minimum": 1,
@@ -1160,6 +1166,11 @@
         "source_job_id": {
           "minimum": 1,
           "title": "Source Job Id",
+          "type": "integer"
+        },
+        "source_run_id": {
+          "minimum": 1,
+          "title": "Source Run Id",
           "type": "integer"
         },
         "source_seconds": {
@@ -1190,31 +1201,13 @@
     "RunProvenanceV1": {
       "additionalProperties": false,
       "properties": {
-        "repository": {
-          "title": "Repository",
-          "type": "string"
-        },
-        "workflow_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Workflow Name"
-        },
-        "run_id": {
-          "title": "Run Id",
-          "type": "integer"
-        },
-        "run_attempt": {
-          "title": "Run Attempt",
-          "type": "integer"
-        },
         "head_sha": {
           "title": "Head Sha",
+          "type": "string"
+        },
+        "observed_at": {
+          "format": "date-time",
+          "title": "Observed At",
           "type": "string"
         },
         "pull_request_number": {
@@ -1228,6 +1221,18 @@
           ],
           "title": "Pull Request Number"
         },
+        "repository": {
+          "title": "Repository",
+          "type": "string"
+        },
+        "run_attempt": {
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "run_id": {
+          "title": "Run Id",
+          "type": "integer"
+        },
         "workflow_created_at": {
           "anyOf": [
             {
@@ -1240,6 +1245,17 @@
           ],
           "title": "Workflow Created At"
         },
+        "workflow_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Workflow Name"
+        },
         "workflow_run_started_at": {
           "anyOf": [
             {
@@ -1251,11 +1267,6 @@
             }
           ],
           "title": "Workflow Run Started At"
-        },
-        "observed_at": {
-          "format": "date-time",
-          "title": "Observed At",
-          "type": "string"
         }
       },
       "required": [
@@ -1275,20 +1286,20 @@
     "RunReference": {
       "additionalProperties": false,
       "properties": {
-        "run_id": {
-          "exclusiveMinimum": 0,
-          "title": "Run Id",
-          "type": "integer"
+        "head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Head Sha",
+          "type": "string"
         },
         "run_attempt": {
           "minimum": 1,
           "title": "Run Attempt",
           "type": "integer"
         },
-        "head_sha": {
-          "pattern": "^[0-9a-f]{40}$",
-          "title": "Head Sha",
-          "type": "string"
+        "run_id": {
+          "exclusiveMinimum": 0,
+          "title": "Run Id",
+          "type": "integer"
         }
       },
       "required": [
@@ -1302,18 +1313,6 @@
     "RunnerCostV1": {
       "additionalProperties": false,
       "properties": {
-        "raw_runner_seconds": {
-          "title": "Raw Runner Seconds",
-          "type": "number"
-        },
-        "estimated_rounded_runner_minutes": {
-          "title": "Estimated Rounded Runner Minutes",
-          "type": "integer"
-        },
-        "rounding_waste_seconds": {
-          "title": "Rounding Waste Seconds",
-          "type": "number"
-        },
         "billed_attempts": {
           "items": {
             "type": "integer"
@@ -1327,11 +1326,6 @@
           },
           "title": "By Sku",
           "type": "array"
-        },
-        "unpriced_rounded_runner_minutes": {
-          "default": 0,
-          "title": "Unpriced Rounded Runner Minutes",
-          "type": "integer"
         },
         "estimated_cost_usd": {
           "anyOf": [
@@ -1347,6 +1341,23 @@
           ],
           "default": null,
           "title": "Estimated Cost Usd"
+        },
+        "estimated_rounded_runner_minutes": {
+          "title": "Estimated Rounded Runner Minutes",
+          "type": "integer"
+        },
+        "raw_runner_seconds": {
+          "title": "Raw Runner Seconds",
+          "type": "number"
+        },
+        "rounding_waste_seconds": {
+          "title": "Rounding Waste Seconds",
+          "type": "number"
+        },
+        "unpriced_rounded_runner_minutes": {
+          "default": 0,
+          "title": "Unpriced Rounded Runner Minutes",
+          "type": "integer"
         }
       },
       "required": [
@@ -1358,16 +1369,94 @@
       "title": "RunnerCostV1",
       "type": "object"
     },
+    "RunnerCpuAllocation": {
+      "description": "Whole job reservation; usage is known only for covered counter intervals.",
+      "properties": {
+        "cores": {
+          "exclusiveMinimum": 0,
+          "title": "Cores",
+          "type": "number"
+        },
+        "covered_seconds": {
+          "default": 0,
+          "title": "Covered Seconds",
+          "type": "number"
+        },
+        "occupied_seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Occupied Seconds",
+          "type": "number"
+        },
+        "peak_sampled_cores": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Peak Sampled Cores"
+        },
+        "pool": {
+          "title": "Pool",
+          "type": "string"
+        },
+        "used_core_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Used Core Seconds"
+        }
+      },
+      "required": [
+        "pool",
+        "cores",
+        "occupied_seconds"
+      ],
+      "title": "RunnerCpuAllocation",
+      "type": "object"
+    },
     "RunnerSkuCostV1": {
       "additionalProperties": false,
       "description": "Rounded usage and price attributed to one configured runner SKU.",
       "properties": {
-        "sku": {
-          "title": "Sku",
-          "type": "string"
+        "estimated_cost_usd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Estimated Cost Usd"
+        },
+        "estimated_rounded_runner_minutes": {
+          "title": "Estimated Rounded Runner Minutes",
+          "type": "integer"
+        },
+        "raw_runner_seconds": {
+          "title": "Raw Runner Seconds",
+          "type": "number"
+        },
+        "rounding_waste_seconds": {
+          "title": "Rounding Waste Seconds",
+          "type": "number"
         },
         "runner_label": {
           "title": "Runner Label",
+          "type": "string"
+        },
+        "sku": {
+          "title": "Sku",
           "type": "string"
         },
         "usd_per_minute": {
@@ -1380,29 +1469,6 @@
             }
           ],
           "title": "Usd Per Minute"
-        },
-        "raw_runner_seconds": {
-          "title": "Raw Runner Seconds",
-          "type": "number"
-        },
-        "estimated_rounded_runner_minutes": {
-          "title": "Estimated Rounded Runner Minutes",
-          "type": "integer"
-        },
-        "rounding_waste_seconds": {
-          "title": "Rounding Waste Seconds",
-          "type": "number"
-        },
-        "estimated_cost_usd": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "string"
-            }
-          ],
-          "title": "Estimated Cost Usd"
         }
       },
       "required": [
@@ -1420,6 +1486,15 @@
     "ShardInterval": {
       "additionalProperties": false,
       "properties": {
+        "end_seconds": {
+          "minimum": 0,
+          "title": "End Seconds",
+          "type": "number"
+        },
+        "exit_code": {
+          "title": "Exit Code",
+          "type": "integer"
+        },
         "index": {
           "minimum": 1,
           "title": "Index",
@@ -1429,15 +1504,6 @@
           "minimum": 0,
           "title": "Start Seconds",
           "type": "number"
-        },
-        "end_seconds": {
-          "minimum": 0,
-          "title": "End Seconds",
-          "type": "number"
-        },
-        "exit_code": {
-          "title": "Exit Code",
-          "type": "integer"
         }
       },
       "required": [
@@ -1452,33 +1518,6 @@
     "ShardPoolMeasurement": {
       "additionalProperties": false,
       "properties": {
-        "run_id": {
-          "minimum": 0,
-          "title": "Run Id",
-          "type": "integer"
-        },
-        "run_attempt": {
-          "minimum": 1,
-          "title": "Run Attempt",
-          "type": "integer"
-        },
-        "head_sha": {
-          "pattern": "^(?:[0-9a-f]{40})?$",
-          "title": "Head Sha",
-          "type": "string"
-        },
-        "schema_version": {
-          "const": "ci-esta/shards/v1",
-          "default": "ci-esta/shards/v1",
-          "title": "Schema Version",
-          "type": "string"
-        },
-        "pool": {
-          "maxLength": 200,
-          "minLength": 1,
-          "title": "Pool",
-          "type": "string"
-        },
         "configured_shards": {
           "minimum": 1,
           "title": "Configured Shards",
@@ -1496,6 +1535,33 @@
           ],
           "default": null,
           "title": "Cpu Count"
+        },
+        "head_sha": {
+          "pattern": "^(?:[0-9a-f]{40})?$",
+          "title": "Head Sha",
+          "type": "string"
+        },
+        "pool": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Pool",
+          "type": "string"
+        },
+        "run_attempt": {
+          "minimum": 1,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "run_id": {
+          "minimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "ci-esta/shards/v1",
+          "default": "ci-esta/shards/v1",
+          "title": "Schema Version",
+          "type": "string"
         },
         "shards": {
           "items": {
@@ -1529,12 +1595,6 @@
     "WorkDecisionV1": {
       "additionalProperties": false,
       "properties": {
-        "name": {
-          "maxLength": 200,
-          "minLength": 1,
-          "title": "Name",
-          "type": "string"
-        },
         "decision": {
           "enum": [
             "run",
@@ -1542,6 +1602,23 @@
             "reused"
           ],
           "title": "Decision",
+          "type": "string"
+        },
+        "execution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WorkExecutionV1"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
           "type": "string"
         },
         "reason": {
@@ -1562,17 +1639,6 @@
           ],
           "default": null,
           "title": "Receipt"
-        },
-        "execution": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/WorkExecutionV1"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
         }
       },
       "required": [
@@ -1587,47 +1653,6 @@
       "additionalProperties": false,
       "description": "Observed runner output, separate from the admission request and benchmark evidence.",
       "properties": {
-        "mode": {
-          "enum": [
-            "full",
-            "scoped",
-            "none",
-            "reused"
-          ],
-          "title": "Mode",
-          "type": "string"
-        },
-        "status": {
-          "enum": [
-            "passed",
-            "failed",
-            "not_run",
-            "incomplete"
-          ],
-          "title": "Status",
-          "type": "string"
-        },
-        "total_files": {
-          "minimum": 0,
-          "title": "Total Files",
-          "type": "integer"
-        },
-        "executed_files": {
-          "anyOf": [
-            {
-              "items": {
-                "type": "string"
-              },
-              "maxItems": 100000,
-              "type": "array"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Executed Files"
-        },
         "always_run_files": {
           "items": {
             "type": "string"
@@ -1635,24 +1660,6 @@
           "maxItems": 100000,
           "title": "Always Run Files",
           "type": "array"
-        },
-        "duration_seconds": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Duration Seconds"
-        },
-        "tested_sha": {
-          "pattern": "^[0-9a-f]{40}$",
-          "title": "Tested Sha",
-          "type": "string"
         },
         "base_sha": {
           "anyOf": [
@@ -1680,18 +1687,63 @@
           "default": null,
           "title": "Cpu Count"
         },
-        "worker_limit": {
+        "duration_seconds": {
           "anyOf": [
             {
-              "exclusiveMinimum": 0,
-              "type": "integer"
+              "minimum": 0,
+              "type": "number"
             },
             {
               "type": "null"
             }
           ],
           "default": null,
-          "title": "Worker Limit"
+          "title": "Duration Seconds"
+        },
+        "executed_files": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 100000,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Executed Files"
+        },
+        "mode": {
+          "enum": [
+            "full",
+            "scoped",
+            "none",
+            "reused"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "previous_failures": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100000,
+          "title": "Previous Failures",
+          "type": "array"
+        },
+        "previous_failures_outcome": {
+          "default": "none",
+          "enum": [
+            "none",
+            "passed",
+            "failed",
+            "stopped"
+          ],
+          "title": "Previous Failures Outcome",
+          "type": "string"
         },
         "runner_label": {
           "anyOf": [
@@ -1713,24 +1765,38 @@
           "title": "Runtime",
           "type": "string"
         },
-        "previous_failures": {
-          "items": {
-            "type": "string"
-          },
-          "maxItems": 100000,
-          "title": "Previous Failures",
-          "type": "array"
-        },
-        "previous_failures_outcome": {
-          "default": "none",
+        "status": {
           "enum": [
-            "none",
             "passed",
             "failed",
-            "stopped"
+            "not_run",
+            "incomplete"
           ],
-          "title": "Previous Failures Outcome",
+          "title": "Status",
           "type": "string"
+        },
+        "tested_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Tested Sha",
+          "type": "string"
+        },
+        "total_files": {
+          "minimum": 0,
+          "title": "Total Files",
+          "type": "integer"
+        },
+        "worker_limit": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Worker Limit"
         }
       },
       "required": [
@@ -1746,27 +1812,19 @@
     "WorkSelectionV1": {
       "additionalProperties": false,
       "properties": {
-        "schema_version": {
-          "const": "ci-esta/work-selection/v1",
-          "default": "ci-esta/work-selection/v1",
-          "title": "Schema Version",
-          "type": "string"
+        "decisions": {
+          "items": {
+            "$ref": "#/$defs/WorkDecisionV1"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Decisions",
+          "type": "array"
         },
-        "provider": {
-          "maxLength": 100,
-          "minLength": 1,
-          "title": "Provider",
-          "type": "string"
-        },
-        "run_id": {
-          "exclusiveMinimum": 0,
-          "title": "Run Id",
-          "type": "integer"
-        },
-        "run_attempt": {
-          "exclusiveMinimum": 0,
-          "title": "Run Attempt",
-          "type": "integer"
+        "fallback": {
+          "default": false,
+          "title": "Fallback",
+          "type": "boolean"
         },
         "head_sha": {
           "pattern": "^[0-9a-f]{40}$",
@@ -1779,19 +1837,27 @@
           "title": "Input Identity",
           "type": "string"
         },
-        "fallback": {
-          "default": false,
-          "title": "Fallback",
-          "type": "boolean"
+        "provider": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
         },
-        "decisions": {
-          "items": {
-            "$ref": "#/$defs/WorkDecisionV1"
-          },
-          "maxItems": 100,
-          "minItems": 1,
-          "title": "Decisions",
-          "type": "array"
+        "run_attempt": {
+          "exclusiveMinimum": 0,
+          "title": "Run Attempt",
+          "type": "integer"
+        },
+        "run_id": {
+          "exclusiveMinimum": 0,
+          "title": "Run Id",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": "ci-esta/work-selection/v1",
+          "default": "ci-esta/work-selection/v1",
+          "title": "Schema Version",
+          "type": "string"
         }
       },
       "required": [
@@ -1808,14 +1874,12 @@
   },
   "additionalProperties": false,
   "properties": {
-    "schema_version": {
-      "const": "ci-observability/v1",
-      "default": "ci-observability/v1",
-      "title": "Schema Version",
-      "type": "string"
-    },
-    "collection_status": {
-      "$ref": "#/$defs/CollectionStatus"
+    "billing_jobs": {
+      "items": {
+        "$ref": "#/$defs/ObservedJobV1"
+      },
+      "title": "Billing Jobs",
+      "type": "array"
     },
     "collection_errors": {
       "items": {
@@ -1824,8 +1888,44 @@
       "title": "Collection Errors",
       "type": "array"
     },
-    "provenance": {
-      "$ref": "#/$defs/RunProvenanceV1"
+    "collection_status": {
+      "$ref": "#/$defs/CollectionStatus"
+    },
+    "critical_path": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CriticalPathResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "extensions": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Extensions",
+      "type": "object"
+    },
+    "lane_selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BaseModel"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lane Selection"
     },
     "latest_attempt_jobs": {
       "items": {
@@ -1833,89 +1933,6 @@
       },
       "title": "Latest Attempt Jobs",
       "type": "array"
-    },
-    "billing_jobs": {
-      "items": {
-        "$ref": "#/$defs/ObservedJobV1"
-      },
-      "title": "Billing Jobs",
-      "type": "array"
-    },
-    "required_gates": {
-      "items": {
-        "$ref": "#/$defs/ObservedGateV1"
-      },
-      "title": "Required Gates",
-      "type": "array"
-    },
-    "merge_ready_from_creation_seconds": {
-      "anyOf": [
-        {
-          "type": "number"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "title": "Merge Ready From Creation Seconds"
-    },
-    "merge_ready_from_run_start_seconds": {
-      "anyOf": [
-        {
-          "type": "number"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "title": "Merge Ready From Run Start Seconds"
-    },
-    "workflow_initial_queue_seconds": {
-      "anyOf": [
-        {
-          "type": "number"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "title": "Workflow Initial Queue Seconds"
-    },
-    "workflow_job_admission_delay_seconds": {
-      "anyOf": [
-        {
-          "type": "number"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Workflow Job Admission Delay Seconds"
-    },
-    "merge_ready_after_job_admission_seconds": {
-      "anyOf": [
-        {
-          "type": "number"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Merge Ready After Job Admission Seconds"
-    },
-    "longest_job_queue_seconds": {
-      "anyOf": [
-        {
-          "type": "number"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Longest Job Queue Seconds"
     },
     "longest_job_queue_name": {
       "anyOf": [
@@ -1928,6 +1945,18 @@
       ],
       "default": null,
       "title": "Longest Job Queue Name"
+    },
+    "longest_job_queue_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Longest Job Queue Seconds"
     },
     "longest_latest_job_name": {
       "anyOf": [
@@ -1951,80 +1980,19 @@
       ],
       "title": "Longest Latest Job Seconds"
     },
-    "runner_cost": {
-      "$ref": "#/$defs/RunnerCostV1"
-    },
-    "overlapping_prior_runner_cost": {
-      "$ref": "#/$defs/OverlappingRunnerCostV1"
-    },
-    "repository_signals": {
-      "items": {
-        "$ref": "#/$defs/RepositorySignalV1"
-      },
-      "maxItems": 32,
-      "title": "Repository Signals",
-      "type": "array"
-    },
-    "extensions": {
-      "additionalProperties": {
-        "$ref": "#/$defs/JsonValue"
-      },
-      "title": "Extensions",
-      "type": "object"
-    },
-    "test_selection": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/BaseModel"
-        },
-        {
-          "additionalProperties": {
-            "$ref": "#/$defs/JsonValue"
-          },
-          "type": "object"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Test Selection"
-    },
-    "lane_selection": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/BaseModel"
-        },
-        {
-          "additionalProperties": {
-            "$ref": "#/$defs/JsonValue"
-          },
-          "type": "object"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Lane Selection"
-    },
-    "work_selection": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/WorkSelectionV1"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
-    },
     "measured_impact": {
       "items": {
         "$ref": "#/$defs/ImpactResult"
       },
       "maxItems": 12,
       "title": "Measured Impact",
+      "type": "array"
+    },
+    "measurement_errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Measurement Errors",
       "type": "array"
     },
     "measurements": {
@@ -2050,23 +2018,121 @@
       "title": "Measurements",
       "type": "array"
     },
-    "measurement_errors": {
-      "items": {
-        "type": "string"
-      },
-      "title": "Measurement Errors",
-      "type": "array"
-    },
-    "critical_path": {
+    "merge_ready_after_job_admission_seconds": {
       "anyOf": [
         {
-          "$ref": "#/$defs/CriticalPathResult"
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Merge Ready After Job Admission Seconds"
+    },
+    "merge_ready_from_creation_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Merge Ready From Creation Seconds"
+    },
+    "merge_ready_from_run_start_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Merge Ready From Run Start Seconds"
+    },
+    "overlapping_prior_runner_cost": {
+      "$ref": "#/$defs/OverlappingRunnerCostV1"
+    },
+    "provenance": {
+      "$ref": "#/$defs/RunProvenanceV1"
+    },
+    "repository_signals": {
+      "items": {
+        "$ref": "#/$defs/RepositorySignalV1"
+      },
+      "maxItems": 32,
+      "title": "Repository Signals",
+      "type": "array"
+    },
+    "required_gates": {
+      "items": {
+        "$ref": "#/$defs/ObservedGateV1"
+      },
+      "title": "Required Gates",
+      "type": "array"
+    },
+    "runner_cost": {
+      "$ref": "#/$defs/RunnerCostV1"
+    },
+    "schema_version": {
+      "const": "ci-observability/v1",
+      "default": "ci-observability/v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "test_selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BaseModel"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Test Selection"
+    },
+    "work_selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkSelectionV1"
         },
         {
           "type": "null"
         }
       ],
       "default": null
+    },
+    "workflow_initial_queue_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Workflow Initial Queue Seconds"
+    },
+    "workflow_job_admission_delay_seconds": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Workflow Job Admission Delay Seconds"
     }
   },
   "required": [
