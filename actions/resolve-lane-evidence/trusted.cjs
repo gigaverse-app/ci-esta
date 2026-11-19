@@ -25,7 +25,8 @@ async function trustedPushProof({github, context, core, jobName, receipt, maxAge
   const candidates = runs
     .filter((run) => run.id !== context.runId && Date.parse(run.updated_at) >= oldest && search.allows(jobName, receipt, run))
     .sort(newestFirst);
-  for (const run of candidates) {
+  for (const [index, run] of candidates.entries()) {
+    search.readAheadJobs(candidates, index);
     const jobs = await search.jobs(run.id, run.run_attempt);
     const evidence = receiptEvidence(run, jobs, {jobName, receipt});
     if (evidence.contradicted) {
@@ -39,7 +40,9 @@ async function trustedPushProof({github, context, core, jobName, receipt, maxAge
       // load that older metadata, then inspect jobs solely for newer results.
       const older = await search.runs({workflow_id: current.workflow_id, branch, event: 'push',
         status: 'completed', created: `<${since}`});
-      for (const later of older.filter(other => other.id !== context.runId && newestFirst(other, run) < 0).sort(newestFirst)) {
+      const laters = older.filter(other => other.id !== context.runId && newestFirst(other, run) < 0).sort(newestFirst);
+      for (const [laterIndex, later] of laters.entries()) {
+        search.readAheadJobs(laters, laterIndex);
         const laterEvidence = receiptEvidence(later, await search.jobs(later.id, later.run_attempt), {jobName, receipt});
         if (laterEvidence.contradicted) {
           search.refuse(jobName, receipt, 'newer result from an older default-branch run', later);

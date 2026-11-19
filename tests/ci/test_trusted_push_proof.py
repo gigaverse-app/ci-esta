@@ -18,7 +18,7 @@ const input = JSON.parse(process.env.CASE);
 const {strictGithub} = require(process.env.GITHUB_REST_FAKE);
 const {trustedPushProof} = require(process.env.MODULE);
 const now = Date.now();
-let runLists = 0;
+let runLists = 0, inFlight = 0, peak = 0, jobLists = 0;
 const runs = input.runs.map((run) => ({workflow_id: 55, status: 'completed', run_attempt: 1, ...run,
   updated_at: new Date(now - run.minutes_ago * 60000).toISOString(),
   created_at: new Date(now - (run.created_minutes_ago ?? run.minutes_ago) * 60000).toISOString()}));
@@ -33,7 +33,12 @@ const github = strictGithub({actions: {
     return {data: {workflow_runs: runs.filter(run => args.created.startsWith('>=')
       ? Date.parse(run.created_at) >= since : Date.parse(run.created_at) < since)}};
   },
-  listJobsForWorkflowRun: async ({run_id}) => ({data: {jobs: input.jobs[run_id] || []}}),
+  listJobsForWorkflowRun: async ({run_id}) => {
+    jobLists += 1; inFlight += 1; peak = Math.max(peak, inFlight);
+    await new Promise((resolve) => setTimeout(resolve, input.delay_ms ?? 0));
+    inFlight -= 1;
+    return {data: {jobs: input.jobs[run_id] || []}};
+  },
 }});
 const logs = [];
 const core = {info: (m) => logs.push(m), warning: (m) => logs.push(m)};
@@ -44,7 +49,7 @@ const context = {runId: 999, repo: {owner: 'o', repo: 'r'}, payload: {repository
   proof = await trustedPushProof({github, context, core, jobName: input.job, receipt: input.receipt,
     cache, nowMs: now + index * 60000});
  }
- console.log(JSON.stringify({proof: proof ? {run: proof.run.id, jobs: proof.jobs.map((j) => j.id)} : null, logs, runLists}));
+ console.log(JSON.stringify({proof: proof ? {run: proof.run.id, jobs: proof.jobs.map((j) => j.id)} : null, logs, runLists, peak, jobLists}));
 })();
 """
 
@@ -54,8 +59,11 @@ def job(job_id: int, conclusion: str = "success", receipt: str = RECEIPT, step: 
     return {"id": job_id, "name": JOB, "conclusion": conclusion, "steps": [{"name": receipt, "conclusion": step_conclusion}]}
 
 
-def resolve(runs: list[dict], jobs: dict, *, receipt: str = RECEIPT, branch: str = "main", repeat: int = 1) -> dict:
-    case = {"runs": runs, "jobs": jobs, "receipt": receipt, "job": JOB, "branch": branch, "repeat": repeat}
+def resolve(
+    runs: list[dict], jobs: dict, *, receipt: str = RECEIPT, branch: str = "main", repeat: int = 1, delay_ms: int = 0
+) -> dict:
+    case = {"runs": runs, "jobs": jobs, "receipt": receipt, "job": JOB, "branch": branch, "repeat": repeat,
+            "delay_ms": delay_ms}
     result = subprocess.run(
         ["node", "-e", HARNESS], capture_output=True, text=True,
         env={**os.environ, "CASE": json.dumps(case), "MODULE": str(MODULE), "GITHUB_REST_FAKE": str(FAKE)},
@@ -117,3 +125,27 @@ def test_lanes_share_one_observation_time_and_one_history_snapshot() -> None:
     outcome = resolve([{ "id": 1, "head_sha": "c" * 40, "minutes_ago": 10}], {"1": [job(11)]}, repeat=2)
     assert outcome["proof"] is not None
     assert outcome["runLists"] == 2  # One recent index and one revocation index, shared by both calls.
+
+
+def _unrelated_runs(count: int) -> tuple[list[dict], dict]:
+    runs = [{"id": index, "head_sha": f"{index:040x}", "minutes_ago": index} for index in range(1, count + 1)]
+    return runs, {str(index): [job(index * 10, receipt="Validated inputs other")] for index in range(1, count + 1)}
+
+
+def test_a_day_of_unrelated_push_runs_is_read_concurrently_not_one_by_one() -> None:
+    runs, jobs = _unrelated_runs(36)
+    outcome = resolve(runs, jobs, delay_ms=40)
+    assert outcome["proof"] is None
+    assert outcome["jobLists"] == 36
+    assert 1 < outcome["peak"] <= 8
+
+
+def test_reading_ahead_never_changes_which_run_decides() -> None:
+    runs, jobs = _unrelated_runs(30)
+    jobs["3"] = [job(31, conclusion="failure")]
+    jobs["20"] = [job(201)]
+    outcome = resolve(runs, jobs, delay_ms=5)
+    assert outcome["proof"] is None
+    assert any("failure" in line for line in outcome["logs"])
+    # The window reads at most a few runs past the decisive one, never the whole day.
+    assert outcome["jobLists"] <= 3 + 8
