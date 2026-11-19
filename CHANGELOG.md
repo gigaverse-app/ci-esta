@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.25.1](https://github.com/gigaverse-app/ci-esta/compare/v1.25.0...v1.25.1) (2026-11-19)
+
+
+### Bug fixes
+
+* **report:** retain CPU reservations without a metrics endpoint ([e0c95e7](https://github.com/gigaverse-app/ci-esta/commit/e0c95e7636de25a123d75656515e14953dd82ff8))
+
 ## [1.25.0](https://github.com/gigaverse-app/ci-esta/compare/v1.24.0...v1.25.0) (2026-11-19)
 
 
