@@ -33,6 +33,10 @@ on:
       runner-prometheus-url:
         type: string
         default: ''
+      runner-cpu-log-steps:
+        description: Newline-separated step names running ci-esta-resources on dedicated GitHub-hosted Linux VMs.
+        type: string
+        default: ''
       runner-namespace:
         type: string
         default: arc-runners
@@ -106,6 +110,7 @@ jobs:
           pull-request-number: ${{ inputs.pull-request-number }}
           required-gates-json: ${{ inputs.required-gates-json }}
           runner-prometheus-url: ${{ inputs.runner-prometheus-url }}
+          runner-cpu-log-steps: ${{ inputs.runner-cpu-log-steps }}
           runner-namespace: ${{ inputs.runner-namespace }}
           runner-sku-rates-json: ${{ inputs.runner-sku-rates-json }}
           job-dependencies-json: ${{ inputs.job-dependencies-json }}

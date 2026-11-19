@@ -150,10 +150,16 @@ class GitHubActionsClient:
             return None
         return cls(repository, token, os.environ.get("GITHUB_API_URL", "https://api.github.com"))
 
-    def job_log(self, job_id: int) -> str:
-        response = self._client.get(f"/repos/{self._repository}/actions/jobs/{job_id}/logs", follow_redirects=True)
-        response.raise_for_status()
-        return response.text
+    def job_log(self, job_id: int, *, max_bytes: int | None = None) -> str:
+        path = f"/repos/{self._repository}/actions/jobs/{job_id}/logs"
+        with self._client.stream("GET", path, follow_redirects=True) as response:
+            response.raise_for_status()
+            data = bytearray()
+            for chunk in response.iter_bytes(chunk_size=65536):
+                if max_bytes is not None and len(data) + len(chunk) > max_bytes:
+                    raise ValueError("Job log exceeds the diagnostics size limit")
+                data.extend(chunk)
+            return data.decode(response.encoding or "utf-8", errors="replace")
 
     def update_comment(self, comment_id: int, body: str) -> None:
         response = self._client.patch(f"/repos/{self._repository}/issues/comments/{comment_id}", json={"body": body})
