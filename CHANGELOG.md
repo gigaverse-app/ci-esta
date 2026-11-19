@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.0](https://github.com/gigaverse-app/ci-esta/compare/v1.25.1...v1.26.0) (2026-11-19)
+
+
+### Features
+
+* **report:** measure hosted runner CPU from resource logs ([68043d6](https://github.com/gigaverse-app/ci-esta/commit/68043d6e6ea9e60bfc3aa262c3d032d9247a241d))
+
 ## [1.25.1](https://github.com/gigaverse-app/ci-esta/compare/v1.25.0...v1.25.1) (2026-11-19)
 
 
