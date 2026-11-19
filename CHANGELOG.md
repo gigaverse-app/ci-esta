@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.25.0](https://github.com/gigaverse-app/ci-esta/compare/v1.24.0...v1.25.0) (2026-11-19)
+
+
+### Features
+
+* **report:** measure occupied and unused CPU capacity by runner pool ([#261](https://github.com/gigaverse-app/ci-esta/issues/261)) ([040ad93](https://github.com/gigaverse-app/ci-esta/commit/040ad93e955e8351b54b2b2eeef801cacb37e98b))
+
+
+### Performance
+
+* **bun:** speed up dependency reader checks during selection ([#259](https://github.com/gigaverse-app/ci-esta/issues/259)) ([a05fee8](https://github.com/gigaverse-app/ci-esta/commit/a05fee8846c18c374abc8db7d033d820cc1f5b33))
+
 ## [1.24.0](https://github.com/gigaverse-app/ci-esta/compare/v1.23.0...v1.24.0) (2026-11-19)
 
 
