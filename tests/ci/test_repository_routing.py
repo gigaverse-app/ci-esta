@@ -1,7 +1,9 @@
 """Exercise the shipped lane config on committed real Git changes."""
+# gv:test-dependency: tests/github_actions/.gv-dependencies.yaml
 # gv:test-dependency: .github/test-lanes.json
 # gv:test-dependency: .github/workflows/ci.yml
 # gv:test-dependency: .github/workflows/public-actions.yml
+import shutil
 import subprocess
 from contextlib import closing
 from pathlib import Path
@@ -11,6 +13,8 @@ from pytest_selective.ci import LaneConfig
 from pytest_selective.impact_graph import GraphCache
 from pytest_selective.impact_selection import affected
 
+from ci_esta.git import tracked_files
+from ci_esta.testing.bun.graph import test_inputs as build_test_inputs
 from ci_esta.testing.work_plan import plan_work as plan
 from tests.testing.git_repo import commit, write
 
@@ -112,3 +116,14 @@ def test_file_plan_narrows_source_and_preserves_execution_inputs(tmp_path, path,
     config = LaneConfig.model_validate_json((ROOT / ".github/test-lanes.json").read_text()).file_config()
     with closing(GraphCache(tmp_path / "cache.sqlite3")) as cache:
         assert affected(tmp_path, base, head, config, cache).selected == expected
+
+
+@pytest.mark.skipif(shutil.which("bun") is None, reason="Bun graph runs in Runtime contracts")
+def test_repository_bun_readers_have_complete_dependency_graph():
+    """The shipped graph skips prose and keeps both subprocess entry points reachable."""
+    repo = ROOT
+    readers = ["tests/github_actions/bun-selection.test.mjs", "tests/github_actions/deployment-observer.test.mjs"]
+    graph = build_test_inputs(repo, readers, "bun", set(tracked_files(repo)))
+    assert all("README.md" not in graph[reader] for reader in readers)
+    assert "src/ci_esta/testing/bun/cli.py" in graph[readers[0]]
+    assert {"actions/observe-deployment/run.mjs", "actions/observe-deployment/observe.mjs"} <= graph[readers[1]]
