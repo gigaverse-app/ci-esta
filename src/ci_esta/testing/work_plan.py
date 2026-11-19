@@ -22,6 +22,7 @@ from pytest_selective.ci import LaneConfig, LanePlan, plan
 from pytest_selective.impact_graph import DependencyDeclarationError
 from pytest_selective.input_policy import DEFAULT_GLOBAL_INPUTS
 
+from ci_esta.git import git
 from ci_esta.package_inputs import PackageInputsUnavailable, changed_package_inputs
 from ci_esta.testing.baseline_policy import BaselineKind, comparison
 from ci_esta.testing.bun.graph import bun_lane_reasons
@@ -239,7 +240,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--full", nargs="?", const="true", default="false", type=full_checkpoint_reason, metavar="auto|true|false"
     )
-    parser.add_argument("--github-output", type=Path)
+    outputs = parser.add_mutually_exclusive_group()
+    outputs.add_argument("--github-output", type=Path, help="write each lane and the lanes JSON")
+    outputs.add_argument("--action-output", type=Path, help="write the public plan-work action outputs")
     parser.add_argument("--bun", default="bun", help="Bun executable, for repositories with Bun tests")
     parser.add_argument("--summary", type=Path, help="append a readable table of the plan (step summary)")
     parser.add_argument("--previous-failures", type=Path,
@@ -274,10 +277,20 @@ def main(argv: list[str] | None = None) -> int:
     if args.summary:
         with args.summary.open("a", encoding="utf-8") as summary:
             summary.write("### Lane selection\n\n" + render(resolved, result) + "\n")
-    if args.github_output:
-        with args.github_output.open("a", encoding="utf-8") as output:
-            for name, enabled in result.lanes.items():
-                output.write(f"{name}={str(enabled).lower()}\n")
+    output_path = args.action_output or args.github_output
+    if output_path:
+        with output_path.open("a", encoding="utf-8") as output:
+            if args.action_output:
+                # A lane can itself be named selection-base. Only the lanes JSON contains user keys here.
+                selection_base = ""
+                if args.full is None and not result.reason.startswith("full-suite fallback"):
+                    selection_base = git(
+                        args.repo, "rev-parse", "--verify", "--end-of-options", f"{args.base}^{{commit}}"
+                    ).strip()
+                output.write(f"selection-base={selection_base}\n")
+            else:
+                for name, enabled in result.lanes.items():
+                    output.write(f"{name}={str(enabled).lower()}\n")
             output.write(f"lanes={json.dumps(result.lanes)}\n")
     return 0
 

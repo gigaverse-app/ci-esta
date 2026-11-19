@@ -25,6 +25,10 @@ human keeps merging, required-check settings, runner groups and secrets.
 - Test selection is integral and enabled by default for adoption: use Bun native affected selection or
   pytest-selective as appropriate. Preserve inventory, contracts, isolation and full checkpoints. Optional
   means a consumer can explicitly opt out; it does not authorize an agent to omit selection.
+- When a job narrows files after `plan-work`, pass its `selection-base` output to the file selector.
+  Forward an empty value as a full run. On a PR merge built after the target branch advances,
+  verify that unrelated target-branch changes drop out and that a lockfile changed by the PR still runs the suite.
+  See [whole-lane planning](https://ci-esta.readthedocs.io/en/latest/docs/bun-test-selection.md#whole-lane-planning).
 - Express non-import inputs with pytest-selective's reader-owned sidecars or directory manifests,
   including for Bun and other non-Python adapters. Reuse the lightweight
   `selective-deps` API rather than a parallel parser or reader-hash registry.
