@@ -493,15 +493,17 @@ def test_pytest_selective_runners_collect_pytests_testpaths(tmp_path, command):
     assert infer_lanes(tmp_path, base, base).lanes["wrapped"].roots == ["tests"]
 
 
-def test_a_base_missing_from_history_runs_every_lane(repository, capsys):
+def test_a_base_missing_from_history_runs_every_lane(repository, capsys, tmp_path):
     repo, head = repository
-    assert main(["--repo", str(repo), "--base", "1234567890abcdef1234567890abcdef12345678", "--head", head]) == 0
+    output = tmp_path / "outputs"
+    assert main(["--repo", str(repo), "--base", "1" * 40, "--head", head, "--action-output", str(output)]) == 0
+    assert "selection-base=" in output.read_text().splitlines()
     result = json.loads(capsys.readouterr().out)
     assert set(result["lanes"].values()) == {True}
     assert "is not in this checkout's history" in result["reason"]
 
 
-def test_a_pull_request_merge_is_planned_against_the_base_it_was_built_on(repository, capsys):
+def test_a_pull_request_merge_is_planned_against_the_base_it_was_built_on(repository, capsys, tmp_path):
     """GitHub merges the PR head into the base branch's current tip, which can be ahead of `base.sha`."""
     repo, base = repository
 
@@ -513,13 +515,23 @@ def test_a_pull_request_merge_is_planned_against_the_base_it_was_built_on(reposi
     pr_head = commit(repo, "the pull request")
     run("checkout", "-q", "-")
     write(repo, "scripts/smoke.sh", "echo landed on main meanwhile\n")
-    commit(repo, "another merge on main")
+    tip = commit(repo, "another merge on main")
     run("-c", "user.name=Test", "-c", "user.email=test@example.com", "merge", "-q", "--no-ff", "-m", "merge", pr_head)
     head = run("rev-parse", "HEAD").strip()
 
-    assert main(["--repo", str(repo), "--base", base, "--head", head, "--pr-head", pr_head]) == 0
+    output = tmp_path / "outputs"
+    args = ["--repo", str(repo), "--base", base, "--head", head, "--action-output", str(output)]
+    assert main([*args, "--pr-head", pr_head]) == 0
     tested = json.loads(capsys.readouterr().out)["lanes"]
     assert tested == {"live": True, "smoke": False, "unit": False, "wrapped": True}
+    assert dict(line.split("=", 1) for line in output.read_text().splitlines()) == {
+        "selection-base": tip, "lanes": json.dumps(tested),
+    }
+    for flags, expected in [(["--pr-head", base], base), (["--pr-head", pr_head, "--full"], "")]:
+        output.unlink()
+        assert main([*args, *flags]) == 0
+        assert f"selection-base={expected}" in output.read_text().splitlines()
+        capsys.readouterr()
     # Without the PR head, main's own change reads as the PR's: the smoke lane runs too.
     assert plan(repo, base, head, capsys)["smoke"] is True
 

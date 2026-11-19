@@ -28,6 +28,9 @@ inputs:
     description: Upload the lane plan under this name for CI-esta's report. Empty skips the upload.
     default: test-lane-selection
 outputs:
+  selection-base:
+    description: Exact commit used to select work. Empty on a full checkpoint or full-suite fallback. An empty base requires full file selection.
+    value: ${{ steps.plan.outputs.selection-base }}
   lanes:
     description: JSON object mapping lane names to booleans.
     value: ${{ steps.plan.outputs.lanes }}
@@ -71,7 +74,7 @@ runs:
       run: |
         uv run --no-project --python 3.14 --with "${SHARED_ACTION_PATH}/../..[selection]" \
           python -m ci_esta.testing.work_plan ${PLAN_CONFIG:+--config "$PLAN_CONFIG"} --base "$PLAN_BASE" --pr-head "$PLAN_PR_HEAD" \
-          --full "$PLAN_FULL" --github-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY" \
+          --full "$PLAN_FULL" --action-output "$GITHUB_OUTPUT" --summary "$GITHUB_STEP_SUMMARY" \
           ${PLAN_PREVIOUS_FAILURES:+--previous-failures "$PLAN_PREVIOUS_FAILURES"} \
           | tee test-lanes.json
     - if: ${{ inputs.artifact-name != '' }}

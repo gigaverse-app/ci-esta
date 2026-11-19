@@ -202,6 +202,7 @@ select-tests:
   runs-on: ubuntu-latest
   outputs:
     lanes: ${{ steps.plan.outputs.lanes }}
+    selection-base: ${{ steps.plan.outputs.selection-base }}
   steps:
     - uses: actions/checkout@v7
       with:
@@ -209,6 +210,24 @@ select-tests:
     - id: plan
       uses: gigaverse-app/ci-esta/actions/plan-work@v1
 ```
+
+In the job that runs Bun, add `needs: select-tests` and pass the planner's commit
+to the file selector after installing Bun and generating the inventory:
+
+```yaml
+- uses: gigaverse-app/ci-esta/actions/run-bun-tests@v1
+  with:
+    inventory: ${{ runner.temp }}/bun-inventory.json
+    base: ${{ needs.select-tests.outputs.selection-base }}
+```
+
+GitHub can build a PR merge after the target branch advances. The planner checks
+the merge's second parent against the event's PR head before using its first
+parent as the base. Passing that output keeps target-branch changes out of both
+plans. Forward an empty output unchanged so Bun executes the full inventory on
+a full checkpoint or missing history. If receipts depend on this base, include it
+in their execution context and disable reuse when it is empty. A separate comparison against a previously
+tested merge still uses that receipt's commit and `validated-head`.
 
 Install Bun before `plan-work` yourself (`oven-sh/setup-bun`) only to pin a version kept
 somewhere else; `plan-work` then uses that one.

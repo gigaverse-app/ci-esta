@@ -8,7 +8,9 @@ inputs:
     description: Optional legacy selection policy JSON. Omit to use Bun imports and pytest-selective's portable dependency declarations.
     default: ''
   base:
-    description: Exact comparison commit; use a recorded tested merge together with validated-head. Missing history executes the full inventory.
+    description: >-
+      Exact comparison commit. After plan-work, pass its selection-base output.
+      For a previous tested merge, supply its commit and validated-head. An empty base or missing history runs the full inventory.
     default: ${{ github.event.pull_request.base.sha || github.event.before }}
   validated-head:
     description: Optional proven PR head, which must be the comparison merge's second parent and an ancestor of the current checkout.
