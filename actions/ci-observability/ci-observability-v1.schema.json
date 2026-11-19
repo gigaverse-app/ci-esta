@@ -1712,6 +1712,25 @@
           "minLength": 1,
           "title": "Runtime",
           "type": "string"
+        },
+        "previous_failures": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100000,
+          "title": "Previous Failures",
+          "type": "array"
+        },
+        "previous_failures_outcome": {
+          "default": "none",
+          "enum": [
+            "none",
+            "passed",
+            "failed",
+            "stopped"
+          ],
+          "title": "Previous Failures Outcome",
+          "type": "string"
         }
       },
       "required": [

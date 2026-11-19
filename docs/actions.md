@@ -89,6 +89,7 @@ a stable `history-key`. See the [executable retention tutorial](learned-test-tim
 | `gigaverse-app/ci-esta/actions/pytest-timings@v1` | [pytest-timings](../actions/pytest-timings/action.yml) |
 | `gigaverse-app/ci-esta/actions/resolve-incremental-pr-base@v1` | [resolve-incremental-pr-base](../actions/resolve-incremental-pr-base/action.yml) |
 | `gigaverse-app/ci-esta/actions/resolve-lane-evidence@v1` | [resolve-lane-evidence](../actions/resolve-lane-evidence/action.yml) |
+| `gigaverse-app/ci-esta/actions/resolve-previous-failures@v1` | [resolve-previous-failures](../actions/resolve-previous-failures/action.yml) |
 | `gigaverse-app/ci-esta/actions/resolve-pytest-evidence@v1` | [resolve-pytest-evidence](../actions/resolve-pytest-evidence/action.yml) |
 | `gigaverse-app/ci-esta/actions/resolve-security-trigger@v1` | [resolve-security-trigger](../actions/resolve-security-trigger/action.yml) |
 | `gigaverse-app/ci-esta/actions/restore-test-timings@v1` | [restore-test-timings](../actions/restore-test-timings/action.yml) |

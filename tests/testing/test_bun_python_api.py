@@ -412,3 +412,76 @@ def test_always_run_tests_alone_report_no_affected_work(repository, changed, mod
         cwd=root, base=base, test_files=['src/contract.test.ts', 'src/value.test.ts'],
         always_run_files=['src/contract.test.ts']))
     assert (plan.mode, plan.selected_files) == (mode, selected)
+
+
+def _bun_at_least_142():
+    version = subprocess.run(["bun", "--version"], capture_output=True, text=True, check=True).stdout.strip()
+    if tuple(map(int, version.split("."))) < (1, 4, 2):
+        pytest.skip("requires Bun >=1.4.2; required Runtime contracts job installs it")
+
+
+def _failing_fixture(root, git, tmp_path):
+    (root / "src/other.test.ts").write_text(
+        "import {test,expect} from 'bun:test'; test('still red',()=>expect(1).toBe(2));")
+    (root / "src/third.test.ts").write_text(
+        "import {test,expect} from 'bun:test'; test('green',()=>expect(1).toBe(1));")
+    git("add", ".")
+    git("commit", "-qm", "tests")
+    base = git("rev-parse", "HEAD")
+    (root / "README.md").write_text("docs")
+    git("add", ".")
+    git("commit", "-qm", "docs only")
+    inventory = tmp_path / "inventory.json"
+    inventory.write_text(json.dumps({"schema_version": "ci-esta/bun-inventory/v1", "alwaysRunFiles": [],
+                                     "files": ["src/other.test.ts", "src/third.test.ts", "src/value.test.ts"]}))
+    return base, inventory
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+@pytest.mark.parametrize("stop", [True, False])
+def test_previous_failures_run_first_even_when_unaffected_and_stop_by_default(repository, tmp_path, stop):
+    _bun_at_least_142()
+    root, git, _ = repository
+    base, inventory = _failing_fixture(root, git, tmp_path)
+    (root / "src/value.ts").write_text("export const value = 1; // touched")
+    git("add", ".")
+    git("commit", "-qm", "touch value")
+    result = run_bun_tests(RunRequest(
+        cwd=root, base=base, inventory_file=str(inventory), output_directory=tmp_path / "output", shards=2,
+        previous_failures=["src/other.test.ts", "src/deleted.test.ts"], stop_on_previous_failure=stop))
+    # The change does not reach the previous failure, yet it is re-run first (a deleted path is dropped).
+    assert result.previous_failures == ["src/other.test.ts"]
+    assert result.executions[0].kind == "previous-failures"
+    assert result.executions[0].executed_files == ["src/other.test.ts"]
+    assert result.executions[0].failed_files == ["src/other.test.ts"]
+    assert result.exit_code != 0
+    assert result.previous_failures_outcome == ("stopped" if stop else "failed")
+    executed = sorted(file for batch in result.executions for file in batch.executed_files)
+    if stop:
+        # The fast answer skips the change's own test, so the run can never count as a pass.
+        assert executed == ["src/other.test.ts"] and not result.complete
+    else:
+        assert executed == ["src/other.test.ts", "src/value.test.ts"] and result.complete
+    assert (tmp_path / "output/junit-previous-failures.xml").is_file()
+
+
+@pytest.mark.skipif(shutil.which('bun') is None, reason='Bun required')
+def test_a_fixed_previous_failure_passes_first_and_selection_continues(repository, tmp_path):
+    _bun_at_least_142()
+    root, git, _ = repository
+    base, inventory = _failing_fixture(root, git, tmp_path)
+    (root / "src/other.test.ts").write_text(
+        "import {test,expect} from 'bun:test'; test('fixed',()=>expect(1).toBe(1));")
+    (root / "src/value.ts").write_text("export const value = 1; // touched")
+    git("add", ".")
+    git("commit", "-qm", "fix and touch value")
+    result = run_bun_tests(RunRequest(cwd=root, base=base, inventory_file=str(inventory),
+                                      output_directory=tmp_path / "output", shards=2,
+                                      previous_failures=["src/other.test.ts"]))
+    assert result.previous_failures_outcome == "passed"
+    assert result.exit_code == 0 and result.complete
+    assert result.executions[0].kind == "previous-failures"
+    # The fix is not run twice; the change still selects its own test.
+    assert sorted(file for batch in result.executions for file in batch.executed_files) == [
+        "src/other.test.ts", "src/value.test.ts"]
+    assert result.failed_files == []

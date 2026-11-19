@@ -24,6 +24,7 @@ Your agent opens a pull request with the workflow changes and measurements. You 
 | --- | --- |
 | Edit one function | Follow its dependencies and select the affected Python or Bun tests. |
 | Push again after a passing run | Reuse a successful check when the recorded inputs and scope match. |
+| Push a fix after a red run | [Re-run the tests that failed first](https://ci-esta.readthedocs.io/en/latest/docs/failed-first/), even when your fix does not touch them, and answer from one small batch if they still fail. |
 | Change code covered only by unit tests | Skip unrelated lanes. A lane is a group of checks, such as database integration tests, that CI can run or reuse independently. |
 | Install the same dependencies repeatedly | Restore a matching environment, check it and sync it with your lockfile. |
 | Wait on the last slow shard | Use recorded test durations to balance work across parallel workers. |

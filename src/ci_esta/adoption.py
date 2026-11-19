@@ -19,6 +19,7 @@ Scalar = str | bool | int | float | None
 GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/tutorials/adoption-checklist/"
 PACKING_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/pack-matrix-jobs/"
 GATE_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/selected-gates/"
+FAILED_FIRST_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/failed-first/"
 PYTHON_TESTS = re.compile(r"\b(pytest|tox|nox)(?:\s|$)")
 BUN_TESTS = re.compile(r"\bbun\s+test\b")
 BUN_RUNNER = "gigaverse-app/ci-esta/actions/run-bun-tests"
@@ -247,7 +248,8 @@ def _inventory(root: Path) -> tuple[AdoptionReport, list[tuple[str, str]], list[
                 continue
             report.actions.append(ActionUse(source=source, uses=step.uses, inputs={
                 name: value for name, value in step.inputs.items()
-                if name in {"full", "config", "history-key", "durations", "reuse-after-merge", "reuse-version-only-release", "timing-history"}
+                if name in {"full", "config", "history-key", "durations", "reuse-after-merge", "reuse-version-only-release", "timing-history",
+                            "previous-failures"}
             }))
             if step.uses.startswith(("./", "$/")):
                 local = root / step.uses[2:]
@@ -342,6 +344,18 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
     bun = [path for path, command in commands if BUN_TESTS.search(command)]
     if python and not selectors:
         advise("python-selection", "No shared Python selector call found. Consider file selection before collection or whole-lane selection before provisioning services; inspect existing scripts first. Measure first: selection pays only when tests, not setup, dominate the critical path.", python)
+    runners = [path for path, command in commands if PYTHON_TESTS.search(command) or BUN_TESTS.search(command)]
+    bun_runs = ci("run-bun-tests")
+    if runners or bun_runs:
+        recheck = ci("resolve-previous-failures", "pytest-failure-canary")
+        unfed = [item.source for item in bun_runs if not item.inputs.get("previous-failures")]
+        if not recheck or unfed:
+            advise("failed-first", "Re-run what failed last time first: resolve-previous-failures reads the "
+                   "previous failed run's JUnit, and run-bun-tests `previous-failures` (or the pytest canary) "
+                   "re-checks those files before everything else, even when the next push does not reach them. "
+                   "A still-red PR answers in one small batch instead of a full run. To opt out, record the "
+                   "decision in .github/ci-esta-reviewed.yaml.",
+                   unfed or [item.source for item in bun_runs] or runners, FAILED_FIRST_GUIDE)
     if bun and not ci("run-bun-tests", "report-bun-tests"):
         advise("bun-reporting", "Consider run-bun-tests for selection and evidence, or report-bun-tests around an existing executor. Keep the project's Bun runner and policy.", bun)
     for flow in report.workflows:

@@ -104,3 +104,26 @@ def test_unaffected_bun_inputs_still_select_always_run_contracts():
     header = render_markdown(report_with_work(item)).split("\n---\n", 1)[0]
     assert "![selected: 1 / 10 files]" in header
     assert "![executed: 1 / 10 files]" in header
+
+
+@pytest.mark.parametrize(("outcome", "status", "says"), [
+    ("passed", "passed", "the 2 previously failing files now pass"),
+    ("stopped", "incomplete", "remaining tests were skipped for a fast answer. This run is not a pass"),
+    ("failed", "failed", "2 previously failing files ran first and still fail"),
+])
+def test_failed_first_outcome_leads_the_lane_section(outcome, status, says):
+    from ci_esta.ci_observability.work_selection import render_work_selection
+
+    execution = WorkExecutionV1(
+        mode="scoped", status=status, total_files=10, executed_files=["a.test.ts", "b.test.ts"],
+        tested_sha="a" * 40, runtime="Bun 1.4.2", previous_failures=["a.test.ts", "b.test.ts"],
+        previous_failures_outcome=outcome)
+    text = render_work_selection(WorkSelectionV1(
+        provider="Bun", run_id=1, run_attempt=1, head_sha="a" * 40, input_identity="a" * 40, fallback=False,
+        decisions=[WorkDecisionV1(name="Bun tests", decision="run", reason="selected", execution=execution)]))
+    assert says in text and "`a.test.ts`" in text
+    # Lanes without previous failures say nothing about them.
+    plain = execution.model_copy(update={"previous_failures": [], "previous_failures_outcome": "none"})
+    assert "Failed first" not in render_work_selection(WorkSelectionV1(
+        provider="Bun", run_id=1, run_attempt=1, head_sha="a" * 40, input_identity="a" * 40, fallback=False,
+        decisions=[WorkDecisionV1(name="Bun tests", decision="run", reason="selected", execution=plain)]))

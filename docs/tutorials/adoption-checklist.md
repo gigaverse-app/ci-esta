@@ -195,6 +195,14 @@ installed environment. A cache hit alone is not evidence of improvement.
 
 ## 4. Close the timing and execution loop
 
+Re-run what failed first. Once selection runs, wire
+[failed-first](../failed-first.md): `resolve-previous-failures` reads the previous failed run's
+JUnit and the runner re-checks those files before everything else, even when the next push does
+not reach them. A still-red PR answers from one small batch. `ci-esta adoption` reports
+`failed-first` until it is wired; record an opt-out with its reason in
+`.github/ci-esta-reviewed.yaml`.
+
+
 Begin with the existing pytest/xdist arrangement. Use the
 [executable timing tutorial](../learned-test-timings.md#cli-and-runnable-tutorial)
 before wiring retained history or adding runner jobs:

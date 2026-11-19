@@ -35,7 +35,17 @@ def request_from_env() -> RunRequest:
         shards=int(os.environ.get("BUN_TEST_SHARDS") or "1"),
         preloads=json.loads(os.environ.get("BUN_TEST_PRELOADS") or "[]"),
         timing_history=os.environ.get("BUN_TEST_TIMING_HISTORY") or None,
+        previous_failures=_previous_failures(os.environ.get("BUN_TEST_PREVIOUS_FAILURES") or ""),
+        stop_on_previous_failure=(os.environ.get("BUN_TEST_STOP_ON_PREVIOUS_FAILURE") or "true") == "true",
     )
+
+
+def _previous_failures(path: str) -> list[str]:
+    """Paths from a newline-delimited file; a missing file means no evidence, never an error."""
+    if not path or not Path(path).is_file():
+        return []
+    return [line.strip() for line in Path(path).read_text(encoding="utf-8").splitlines()
+            if line.strip() and safe_path(line.strip())]
 
 
 class CommandInput(BaseModel):

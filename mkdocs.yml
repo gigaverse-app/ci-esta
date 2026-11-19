@@ -99,6 +99,7 @@ extra:
   - docs/critical-path.md
   - docs/environment-cache.md
   - docs/evidence-reuse.md
+  - docs/failed-first.md
   - docs/evidence-discovery.md
   - docs/github-actions-observability.md
   - docs/integrations.md
@@ -137,6 +138,7 @@ nav:
   - Tune Python test execution: docs/python-ci-tuning.md
   - Balance tests with timing data: docs/learned-test-timings.md
   - Reuse successful job evidence: docs/evidence-reuse.md
+  - Re-run what failed first: docs/failed-first.md
   - Evidence discovery internals: docs/evidence-discovery.md
   - Validate skipped test lanes: docs/selected-gates.md
 - Actions and integrations:
