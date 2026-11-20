@@ -274,10 +274,12 @@ def bun_lane_reasons(
     *,
     admitted: set[str] | None = None,
     completion_workflows: set[str] | None = None,
+    selected_files: set[str] | None = None,
 ) -> dict[str, list[str]]:
     """Reasons each lane with Bun tests is selected; lanes without Bun tests are absent.
 
     `environment` is the bun-environment rule's patterns; a change to one runs every Bun lane.
+    If supplied, `selected_files` collects the tracked tests reached by observed graph edges.
     """
     from pytest_selective.impact_graph import matches, within
 
@@ -299,6 +301,7 @@ def bun_lane_reasons(
     # Keep every lane in membership checks, but only build graphs needed to decide
     # pending work. An admitted full-contract lane cannot justify skipping anything.
     admitted = admitted or set()
+    selected_files = set() if selected_files is None else selected_files
     lane_tests = {name: [test for test in tests if lane.contains_test(test)]
                   for name, lane in lanes.items() if name not in admitted}
     lane_deleted = {
@@ -343,8 +346,10 @@ def bun_lane_reasons(
         if hit := sorted(graph[preload] & changed):
             for name in bun_lanes:
                 reasons[name].append(f"Bun test preload: {preload} (bundles {', '.join(hit)})")
+                selected_files.update(lane_tests[name])
     for name in bun_lanes:
         for test in lane_tests[name]:
             if hit := sorted(graph[test] & changed):
                 reasons[name].append(f"affected Bun test: {test} (bundles {', '.join(hit)})")
+                selected_files.add(test)
     return reasons

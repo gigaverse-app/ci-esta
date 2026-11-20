@@ -188,6 +188,11 @@ work. Measure batch/setup overhead before claiming elapsed-time savings.
 
 ## Whole-lane planning
 
+The plan artifact's `selected` list names test files reached by the Python and Bun dependency
+graphs. A changed Bun preload includes the files that use it. This count is a lower bound for
+runner sizing. A full checkpoint, a previous failure or a workflow rule can admit a lane
+without enumerating its files. Use `lanes` for admission and the execution report for actual coverage.
+
 The adapter above narrows files inside one `bun test` run. To skip whole jobs, use
 [`plan-work`](actions.md); its lanes come from your workflow, or from a lane file whose
 roots hold your Bun tests. The planner asks Bun for its module graph, so `plan-work`

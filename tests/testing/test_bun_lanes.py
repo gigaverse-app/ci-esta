@@ -151,6 +151,7 @@ def test_evidence_names_the_preload_and_what_it_bundles(application):
     write(repo, "packages/kit/setup.ts", "export const kit = 2;\n")
     result = plan_work(repo, lanes(), base, commit(repo))
     assert "Bun test preload: setup.ts (bundles packages/kit/setup.ts)" in result.lane_reasons["unit"]
+    assert result.selected == ["tests/feature/alias.test.ts", "tests/unit/assets.test.ts"]
 
 
 def test_evidence_names_the_test_and_what_it_bundles(repository):
@@ -158,6 +159,8 @@ def test_evidence_names_the_test_and_what_it_bundles(repository):
     write(repo, "fixtures/notes.md", "# Changed\n")
     result = plan_work(repo, lanes(), base, commit(repo))
     assert "affected Bun test: tests/feature/b.test.ts (bundles fixtures/notes.md)" in result.lane_reasons["feature"]
+    assert result.selected == ["tests/feature/b.test.ts"]
+    assert "0 test files" not in result.reason
 
 
 def test_a_deleted_bun_test_still_runs_its_lane(repository):
@@ -184,6 +187,7 @@ def test_a_graph_bun_cannot_build_runs_every_bun_lane(repository, broken):
     result = plan_work(repo, lanes(), base, head, bun="no-such-bun" if broken == "executable" else "bun")
     assert result.lanes == {"unit": True, "feature": True}
     assert all("Bun module graph unavailable" in reasons[0] for reasons in result.lane_reasons.values())
+    assert result.selected == []
 
 
 @pytest.fixture
