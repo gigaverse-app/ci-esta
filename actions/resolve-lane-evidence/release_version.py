@@ -33,7 +33,7 @@ def lock_text(text, name, version):
     for index, part in enumerate(parts[1:], 1):
         package = tomllib.loads(part)["package"][0]
         if package["name"] == name:
-            if package.get("source") != {"editable": "."} or package["version"] != version:
+            if package.get("source") not in ({"editable": "."}, {"virtual": "."}) or package["version"] != version:
                 raise ValueError("Ambiguous root package")
             parts[index] = version_line(part, version)
             found += 1

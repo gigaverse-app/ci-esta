@@ -10,15 +10,18 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "actions/resolve-lane-evidence/release_version.py"
 
 
+@pytest.mark.parametrize("root_source", ["editable", "virtual"])
 @pytest.mark.parametrize("change, expected", [
     ("version", True), ("dependency", False), ("lock-dependency", False),
     ("source", False), ("workflow", False), ("test", False), ("comment", False),
     ("inconsistent", False), ("decrease", False), ("missing", False), ("unchanged", False),
+    ("root-kind", False), ("root-path", False),
 ])
-def test_only_the_project_version_and_release_metadata_can_reuse_base_proof(tmp_path, change, expected):
+def test_only_the_project_version_and_release_metadata_can_reuse_base_proof(tmp_path, change, expected, root_source):
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
     project = '[project]\nname = "example"\nversion = "1.5.1"\ndependencies = ["thing==1.5.1"]\n'
     lock = 'version = 1\n[[package]]\nname = "example"\nversion = "1.5.1"\nsource = { editable = "." }\n[[package]]\nname = "thing"\nversion = "1.5.1"\n'
+    lock = lock.replace('editable = "."', f'{root_source} = "."')
     write(tmp_path, "pyproject.toml", project)
     write(tmp_path, "uv.lock", lock)
     write(tmp_path, ".release-please-manifest.json", '{".": "1.5.1"}\n')
@@ -34,6 +37,11 @@ def test_only_the_project_version_and_release_metadata_can_reuse_base_proof(tmp_
         write(tmp_path, "pyproject.toml", (tmp_path / "pyproject.toml").read_text().replace("thing==1.5.1", "thing==1.6.0"))
     if change == "lock-dependency":
         write(tmp_path, "uv.lock", (tmp_path / "uv.lock").read_text().replace('version = "1.5.1"', 'version = "1.6.0"'))
+    if change in {"root-kind", "root-path"}:
+        other = "virtual" if root_source == "editable" else "editable"
+        replacement = f'{other} = "."' if change == "root-kind" else f'{root_source} = "packages/root"'
+        locked = tmp_path / "uv.lock"
+        write(tmp_path, "uv.lock", locked.read_text().replace(f'{root_source} = "."', replacement))
     if change == "comment":
         write(tmp_path, "pyproject.toml", (tmp_path / "pyproject.toml").read_text() + "# other change\n")
     if change == "inconsistent":
