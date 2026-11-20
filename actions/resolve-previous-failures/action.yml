@@ -4,6 +4,9 @@ description: >-
   JUnit artifacts, so the next run re-checks them first. Works for pytest and Bun reports.
 
 inputs:
+  parent-run-id:
+    description: For a dispatched worker, the same-repository run whose branch and workflow own the test history. Its head SHA must match this worker.
+    required: false
   artifact-pattern:
     description: >-
       Artifact name glob of the previous run's test reports, for example `pytest-results-*`
@@ -55,18 +58,34 @@ runs:
     - name: Find the previous failed run of this workflow on this branch
       id: previous
       uses: actions/github-script@v9
+      env:
+        PARENT_RUN_ID: ${{ inputs.parent-run-id }}
       with:
         github-token: ${{ inputs.github-token }}
         script: |
           // The newest completed run decides: after a green run there is nothing left to re-check.
           // Cancelled runs are skipped because concurrency cancels superseded pushes mid-run.
-          const branch = context.payload.pull_request?.head?.ref || context.ref.replace(/^refs\/heads\//, '');
+          const parent = process.env.PARENT_RUN_ID;
+          const runId = parent ? Number(parent) : context.runId;
+          if (!Number.isSafeInteger(runId) || runId < 1) throw new Error('Invalid source workflow run ID');
           const { data: current } = await github.rest.actions.getWorkflowRun({
-            ...context.repo, run_id: context.runId });
-          const { data } = await github.rest.actions.listWorkflowRuns({
-            ...context.repo, workflow_id: current.workflow_id, branch, status: 'completed', per_page: 20 });
-          const previous = data.workflow_runs.find(run => run.id !== context.runId && run.conclusion !== 'cancelled'
-            && run.conclusion !== 'skipped');
+            ...context.repo, run_id: runId });
+          const head = context.payload.pull_request?.head?.sha || context.sha;
+          if (parent && (current.head_sha !== head || !current.head_branch ||
+              current.head_repository?.full_name?.toLowerCase() !== `${context.repo.owner}/${context.repo.repo}`.toLowerCase())) {
+            throw new Error('Parent workflow run must belong to this repository and match the tested revision');
+          }
+          const branch = current.head_branch || context.payload.pull_request?.head?.ref || context.ref.replace(/^refs\/heads\//, '');
+          let previous;
+          for (let page = 1; !previous; page++) {
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              ...context.repo, workflow_id: current.workflow_id, branch, status: 'completed',
+              created: '<=' + current.created_at, per_page: 100, page });
+            previous = data.workflow_runs.find(run => run.run_number < current.run_number &&
+              run.head_repository?.id === current.head_repository?.id &&
+              run.conclusion !== 'cancelled' && run.conclusion !== 'skipped');
+            if (data.workflow_runs.length < 100) break;
+          }
           const failed = previous && previous.conclusion === 'failure';
           core.info(previous ? `Previous run ${previous.id} on ${branch}: ${previous.conclusion}`
                              : `No previous completed run on ${branch}`);
