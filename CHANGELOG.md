@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.33.0](https://github.com/gigaverse-app/ci-esta/compare/v1.32.0...v1.33.0) (2026-11-20)
+
+
+### Features
+
+* **ci:** resolve prior test failures from the parent workflow ([b98d746](https://github.com/gigaverse-app/ci-esta/commit/b98d7465c8aacc7e81e21e7ced62297f8bbb892d))
+
 ## [1.32.0](https://github.com/gigaverse-app/ci-esta/compare/v1.31.1...v1.32.0) (2026-11-20)
 
 
