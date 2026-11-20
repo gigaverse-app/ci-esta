@@ -116,6 +116,9 @@ def _plan_changes(
     bun_reasons = bun_lane_reasons(
         repo, config.lanes, set(result.changed), bun, bun_environment,
         admitted={name for name, selected in result.lanes.items() if selected},
+        completion_workflows={
+            path for path in result.changed if before.observes_completion(path) and after.observes_completion(path)
+        },
     )
     # A job that builds the package runs when the package's inputs change, as the build tools list them.
     package_lanes = after.package_lanes()

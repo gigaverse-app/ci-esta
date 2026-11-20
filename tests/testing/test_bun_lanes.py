@@ -405,3 +405,38 @@ def test_lane_admission_cannot_skip_file_selection_unknown_input_fallback(reposi
     assert selection.mode == "full"
     result = plan_work(repo, lanes(), base, head)
     assert all(result.lanes.values()), result.lane_reasons
+
+@pytest.mark.parametrize(
+    ("change", "expected"),
+    [
+        ("report", {"unit": False, "feature": False}),
+        ("test reads report", {"unit": True, "feature": False}),
+        ("report and unknown file", {"unit": True, "feature": True}),
+        ("was push triggered", {"unit": True, "feature": True}),
+        ("previous unit failure", {"unit": True, "feature": False}),
+        ("new push trigger", {"unit": True, "feature": True}),
+        ("unreadable report", {"unit": True, "feature": True}),
+    ],
+)
+def test_completed_workflow_report_edits_keep_bun_and_workflow_dependencies(repository, change, expected):
+    repo, _ = repository
+    path = ".github/workflows/report.yml"
+    trigger = "on:\n  workflow_run:\n    workflows: [Validate]\n    types: [completed]\n  workflow_dispatch:\n"
+    workflow = trigger + "jobs:\n  report:\n    runs-on: ubuntu-latest\n    steps: [{run: echo old}]\n"
+    write(repo, path, workflow.replace(trigger, "on: push\n") if change == "was push triggered" else workflow)
+    if change == "test reads report":
+        write(repo, "tests/unit/a.test.ts", TEST.format(
+            imports="import report from '../../.github/workflows/report.yml' with { type: 'text' };"
+        ))
+    base = commit(repo)
+    updated = workflow.replace("echo old", "echo new")
+    if change == "new push trigger":
+        updated = updated.replace(trigger, "on: push\n")
+    if change == "unreadable report":
+        updated = "jobs: ["
+    if change == "report and unknown file":
+        write(repo, "fixtures/input.bin", "unmapped")
+    write(repo, path, updated)
+    failures = ["tests/unit/a.test.ts"] if change == "previous unit failure" else []
+    result = plan_work(repo, lanes(), base, commit(repo), previous_failures=failures)
+    assert result.lanes == expected, result.lane_reasons
