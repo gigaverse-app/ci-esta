@@ -91,3 +91,23 @@ def test_job_counter_requires_a_matched_action_and_cleanup(post, end_offset, sku
     assert observed.covered_seconds == (178.5 if measured else 0)
     assert observed.used_core_seconds == (350 if measured else None)
     assert observed.peak_sampled_cores == (4 if measured else None)
+
+
+@pytest.mark.parametrize("name", [
+    "Measure runner CPU", "Run example-org/ci-toolkit/actions/measure-runner-cpu@v1", "Run ./actions/measure-runner-cpu",
+])
+def test_action_opt_in_needs_no_observer_configuration(name):
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    finish = start + timedelta(seconds=50)
+    job = _observe_job(GitHubJobV1(
+        id=3, name="compile", labels=["ubuntu-24.04"], runner_group_name="GitHub Actions", runner_name="hosted",
+        status="completed", started_at=start, completed_at=finish,
+        steps=[GitHubStepV1(number=1, name=name, status="completed", started_at=start, completed_at=start),
+               GitHubStepV1(number=3, name=f"Post {name}", status="completed", started_at=finish-timedelta(seconds=1), completed_at=finish)],
+    ), start, finish)
+    epoch_ms = int(start.timestamp()*1000)
+    read = Mock(return_value=f"2026-01-01T00:00:49Z [ci-esta-job-cpu] start_ms={epoch_ms+250} "
+                             f"end_ms={epoch_ms+49000} used_usec=75000000")
+    row, = allocation.collect([job], [], None, "", repository_private=True, read_job_log=read)
+    assert row.cpu_allocation.used_core_seconds == 75
+    assert row.cpu_allocation.peak_sampled_cores is None

@@ -207,8 +207,8 @@ counter when the step runs and again in its post-job hook.
   uses: gigaverse-app/ci-esta/actions/measure-runner-cpu@v1
 ```
 
-Set `runner-cpu-log-steps: Measure runner CPU` on the reporter. Use the exact
-displayed step name. The time before the first reading and after cleanup remains
+The reporter recognizes this step name and the default name when `name` is omitted.
+For a custom display name, include it in `runner-cpu-log-steps`. The time before the first reading and after cleanup remains
 unknown. An absent cleanup reading leaves whole-job usage unknown. The two
 readings provide total CPU time. Add a sampled command when you also need peak
 concurrency. When both sources exist, the report uses the larger measured

@@ -107,6 +107,13 @@ def measure_job_counter(job: ObservedJobV1, names: Set[str], log: str, allocatio
 def measure_log(job: ObservedJobV1, step_names: Set[str], read_job_log: Callable[[int], str],
                 allocation: RunnerCpuAllocation) -> None:
     assert job.started_at and job.completed_at
+    # An action with a custom display name can opt in through resource_steps.
+    # Local actions and forks retain their default Actions step name.
+    step_names = step_names.union(
+        s.name for s in job.steps if s.name == "Measure runner CPU" or (
+            s.name.startswith("Run ") and s.name.partition("@")[0].endswith("/actions/measure-runner-cpu")
+        )
+    )
     windows = [(max(step.started_at, job.started_at).timestamp(), min(step.completed_at, job.completed_at).timestamp())
                for step in job.steps if step.name in step_names and step.started_at and step.completed_at]
     if not windows:
@@ -147,7 +154,7 @@ def collect(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1], url: str | 
             sku = rate.sku if rate else STANDARD_LABEL_SKUS.get(label, "")
             dedicated_vm = (standard_hosted and sku in {"actions_linux", "actions_linux_arm"}
                             or sku in GITHUB_SKU_PRICES and sku.startswith("linux_"))
-            if dedicated_vm and resource_steps and read_job_log:
+            if dedicated_vm and read_job_log:
                 measure_log(job, resource_steps, read_job_log, allocation)
                 if allocation.covered_seconds:
                     return allocated_job
