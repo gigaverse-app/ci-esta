@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.28.0](https://github.com/gigaverse-app/ci-esta/compare/v1.27.0...v1.28.0) (2026-11-20)
+
+
+### Features
+
+* **selection:** recognize completed-workflow inputs in Bun lane plans ([2956407](https://github.com/gigaverse-app/ci-esta/commit/295640737e2b67fe7ba6d4be21c965652b4fc07e))
+
 ## [1.27.0](https://github.com/gigaverse-app/ci-esta/compare/v1.26.0...v1.27.0) (2026-11-20)
 
 
