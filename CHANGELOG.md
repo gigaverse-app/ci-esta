@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.29.1](https://github.com/gigaverse-app/ci-esta/compare/v1.29.0...v1.29.1) (2026-11-20)
+
+
+### Bug fixes
+
+* **selection:** recognize virtual uv roots in version-only releases ([1063196](https://github.com/gigaverse-app/ci-esta/commit/106319664eba70bfda9e9b469f7c7710f1118629))
+
 ## [1.29.0](https://github.com/gigaverse-app/ci-esta/compare/v1.28.1...v1.29.0) (2026-11-20)
 
 
