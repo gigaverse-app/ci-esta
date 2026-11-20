@@ -4,6 +4,7 @@ GitHub Action adapter for shared pytest artifact aggregation.
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -13,7 +14,8 @@ from pytest_selective.pytest_sharding import merge_duration_files
 from ci_esta.github_outputs import append_outputs
 from ci_esta.testing.artifacts import matching_artifacts
 from ci_esta.testing.coverage import read_coverage_summary
-from ci_esta.testing.junit import format_duration, summarize_junit_timings
+from ci_esta.testing.junit import format_duration, reported_deselections, summarize_junit_timings
+from ci_esta.testing.persistence import write_atomic_text
 
 
 class AggregationConfig(BaseModel):
@@ -28,6 +30,7 @@ class AggregationConfig(BaseModel):
     junit_pattern: str
     shard_count: int
     duration_output: Path
+    scheduling_output: Path | None = None
     coverage_xml: Path | None = None
     coverage_fail_under: float | None = None
 
@@ -37,6 +40,8 @@ class AggregationConfig(BaseModel):
             raise ValueError("coverage_xml and coverage_fail_under must be provided together")
         if self.shard_count < 1:
             raise ValueError("shard_count must be at least 1")
+        if self.scheduling_output and self.scheduling_output.resolve() == self.duration_output.resolve():
+            raise ValueError("scheduling_output and duration_output must use separate paths")
         return self
 
 
@@ -72,6 +77,10 @@ def aggregate_artifacts(config: AggregationConfig) -> AggregationResult:
     config.duration_output.parent.mkdir(parents=True, exist_ok=True)
     merged = merge_duration_files(duration_files, config.duration_output)
     timings = summarize_junit_timings(junit_files)
+    if config.scheduling_output is not None:
+        measured_files = {node.partition("::")[0] for node in merged}
+        hints = {file: 0.0 for file in reported_deselections(junit_files) - measured_files}
+        write_atomic_text(json.dumps(merged | hints, sort_keys=True), config.scheduling_output)
 
     coverage_percent: float | None = None
     if config.coverage_xml is not None and config.coverage_fail_under is not None:
@@ -118,6 +127,7 @@ def main() -> int:
         junit_pattern=os.environ["INPUT_JUNIT_PATTERN"],
         shard_count=int(os.environ["INPUT_SHARD_COUNT"]),
         duration_output=Path(os.environ["INPUT_DURATION_OUTPUT"]),
+        scheduling_output=_optional_path(os.environ.get("INPUT_SCHEDULING_OUTPUT", "")),
         coverage_xml=_optional_path(os.environ.get("INPUT_COVERAGE_XML", "")),
         coverage_fail_under=_optional_float(os.environ.get("INPUT_COVERAGE_FAIL_UNDER", "")),
     )

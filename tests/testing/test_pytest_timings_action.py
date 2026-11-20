@@ -57,6 +57,27 @@ def test_rejects_incomplete_shard_artifacts(tmp_path: Path) -> None:
         )
 
 
+def test_scheduling_export_keeps_node_observations_and_ignores_unsafe_or_failed_hints(tmp_path: Path) -> None:
+    _write_shard_artifacts(tmp_path)
+    props = "".join(
+        f'<property name="ci-esta.deselected-file" value="{path}"/>'
+        for path in ["tests/test_empty.py", "tests/test_b.py", "../escape.py"]
+    )
+    (tmp_path / "junit-1.xml").write_text(f'<testsuite time="2"><properties>{props}</properties></testsuite>')
+    (tmp_path / "junit-2.xml").write_text(
+        '<testsuite time="3" failures="1"><properties>'
+        '<property name="ci-esta.deselected-file" value="test_failed_lane.py"/></properties></testsuite>'
+    )
+    config = AggregationConfig(
+        artifact_directory=tmp_path, duration_pattern="durations-*.json", junit_pattern="junit-*.xml",
+        shard_count=2, duration_output=tmp_path / "raw.json", scheduling_output=tmp_path / "schedule.json",
+    )
+    result = aggregate_artifacts(config)
+    measured = json.loads(config.duration_output.read_text())
+    assert result.merged_tests == len(measured) == 2
+    assert json.loads((tmp_path / "schedule.json").read_text()) == measured | {"tests/test_empty.py": 0.0}
+
+
 def test_main_writes_action_outputs_and_step_summary(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _write_shard_artifacts(tmp_path)
     github_output = tmp_path / "github-output"

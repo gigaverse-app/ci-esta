@@ -18,6 +18,10 @@ inputs:
     description: Path where the merged duration manifest is written.
     required: false
     default: .test_durations
+  scheduling-output:
+    description: Optional separate manifest combining node timings and explicit zero-work file weights for this lane.
+    required: false
+    default: ""
   coverage-xml:
     description: Optional generated coverage.py XML file to validate.
     required: false
@@ -61,6 +65,7 @@ runs:
         INPUT_JUNIT_PATTERN: ${{ inputs.junit-pattern }}
         INPUT_SHARD_COUNT: ${{ inputs.shard-count }}
         INPUT_DURATION_OUTPUT: ${{ inputs.duration-output }}
+        INPUT_SCHEDULING_OUTPUT: ${{ inputs.scheduling-output }}
         INPUT_COVERAGE_XML: ${{ inputs.coverage-xml }}
         INPUT_COVERAGE_FAIL_UNDER: ${{ inputs.coverage-fail-under }}
       run: uv run --no-project --python 3.14 --with "pydantic>=2.11,<3" --with "defusedxml>=0.7,<0.8" --with "$(python3 "$SHARED_ACTION_PATH/../../scripts/ci/pytest_selective_requirement.py")" python -m ci_esta.testing.action

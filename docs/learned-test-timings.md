@@ -10,6 +10,20 @@ Keep the JUnit report from a successful test lane, then use its file costs to
 balance the next run. Timing data only affects placement. It never proves that
 a test passed on the current commit and never authorizes omitting a file.
 
+For a single-process shard that receives **whole files** and always uses the same
+marker filter, add `-p ci_esta.testing.pytest_completion --record-deselected-files`
+to pytest's JUnit invocation. For example, a unit lane using `-m "not integration"`
+can report that it collected a file containing only integration tests. CI-esta
+learns a zero execution weight for that file in the unit lane. Files absent from
+collection keep their previous estimate. Keep histories separate for each filter.
+Collection and fixture discovery still take wall time.
+
+`ci-esta-pytest learn` reads these suite properties directly. For a node-level
+history, set the `scheduling-output` input on `actions/pytest-timings` to a second
+manifest path. It contains measured node durations plus file-level zero weights.
+The existing `duration-output` and executed-test count keep their original meaning.
+Earlier JUnit reports continue to contribute their observed timings.
+
 ```bash
 uv run pytest -q -n 4 --junitxml=junit.xml
 ci-esta-pytest learn junit.xml --output .test_durations
