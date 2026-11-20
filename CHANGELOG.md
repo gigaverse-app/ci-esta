@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.31.1](https://github.com/gigaverse-app/ci-esta/compare/v1.31.0...v1.31.1) (2026-11-20)
+
+
+### Bug fixes
+
+* **planner:** include graph-selected Bun files in lane plans ([5691e41](https://github.com/gigaverse-app/ci-esta/commit/5691e411dd165a8c31f73c941b708f5ad89574f1))
+
 ## [1.31.0](https://github.com/gigaverse-app/ci-esta/compare/v1.30.2...v1.31.0) (2026-11-20)
 
 
