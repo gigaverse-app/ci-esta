@@ -53,3 +53,61 @@ def test_log_limit_counts_streamed_bytes_and_preserves_existing_readers():
             client.job_log(1, max_bytes=65536)
     finally:
         client.close()
+
+
+@pytest.mark.parametrize(("post", "end_offset", "sku", "measured"), [
+    ("Post Measure runner CPU", 181, "linux_8_core", True),
+    ("Post another action", 181, "linux_8_core", False),
+    ("Post Measure runner CPU", 100, "linux_8_core", False),
+    ("Post Measure runner CPU", 181, "self_hosted", False),
+    ("Post Measure runner CPU", 181, "actions_linux_slim", False),
+])
+def test_job_counter_requires_a_matched_action_and_cleanup(post, end_offset, sku, measured):
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+
+    def step(number, name, first, last):
+        return GitHubStepV1(number=number, name=name, status="completed", started_at=start+timedelta(seconds=first),
+                            completed_at=start+timedelta(seconds=last))
+
+    end = start + timedelta(seconds=185)
+    job = _observe_job(GitHubJobV1(id=7, name="build", labels=["configured"], runner_name="worker",
+                       status="completed", started_at=start, completed_at=end,
+                       steps=[step(1, "Measure runner CPU", 2, 3), step(2, "Payload", 10, 100),
+                              step(3, post, 180, 181)]), start, end)
+    epoch_ms = int(start.timestamp()*1000)
+    log = (f"2026-01-01T00:03:01.200Z [ci-esta-job-cpu] start_ms={epoch_ms+2500} "
+           f"end_ms={epoch_ms+end_offset*1000} used_usec=350000000\n")
+    if measured:
+        # The named payload is inside the job span. Its sampled peak survives
+        # without adding its CPU a second time.
+        log += ("2026-01-01T00:00:11.000Z [ci-test-resource] initial cpu.stat\n"
+                "2026-01-01T00:00:11.001Z [ci-test-resource]   usage_usec 0\n"
+                "2026-01-01T00:00:21.000Z [ci-test-resource] final cpu.stat\n"
+                "2026-01-01T00:00:21.001Z [ci-test-resource]   usage_usec 40000000\n")
+    read = Mock(return_value=log)
+    row, = allocation.collect([job], [RunnerSkuRateV1(runner_label="configured", sku=sku, allocated_cores=8)],
+                              None, "", resource_steps={"Measure runner CPU", "Payload"}, read_job_log=read)
+    observed = row.cpu_allocation
+    assert observed.covered_seconds == (178.5 if measured else 0)
+    assert observed.used_core_seconds == (350 if measured else None)
+    assert observed.peak_sampled_cores == (4 if measured else None)
+
+
+@pytest.mark.parametrize("name", [
+    "Measure runner CPU", "Run example-org/ci-toolkit/actions/measure-runner-cpu@v1", "Run ./actions/measure-runner-cpu",
+])
+def test_action_opt_in_needs_no_observer_configuration(name):
+    start = datetime(2026, 1, 1, tzinfo=UTC)
+    finish = start + timedelta(seconds=50)
+    job = _observe_job(GitHubJobV1(
+        id=3, name="compile", labels=["ubuntu-24.04"], runner_group_name="GitHub Actions", runner_name="hosted",
+        status="completed", started_at=start, completed_at=finish,
+        steps=[GitHubStepV1(number=1, name=name, status="completed", started_at=start, completed_at=start),
+               GitHubStepV1(number=3, name=f"Post {name}", status="completed", started_at=finish-timedelta(seconds=1), completed_at=finish)],
+    ), start, finish)
+    epoch_ms = int(start.timestamp()*1000)
+    read = Mock(return_value=f"2026-01-01T00:00:49Z [ci-esta-job-cpu] start_ms={epoch_ms+250} "
+                             f"end_ms={epoch_ms+49000} used_usec=75000000")
+    row, = allocation.collect([job], [], None, "", repository_private=True, read_job_log=read)
+    assert row.cpu_allocation.used_core_seconds == 75
+    assert row.cpu_allocation.peak_sampled_cores is None

@@ -1,0 +1,7 @@
+name: Measure runner CPU
+description: Measure CPU time between this step and job cleanup on a dedicated GitHub-hosted Linux VM.
+runs:
+  using: node24
+  main: snapshot.cjs
+  post: snapshot.cjs
+  post-if: always() && runner.os == 'Linux' && runner.environment == 'github-hosted' && !job.container.id

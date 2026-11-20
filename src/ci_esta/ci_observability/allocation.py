@@ -72,19 +72,60 @@ def resource_counters(log: str) -> Iterator[CounterSeries]:
         yield CounterSeries(values=samples)
 
 
+JOB_CPU = re.compile(
+    r"^(\S+Z) \[ci-esta-job-cpu\] start_ms=(\d{1,16}) end_ms=(\d{1,16}) used_usec=(\d{1,20})\r?$", re.MULTILINE,
+)
+
+
+def measure_job_counter(job: ObservedJobV1, names: Set[str], log: str, allocation: RunnerCpuAllocation) -> None:
+    # GitHub reports step bounds to the second. Each reading must fall in the
+    # main step and its own post step. Multiple invocations can overlap.
+    if "[ci-esta-job-cpu] " not in log:
+        return
+    steps = job.steps
+    for match in JOB_CPU.finditer(log):
+        logged = datetime.fromisoformat(match[1]).timestamp()
+        start, end = int(match[2]) / 1000, int(match[3]) / 1000
+        elapsed = end - start
+        if not allocation.covered_seconds < elapsed <= allocation.occupied_seconds:
+            continue
+        for step in steps:
+            if step.name not in names or not step.started_at or not step.completed_at:
+                continue
+            if not step.started_at.timestamp() <= start < step.completed_at.timestamp() + 1:
+                continue
+            if any(post.name == f"Post {step.name}" and post.started_at and post.completed_at
+                   and post.started_at.timestamp() <= min(end, logged)
+                   and max(end, logged) < post.completed_at.timestamp() + 1 for post in steps):
+                # A cumulative VM counter spans even long gaps. Two readings
+                # give total CPU, while only the periodic sampler gives a peak.
+                allocation.covered_seconds = elapsed
+                allocation.used_core_seconds = int(match[4]) / 1_000_000
+                break
+
+
 def measure_log(job: ObservedJobV1, step_names: Set[str], read_job_log: Callable[[int], str],
                 allocation: RunnerCpuAllocation) -> None:
     assert job.started_at and job.completed_at
+    # An action with a custom display name can opt in through resource_steps.
+    # Local actions and forks retain their default Actions step name.
+    step_names = step_names.union(
+        s.name for s in job.steps if s.name == "Measure runner CPU" or (
+            s.name.startswith("Run ") and s.name.partition("@")[0].endswith("/actions/measure-runner-cpu")
+        )
+    )
     windows = [(max(step.started_at, job.started_at).timestamp(), min(step.completed_at, job.completed_at).timestamp())
                for step in job.steps if step.name in step_names and step.started_at and step.completed_at]
     if not windows:
         return
     try:
-        for counter in resource_counters(read_job_log(job.job_id)):
+        log = read_job_log(job.job_id)
+        for counter in resource_counters(log):
             for start, end in windows:
                 if start <= counter.values[0][0] < end:
                     measure(counter, start, end, allocation)
                     break
+        measure_job_counter(job, step_names, log, allocation)
     except (httpx.HTTPError, ValueError, OverflowError):
         # Optional diagnostics must never stop an otherwise complete report.
         return
@@ -113,7 +154,7 @@ def collect(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1], url: str | 
             sku = rate.sku if rate else STANDARD_LABEL_SKUS.get(label, "")
             dedicated_vm = (standard_hosted and sku in {"actions_linux", "actions_linux_arm"}
                             or sku in GITHUB_SKU_PRICES and sku.startswith("linux_"))
-            if dedicated_vm and resource_steps and read_job_log:
+            if dedicated_vm and read_job_log:
                 measure_log(job, resource_steps, read_job_log, allocation)
                 if allocation.covered_seconds:
                     return allocated_job

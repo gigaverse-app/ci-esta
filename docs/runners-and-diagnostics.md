@@ -198,6 +198,23 @@ visibility is known. The single-core Ubuntu runner has the same size in both cas
 Usage and unused CPU stay unknown until the collector has measured CPU samples.
 See [GitHub-hosted runner specifications](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 
+For CPU coverage across setup, payload and cleanup on a dedicated GitHub-hosted
+Linux VM, place this action first in the job. It reads the VM's cumulative CPU
+counter when the step runs and again in its post-job hook.
+
+```yaml
+- name: Measure runner CPU
+  uses: gigaverse-app/ci-esta/actions/measure-runner-cpu@v1
+```
+
+The reporter recognizes this step name and the default name when `name` is omitted.
+For a custom display name, include it in `runner-cpu-log-steps`. The time before the first reading and after cleanup remains
+unknown. An absent cleanup reading leaves whole-job usage unknown. The two
+readings provide total CPU time. Add a sampled command when you also need peak
+concurrency. When both sources exist, the report uses the larger measured
+coverage for totals and keeps the peak from sampled commands. The repository
+supplies its own pool metadata for custom labels.
+
 On a dedicated GitHub-hosted Linux VM, the report can reuse CPU samples already emitted
 by `ci-esta-resources`. Set `CI_TEST_RESOURCE_OBSERVABILITY=true` in the measured step.
 Pass its exact step name in `runner-cpu-log-steps` on the reporting action or reusable
