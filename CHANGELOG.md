@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.32.0](https://github.com/gigaverse-app/ci-esta/compare/v1.31.1...v1.32.0) (2026-11-20)
+
+
+### Features
+
+* **pytest:** learn lane weights for wholly deselected files ([3c5e3ca](https://github.com/gigaverse-app/ci-esta/commit/3c5e3ca9fa9ae2581c961c6eec5a3b47a269f22e))
+
 ## [1.31.1](https://github.com/gigaverse-app/ci-esta/compare/v1.31.0...v1.31.1) (2026-11-20)
 
 
