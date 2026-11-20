@@ -96,18 +96,29 @@ def test_job_counter_requires_a_matched_action_and_cleanup(post, end_offset, sku
 @pytest.mark.parametrize("name", [
     "Measure runner CPU", "Run example-org/ci-toolkit/actions/measure-runner-cpu@v1", "Run ./actions/measure-runner-cpu",
 ])
-def test_action_opt_in_needs_no_observer_configuration(name):
+@pytest.mark.parametrize(("label", "scope", "expected"), [
+    ("ubuntu-24.04", "", 25),
+    ("ubuntu-slim", " scope=job-cgroup", 25),
+    ("ubuntu-slim", "", None),
+    ("ubuntu-24.04", " scope=job-cgroup", None),
+])
+def test_action_opt_in_needs_no_observer_configuration(name, label, scope, expected):
     start = datetime(2026, 1, 1, tzinfo=UTC)
     finish = start + timedelta(seconds=50)
     job = _observe_job(GitHubJobV1(
-        id=3, name="compile", labels=["ubuntu-24.04"], runner_group_name="GitHub Actions", runner_name="hosted",
+        id=3, name="compile", labels=[label], runner_group_name="GitHub Actions", runner_name="hosted",
         status="completed", started_at=start, completed_at=finish,
-        steps=[GitHubStepV1(number=1, name=name, status="completed", started_at=start, completed_at=start),
+        steps=[GitHubStepV1(number=1, name=name, status="completed", started_at=start, completed_at=start + timedelta(seconds=12)),
                GitHubStepV1(number=3, name=f"Post {name}", status="completed", started_at=finish-timedelta(seconds=1), completed_at=finish)],
     ), start, finish)
     epoch_ms = int(start.timestamp()*1000)
-    read = Mock(return_value=f"2026-01-01T00:00:49Z [ci-esta-job-cpu] start_ms={epoch_ms+250} "
-                             f"end_ms={epoch_ms+49000} used_usec=75000000")
-    row, = allocation.collect([job], [], None, "", repository_private=True, read_job_log=read)
-    assert row.cpu_allocation.used_core_seconds == 75
+    log = (f"2026-01-01T00:00:49Z [ci-esta-job-cpu] start_ms={epoch_ms+250} "
+           f"end_ms={epoch_ms+49000} used_usec=25000000{scope}")
+    if label == "ubuntu-slim":
+        log += ("\n2026-01-01T00:00:00.500Z [ci-test-resource] initial cpu.stat\n"
+                "2026-01-01T00:00:00.600Z [ci-test-resource]   usage_usec 1234\n"
+                "2026-01-01T00:00:10.000Z [ci-test-resource] final cpu.stat\n"
+                "2026-01-01T00:00:10.001Z [ci-test-resource]   usage_usec 11234")
+    row, = allocation.collect([job], [], None, "", repository_private=True, read_job_log=Mock(return_value=log))
+    assert row.cpu_allocation.used_core_seconds == expected
     assert row.cpu_allocation.peak_sampled_cores is None

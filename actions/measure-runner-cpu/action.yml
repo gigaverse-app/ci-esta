@@ -1,5 +1,5 @@
 name: Measure runner CPU
-description: Measure CPU time between this step and job cleanup on a dedicated GitHub-hosted Linux VM.
+description: Measure CPU time between this step and job cleanup on the assigned GitHub-hosted Linux VM or slim container.
 runs:
   using: node24
   main: snapshot.cjs
