@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.31.0](https://github.com/gigaverse-app/ci-esta/compare/v1.30.2...v1.31.0) (2026-11-20)
+
+
+### Features
+
+* **observability:** account for workers dispatched by a workflow ([40ee8f3](https://github.com/gigaverse-app/ci-esta/commit/40ee8f337113c38f8b4f05d326665206d4720dad))
+
 ## [1.30.2](https://github.com/gigaverse-app/ci-esta/compare/v1.30.1...v1.30.2) (2026-11-20)
 
 
