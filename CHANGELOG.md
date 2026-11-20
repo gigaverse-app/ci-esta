@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.28.1](https://github.com/gigaverse-app/ci-esta/compare/v1.28.0...v1.28.1) (2026-11-20)
+
+
+### Performance
+
+* **selection:** skip unreachable pytest history on rewritten PRs ([#270](https://github.com/gigaverse-app/ci-esta/issues/270)) ([05b1210](https://github.com/gigaverse-app/ci-esta/commit/05b12107cafb0214d3e247d64e4fd288ee1d3866))
+
 ## [1.28.0](https://github.com/gigaverse-app/ci-esta/compare/v1.27.0...v1.28.0) (2026-11-20)
 
 
