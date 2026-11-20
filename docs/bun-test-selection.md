@@ -211,6 +211,12 @@ select-tests:
       uses: gigaverse-app/ci-esta/actions/plan-work@v1
 ```
 
+Edits to a downstream workflow that subscribes to completed runs (optionally
+also to manual dispatch) select the Bun lanes that depend on its YAML. For
+example, changing where a reporter runs can skip application tests while a
+test that reads that workflow still runs. Both revisions must have these
+triggers. Explicit lane inputs and previous test failures still select work.
+
 In the job that runs Bun, add `needs: select-tests` and pass the planner's commit
 to the file selector after installing Bun and generating the inventory:
 

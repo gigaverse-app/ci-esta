@@ -273,6 +273,7 @@ def bun_lane_reasons(
     environment: list[str] | None = BUN_ENVIRONMENT_FILES,
     *,
     admitted: set[str] | None = None,
+    completion_workflows: set[str] | None = None,
 ) -> dict[str, list[str]]:
     """Reasons each lane with Bun tests is selected; lanes without Bun tests are absent.
 
@@ -330,7 +331,9 @@ def bun_lane_reasons(
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         reason = f"full-suite fallback: Bun module graph unavailable: {failure(error)}"
         return {name: [reason] for name in (lanes if unclaimed else bun_lanes)}
-    if unknown := unmodeled_inputs(changed, graph):
+    # WorkflowGraph already evaluated these downstream workflows. A test or preload
+    # can still read their YAML, so keep the complete change set for dependency edges.
+    if unknown := unmodeled_inputs(changed - (completion_workflows or set()), graph):
         reason = f"full-suite fallback: undeclared non-import input: {unknown[0]}"
         return {name: [reason] for name in (lanes if unclaimed else bun_lanes)}
     preload_changed = any(graph[path] & changed for path in preloads if present)

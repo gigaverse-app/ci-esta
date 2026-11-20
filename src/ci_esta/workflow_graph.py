@@ -489,6 +489,15 @@ class WorkflowGraph:
         """Lanes gating a job that builds the package, by its job-level condition; a planner job is not one."""
         return {lane for job in self.jobs.values() if job.packages and ALL not in job.lanes for lane in job.job_lanes}
 
+    def observes_completion(self, path: str) -> bool:
+        """The workflow runs after another workflow completes, with optional manual dispatch."""
+        document = self.documents.get(path, {})
+        events = document.get("on", document.get(True))
+        if not isinstance(events, dict) or events.keys() - {"workflow_run", "workflow_dispatch"}:
+            return False
+        subscription = events.get("workflow_run")
+        return isinstance(subscription, dict) and subscription.get("types") == ["completed"]
+
     def lanes_of_workflow(self, path: str) -> set[str]:
         return {lane for (workflow, _), job in self.jobs.items() if workflow == path for lane in job.lanes}
 
