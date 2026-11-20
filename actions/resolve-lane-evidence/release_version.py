@@ -27,12 +27,20 @@ def project_text(text, version):
     return "".join(parts[:2]) + "".join(section)
 
 
+def normalized_name(name):
+    # This action runs with the runner's standard-library Python before project setup.
+    if not re.fullmatch(r"[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?", name, re.ASCII | re.IGNORECASE):
+        raise ValueError("Invalid Python distribution name")
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
 def lock_text(text, name, version):
+    root_name = normalized_name(name)
     parts = re.split(r"(?m)(?=^\[\[package\]\])", text)
     found = 0
     for index, part in enumerate(parts[1:], 1):
         package = tomllib.loads(part)["package"][0]
-        if package["name"] == name:
+        if normalized_name(package["name"]) == root_name:
             if package.get("source") not in ({"editable": "."}, {"virtual": "."}) or package["version"] != version:
                 raise ValueError("Ambiguous root package")
             parts[index] = version_line(part, version)
