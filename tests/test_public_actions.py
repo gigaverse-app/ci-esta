@@ -15,7 +15,15 @@ def test_named_action_is_the_implementation_without_duplicate_aliases(source):
     action = yaml.safe_load(source.read_text())
     assert not (ROOT / source.parent.name / "action.yml").exists()
     assert not list((ROOT / ".github/actions").rglob("action.y*ml"))
-    assert not any(step.get("uses", "").startswith("$/") for step in action["runs"]["steps"])
+    runs = action["runs"]
+    if runs["using"] == "composite":
+        assert not any(step.get("uses", "").startswith("$/") for step in runs["steps"])
+    else:
+        assert runs["using"].startswith("node") and runs["main"]
+        for hook in ("pre", "main", "post"):
+            if hook in runs:
+                entry = (source.parent / runs[hook]).resolve()
+                assert entry.is_relative_to(source.parent) and entry.is_file(), (source, hook)
 
 
 def test_all_action_entry_points_use_the_canonical_namespace():
