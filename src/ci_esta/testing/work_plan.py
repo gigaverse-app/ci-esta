@@ -113,9 +113,11 @@ def _plan_changes(
             }
         )
     # Bun tests reach lanes through Bun's own module graph, built from the checked-out head.
+    selected_files = set(result.selected)
     bun_reasons = bun_lane_reasons(
         repo, config.lanes, set(result.changed), bun, bun_environment,
         admitted={name for name, selected in result.lanes.items() if selected},
+        selected_files=selected_files,
         completion_workflows={
             path for path in result.changed
             if observes_completion(before.documents.get(path, {})) and observes_completion(after.documents.get(path, {}))
@@ -151,7 +153,12 @@ def _plan_changes(
                 evidence[name] = []
             lanes[name] = True
             evidence[name].extend(added)
-    return result.model_copy(update={"lanes": lanes, "lane_reasons": evidence})
+    reason = result.reason
+    if len(selected_files) != len(result.selected) and reason.startswith("dependency closure:"):
+        reason = f"dependency closure: {len(selected_files)} test files"
+    return result.model_copy(update={
+        "lanes": lanes, "lane_reasons": evidence, "selected": sorted(selected_files), "reason": reason,
+    })
 
 
 def python_entry_lanes(
