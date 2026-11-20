@@ -108,6 +108,11 @@ same branch, skipping cancelled runs (concurrency cancels superseded pushes). Af
 green run there is nothing to re-check. Reruns of failed jobs already repeat exactly
 those jobs, so the action does not look at earlier attempts of the current run.
 
+If a parent workflow dispatches the tests to a worker, pass the parent's run ID
+as `parent-run-id`. The worker must test the same commit in the same repository.
+CI-esta then reads the earlier results for the parent's workflow and branch. Keep
+the worker's JUnit reports available on the parent run so the next push can find them.
+
 ## Adoption and opting out
 
 `ci-esta adoption` suggests `failed-first` when a repository runs tests and nothing
