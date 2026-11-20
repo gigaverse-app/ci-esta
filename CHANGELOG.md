@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.0](https://github.com/gigaverse-app/ci-esta/compare/v1.29.1...v1.30.0) (2026-11-20)
+
+
+### Features
+
+* **bun:** recognize completed-run observers in file selection ([5090ff7](https://github.com/gigaverse-app/ci-esta/commit/5090ff798bd8b6dfccba7f9b381051da2f071892))
+
 ## [1.29.1](https://github.com/gigaverse-app/ci-esta/compare/v1.29.0...v1.29.1) (2026-11-20)
 
 
