@@ -236,6 +236,25 @@ def command_lines(commands: list[tuple[str, str | None]]) -> list[tuple[str, str
     return found
 
 
+def load_workflow(repo: Path, revision: str, path: str) -> dict[str, Any]:
+    try:
+        document = yaml.safe_load(git(repo, "show", f"{revision}:{path}"))
+    except yaml.YAMLError as error:
+        raise ValueError(f"{path} at {revision} contains invalid YAML") from error
+    if not isinstance(document, dict) or not isinstance(document.get("jobs"), dict):
+        raise ValueError(f"{path} at {revision} is not a workflow with a jobs mapping")
+    return document
+
+
+def observes_completion(document: dict[str, Any]) -> bool:
+    """The workflow runs after another workflow completes, with optional manual dispatch."""
+    events = document.get("on", document.get(True))
+    if not isinstance(events, dict) or events.keys() - {"workflow_run", "workflow_dispatch"}:
+        return False
+    subscription = events.get("workflow_run")
+    return isinstance(subscription, dict) and subscription.get("types") == ["completed"]
+
+
 class WorkflowGraph:
     """The jobs of every workflow at one revision, with the files each executes."""
 
@@ -254,7 +273,7 @@ class WorkflowGraph:
         self.jobs: dict[tuple[str, str], Job] = {}
         for path in sorted(self.files):
             if is_workflow(path):
-                document = self.load(path)
+                document = load_workflow(self.repo, self.revision, path)
                 self.documents[path] = document
                 for name, job in document["jobs"].items():
                     self.jobs[(path, str(name))] = self.describe(document, job)
@@ -266,13 +285,6 @@ class WorkflowGraph:
                     if str(name) in read or (isinstance(outputs, dict) and "lanes" in outputs):
                         self.jobs[(path, str(name))].lanes = {ALL}
                         self.jobs[(path, str(name))].job_lanes = {ALL}
-
-    def load(self, path: str) -> dict[str, Any]:
-        # Malformed YAML raises, so the planner falls back to every lane.
-        document = yaml.safe_load(git(self.repo, "show", f"{self.revision}:{path}"))
-        if not isinstance(document, dict) or not isinstance(document.get("jobs"), dict):
-            raise ValueError(f"{path} at {self.revision} is not a workflow with a jobs mapping")
-        return document
 
     def text(self, path: str) -> str | None:
         try:
@@ -482,21 +494,12 @@ class WorkflowGraph:
 
     def reusable(self, path: str, seen: set[str]) -> set[str]:
         """A called workflow's own executed files; its jobs run inside the caller's job."""
-        document = self.documents.get(path) or self.load(path)
+        document = self.documents.get(path) or load_workflow(self.repo, self.revision, path)
         return set().union(*(self.describe(document, job, seen).inputs for job in document["jobs"].values()))
 
     def package_lanes(self) -> set[str]:
         """Lanes gating a job that builds the package, by its job-level condition; a planner job is not one."""
         return {lane for job in self.jobs.values() if job.packages and ALL not in job.lanes for lane in job.job_lanes}
-
-    def observes_completion(self, path: str) -> bool:
-        """The workflow runs after another workflow completes, with optional manual dispatch."""
-        document = self.documents.get(path, {})
-        events = document.get("on", document.get(True))
-        if not isinstance(events, dict) or events.keys() - {"workflow_run", "workflow_dispatch"}:
-            return False
-        subscription = events.get("workflow_run")
-        return isinstance(subscription, dict) and subscription.get("types") == ["completed"]
 
     def lanes_of_workflow(self, path: str) -> set[str]:
         return {lane for (workflow, _), job in self.jobs.items() if workflow == path for lane in job.lanes}

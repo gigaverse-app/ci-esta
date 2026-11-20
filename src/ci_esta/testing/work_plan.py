@@ -29,7 +29,7 @@ from ci_esta.testing.bun.graph import bun_lane_reasons
 from ci_esta.testing.lane_inference import resolve
 from ci_esta.testing.lane_report import render
 from ci_esta.testing.lane_rules import BUN_ENVIRONMENT, PYTHON_ENVIRONMENT, Rule, by_name, effective
-from ci_esta.workflow_graph import ALL, WorkflowGraph, changed_job_lanes
+from ci_esta.workflow_graph import ALL, WorkflowGraph, changed_job_lanes, observes_completion
 
 
 def plan_work(
@@ -117,7 +117,8 @@ def _plan_changes(
         repo, config.lanes, set(result.changed), bun, bun_environment,
         admitted={name for name, selected in result.lanes.items() if selected},
         completion_workflows={
-            path for path in result.changed if before.observes_completion(path) and after.observes_completion(path)
+            path for path in result.changed
+            if observes_completion(before.documents.get(path, {})) and observes_completion(after.documents.get(path, {}))
         },
     )
     # A job that builds the package runs when the package's inputs change, as the build tools list them.

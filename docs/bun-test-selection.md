@@ -212,7 +212,7 @@ select-tests:
 ```
 
 Edits to a downstream workflow that subscribes to completed runs (optionally
-also to manual dispatch) select the Bun lanes that depend on its YAML. For
+also to manual dispatch) select the Bun lanes and individual tests that depend on its YAML. For
 example, changing where a reporter runs can skip application tests while a
 test that reads that workflow still runs. Both revisions must have these
 triggers. Explicit lane inputs and previous test failures still select work.

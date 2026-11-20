@@ -21,6 +21,7 @@ from ci_esta.testing.bun.models import (
 )
 from ci_esta.testing.bun.readers import names_untracked_inputs
 from ci_esta.testing.dependencies import declared_edges
+from ci_esta.workflow_graph import is_workflow, load_workflow, observes_completion
 
 
 def safe_path(value: str) -> bool:
@@ -73,8 +74,15 @@ def _declared_plan(request: SelectionRequest, plan: SelectionPlan, changes: list
     if any(graph[preload] & changed for preload in preloads):
         plan.reason = 'Full suite for a changed preload dependency'
         return plan
-    if unknown := unmodeled_inputs(changed, graph):
-        plan.reason = f"Full suite for an undeclared non-import input: {unknown[0]}"
+    for path in unmodeled_inputs(changed, graph):
+        # Only otherwise-unexplained inputs need their triggers checked. Direct test
+        # and preload reads still see the complete change set.
+        if is_workflow(path) and all(
+            observes_completion(load_workflow(request.cwd, revision, path))
+            for revision in (plan.base, plan.tested_sha)
+        ):
+            continue
+        plan.reason = f"Full suite for an undeclared non-import input: {path}"
         return plan
     affected = {test for test in tests if graph[test] & changed} - set(request.always_run_files)
     plan.selected_files = sorted(affected | set(request.always_run_files))
