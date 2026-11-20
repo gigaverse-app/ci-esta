@@ -9,6 +9,8 @@ from pytest_selective.ci import Lane, LaneConfig
 from pytest_selective.impact_models import ImpactConfig
 
 from ci_esta.testing.bun.graph import failure
+from ci_esta.testing.bun.models import SelectionRequest
+from ci_esta.testing.bun.selection import plan_affected_tests
 from ci_esta.testing.work_plan import plan_work
 from tests.testing.git_repo import commit, write
 
@@ -395,9 +397,6 @@ def test_full_contract_lane_does_not_disable_other_lanes_selection(repository, a
 
 
 def test_lane_admission_cannot_skip_file_selection_unknown_input_fallback(repository):
-    from ci_esta.testing.bun.models import SelectionRequest
-    from ci_esta.testing.bun.selection import plan_affected_tests
-
     repo, base = repository
     write(repo, "unknown-input.bin", "changed")
     head = commit(repo)
@@ -411,6 +410,7 @@ def test_lane_admission_cannot_skip_file_selection_unknown_input_fallback(reposi
     [
         ("report", {"unit": False, "feature": False}),
         ("test reads report", {"unit": True, "feature": False}),
+        ("report and feature input", {"unit": False, "feature": True}),
         ("report and unknown file", {"unit": True, "feature": True}),
         ("was push triggered", {"unit": True, "feature": True}),
         ("previous unit failure", {"unit": True, "feature": False}),
@@ -434,9 +434,23 @@ def test_completed_workflow_report_edits_keep_bun_and_workflow_dependencies(repo
         updated = updated.replace(trigger, "on: push\n")
     if change == "unreadable report":
         updated = "jobs: ["
+    if change == "report and feature input":
+        write(repo, "src/b.ts", "export const b = 3;\n")
     if change == "report and unknown file":
         write(repo, "fixtures/input.bin", "unmapped")
     write(repo, path, updated)
     failures = ["tests/unit/a.test.ts"] if change == "previous unit failure" else []
-    result = plan_work(repo, lanes(), base, commit(repo), previous_failures=failures)
+    head = commit(repo)
+    # File selection drives both native execution and consumer preflight decisions.
+    selection = plan_affected_tests(SelectionRequest(cwd=repo, base=base))
+    if change in {"report", "previous unit failure"}:
+        assert selection.mode == "none", selection.reason
+    elif change in {"test reads report", "report and feature input"}:
+        assert selection.mode == "scoped", selection.reason
+        assert selection.selected_files == (
+            ["tests/unit/a.test.ts"] if change == "test reads report" else ["tests/feature/b.test.ts"]
+        )
+    else:
+        assert selection.mode == "full", selection.reason
+    result = plan_work(repo, lanes(), base, head, previous_failures=failures)
     assert result.lanes == expected, result.lane_reasons
