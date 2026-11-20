@@ -15,13 +15,21 @@ SCRIPT = ROOT / "actions/resolve-lane-evidence/release_version.py"
     ("version", True), ("dependency", False), ("lock-dependency", False),
     ("source", False), ("workflow", False), ("test", False), ("comment", False),
     ("inconsistent", False), ("decrease", False), ("missing", False), ("unchanged", False),
-    ("root-kind", False), ("root-path", False),
+    ("root-kind", False), ("root-path", False), ("duplicate-name", False),
+    ("different-name", False), ("invalid-name", False), ("lock-name-edit", False),
 ])
 def test_only_the_project_version_and_release_metadata_can_reuse_base_proof(tmp_path, change, expected, root_source):
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
-    project = '[project]\nname = "example"\nversion = "1.5.1"\ndependencies = ["thing==1.5.1"]\n'
-    lock = 'version = 1\n[[package]]\nname = "example"\nversion = "1.5.1"\nsource = { editable = "." }\n[[package]]\nname = "thing"\nversion = "1.5.1"\n'
+    project = '[project]\nname = "Example__pkg.Tools"\nversion = "1.5.1"\ndependencies = ["thing==1.5.1"]\n'
+    lock = 'version = 1\n[[package]]\nname = "example-pkg-tools"\nversion = "1.5.1"\nsource = { editable = "." }\n[[package]]\nname = "thing"\nversion = "1.5.1"\n'
     lock = lock.replace('editable = "."', f'{root_source} = "."')
+    if change == "invalid-name":
+        project = project.replace("Example__pkg.Tools", ".Example__pkg.Tools")
+        lock = lock.replace("example-pkg-tools", "-example-pkg-tools")
+    if change == "duplicate-name":
+        lock += '[[package]]\nname = "example.pkg_tools"\nversion = "1.5.1"\nsource = { editable = "." }\n'
+    if change == "different-name":
+        lock = lock.replace("example-pkg-tools", "example-pkg-tool")
     write(tmp_path, "pyproject.toml", project)
     write(tmp_path, "uv.lock", lock)
     write(tmp_path, ".release-please-manifest.json", '{".": "1.5.1"}\n')
@@ -33,6 +41,9 @@ def test_only_the_project_version_and_release_metadata_can_reuse_base_proof(tmp_
         write(tmp_path, "uv.lock", lock.replace('version = "1.5.1"', f'version = "{version}"', 1))
         write(tmp_path, ".release-please-manifest.json", json.dumps({".": version}) + "\n")
         write(tmp_path, "CHANGELOG.md", "# Changelog\n## 1.6.0\nFeature\n")
+    if change == "lock-name-edit":
+        locked = tmp_path / "uv.lock"
+        write(tmp_path, "uv.lock", locked.read_text().replace("example-pkg-tools", "Example.Pkg.Tools"))
     if change == "dependency":
         write(tmp_path, "pyproject.toml", (tmp_path / "pyproject.toml").read_text().replace("thing==1.5.1", "thing==1.6.0"))
     if change == "lock-dependency":
