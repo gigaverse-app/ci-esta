@@ -73,17 +73,20 @@ def resource_counters(log: str) -> Iterator[CounterSeries]:
 
 
 JOB_CPU = re.compile(
-    r"^(\S+Z) \[ci-esta-job-cpu\] start_ms=(\d{1,16}) end_ms=(\d{1,16}) used_usec=(\d{1,20})\r?$", re.MULTILINE,
+    r"^(\S+Z) \[ci-esta-job-cpu\] start_ms=(\d{1,16}) end_ms=(\d{1,16}) used_usec=(\d{1,20})( scope=job-cgroup)?\r?$", re.MULTILINE,
 )
 
 
-def measure_job_counter(job: ObservedJobV1, names: Set[str], log: str, allocation: RunnerCpuAllocation) -> None:
+def measure_job_counter(job: ObservedJobV1, names: Set[str], log: str, allocation: RunnerCpuAllocation,
+                        *, job_cgroup: bool) -> None:
     # GitHub reports step bounds to the second. Each reading must fall in the
     # main step and its own post step. Multiple invocations can overlap.
     if "[ci-esta-job-cpu] " not in log:
         return
     steps = job.steps
     for match in JOB_CPU.finditer(log):
+        if bool(match[5]) != job_cgroup:
+            continue
         logged = datetime.fromisoformat(match[1]).timestamp()
         start, end = int(match[2]) / 1000, int(match[3]) / 1000
         elapsed = end - start
@@ -97,7 +100,7 @@ def measure_job_counter(job: ObservedJobV1, names: Set[str], log: str, allocatio
             if any(post.name == f"Post {step.name}" and post.started_at and post.completed_at
                    and post.started_at.timestamp() <= min(end, logged)
                    and max(end, logged) < post.completed_at.timestamp() + 1 for post in steps):
-                # A cumulative VM counter spans even long gaps. Two readings
+                # A cumulative counter spans even long gaps. Two readings
                 # give total CPU, while only the periodic sampler gives a peak.
                 allocation.covered_seconds = elapsed
                 allocation.used_core_seconds = int(match[4]) / 1_000_000
@@ -105,7 +108,7 @@ def measure_job_counter(job: ObservedJobV1, names: Set[str], log: str, allocatio
 
 
 def measure_log(job: ObservedJobV1, step_names: Set[str], read_job_log: Callable[[int], str],
-                allocation: RunnerCpuAllocation) -> None:
+                allocation: RunnerCpuAllocation, *, job_cgroup: bool) -> None:
     assert job.started_at and job.completed_at
     # An action with a custom display name can opt in through resource_steps.
     # Local actions and forks retain their default Actions step name.
@@ -120,12 +123,14 @@ def measure_log(job: ObservedJobV1, step_names: Set[str], read_job_log: Callable
         return
     try:
         log = read_job_log(job.job_id)
-        for counter in resource_counters(log):
-            for start, end in windows:
-                if start <= counter.values[0][0] < end:
-                    measure(counter, start, end, allocation)
-                    break
-        measure_job_counter(job, step_names, log, allocation)
+        if not job_cgroup:
+            # Periodic command samples use the VM root, which is shared on slim.
+            for counter in resource_counters(log):
+                for start, end in windows:
+                    if start <= counter.values[0][0] < end:
+                        measure(counter, start, end, allocation)
+                        break
+        measure_job_counter(job, step_names, log, allocation, job_cgroup=job_cgroup)
     except (httpx.HTTPError, ValueError, OverflowError):
         # Optional diagnostics must never stop an otherwise complete report.
         return
@@ -154,8 +159,9 @@ def collect(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1], url: str | 
             sku = rate.sku if rate else STANDARD_LABEL_SKUS.get(label, "")
             dedicated_vm = (standard_hosted and sku in {"actions_linux", "actions_linux_arm"}
                             or sku in GITHUB_SKU_PRICES and sku.startswith("linux_"))
-            if dedicated_vm and read_job_log:
-                measure_log(job, resource_steps, read_job_log, allocation)
+            slim = standard_hosted and label == "ubuntu-slim" and sku == "actions_linux_slim"
+            if (dedicated_vm or slim) and read_job_log:
+                measure_log(job, resource_steps, read_job_log, allocation, job_cgroup=slim)
                 if allocation.covered_seconds:
                     return allocated_job
             if not url or not rate or rate.allocated_cores is None or job.runner_group_name == "GitHub Actions":

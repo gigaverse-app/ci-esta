@@ -198,9 +198,11 @@ visibility is known. The single-core Ubuntu runner has the same size in both cas
 Usage and unused CPU stay unknown until the collector has measured CPU samples.
 See [GitHub-hosted runner specifications](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
 
-For CPU coverage across setup, payload and cleanup on a dedicated GitHub-hosted
-Linux VM, place this action first in the job. It reads the VM's cumulative CPU
-counter when the step runs and again in its post-job hook.
+For CPU coverage across setup, payload and cleanup, place this action first in a
+GitHub-hosted Linux job. It reads the assigned VM's cumulative CPU counter when
+the step runs and again in its post-job hook. On `ubuntu-slim`, it reads the
+container's CPU counter only when the mount belongs to the job's own cgroup.
+The reporter requires that container-specific measurement for slim workers.
 
 ```yaml
 - name: Measure runner CPU
