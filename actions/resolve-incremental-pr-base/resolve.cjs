@@ -349,15 +349,14 @@ async function resolveIncrementalPrBase({
         return !(run.pull_requests || []).length && run.event === "pull_request" && run.head_branch === headRef &&
           reasons.length === 1 && reasons[0] === `not associated with PR #${pullRequestNumber}`;
       });
-      // A rewritten single-commit PR can have many runs, each on a sibling of
-      // today's head. Only the head itself is eligible when its sole parent is
-      // the base. Keep the ordinary proof and revocation checks for same-head runs.
-      if (pytestEvidence && pr?.commits === 1 && candidates.length &&
+      // When the base is the head's only parent, only the head can advance an
+      // ancestor-based selection. Receipt-bound lanes can reuse inputs across siblings.
+      if (!sameHeadOnly && pr?.commits === 1 && candidates.length &&
           candidates.every(run => run.head_sha !== headSha)) {
         const tip = await search.commit(headSha).catch(() => null);
         if (search.stopped) return fallback;
         if (tip?.data.parents?.length === 1 && tip.data.parents[0].sha === fallbackBaseSha) {
-          core.info("The only commit above the PR base has no indexed pytest candidate; running fresh validation.");
+          core.info("The only commit above the PR base has no indexed ancestor candidate; running fresh validation.");
           return fallback;
         }
       }

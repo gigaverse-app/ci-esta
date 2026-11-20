@@ -486,16 +486,19 @@ def test_successful_pytest_gate_is_bound_to_its_first_workflow_attempt(
 
 
 @pytest.mark.parametrize("history", ["replaced", "same-head", "second-parent"])
-def test_single_commit_pytest_avoids_reading_unreachable_run_jobs(history: str) -> None:
+@pytest.mark.parametrize("proof", ["pytest", "scan", "receipt", "validation"])
+def test_single_commit_reads_only_candidates_that_can_prove_the_lane(history: str, proof: str) -> None:
     previous = CURRENT_HEAD_SHA if history == "same-head" else SUCCESSFUL_ANCESTOR_SHA
     parents = [FALLBACK_BASE_SHA]
     if history == "second-parent":
         parents.append(previous)
     scenario = _same_head_lane_scenario("success", "ancestor")
     scenario.update(
-        sameHeadOnly=False,
+        sameHeadOnly=proof == "receipt",
+        validationEvidence=proof == "validation",
+        evidenceStepName="Completed",
         evidenceJobName="Unit tests",
-        pytestEvidence={"planJobName": "Plan", "completionStepName": "Completed"},
+        pytestEvidence={"planJobName": "Plan", "completionStepName": "Completed"} if proof == "pytest" else None,
         pullRequest={"commits": 1},
         parentsByRef={CURRENT_HEAD_SHA: [{"sha": sha} for sha in parents]},
         jobsByRun={"1": [{"name": "Plan", "conclusion": "success"},
@@ -506,8 +509,9 @@ def test_single_commit_pytest_avoids_reading_unreachable_run_jobs(history: str) 
     )
     scenario["runs"][0]["head_sha"] = previous
     observed = _resolve_incremental_base(scenario)
-    reusable = history != "replaced"
-    assert observed["result"] == {"baseSha": previous if reusable else FALLBACK_BASE_SHA, "reused": reusable}
+    reusable = history != "replaced" or proof == "receipt"
+    expected_head = CURRENT_HEAD_SHA if proof == "receipt" else previous
+    assert observed["result"] == {"baseSha": expected_head if reusable else FALLBACK_BASE_SHA, "reused": reusable}
     assert ("jobs:1" in observed["reads"]) == reusable
 
 
