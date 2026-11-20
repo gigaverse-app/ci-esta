@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.1](https://github.com/gigaverse-app/ci-esta/compare/v1.30.0...v1.30.1) (2026-11-20)
+
+
+### Bug fixes
+
+* **evidence:** recognize normalized Python distribution names ([a6c373d](https://github.com/gigaverse-app/ci-esta/commit/a6c373da25c6861a9db333969b702586d6d7aa1f))
+
 ## [1.30.0](https://github.com/gigaverse-app/ci-esta/compare/v1.29.1...v1.30.0) (2026-11-20)
 
 
