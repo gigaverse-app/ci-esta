@@ -17,12 +17,18 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+from _pytest.junitxml import xml_key
+
+from ci_esta.testing.junit import DESELECTED_FILE_PROPERTY
 
 _EXECUTION_COMPLETED = pytest.StashKey[bool]()
 _DESELECTED = pytest.StashKey[int]()
+_DESELECTED_FILES = pytest.StashKey[set[str]]()
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption("--record-deselected-files", action="store_true",
+                     help="Include wholly deselected files as scheduling hints for this marker lane in JUnit XML")
     parser.addoption("--completion-receipt", default=None, help="Write raw exit status only after exhaustive execution")
     parser.addoption(
         "--completion-accept-all-deselected",
@@ -47,6 +53,14 @@ def pytest_runtestloop(session: pytest.Session) -> Generator[None, bool | None, 
     # its exception must propagate past this yield without issuing proof.
     result = yield
     session.config.stash[_EXECUTION_COMPLETED] = not session.config.option.collectonly
+    config = session.config
+    candidates = config.stash.get(_DESELECTED_FILES, set())
+    if candidates and not (config.option.collectonly or session.testsfailed or session.shouldstop or session.shouldfail):
+        reporter = config.stash.get(xml_key, None)
+        if reporter is not None:
+            selected = {item.nodeid.partition("::")[0] for item in session.items}
+            for path in sorted(candidates - selected):
+                reporter.add_global_property(DESELECTED_FILE_PROPERTY, path)
     return result
 
 
@@ -55,6 +69,12 @@ def pytest_deselected(items: list[pytest.Item]) -> None:
     if items:
         config = items[0].config
         config.stash[_DESELECTED] = config.stash.get(_DESELECTED, 0) + len(items)
+        if (
+            config.getoption("record_deselected_files") and config.option.markexpr
+            and not (config.option.keyword or config.option.deselect or config.getoption("lf", default=False))
+            and all("::" not in str(arg) for arg in config.args)
+        ):
+            config.stash.setdefault(_DESELECTED_FILES, set()).update(item.nodeid.partition("::")[0] for item in items)
 
 
 @pytest.hookimpl(trylast=True)

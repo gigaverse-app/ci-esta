@@ -25,6 +25,7 @@ from ci_esta.timing import format_duration as format_duration
 
 DEFAULT_CANARY_MAX_FILES = 5
 EXECUTION_PROPERTY = "ci-esta.execution"
+DESELECTED_FILE_PROPERTY = "ci-esta.deselected-file"
 
 
 def junit_report_identity(path: Path) -> MeasurementIdentity | None:
@@ -127,6 +128,28 @@ def _safe_relative_test_path(value: str | None, suffixes: tuple[str, ...] = PYTE
     return path.as_posix()
 
 
+def _suite_deselections(suite: Element) -> set[str]:
+    return {
+        path for prop in suite.findall("./properties/property") if prop.get("name") == DESELECTED_FILE_PROPERTY
+        if (path := _safe_relative_test_path(prop.get("value"))) is not None
+    }
+
+
+def reported_deselections(paths: list[Path]) -> set[str]:
+    """Read explicit lane hints only from successful shard reports, including without a checkout."""
+    files: set[str] = set()
+    for path in paths:
+        root = _parse_junit(path)
+        if root is None or _local_name(root.tag) not in {"testsuite", "testsuites"}:
+            raise ValueError(f"missing or invalid JUnit report: {path}")
+        if any(e.tag in {"failure", "error"} or e.get("errors", "0") != "0" or e.get("failures", "0") != "0"
+               for e in root.iter()):
+            continue
+        for suite in root.iter("testsuite"):
+            files.update(_suite_deselections(suite))
+    return files
+
+
 def _is_current_test_file(file_path: str, working_directory: Path) -> bool:
     """
     Keep prior evidence only when it resolves to a current in-workspace file.
@@ -220,6 +243,10 @@ def learn_junit_timings(paths: list[Path], working_directory: Path = Path(".")) 
             raise ValueError(f"missing or invalid JUnit report: {path}")
         for element in root.iter():
             if _local_name(element.tag) in {"testsuite", "testsuites"}:
+                if _local_name(element.tag) == "testsuite":
+                    for file in _suite_deselections(element):
+                        if _is_current_test_file(file, working_directory):
+                            durations.setdefault(file, 0.0)
                 for attribute in ("failures", "errors"):
                     try:
                         count = int(element.get(attribute, "0"))

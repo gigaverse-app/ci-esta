@@ -10,6 +10,31 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def test_lane_deselections_are_distinct_from_unknown_or_partly_selected_files(tmp_path: Path) -> None:
+    from ci_esta.testing.junit import learn_junit_timings
+
+    ordinary = "def test_runs(): pass\n"
+    external = "import pytest\n@pytest.mark.external\ndef test_external(): pass\n"
+    (tmp_path / "test_unknown.py").write_text(ordinary)
+    (tmp_path / "test_mixed.py").write_text(ordinary + external)
+    (tmp_path / "test_external.py").write_text(external)
+    result = run_pytest(tmp_path, "--record-deselected-files", "-m", "not external", "test_mixed.py", "test_external.py")
+    assert result.returncode == 0, result.stderr
+    learned = learn_junit_timings([tmp_path / "junit-group-1.xml"], tmp_path)
+    assert set(learned.durations) == {"test_mixed.py", "test_external.py"}
+    assert learned.durations["test_external.py"] == 0.0
+
+
+@pytest.mark.parametrize("args", [
+    ["--collect-only"], ["-k", "test_other"], ["test_external.py::test_external"], ["--lf"],
+])
+def test_partial_invocations_do_not_publish_whole_file_hints(tmp_path: Path, args: list[str]) -> None:
+    (tmp_path / "test_external.py").write_text("import pytest\n@pytest.mark.external\ndef test_external(): pass\n")
+    result = run_pytest(tmp_path, "--record-deselected-files", "-m", "not external", *args)
+    assert result.returncode in {0, 5}, result.stderr
+    assert "ci-esta.deselected-file" not in (tmp_path / "junit-group-1.xml").read_text()
+
+
 def run_pytest(directory: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
