@@ -4,6 +4,7 @@ const { cpuacctGroup, cpuacctMount } = require('./cpuacct.cjs');
 function counter() {
   const vmStat = '/sys/fs/cgroup/cpu.stat';
   if (existsSync(vmStat)) {
+    if (existsSync('/run/.containerenv')) return;
     const match = /^usage_usec (\d+)$/m.exec(readFileSync(vmStat, 'utf8'));
     return match && { id: 'vm', usec: BigInt(match[1]) };
   }
@@ -16,7 +17,7 @@ function counter() {
 
 function sample() {
   if (process.platform !== 'linux' || process.env.RUNNER_ENVIRONMENT !== 'github-hosted'
-      || existsSync('/.dockerenv') || existsSync('/run/.containerenv')) return;
+      || existsSync('/.dockerenv')) return;
 
   const reading = counter();
   if (!reading) return;
