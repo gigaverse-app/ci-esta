@@ -617,6 +617,30 @@
           "title": "Run Attempt",
           "type": "integer"
         },
+        "source_run_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Run Id"
+        },
+        "parent_run_attempt": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Run Attempt"
+        },
         "status": {
           "title": "Status",
           "type": "string"

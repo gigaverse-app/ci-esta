@@ -95,6 +95,8 @@ def _observe_job(job: GitHubJobV1, timeline_start: datetime | None, observed_at:
         job_id=job.id,
         name=job.name,
         run_attempt=job.run_attempt,
+        source_run_id=job.source_run_id,
+        parent_run_attempt=job.parent_run_attempt,
         status=job.status,
         conclusion=job.conclusion,
         timing_status=timing_status,
@@ -241,7 +243,7 @@ def _runner_cost(jobs: list[ObservedJobV1], rates: list[RunnerSkuRateV1],
         raw_runner_seconds=round(sum(job.wall_seconds or 0.0 for job in costed), 1),
         estimated_rounded_runner_minutes=sum(job.rounded_minutes or 0 for job in costed),
         rounding_waste_seconds=round(sum(job.rounding_waste_seconds or 0.0 for job in costed), 1),
-        billed_attempts=sorted({job.run_attempt for job in costed}),
+        billed_attempts=sorted({job.parent_run_attempt or job.run_attempt for job in costed}),
         by_sku=by_sku,
         unpriced_rounded_runner_minutes=unpriced_minutes,
         estimated_cost_usd=priced_total if (rates or costed) and unpriced_jobs == 0 else None,
@@ -602,7 +604,7 @@ def render_markdown(report: CiObservabilityReportV1, marker: str = STICKY_MARKER
     attempts = []
     if len(report.runner_cost.billed_attempts) > 1:
         current = sum(job.wall_seconds or 0 for job in report.billing_jobs
-                      if job.run_attempt == report.provenance.run_attempt)
+                      if (job.parent_run_attempt or job.run_attempt) == report.provenance.run_attempt)
         prior = report.runner_cost.raw_runner_seconds - current
         attempts = [f"Latest attempt: **{format_seconds(current)} runner time**. "
                     f"Earlier attempts: **{format_seconds(prior)}**. "
@@ -801,8 +803,12 @@ def _cost_details(report: CiObservabilityReportV1) -> list[str]:
         labels = ", ".join(markdown.cell(markdown.code(label)) for label in job.runner_labels) or "unavailable"
         runner = " / ".join(markdown.cell(markdown.code(value)) for value in
                             (job.runner_name, job.runner_group_name) if value) or "unavailable"
+        name = markdown.cell(job.name)
+        if job.source_run_id:
+            url = f"https://github.com/{report.provenance.repository}/actions/runs/{job.source_run_id}/job/{job.job_id}"
+            name = f"[{name}]({url})"
         body.append(
-            f"| {markdown.cell(job.name)} | {labels} | {runner} | {job.run_attempt} | {job.wall_seconds or 0.0:.0f}s | "
+            f"| {name} | {labels} | {runner} | {job.parent_run_attempt or job.run_attempt} | {job.wall_seconds or 0.0:.0f}s | "
             f"{job.rounded_minutes} | {save} | {job.seconds_until_next_minute or 0.0:.0f}s |"
         )
     body += [
