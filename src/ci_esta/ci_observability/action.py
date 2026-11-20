@@ -22,7 +22,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 
 from ci_esta.ci_observability.enrichment.profiles import pytest_timings
-from ci_esta.ci_observability.github import GitHubActionsClient
+from ci_esta.ci_observability.github import GitHubActionsClient, linked_worker_runs
 from ci_esta.ci_observability.impact import ImpactComparison, collect_impact
 from ci_esta.ci_observability.models import (
     CiObservabilityReportV1,
@@ -397,6 +397,8 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
             completed_jobs.get((job.id, job.run_attempt), job) if job.status != "completed" else job
             for job in billing_jobs
         ]
+        children = linked_worker_runs(client, run_metadata, billing_jobs, errors)
+        billing_jobs = [*billing_jobs, *(job for child in children for job in child.jobs)]
         overlapping_prior_runs: list[GitHubRunJobsV1] = []
         if (
             config.pull_request_number is not None
@@ -448,6 +450,11 @@ def run(config: ActionConfig, observed_at: datetime) -> int:
         )
         from ci_esta.ci_observability.efficiency import collect_measurements
         measurements, measurement_errors = collect_measurements(client, run_metadata, latest_jobs)
+        for child in children:
+            if child.jobs[0].parent_run_attempt == run_metadata.run_attempt:
+                extra, issues = collect_measurements(client, child.run, child.jobs)
+                measurements.extend(extra)
+                measurement_errors.extend(f"worker {child.run.id}: {issue}" for issue in issues)
         report = report.model_copy(update={"measurements": measurements, "measurement_errors": measurement_errors,
                                            "work_selection": _work_selection(client, config, run_metadata),
                                            "measured_impact": collect_impact(client, config.impact_comparisons)})

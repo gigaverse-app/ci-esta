@@ -25,6 +25,7 @@ from ci_esta.ci_observability.models import (
     GitHubJobV1,
     GitHubPRDetailsV1,
     GitHubPullRequestV1,
+    GitHubRunJobsV1,
     GitHubRunV1,
     StickySnapshotV1,
 )
@@ -502,3 +503,40 @@ class GitHubActionsClient:
             except ValidationError:
                 pass
         return None
+
+
+def linked_worker_runs(client: GitHubActionsClient, parent: GitHubRunV1,
+                       coordinators: list[GitHubJobV1], errors: list[str]) -> list[GitHubRunJobsV1]:
+    """Collect billing rows from reciprocally linked same-repository workflow dispatches."""
+    links = dict.fromkeys(
+        (job.run_attempt, int(match[1]))
+        for job in coordinators if job.run_attempt <= parent.run_attempt
+        for step in job.steps if step.conclusion == "success"
+        if (match := re.fullmatch(r"CI worker run ([1-9][0-9]{0,18})", step.name))
+    )
+    observed: list[GitHubRunJobsV1] = []
+    for attempt, run_id in links:
+        try:
+            child = client.get_run(run_id, run_attempt=1)
+            if (child.id != run_id or child.id == parent.id or child.run_attempt != 1
+                    or child.event != "workflow_dispatch" or child.head_sha != parent.head_sha
+                    or child.display_title != f"CI worker for run {parent.id} attempt {attempt}"
+                    or not child.repository or not child.repository.id or not child.head_repository
+                    or child.repository.id != child.head_repository.id):
+                raise ValueError("child identity does not match its dispatching attempt")
+            jobs = client.list_jobs(run_id, run_attempt=1)
+            if not jobs or any(job.run_attempt != 1 for job in jobs):
+                raise ValueError("first-attempt worker jobs unavailable")
+            if any(job.status != "completed" for job in jobs):
+                errors.append(f"linked worker run {run_id} still has nonterminal jobs")
+            # GitHub supplies artificial timestamps for jobs canceled before assignment.
+            assigned = [job.model_copy(update={"source_run_id": run_id, "parent_run_attempt": attempt})
+                        for job in jobs if job.runner_name]
+            if assigned:
+                observed.append(GitHubRunJobsV1(run=child, jobs=assigned))
+            if any(not job.runner_name and job.status == "completed"
+                   and job.conclusion not in {"cancelled", "skipped"} for job in jobs):
+                errors.append(f"linked worker run {run_id} has missing runner identity")
+        except (httpx.HTTPError, ValueError) as error:
+            errors.append(f"linked worker run {run_id} unavailable: {error}")
+    return observed

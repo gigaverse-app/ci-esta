@@ -101,6 +101,9 @@ class GitHubJobV1(BaseModel):
     id: int
     name: str
     run_attempt: int = 1
+    # A linked worker keeps its native job/attempt identity and the attempt that dispatched it.
+    source_run_id: int | None = None
+    parent_run_attempt: int | None = None
     status: str
     conclusion: str | None = None
     #: When GitHub queued the job: after the jobs it needs completed.
@@ -125,6 +128,7 @@ class GitHubReferencedWorkflowV1(BaseModel):
 
 
 class GitHubRunRepositoryV1(BaseModel):
+    id: int | None = None
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     private: bool | None = None
@@ -146,6 +150,8 @@ class GitHubRunV1(BaseModel):
     head_branch: str | None = None
     head_sha: str
     path: str | None = None
+    display_title: str | None = None
+    head_repository: GitHubRunRepositoryV1 | None = None
     referenced_workflows: list[GitHubReferencedWorkflowV1] = Field(default_factory=list)
     repository: GitHubRunRepositoryV1 | None = None
     pull_requests: list["GitHubPullRequestV1"] = Field(default_factory=list)
@@ -232,6 +238,9 @@ class ObservedJobV1(BaseModel):
     job_id: int
     name: str
     run_attempt: int
+    # A linked worker keeps its native job/attempt identity and the attempt that dispatched it.
+    source_run_id: int | None = None
+    parent_run_attempt: int | None = None
     status: str
     conclusion: str | None
     timing_status: TimingStatus

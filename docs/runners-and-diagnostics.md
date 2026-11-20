@@ -256,3 +256,18 @@ deduplicate JSON reports by run and job ID. A periodic sum of scraped snapshot g
 would count the same run repeatedly. With incomplete coverage, subtract CPU usage only
 from the covered reservation. Negative values mean the pod burst above its request.
 Time spent waiting for assignment and idle fleet capacity between jobs have separate costs.
+
+### Accounting for a separately dispatched worker
+
+A coordinator can include a worker in runner-time, price and CPU totals by
+emitting a successful step named `CI worker run <worker-run-id>`. Give the
+worker the GitHub run title `CI worker for run <parent-run-id> attempt <parent-attempt>`.
+The reporter checks both identities, the repository, the dispatch event and
+the commit. It reads the original worker attempt, including jobs that acquired
+a runner before cancellation. Rerun the parent to create a fresh dispatch.
+
+The parent keeps its own required gates and critical path. The JSON billing
+rows retain the worker's original job ID, source run ID and attempt, alongside
+the parent attempt. The current attempt also includes the worker's measured cache
+and execution artifacts under their original identities. The coordinator also consumes capacity while it waits.
+Configure the reporter to reach the metrics source for both sets of runners.
