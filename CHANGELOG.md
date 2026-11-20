@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.30.2](https://github.com/gigaverse-app/ci-esta/compare/v1.30.1...v1.30.2) (2026-11-20)
+
+
+### Performance
+
+* **selection:** skip unreachable scan history on rewritten PRs ([#280](https://github.com/gigaverse-app/ci-esta/issues/280)) ([33352f5](https://github.com/gigaverse-app/ci-esta/commit/33352f5566aac1b8356fcf11eb46319f293d39be))
+
 ## [1.30.1](https://github.com/gigaverse-app/ci-esta/compare/v1.30.0...v1.30.1) (2026-11-20)
 
 
