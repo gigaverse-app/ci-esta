@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.29.0](https://github.com/gigaverse-app/ci-esta/compare/v1.28.1...v1.29.0) (2026-11-20)
+
+
+### Features
+
+* **report:** measure CPU in the assigned hosted slim container ([6b4034c](https://github.com/gigaverse-app/ci-esta/commit/6b4034c12ea2804f2ec02aecb2cea1fc1e005bd6))
+
 ## [1.28.1](https://github.com/gigaverse-app/ci-esta/compare/v1.28.0...v1.28.1) (2026-11-20)
 
 
