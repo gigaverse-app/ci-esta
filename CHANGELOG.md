@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.27.0](https://github.com/gigaverse-app/ci-esta/compare/v1.26.0...v1.27.0) (2026-11-20)
+
+
+### Features
+
+* **report:** measure hosted Linux CPU through job cleanup ([700de36](https://github.com/gigaverse-app/ci-esta/commit/700de36f2f0ac3b39ed2286632cd0094d2becadd))
+
 ## [1.26.0](https://github.com/gigaverse-app/ci-esta/compare/v1.25.1...v1.26.0) (2026-11-19)
 
 
