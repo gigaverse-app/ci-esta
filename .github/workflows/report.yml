@@ -34,7 +34,7 @@ on:
         type: string
         default: ''
       runner-cpu-log-steps:
-        description: Newline-separated step names running ci-esta-resources on dedicated GitHub-hosted Linux VMs.
+        description: Newline-separated names of measure-runner-cpu or ci-esta-resources steps on dedicated GitHub-hosted Linux VMs.
         type: string
         default: ''
       runner-namespace:

@@ -72,6 +72,38 @@ def resource_counters(log: str) -> Iterator[CounterSeries]:
         yield CounterSeries(values=samples)
 
 
+JOB_CPU = re.compile(
+    r"^(\S+Z) \[ci-esta-job-cpu\] start_ms=(\d{1,16}) end_ms=(\d{1,16}) used_usec=(\d{1,20})\r?$", re.MULTILINE,
+)
+
+
+def measure_job_counter(job: ObservedJobV1, names: Set[str], log: str, allocation: RunnerCpuAllocation) -> None:
+    # GitHub reports step bounds to the second. Each reading must fall in the
+    # main step and its own post step. Multiple invocations can overlap.
+    if "[ci-esta-job-cpu] " not in log:
+        return
+    steps = job.steps
+    for match in JOB_CPU.finditer(log):
+        logged = datetime.fromisoformat(match[1]).timestamp()
+        start, end = int(match[2]) / 1000, int(match[3]) / 1000
+        elapsed = end - start
+        if not allocation.covered_seconds < elapsed <= allocation.occupied_seconds:
+            continue
+        for step in steps:
+            if step.name not in names or not step.started_at or not step.completed_at:
+                continue
+            if not step.started_at.timestamp() <= start < step.completed_at.timestamp() + 1:
+                continue
+            if any(post.name == f"Post {step.name}" and post.started_at and post.completed_at
+                   and post.started_at.timestamp() <= min(end, logged)
+                   and max(end, logged) < post.completed_at.timestamp() + 1 for post in steps):
+                # A cumulative VM counter spans even long gaps. Two readings
+                # give total CPU, while only the periodic sampler gives a peak.
+                allocation.covered_seconds = elapsed
+                allocation.used_core_seconds = int(match[4]) / 1_000_000
+                break
+
+
 def measure_log(job: ObservedJobV1, step_names: Set[str], read_job_log: Callable[[int], str],
                 allocation: RunnerCpuAllocation) -> None:
     assert job.started_at and job.completed_at
@@ -80,11 +112,13 @@ def measure_log(job: ObservedJobV1, step_names: Set[str], read_job_log: Callable
     if not windows:
         return
     try:
-        for counter in resource_counters(read_job_log(job.job_id)):
+        log = read_job_log(job.job_id)
+        for counter in resource_counters(log):
             for start, end in windows:
                 if start <= counter.values[0][0] < end:
                     measure(counter, start, end, allocation)
                     break
+        measure_job_counter(job, step_names, log, allocation)
     except (httpx.HTTPError, ValueError, OverflowError):
         # Optional diagnostics must never stop an otherwise complete report.
         return

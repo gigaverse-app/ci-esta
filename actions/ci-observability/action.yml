@@ -73,7 +73,7 @@ inputs:
     description: Trusted Prometheus base URL with Kubernetes cAdvisor counters, for runner labels with allocated_cores.
     default: ''
   runner-cpu-log-steps:
-    description: Newline-separated step names running ci-esta-resources on dedicated GitHub-hosted Linux VMs.
+    description: Newline-separated names of measure-runner-cpu or ci-esta-resources steps on dedicated GitHub-hosted Linux VMs.
     default: ''
   runner-namespace:
     description: Namespace containing the single-use runner pods.

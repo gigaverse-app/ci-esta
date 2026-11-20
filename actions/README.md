@@ -41,6 +41,7 @@ Each piece is matched to the shape of the shared work:
 | [`service-container`](service-container/README.md) | composite action | overlap image downloads with dependency setup while requiring health before tests |
 | [`postgres-client`](../docs/postgres-client.md) | composite action | version-matched PostgreSQL dump/restore on Linux Docker runners |
 | `publish-prometheus-snapshot` | composite action | bounded CI/build metric producers |
+| [`measure-runner-cpu`](../docs/runners-and-diagnostics.md) | JavaScript action | Dedicated Linux VM CPU time from job setup through cleanup |
 | `ci-observability` | composite action | CI latency/cost sticky and evidence in all three repos |
 | `reuse-ecr-image` | composite action | deployments that can reuse an exact verified image |
 | `pytest-failure-canary` | composite action | bounded whole-file retries from prior JUnit failures |
