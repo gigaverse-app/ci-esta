@@ -108,12 +108,8 @@ const github = strictGithub({
       listCommitStatusesForRef: async () => ({ data: (input.commitStatuses ?? []).map((status, index) => ({id: index + 1, ...status})) }),
       getCommit: async ({ ref }) => {
         calls.commitRefs.push(ref);
-        return { data: {
-          parents: (input.commitParents?.[ref] ??
-            (ref === input.headSha ? input.firstParentSha : undefined))
-            ? [{ sha: input.commitParents?.[ref] ?? input.firstParentSha }]
-            : [],
-        } };
+        const parent = input.commitParents?.[ref] ?? (ref === input.headSha ? input.firstParentSha : undefined);
+        return { data: { parents: input.parentsByRef?.[ref] ?? (parent ? [{sha: parent}] : []) } };
       },
       compareCommitsWithBasehead: async ({ basehead }) => {
         reads.push(`compare:${basehead}`);
@@ -131,7 +127,7 @@ const context = {
   serverUrl: "https://github.com",
   repo: { owner: "gigaverse-app", repo: "example" },
   runId: 9999,
-  payload: { before: input.previousHeadSha, repository: {default_branch: "main"} },
+  payload: { pull_request: input.pullRequest, before: input.previousHeadSha, repository: {default_branch: "main"} },
 };
 const infos = [];
 const proofs = [];
@@ -487,6 +483,32 @@ def test_successful_pytest_gate_is_bound_to_its_first_workflow_attempt(
         "baseSha": tested_head if variant == "valid" else FALLBACK_BASE_SHA,
         "reused": variant == "valid",
     }
+
+
+@pytest.mark.parametrize("history", ["replaced", "same-head", "second-parent"])
+def test_single_commit_pytest_avoids_reading_unreachable_run_jobs(history: str) -> None:
+    previous = CURRENT_HEAD_SHA if history == "same-head" else SUCCESSFUL_ANCESTOR_SHA
+    parents = [FALLBACK_BASE_SHA]
+    if history == "second-parent":
+        parents.append(previous)
+    scenario = _same_head_lane_scenario("success", "ancestor")
+    scenario.update(
+        sameHeadOnly=False,
+        evidenceJobName="Unit tests",
+        pytestEvidence={"planJobName": "Plan", "completionStepName": "Completed"},
+        pullRequest={"commits": 1},
+        parentsByRef={CURRENT_HEAD_SHA: [{"sha": sha} for sha in parents]},
+        jobsByRun={"1": [{"name": "Plan", "conclusion": "success"},
+                         {"name": "Unit tests", "conclusion": "success",
+                          "steps": [{"name": "Completed", "conclusion": "success"}]}]},
+        comparisons={f"{previous}...{CURRENT_HEAD_SHA}": {
+            "status": {"same-head": "identical", "replaced": "diverged", "second-parent": "ahead"}[history]}},
+    )
+    scenario["runs"][0]["head_sha"] = previous
+    observed = _resolve_incremental_base(scenario)
+    reusable = history != "replaced"
+    assert observed["result"] == {"baseSha": previous if reusable else FALLBACK_BASE_SHA, "reused": reusable}
+    assert ("jobs:1" in observed["reads"]) == reusable
 
 
 @pytest.mark.parametrize("workflow_conclusion", ["success", "failure", "cancelled"])
