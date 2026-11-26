@@ -1,9 +1,9 @@
 ---
-title: How faster CI helps people work on the Riemann Hypothesis proof
+title: How 2× faster CI helps people work on the Riemann Hypothesis proof
 description: A landmark proof became a public Lean project. See how CI-esta cut the wait for a build and axiom check from 234 to 110 seconds, and where contributors can help.
 ---
 
-# How faster CI helps people work on the Riemann Hypothesis proof
+# How 2× faster CI helps people work on the Riemann Hypothesis proof
 
 In 1859, Bernhard Riemann posed a conjecture about the zeros of the zeta function, which are tied to the distribution of prime numbers. On November 20, 2026, 167 years later, Levent Alpöge released a Lean formalization of a proof he found working with Claude. The release filled more than 175,000 files and about 17 million lines of Lean. The next day, the Lean FRO and Mathlib Initiative reported that the theorem matched Mathlib’s vetted statement and that Lean’s kernel and independent checkers accepted the proof export. [Alpöge’s announcement](https://alpo.ge/remark.pdf) · [Verification statement](https://leanprover-community.github.io/blog/posts/riemann-hypothesis/) · [Archive and independent checks](https://math.mit.edu/~drew/grh/) · [Mathematical background](https://www.claymath.org/millennium/riemann-hypothesis/)
 
