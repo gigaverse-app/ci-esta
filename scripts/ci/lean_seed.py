@@ -57,7 +57,7 @@ def matching_inputs(project: Path, seed: Path) -> bool:
     )
 
 
-def restore(project: Path, seed: Path) -> bool:
+def restore(project: Path, seed: Path, elan_home: Path | None = None) -> bool:
     # Resolve 'current' once so switching to a new immutable seed cannot mix revisions.
     seed = seed.resolve()
     lake = project / ".lake"
@@ -75,6 +75,11 @@ def restore(project: Path, seed: Path) -> bool:
             ["cp", "-R", "--reflink=auto", "--preserve=mode,timestamps,links", "--", str(source), str(staged)],
         )
         staged.rename(packages)
+    if elan_home is not None:
+        try:
+            link_toolchains(seed, elan_home)
+        except OSError as error:
+            print(f"Elan will install the requested toolchain normally: {error}")
     return True
 
 
@@ -100,17 +105,12 @@ def main() -> None:
     parser.add_argument("--seed", type=Path, required=True)
     parser.add_argument("--link-toolchains", action="store_true")
     args = parser.parse_args()
-    seed = args.seed.resolve()
+    elan_home = Path(os.environ.get("ELAN_HOME") or Path.home() / ".elan") if args.link_toolchains else None
     try:
-        hit = restore(args.project, seed)
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        hit = restore(args.project, args.seed, elan_home)
+    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
         print(f"Lake dependency seed unavailable: {error}")
         hit = False
-    if hit and args.link_toolchains:
-        try:
-            link_toolchains(seed, Path(os.environ.get("ELAN_HOME") or Path.home() / ".elan"))
-        except OSError as error:
-            print(f"Elan will install the requested toolchain normally: {error}")
     result = str(hit).lower()
     print(f"Restored Lake dependency seed: {result}")
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:

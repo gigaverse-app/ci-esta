@@ -4,7 +4,7 @@ A runner image can keep Mathlib's compiled artifacts across jobs even when each 
 
 ## Prepare a seed
 
-Use an unprivileged image-builder account and a clean checkout of a trusted revision on the same Linux runner image and architecture. Install the pinned toolchain and hydrate the dependencies exactly as CI would, for example:
+The action uses Python 3.11+, Git and GNU `cp`. Use an unprivileged image-builder account and a clean checkout of a trusted revision on the same Linux runner image and architecture. Install the pinned toolchain and hydrate the dependencies exactly as CI would, for example:
 
 ```sh
 lake exe mathlib/cache get
