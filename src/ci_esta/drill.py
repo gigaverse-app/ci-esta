@@ -63,7 +63,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict
 
 from ci_esta.pagination import collect_pages
-from ci_esta.timing import elapsed_seconds
+from ci_esta.timing import iso_elapsed_seconds
 
 ORG = "gigaverse-app"
 SOURCE_REPOSITORY = f"{ORG}/backend-common"
@@ -589,12 +589,6 @@ def _field(data: dict[str, object], *keys: str) -> str:
     return str(value)
 
 
-def _seconds(start: object, end: object) -> float | None:
-    if not isinstance(start, str) or not isinstance(end, str):
-        return None
-    return elapsed_seconds(dt.datetime.fromisoformat(start), dt.datetime.fromisoformat(end))
-
-
 def _latest_runs(profile: ConsumerProfile, branch: str) -> list[dict[str, object]]:
     runs = _api(
         f"repos/{profile.repository}/actions/workflows/{profile.workflow}/runs"
@@ -697,18 +691,18 @@ def _outcome(profile: ConsumerProfile, label: str, run: dict[str, object]) -> Ru
         label=label,
         run_id=int(str(run["id"])),
         conclusion=None if run["conclusion"] is None else str(run["conclusion"]),
-        wall_seconds=_seconds(run.get("run_started_at"), run.get("updated_at")),
+        wall_seconds=iso_elapsed_seconds(run.get("run_started_at"), run.get("updated_at")),
         jobs=tuple(
             JobOutcome(
                 name=str(job["name"]),
                 conclusion=None if job["conclusion"] is None else str(job["conclusion"]),
-                seconds=_seconds(job.get("started_at"), job.get("completed_at")),
+                seconds=iso_elapsed_seconds(job.get("started_at"), job.get("completed_at")),
             )
             for job in jobs
         ),
         resolver_lines=tuple(dict.fromkeys(lines)),
         selection=selection,
-        plan_seconds=None if plan is None else _seconds(plan.get("started_at"), plan.get("completed_at")),
+        plan_seconds=None if plan is None else iso_elapsed_seconds(plan.get("started_at"), plan.get("completed_at")),
     )
 
 
