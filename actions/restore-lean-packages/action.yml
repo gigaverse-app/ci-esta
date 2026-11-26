@@ -4,6 +4,9 @@ inputs:
   seed-directory:
     description: Absolute path of an operator-provisioned, read-only Lean checkout with hydrated .lake/packages.
     required: true
+  link-elan-toolchains:
+    description: Offer the seed's read-only .elan/toolchains to a fresh Elan home before normal toolchain setup.
+    default: 'false'
   working-directory:
     description: Lean project containing lakefile.toml.
     default: .
@@ -19,5 +22,9 @@ runs:
       env:
         LEAN_SEED: ${{ inputs.seed-directory }}
         LEAN_PROJECT: ${{ inputs.working-directory }}
+        LINK_TOOLCHAINS: ${{ inputs.link-elan-toolchains }}
         SEED_SCRIPT: ${{ github.action_path }}/../../scripts/ci/lean_seed.py
-      run: python3 -I "$SEED_SCRIPT" --seed "$LEAN_SEED" --project "$LEAN_PROJECT"
+      run: |
+        args=(--seed "$LEAN_SEED" --project "$LEAN_PROJECT")
+        if [[ "$LINK_TOOLCHAINS" == true ]]; then args+=(--link-toolchains); fi
+        python3 -I "$SEED_SCRIPT" "${args[@]}"

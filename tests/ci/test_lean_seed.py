@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.ci.lean_seed import restore
+from scripts.ci.lean_seed import link_toolchains, restore
 
 
 @pytest.fixture
@@ -88,3 +88,19 @@ def test_interrupted_copy_leaves_no_partial_packages(
     with pytest.raises(subprocess.CalledProcessError):
         restore(project, seed)
     assert list((project / ".lake").iterdir()) == []
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Runner images use Linux directory symlinks")
+def test_elan_registry_is_private_and_existing_installations_are_preserved(tmp_path: Path) -> None:
+    seed, home = tmp_path / "image", tmp_path / "home"
+    installed = seed / ".elan/toolchains/leanprover--lean4---v4.37.0-rc1"
+    (installed / "bin").mkdir(parents=True)
+    (installed / "bin/lean").touch()
+    link_toolchains(seed, home)
+    registry = home / "toolchains"
+    assert not registry.is_symlink()
+    assert (registry / installed.name).resolve() == installed
+    (registry / installed.name).unlink()
+    (registry / "job-only").mkdir()
+    link_toolchains(seed, home)
+    assert list(registry.iterdir()) == [registry / "job-only"]
+    assert not (installed.parent / "job-only").exists()

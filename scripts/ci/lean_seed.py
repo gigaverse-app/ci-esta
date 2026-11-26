@@ -78,16 +78,39 @@ def restore(project: Path, seed: Path) -> bool:
     return True
 
 
+def link_toolchains(seed: Path, elan_home: Path) -> None:
+    """Offer installed toolchains by Elan's own names in a fresh, job-private registry."""
+    installed = seed / ".elan" / "toolchains"
+    registry = elan_home / "toolchains"
+    if not installed.is_dir() or os.path.lexists(registry):
+        return
+    elan_home.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=elan_home) as staging:
+        staged = Path(staging) / "toolchains"
+        staged.mkdir()
+        for toolchain in installed.iterdir():
+            if (toolchain / "bin" / "lean").is_file():
+                (staged / toolchain.name).symlink_to(toolchain, target_is_directory=True)
+        staged.rename(registry)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project", type=Path, default=Path.cwd())
     parser.add_argument("--seed", type=Path, required=True)
+    parser.add_argument("--link-toolchains", action="store_true")
     args = parser.parse_args()
+    seed = args.seed.resolve()
     try:
-        hit = restore(args.project, args.seed)
+        hit = restore(args.project, seed)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print(f"Lake dependency seed unavailable: {error}")
         hit = False
+    if hit and args.link_toolchains:
+        try:
+            link_toolchains(seed, Path(os.environ.get("ELAN_HOME") or Path.home() / ".elan"))
+        except OSError as error:
+            print(f"Elan will install the requested toolchain normally: {error}")
     result = str(hit).lower()
     print(f"Restored Lake dependency seed: {result}")
     with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
