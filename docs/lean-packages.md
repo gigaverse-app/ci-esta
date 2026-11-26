@@ -2,6 +2,8 @@
 
 A runner image can keep Mathlib's compiled artifacts across jobs even when each job starts with an empty home. `restore-lean-packages` copies the dependency checkouts and their build outputs into the job's own `.lake/packages`. The project build and its proof checks still run. Only a successful copy replaces the project's usual dependency hydration step.
 
+See the [Riemann Hypothesis case study](../documentation/riemann-lean-ci.md) for paired Lean proof builds and a separate Lake module-setup benchmark.
+
 ## Prepare a seed
 
 The action uses Python 3.11+, Git and GNU `cp`. Use an unprivileged image-builder account and a clean checkout of a trusted revision on the same Linux runner image and architecture. Install the pinned toolchain and hydrate the dependencies exactly as CI would, for example:
