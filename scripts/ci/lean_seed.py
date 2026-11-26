@@ -77,13 +77,13 @@ def restore(project: Path, seed: Path, elan_home: Path | None = None) -> bool:
         staged.rename(packages)
     if elan_home is not None:
         try:
-            link_toolchains(seed, elan_home)
+            link_toolchains(seed, elan_home, project.resolve() / ".lake/cache")
         except OSError as error:
             print(f"Elan will install the requested toolchain normally: {error}")
     return True
 
 
-def link_toolchains(seed: Path, elan_home: Path) -> None:
+def link_toolchains(seed: Path, elan_home: Path, lake_cache: Path) -> None:
     """Offer installed toolchains by Elan's own names in a fresh, job-private registry."""
     installed = seed / ".elan" / "toolchains"
     registry = elan_home / "toolchains"
@@ -96,6 +96,15 @@ def link_toolchains(seed: Path, elan_home: Path) -> None:
         for toolchain in installed.iterdir():
             if (toolchain / "bin" / "lean").is_file():
                 (staged / toolchain.name).symlink_to(toolchain, target_is_directory=True)
+        if not any(staged.iterdir()):
+            return
+        # Lake defaults to <toolchain>/lake/cache. A newly imported dependency needs a writable
+        # cache even though the compiler and its standard library come from the read-only image.
+        if not os.environ.get("LAKE_CACHE_DIR"):
+            if "\n" in str(lake_cache) or "\r" in str(lake_cache):
+                return
+            with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
+                env.write(f"LAKE_CACHE_DIR={lake_cache}\n")
         staged.rename(registry)
 
 

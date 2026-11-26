@@ -14,7 +14,7 @@ Make the resulting checkout available to runner jobs at a read-only path such as
 
 Place the seed and workspace on the same reflink-capable filesystem (for example, Btrfs or XFS with reflink enabled) for copy-on-write copies. On other filesystems GNU `cp` copies the bytes. Measure the copy time and allow sufficient disk space before using that configuration.
 
-To reuse the compiler as well, provision the seed's own `.elan/toolchains` with Elan for the pinned Lean release. Set `link-elan-toolchains: 'true'` and run the action before your ordinary Elan setup. CI-esta links each installed toolchain into a fresh, private Elan registry. Elan selects the requested version and installs any missing version normally. Existing job registries are left alone.
+To reuse the compiler as well, provision the seed's own `.elan/toolchains` with Elan for the pinned Lean release. Set `link-elan-toolchains: 'true'` and run the action before your ordinary Elan setup. CI-esta links each installed toolchain into a fresh, private Elan registry. Elan selects the requested version and installs any missing version normally. Lake writes new cache entries to the project's private `.lake/cache`, or to an explicitly configured `LAKE_CACHE_DIR`. Existing job registries are left alone.
 
 ## Use the seed
 

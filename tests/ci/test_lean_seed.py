@@ -90,17 +90,26 @@ def test_interrupted_copy_leaves_no_partial_packages(
     assert list((project / ".lake").iterdir()) == []
 
 @pytest.mark.skipif(sys.platform != "linux", reason="Runner images use Linux directory symlinks")
-def test_elan_registry_is_private_and_existing_installations_are_preserved(tmp_path: Path) -> None:
+@pytest.mark.parametrize("configured_cache", ["", "/custom/lake-cache"])
+def test_elan_registry_is_private_and_existing_installations_are_preserved(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, configured_cache: str
+) -> None:
     seed, home = tmp_path / "image", tmp_path / "home"
     installed = seed / ".elan/toolchains/leanprover--lean4---v4.37.0-rc1"
     (installed / "bin").mkdir(parents=True)
     (installed / "bin/lean").touch()
-    link_toolchains(seed, home)
+    github_env = tmp_path / "job-env"
+    github_env.touch()
+    monkeypatch.setenv("GITHUB_ENV", str(github_env))
+    monkeypatch.setenv("LAKE_CACHE_DIR", configured_cache)
+    cache = tmp_path / "job/.lake/cache"
+    link_toolchains(seed, home, cache)
+    assert github_env.read_text() == ("" if configured_cache else f"LAKE_CACHE_DIR={cache}\n")
     registry = home / "toolchains"
     assert not registry.is_symlink()
     assert (registry / installed.name).resolve() == installed
     (registry / installed.name).unlink()
     (registry / "job-only").mkdir()
-    link_toolchains(seed, home)
+    link_toolchains(seed, home, cache)
     assert list(registry.iterdir()) == [registry / "job-only"]
     assert not (installed.parent / "job-only").exists()
