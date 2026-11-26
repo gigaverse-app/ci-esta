@@ -42,6 +42,31 @@ Times run from the start of checkout to the end of the axiom check. In the paire
 
 We also checked what happens when the seed is missing and when a proof is invalid. The first run fetched dependencies through the normal path. In the second, the seed restore succeeded and `lake build` still rejected the invalid proof. A separate replay passed the build and axiom checks and uploaded the cache artifact used by the merge-queue workflow. [Missing-seed run](https://github.com/aviadr1/riemann-hypothesis/actions/runs/45879474875) · [Invalid-proof control](https://github.com/aviadr1/riemann-hypothesis/actions/runs/45880469629) · [Cache staging replay](https://github.com/aviadr1/riemann-hypothesis/actions/runs/45880765174)
 
+## Why the cache verifier fetched less Git history
+
+Checking out Git history took 59 seconds of an 87-second cache publication job. The verifier reads a commit's source tree, build configuration, and toolchain pin. It gets the build provenance from the GitHub API. A shallow checkout therefore supplies the inputs for a push to main. For a manual run targeting another commit, the workflow fetches that SHA at depth one and runs the verifier from the trusted workflow revision. [Production timing](https://github.com/leanprover-community/riemann-hypothesis/actions/runs/45849728902) · [Project pull request](https://github.com/leanprover-community/riemann-hypothesis/pull/8757)
+
+We replayed both cases on fresh GitHub-hosted Ubuntu runners. Each pair used the same upstream build artifact and Lean toolchain. All four jobs verified the artifact. Times run from job start to completion, including checkout, artifact discovery and download, toolchain installation, and verification. Production storage writes and the downstream acceptance build were outside this replay. [Paired verification jobs](https://github.com/aviadr1/riemann-hypothesis/actions/runs/45886588389)
+
+| Commit to verify | Full history | Shallow checkout | Speedup |
+| --- | ---: | ---: | ---: |
+| Same as the workflow revision | 83 s | 36 s | 2.31× |
+| Earlier than the workflow revision | 80 s | 36 s | 2.22× |
+
+To reproduce the CI-esta report in Bash, name the four matrix jobs as the benchmark's gates. The job list gives the individual durations even though the four runners executed concurrently.
+
+```bash
+repo=aviadr1/riemann-hypothesis
+run=45886588389
+gates=()
+while IFS= read -r job; do
+  gates+=(--gate "$job")
+done < <(gh api "repos/$repo/actions/runs/$run/jobs" --jq '.jobs[].name')
+GH_TOKEN="$(gh auth token)" ci-esta report --repository "$repo" --run-id "$run" "${gates[@]}"
+```
+
+If checkout dominates a Lean job, inspect its Git commands before choosing a depth. Reading a named tree needs one commit. Searching for the nearest published ancestor needs history. Replaying an older target exercises the difference.
+
 ## How much faster can Lake itself get?
 
 When the package artifacts are already on disk, setup and compilation still have costs of their own. Lake computes which transitive imports a module needs and where their artifacts live. Lean’s upstream `inundation` benchmark can exercise this work in isolation by computing module setups against a prebuilt import graph. [Upstream benchmark](https://github.com/leanprover/lean4/pull/16083)
