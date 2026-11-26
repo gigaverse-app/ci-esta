@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.35.0](https://github.com/gigaverse-app/ci-esta/compare/v1.34.1...v1.35.0) (2026-11-26)
+
+
+### Features
+
+* **lean:** ship advisory preflight and CI timing commands ([#300](https://github.com/gigaverse-app/ci-esta/issues/300)) ([9249480](https://github.com/gigaverse-app/ci-esta/commit/924948065ded56d1c7e1e16c2792274dd31d056a))
+
+
+### Documentation
+
+* clarify how contributors can work on the Riemann proof ([#298](https://github.com/gigaverse-app/ci-esta/issues/298)) ([a730799](https://github.com/gigaverse-app/ci-esta/commit/a730799f43ef98770fde608949f8e55e87d5b085))
+* make the case for failure-first Lean feedback ([#299](https://github.com/gigaverse-app/ci-esta/issues/299)) ([33315dc](https://github.com/gigaverse-app/ci-esta/commit/33315dc28c04d228cf4a942c56154ca4f5ca072e))
+* put the 2× speedup in the Riemann article title ([#302](https://github.com/gigaverse-app/ci-esta/issues/302)) ([9244a3d](https://github.com/gigaverse-app/ci-esta/commit/9244a3d35bc5deb77f77aefe981b65af35089f62))
+
 ## [1.34.1](https://github.com/gigaverse-app/ci-esta/compare/v1.34.0...v1.34.1) (2026-11-26)
 
 
