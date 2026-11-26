@@ -606,3 +606,14 @@ def test_failed_first_opt_out_is_a_recorded_decision(tmp_path):
     report = audit(tmp_path)
     assert "failed-first" not in {item["id"] for item in report["suggestions"]}
     assert [entry["suggestion"]["id"] for entry in report["reviewed"]] == ["failed-first"]
+
+
+def test_lake_build_identifies_the_proof_workflow(tmp_path):
+    for workflow, command in [("proof", "set -o pipefail\nlake build 2>&1 | tee build.log"),
+                              ("notes", "echo 'lake build'")]:
+        write(tmp_path, f".github/workflows/{workflow}.yml", json.dumps({
+            "on": "pull_request", "jobs": {"check": {"steps": [{"run": command}]}},
+        }))
+    report = audit(tmp_path)
+    assert [flow["jobs"][0]["test_commands"] for flow in report["workflows"]] == [[], ["lake build"]]
+    assert any("--workflow proof.yml" in step for step in report["next_steps"])

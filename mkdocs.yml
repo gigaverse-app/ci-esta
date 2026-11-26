@@ -98,6 +98,7 @@ extra:
   - docs/critical-path-optimizations.md
   - docs/critical-path.md
   - docs/environment-cache.md
+  - docs/lean-packages.md
   - docs/evidence-reuse.md
   - docs/failed-first.md
   - docs/evidence-discovery.md
@@ -135,6 +136,7 @@ nav:
   - Shorten blocking jobs: docs/critical-path-optimizations.md
   - Pack short matrix jobs onto fewer runners: docs/pack-matrix-jobs.md
   - Cache Python environments: docs/environment-cache.md
+  - Prehydrate Lean dependencies: docs/lean-packages.md
   - Tune Python test execution: docs/python-ci-tuning.md
   - Balance tests with timing data: docs/learned-test-timings.md
   - Reuse successful job evidence: docs/evidence-reuse.md
