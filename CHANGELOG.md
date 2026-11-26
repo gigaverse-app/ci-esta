@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.35.1](https://github.com/gigaverse-app/ci-esta/compare/v1.35.0...v1.35.1) (2026-11-26)
+
+
+### Bug fixes
+
+* **lean:** retain the CLI entry point in published wheels ([#303](https://github.com/gigaverse-app/ci-esta/issues/303)) ([3153abe](https://github.com/gigaverse-app/ci-esta/commit/3153abe62f3a1ea58755b0d0b7ce7d4b17670f27))
+
 ## [1.35.0](https://github.com/gigaverse-app/ci-esta/compare/v1.34.1...v1.35.0) (2026-11-26)
 
 
