@@ -71,9 +71,8 @@ def restore(project: Path, seed: Path) -> bool:
     with tempfile.TemporaryDirectory(dir=lake) as staging:
         staged = Path(staging) / "packages"
         # Reflinks share data blocks, never writable inodes. Copy normally on other filesystems.
-        subprocess.run(
+        subprocess.check_call(
             ["cp", "-R", "--reflink=auto", "--preserve=mode,timestamps,links", "--", str(source), str(staged)],
-            check=True,
         )
         staged.rename(packages)
     return True
