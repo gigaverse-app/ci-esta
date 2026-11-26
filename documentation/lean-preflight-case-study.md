@@ -40,6 +40,13 @@ where you want to test the fix:
 ci-esta-lean retry lake.log --source-root src
 ```
 
+For the Cayley-chart example, GitHub CLI can download the original job log:
+
+```sh
+gh api repos/leanprover-community/riemann-hypothesis/actions/jobs/139912708645/logs > lake.log
+ci-esta-lean retry lake.log --source-root src
+```
+
 Use the Lake source directory relative to the Git root. Omit `--source-root` for
 projects with Lean sources at the Git root. The command prints a `lake build` line
 for matching tracked files still present in the checkout, once per module and in
