@@ -22,6 +22,7 @@ GATE_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/selected-gates/"
 FAILED_FIRST_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/failed-first/"
 PYTHON_TESTS = re.compile(r"\b(pytest|tox|nox)(?:\s|$)")
 BUN_TESTS = re.compile(r"\bbun\s+test\b")
+LAKE_BUILD = re.compile(r"(?m)^[ \t]*(?:exec[ \t]+)?lake[ \t]+(?:-q[ \t]+)?build\b")
 BUN_RUNNER = "gigaverse-app/ci-esta/actions/run-bun-tests"
 # Jobs that still run after a failed prerequisite; a gate reached only through one can miss that failure.
 RUNS_AFTER_FAILURE = re.compile(r"always\(\)|!\s*cancelled\(\)|failure\(\)")
@@ -187,6 +188,7 @@ def _summarize(source: str, parsed: _Source, raw: dict) -> WorkflowSummary:
         commands = [command for step in job.steps if step.run for command in PYTHON_TESTS.findall(step.run)]
         commands += ["bun test" for step in job.steps
                      if BUN_TESTS.search(step.run) or step.uses.split("@", 1)[0] == BUN_RUNNER]
+        commands += ["lake build" for step in job.steps if LAKE_BUILD.search(step.run)]
         aggregates = any(step.uses.startswith(GATE_ACTIONS) for step in job.steps)
         after_failure = bool(RUNS_AFTER_FAILURE.search(str(job.condition or "")))
         # A reusable-workflow call does work of its own; `always()` there orders it (one device, one tunnel),
@@ -305,7 +307,7 @@ def _next_steps(report: AdoptionReport) -> list[str]:
              "'.[] | select(.type == \"required_status_checks\")'` (rulesets) or "
              "`gh api repos/OWNER/REPO/branches/DEFAULT/protection/required_status_checks --jq .contexts`."]
     if not candidates:
-        steps.append("No workflow runs pytest, tox, nox or bun test; measure your main workflow's latest run.")
+        steps.append("No workflow runs pytest, tox, nox, bun test or lake build; measure your main workflow's latest run.")
         return steps
     flow = max(candidates, key=lambda item: (bool(item.gates), len(item.jobs)))
     gate = f" --gate '{flow.gates[0].name}'" if flow.gates else ""

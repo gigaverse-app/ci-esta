@@ -14,6 +14,8 @@ For Bun dependency setup, use [`setup-cached-bun`](environment-cache.md#bun-depe
 For compiler or tool caches, use [`report-cache`](environment-cache.md#other-download-build-and-tool-caches).
 Both publish execution measurements consumed automatically by the report workflow.
 
+For ephemeral Linux runners that build Lean projects, see [restoring prehydrated Lake packages](lean-packages.md).
+
 Use `actions/NAME@v1` for the current Actions API. Its moving major tag is
 independent of the Python package version and advances only after the exact
 commit passes main CI and the public action smoke. Python dependency ranges and installed
