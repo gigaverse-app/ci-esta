@@ -62,6 +62,21 @@ syntax:
 Declarations are followed transitively, and one that matches no file fails the plan,
 as it does in pytest-selective.
 
+File sidecars and directory manifests apply to workflow commands in any language.
+For example, a job that runs `lake env lean scripts/Check.lean` can declare its
+input in `scripts/.gv-dependencies.yaml` using the same format as a Python test:
+
+```yaml
+dependencies:
+  - readers: [Check.lean]
+    inputs: [expected-axioms.txt]
+    kind: content
+    reason: The check reads the accepted axiom list as text.
+```
+
+An import input contributes its own dependencies. A content input selects the
+reader's lane when its bytes change.
+
 A job that runs Python, directly or through one of its local actions, depends on what
 that code imports, through pytest-selective's import graph: `python -m pkg.tool` (or
 `"$PYTHON" -m pkg.tool`), a console script from `[project.scripts]`, a `.py` file, or a
