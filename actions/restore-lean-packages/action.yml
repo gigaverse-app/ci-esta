@@ -1,0 +1,23 @@
+name: Restore Lean dependency packages
+description: Copy a matching prehydrated Lake package tree from a trusted Linux runner image into a fresh job.
+inputs:
+  seed-directory:
+    description: Absolute path of an operator-provisioned, read-only Lean checkout with hydrated .lake/packages.
+    required: true
+  working-directory:
+    description: Lean project containing lakefile.toml.
+    default: .
+outputs:
+  cache-hit:
+    description: True when the complete dependency tree was copied for matching project inputs.
+    value: ${{ steps.restore.outputs.cache-hit }}
+runs:
+  using: composite
+  steps:
+    - id: restore
+      shell: bash
+      env:
+        LEAN_SEED: ${{ inputs.seed-directory }}
+        LEAN_PROJECT: ${{ inputs.working-directory }}
+        SEED_SCRIPT: ${{ github.action_path }}/../../scripts/ci/lean_seed.py
+      run: python3 -I "$SEED_SCRIPT" --seed "$LEAN_SEED" --project "$LEAN_PROJECT"
