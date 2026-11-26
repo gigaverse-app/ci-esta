@@ -10,6 +10,25 @@ import tomllib
 from pathlib import Path
 
 
+def pinned_checkout(packages: Path, entry: object) -> bool:
+    if not isinstance(entry, dict) or entry.get("type") != "git":
+        return False
+    name, revision = entry.get("name"), entry.get("rev")
+    if not isinstance(name, str) or name in {".", ".."} or not re.fullmatch(r"[\w.-]+", name):
+        return False
+    if not isinstance(revision, str) or not re.fullmatch("[0-9a-f]{40}", revision):
+        return False
+    directory = packages / name
+    if directory.is_symlink() or not (directory / ".git").is_dir():
+        return False
+    # The image builder owns these repositories. Trust only this specific read-only path.
+    actual = subprocess.run(
+        ["git", "-c", f"safe.directory={directory}", "-C", str(directory), "rev-parse", "--verify", "HEAD"],
+        capture_output=True, text=True, check=False,
+    )
+    return actual.returncode == 0 and actual.stdout.strip() == revision
+
+
 def matching_inputs(project: Path, seed: Path) -> bool:
     """Limit reuse to declarative projects with a pinned toolchain and Git dependencies."""
     files = ("lean-toolchain", "lakefile.toml", "lake-manifest.json")
@@ -33,13 +52,7 @@ def matching_inputs(project: Path, seed: Path) -> bool:
         return False
     packages = manifest.get("packages")
     return isinstance(packages, list) and bool(packages) and all(
-        isinstance(package, dict)
-        and isinstance(package.get("name"), str)
-        and re.fullmatch(r"[\w.-]+", package["name"])
-        and package["name"] not in {".", ".."}
-        and (seed / ".lake" / "packages" / package["name"] / ".git").is_dir()
-        and package.get("type") == "git"
-        and re.fullmatch("[a-fA-F0-9]{40}", str(package.get("rev")))
+        pinned_checkout(seed / ".lake" / "packages", package)
         for package in packages
     )
 
