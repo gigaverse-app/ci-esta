@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.34.1](https://github.com/gigaverse-app/ci-esta/compare/v1.34.0...v1.34.1) (2026-11-26)
+
+
+### Bug fixes
+
+* **report:** write observer artifacts and summaries as UTF-8 ([#296](https://github.com/gigaverse-app/ci-esta/issues/296)) ([b3e344b](https://github.com/gigaverse-app/ci-esta/commit/b3e344ba11410d47c0b930c4375610e6786882ff))
+
+
+### Documentation
+
+* add the Riemann Hypothesis CI case study ([#294](https://github.com/gigaverse-app/ci-esta/issues/294)) ([ef35652](https://github.com/gigaverse-app/ci-esta/commit/ef35652890faf1d97313c3bb8e53c3285896eb08))
+* show how to measure Lean cache verification ([#297](https://github.com/gigaverse-app/ci-esta/issues/297)) ([d8d0f25](https://github.com/gigaverse-app/ci-esta/commit/d8d0f2513d5f43c2cff39ea4e625cfe33c78357a))
+
 ## [1.34.0](https://github.com/gigaverse-app/ci-esta/compare/v1.33.0...v1.34.0) (2026-11-26)
 
 
