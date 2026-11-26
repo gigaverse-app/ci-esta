@@ -9,6 +9,8 @@ from pathlib import Path, PurePosixPath
 
 from selective_deps import dependency_edges, file_of, is_declaration
 
+from ci_esta.git import git
+
 DOCS = {
     "README.md",
     "CACHE.md",
@@ -20,12 +22,8 @@ DOCS = {
 }
 
 
-def git(repo, *args):
-    return subprocess.check_output(["git", "-C", str(repo), *args])
-
-
 def names(data):
-    return {s.decode() for s in data.split(b"\0") if s}
+    return {path for path in data.split("\0") if path}
 
 
 def module(path):
@@ -35,7 +33,7 @@ def module(path):
 def blobs(repo, revision, paths):
     if not paths:
         return {}
-    request = b"".join(f"{revision}:{path}".encode() + b"\0" for path in paths)
+    request = b"".join(f"{revision}:{path}".encode(errors="surrogateescape") + b"\0" for path in paths)
     data = subprocess.run(
         ["git", "-C", str(repo), "cat-file", "--batch", "-Z"],
         input=request,
@@ -105,8 +103,7 @@ def snapshot(repo, revision, lean, temporary):
 
 def plan(repo, base, head, lean, previous_failures=()):
     base, head = (
-        git(repo, "rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}").decode().strip()
-        for ref in (base, head)
+        git(repo, "rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}").strip() for ref in (base, head)
     )
     changed = names(git(repo, "diff", "--name-only", "--no-renames", "-z", base, head, "--"))
     if not changed and not previous_failures:

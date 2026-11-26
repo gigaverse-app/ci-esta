@@ -8,6 +8,8 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from math import ceil
 
+from ci_esta.timing import iso_elapsed_seconds
+
 WORKFLOW = "actions/workflows/build.yml/runs"
 POOLS = {"rh-big", "rh-pr-fork", "rh-pr-trusted"}
 CACHE = {
@@ -19,15 +21,14 @@ CACHE = {
 PROOF = {"lake build", "Check the axioms of the five theorems"}
 
 
-def seconds(start, end):
-    return (datetime.fromisoformat(end) - datetime.fromisoformat(start)).total_seconds()
-
-
 def phase(job, names):
     steps = [s for s in job["steps"] if s["name"] in names and s["conclusion"] != "skipped"]
     if not steps or any(not s["started_at"] or not s["completed_at"] for s in steps):
         return None
-    return sum(seconds(s["started_at"], s["completed_at"]) for s in steps)
+    durations = [iso_elapsed_seconds(step["started_at"], step["completed_at"]) for step in steps]
+    if None in durations:
+        return None
+    return sum(value for value in durations if value is not None)
 
 
 def summary(values):
@@ -78,9 +79,13 @@ def main(argv: list[str] | None = None):
                     "event": run["event"],
                     "pool": runner_pool(job),
                     "conclusion": job["conclusion"],
-                    "queue_s": seconds(job["created_at"], job["started_at"]) if job.get("created_at") else None,
-                    "verdict_s": seconds(run["created_at"], job["completed_at"]) if run["run_attempt"] == 1 else None,
-                    "job_s": seconds(job["started_at"], job["completed_at"]),
+                    "queue_s": iso_elapsed_seconds(job["created_at"], job["started_at"])
+                    if job.get("created_at")
+                    else None,
+                    "verdict_s": iso_elapsed_seconds(run["created_at"], job["completed_at"])
+                    if run["run_attempt"] == 1
+                    else None,
+                    "job_s": iso_elapsed_seconds(job["started_at"], job["completed_at"]),
                     "cache_s": phase(job, CACHE),
                     "proof_s": phase(job, PROOF),
                 }
@@ -131,7 +136,7 @@ def main(argv: list[str] | None = None):
     live_jobs = list({row["job_id"]: row for row in live_jobs}.values())
     for row in live_jobs:
         end = row["started_at"] or now
-        row["queue_s"] = seconds(row["created_at"], end) if row["created_at"] else None
+        row["queue_s"] = iso_elapsed_seconds(row["created_at"], end) if row["created_at"] else None
     result = {
         "repository": args.repo,
         "collected_at": now,

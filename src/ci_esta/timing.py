@@ -20,6 +20,12 @@ def elapsed_seconds(start: datetime | None, end: datetime | None, *, strict: boo
     return (end - start).total_seconds()
 
 
+def iso_elapsed_seconds(start: object, end: object) -> float | None:
+    if not isinstance(start, str) or not isinstance(end, str):
+        return None
+    return elapsed_seconds(datetime.fromisoformat(start), datetime.fromisoformat(end))
+
+
 def span_seconds(starts: Iterable[float], ends: Iterable[float]) -> float | None:
     first, last = min(starts, default=None), max(ends, default=None)
     return None if first is None or last is None or last < first else last - first
