@@ -223,10 +223,11 @@ def test_run_writes_all_outputs_summary_and_sticky(
     report = json.loads(config.report_output.read_text())
     assert report["schema_version"] == "ci-observability/v1"
     assert report["collection_status"] == "complete"
-    assert "| CI gates passed |" in config.markdown_output.read_text()
-    assert "_pytest: 42 passed, 0 failed._" in config.markdown_output.read_text()
+    markdown = config.markdown_output.read_text(encoding="utf-8")
+    assert "| CI gates passed |" in markdown
+    assert "_pytest: 42 passed, 0 failed._" in markdown
     assert "ci_raw_runner_seconds" in config.prometheus_output.read_text()
-    assert summary_path.read_text() == config.markdown_output.read_text() + "\n"
+    assert summary_path.read_text(encoding="utf-8") == markdown + "\n"
     assert "report-file=" in action_output_path.read_text()
     assert upsert.called is publishes
     if publishes:
@@ -392,7 +393,7 @@ def test_reusable_pricing_reaches_the_report_without_pricing_unknown_runners(
     report = json.loads(config.report_output.read_text())
     assert report["runner_cost"]["estimated_cost_usd"] == expected
     badge = f"![est. cost: ${float(expected):.2f}]" if expected else "![est. cost: unavailable]"
-    assert badge in config.markdown_output.read_text()
+    assert badge in config.markdown_output.read_text(encoding="utf-8")
 
 
 def test_run_collects_jobs_for_overlapping_prior_same_pr_run(
@@ -758,7 +759,7 @@ def test_a_report_without_a_selection_artifact_reads_no_selection(tmp_path: Path
         assert run(config, LATER) == 0
 
     github["list_artifacts"].assert_called_once_with(None, run_id=RUN_ID)
-    assert "Test selection" not in config.markdown_output.read_text()
+    assert "Test selection" not in config.markdown_output.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize(
@@ -974,7 +975,7 @@ def test_unavailable_comment_preserves_test_results_without_zero_usage(tmp_path)
     config = _config(tmp_path, post_sticky=False)
     with patch.object(GitHubActionsClient, "get_run", side_effect=RuntimeError("identity unavailable")):
         assert run(config, LATER) == 0
-    markdown = config.markdown_output.read_text()
+    markdown = config.markdown_output.read_text(encoding="utf-8")
     assert "42 passed, 0 failed" in markdown
     assert "identity unavailable" in markdown
     assert "0 min" not in markdown

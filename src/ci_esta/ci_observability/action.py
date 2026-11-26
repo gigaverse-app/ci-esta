@@ -147,11 +147,11 @@ def _write_outputs(config: ActionConfig, report_json: str, markdown: str, promet
         (config.prometheus_output, prometheus),
     ):
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(body)
+        path.write_text(body, encoding="utf-8")
 
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if config.append_summary and summary_path:
-        with Path(summary_path).open("a") as summary:
+        with Path(summary_path).open("a", encoding="utf-8") as summary:
             summary.write(markdown + "\n")
 
     append_outputs(**{"report-file": str(config.report_output), "markdown-file": str(config.markdown_output),
@@ -161,11 +161,8 @@ def _write_outputs(config: ActionConfig, report_json: str, markdown: str, promet
 def _write_reference(config: ActionConfig, reference: FullSuiteReferenceV1) -> None:
     """Leave the reference for the action's upload step, which only runs when this output is set."""
     config.full_suite_reference_output.parent.mkdir(parents=True, exist_ok=True)
-    config.full_suite_reference_output.write_text(reference.model_dump_json(indent=2) + "\n")
-    output_path = os.environ.get("GITHUB_OUTPUT")
-    if output_path:
-        with Path(output_path).open("a") as output:
-            output.write(f"full-suite-reference-file={config.full_suite_reference_output}\n")
+    config.full_suite_reference_output.write_text(reference.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    append_outputs(**{"full-suite-reference-file": str(config.full_suite_reference_output)})
 
 
 def _explanation(client: GitHubActionsClient, name: str, run: GitHubRunV1) -> SelectionExplanation | None:
