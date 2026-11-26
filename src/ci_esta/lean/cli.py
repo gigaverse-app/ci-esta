@@ -4,7 +4,7 @@ import argparse
 import subprocess
 from pathlib import Path
 
-from ci_esta.lean import preflight, queue_report
+from ci_esta.lean import preflight, queue_report, retry
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -13,6 +13,7 @@ def main(argv: list[str] | None = None) -> int:
     for command, help_text in (
         ("preflight", "Plan a Lean diff and prioritize previous failures"),
         ("queue", "Measure GitHub Actions Lake jobs and the live queue"),
+        ("retry", "Print a Lake retry command from a failed build log"),
     ):
         commands.add_parser(command, help=help_text, add_help=False)
     statements = commands.add_parser("statements", help="Find equal elaborated theorem statements")
@@ -23,6 +24,8 @@ def main(argv: list[str] | None = None) -> int:
         preflight.main(rest)
     elif parsed.command == "queue":
         queue_report.main(rest)
+    elif parsed.command == "retry":
+        return retry.main(rest)
     else:
         if rest:
             parser.error(f"unrecognized arguments: {' '.join(rest)}")
