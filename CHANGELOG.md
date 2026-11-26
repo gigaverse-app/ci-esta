@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.34.0](https://github.com/gigaverse-app/ci-esta/compare/v1.33.0...v1.34.0) (2026-11-26)
+
+
+### Features
+
+* **actions:** restore prehydrated Lean dependencies ([f35e9fc](https://github.com/gigaverse-app/ci-esta/commit/f35e9fc3f536e12f934804cbd570b39ca5d54449))
+* **planner:** follow dependency manifests for workflow commands ([71d3a57](https://github.com/gigaverse-app/ci-esta/commit/71d3a57dbc738a365e3ab6d0ad4c05633791ba6f))
+
+
+### Bug fixes
+
+* **lean:** keep artifacts outside linked Elan toolchains ([c6e463d](https://github.com/gigaverse-app/ci-esta/commit/c6e463ddf8a6763f95c08d8d428ace23e902b0fa))
+
 ## [1.33.0](https://github.com/gigaverse-app/ci-esta/compare/v1.32.0...v1.33.0) (2026-11-20)
 
 
