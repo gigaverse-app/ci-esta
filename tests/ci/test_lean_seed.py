@@ -80,11 +80,11 @@ def test_interrupted_copy_leaves_no_partial_packages(
 ) -> None:
     project, seed = projects
 
-    def interrupt(args: list[str], *, check: bool) -> None:
+    def interrupt(args: list[str]) -> None:
         Path(args[-1]).mkdir()
         raise subprocess.CalledProcessError(1, args)
 
-    monkeypatch.setattr(subprocess, "run", interrupt)
+    monkeypatch.setattr(subprocess, "check_call", interrupt)
     with pytest.raises(subprocess.CalledProcessError):
         restore(project, seed)
     assert list((project / ".lake").iterdir()) == []
