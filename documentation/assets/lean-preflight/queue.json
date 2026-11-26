@@ -1,0 +1,1056 @@
+{
+  "repository": "leanprover-community/riemann-hypothesis",
+  "collected_at": "2026-11-26T19:56:51.022570+00:00",
+  "cohort": "Most recent completed build workflow runs per event, up to --per-event. Job durations include failures and exclude cancellations. Queue is measured from job creation. Verdict is measured from workflow creation and excludes reruns. Missing timings are null. Live rows sample the newest queued and running workflows per event. Waiting jobs are right-censored.",
+  "queued_workflows": {
+    "pull_request": 1728,
+    "merge_group": 0,
+    "push": 0
+  },
+  "sampled_completed_workflows": {
+    "pull_request": 25,
+    "merge_group": 25,
+    "push": 25
+  },
+  "groups": [
+    {
+      "event": "merge_group",
+      "pool": "rh-big",
+      "queue_s": {
+        "n": 25,
+        "median_s": 1.0,
+        "p95_s": 2.0
+      },
+      "verdict_s": {
+        "n": 25,
+        "median_s": 152.0,
+        "p95_s": 159.0
+      },
+      "job_s": {
+        "n": 25,
+        "median_s": 150.0,
+        "p95_s": 156.0
+      },
+      "cache_s": {
+        "n": 25,
+        "median_s": 110.0,
+        "p95_s": 115.0
+      },
+      "proof_s": {
+        "n": 25,
+        "median_s": 18.0,
+        "p95_s": 20.0
+      }
+    },
+    {
+      "event": "pull_request",
+      "pool": "rh-pr-trusted",
+      "queue_s": {
+        "n": 1,
+        "median_s": 1.0,
+        "p95_s": 1.0
+      },
+      "verdict_s": {
+        "n": 1,
+        "median_s": 122.0,
+        "p95_s": 122.0
+      },
+      "job_s": {
+        "n": 1,
+        "median_s": 120.0,
+        "p95_s": 120.0
+      },
+      "cache_s": {
+        "n": 1,
+        "median_s": 94.0,
+        "p95_s": 94.0
+      },
+      "proof_s": {
+        "n": 1,
+        "median_s": 7.0,
+        "p95_s": 7.0
+      }
+    },
+    {
+      "event": "push",
+      "pool": "rh-big",
+      "queue_s": {
+        "n": 25,
+        "median_s": 1.0,
+        "p95_s": 2.0
+      },
+      "verdict_s": {
+        "n": 25,
+        "median_s": 9.0,
+        "p95_s": 10.0
+      },
+      "job_s": {
+        "n": 25,
+        "median_s": 7.0,
+        "p95_s": 8.0
+      },
+      "cache_s": {
+        "n": 0
+      },
+      "proof_s": {
+        "n": 0
+      }
+    }
+  ],
+  "live_jobs": [
+    {
+      "run_id": 45887287455,
+      "job_id": 140141034711,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:55:58Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 53.02257
+    },
+    {
+      "run_id": 45887165961,
+      "job_id": 140140636417,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:54:59Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 112.02257
+    },
+    {
+      "run_id": 45887163425,
+      "job_id": 140140625944,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:54:57Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 114.02257
+    },
+    {
+      "run_id": 45887161871,
+      "job_id": 140140618104,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:54:56Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 115.02257
+    },
+    {
+      "run_id": 45887154422,
+      "job_id": 140140592129,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:54:52Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 119.02257
+    },
+    {
+      "run_id": 45887118921,
+      "job_id": 140140476728,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:54:35Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 136.02257
+    },
+    {
+      "run_id": 45887080977,
+      "job_id": 140140348833,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:54:16Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 155.02257
+    },
+    {
+      "run_id": 45887048655,
+      "job_id": 140140235887,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:54:00Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 171.02257
+    },
+    {
+      "run_id": 45887047415,
+      "job_id": 140140236636,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:54:00Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 171.02257
+    },
+    {
+      "run_id": 45886930491,
+      "job_id": 140139839362,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:53:02Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 229.02257
+    },
+    {
+      "run_id": 45886856047,
+      "job_id": 140139581367,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:52:24Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 267.02257
+    },
+    {
+      "run_id": 45886608481,
+      "job_id": 140138757215,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:50:24Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 387.02257
+    },
+    {
+      "run_id": 45886596963,
+      "job_id": 140138720335,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:50:19Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 392.02257
+    },
+    {
+      "run_id": 45886585172,
+      "job_id": 140138682359,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:50:14Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 397.02257
+    },
+    {
+      "run_id": 45886512960,
+      "job_id": 140138445603,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:49:39Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 432.02257
+    },
+    {
+      "run_id": 45886467812,
+      "job_id": 140138296731,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:49:17Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 454.02257
+    },
+    {
+      "run_id": 45886425894,
+      "job_id": 140138153865,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:48:56Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 475.02257
+    },
+    {
+      "run_id": 45886252365,
+      "job_id": 140137567763,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:47:31Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 560.02257
+    },
+    {
+      "run_id": 45886210569,
+      "job_id": 140137430247,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:47:10Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 581.02257
+    },
+    {
+      "run_id": 45886205929,
+      "job_id": 140137415275,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:47:08Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 583.02257
+    },
+    {
+      "run_id": 45886142644,
+      "job_id": 140137203902,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:46:38Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 613.02257
+    },
+    {
+      "run_id": 45886016793,
+      "job_id": 140136780074,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:45:36Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 675.02257
+    },
+    {
+      "run_id": 45885973359,
+      "job_id": 140136642510,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:45:16Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 695.02257
+    },
+    {
+      "run_id": 45885932080,
+      "job_id": 140136514472,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:44:57Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 714.02257
+    },
+    {
+      "run_id": 45885778343,
+      "job_id": 140135998250,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "queued",
+      "created_at": "2026-11-26T19:43:40Z",
+      "started_at": null,
+      "active_steps": [],
+      "queue_s": 791.02257
+    },
+    {
+      "run_id": 45801717680,
+      "job_id": 139846368766,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "in_progress",
+      "created_at": "2026-11-26T10:28:52Z",
+      "started_at": "2026-11-26T19:46:44Z",
+      "active_steps": [
+        "lake build"
+      ],
+      "queue_s": 33472.0
+    },
+    {
+      "run_id": 45800298306,
+      "job_id": 139841473090,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "in_progress",
+      "created_at": "2026-11-26T10:19:49Z",
+      "started_at": "2026-11-26T19:47:41Z",
+      "active_steps": [
+        "lake build"
+      ],
+      "queue_s": 34072.0
+    },
+    {
+      "run_id": 45797795481,
+      "job_id": 139832832855,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "in_progress",
+      "created_at": "2026-11-26T10:04:00Z",
+      "started_at": "2026-11-26T19:55:07Z",
+      "active_steps": [
+        "Restore Mathlib's cache"
+      ],
+      "queue_s": 35467.0
+    },
+    {
+      "run_id": 45795232333,
+      "job_id": 139824074485,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "in_progress",
+      "created_at": "2026-11-26T09:47:27Z",
+      "started_at": "2026-11-26T19:53:31Z",
+      "active_steps": [
+        "lake build"
+      ],
+      "queue_s": 36364.0
+    },
+    {
+      "run_id": 45793477715,
+      "job_id": 139818082798,
+      "pool": "rh-pr-fork",
+      "event": "pull_request",
+      "status": "in_progress",
+      "created_at": "2026-11-26T09:36:05Z",
+      "started_at": "2026-11-26T19:55:53Z",
+      "active_steps": [
+        "Restore Mathlib's cache"
+      ],
+      "queue_s": 37188.0
+    }
+  ],
+  "jobs": [
+    {
+      "run_id": 45879393443,
+      "job_id": 140114581805,
+      "event": "pull_request",
+      "pool": "rh-pr-trusted",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 122.0,
+      "job_s": 120.0,
+      "cache_s": 94.0,
+      "proof_s": 7.0
+    },
+    {
+      "run_id": 45849216822,
+      "job_id": 140010837543,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 157.0,
+      "job_s": 155.0,
+      "cache_s": 115.0,
+      "proof_s": 17.0
+    },
+    {
+      "run_id": 45846230103,
+      "job_id": 140000508411,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 151.0,
+      "job_s": 149.0,
+      "cache_s": 110.0,
+      "proof_s": 17.0
+    },
+    {
+      "run_id": 45843359883,
+      "job_id": 139990552497,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 150.0,
+      "job_s": 148.0,
+      "cache_s": 110.0,
+      "proof_s": 17.0
+    },
+    {
+      "run_id": 45838236308,
+      "job_id": 139972696077,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 155.0,
+      "job_s": 154.0,
+      "cache_s": 115.0,
+      "proof_s": 17.0
+    },
+    {
+      "run_id": 45835097154,
+      "job_id": 139961742886,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 151.0,
+      "job_s": 149.0,
+      "cache_s": 111.0,
+      "proof_s": 16.0
+    },
+    {
+      "run_id": 45831382385,
+      "job_id": 139948746298,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 154.0,
+      "job_s": 152.0,
+      "cache_s": 114.0,
+      "proof_s": 17.0
+    },
+    {
+      "run_id": 45828639579,
+      "job_id": 139939254428,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 149.0,
+      "job_s": 148.0,
+      "cache_s": 110.0,
+      "proof_s": 16.0
+    },
+    {
+      "run_id": 45826288155,
+      "job_id": 139931167400,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 152.0,
+      "job_s": 151.0,
+      "cache_s": 111.0,
+      "proof_s": 16.0
+    },
+    {
+      "run_id": 45824925172,
+      "job_id": 139926539569,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 151.0,
+      "job_s": 149.0,
+      "cache_s": 109.0,
+      "proof_s": 16.0
+    },
+    {
+      "run_id": 45822126347,
+      "job_id": 139916797098,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 151.0,
+      "job_s": 150.0,
+      "cache_s": 111.0,
+      "proof_s": 17.0
+    },
+    {
+      "run_id": 45819131594,
+      "job_id": 139906501242,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 149.0,
+      "job_s": 147.0,
+      "cache_s": 108.0,
+      "proof_s": 16.0
+    },
+    {
+      "run_id": 45815614277,
+      "job_id": 139894466160,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 158.0,
+      "job_s": 156.0,
+      "cache_s": 112.0,
+      "proof_s": 19.0
+    },
+    {
+      "run_id": 45813129359,
+      "job_id": 139885857815,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 157.0,
+      "job_s": 155.0,
+      "cache_s": 112.0,
+      "proof_s": 19.0
+    },
+    {
+      "run_id": 45811838618,
+      "job_id": 139881386186,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 159.0,
+      "job_s": 158.0,
+      "cache_s": 112.0,
+      "proof_s": 20.0
+    },
+    {
+      "run_id": 45808774376,
+      "job_id": 139870852870,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 157.0,
+      "job_s": 155.0,
+      "cache_s": 114.0,
+      "proof_s": 19.0
+    },
+    {
+      "run_id": 45806202917,
+      "job_id": 139862014403,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 146.0,
+      "verdict_s": 298.0,
+      "job_s": 151.0,
+      "cache_s": 110.0,
+      "proof_s": 19.0
+    },
+    {
+      "run_id": 45803931758,
+      "job_id": 139854072912,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 153.0,
+      "job_s": 151.0,
+      "cache_s": 110.0,
+      "proof_s": 19.0
+    },
+    {
+      "run_id": 45800952448,
+      "job_id": 139843712762,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 150.0,
+      "job_s": 148.0,
+      "cache_s": 108.0,
+      "proof_s": 19.0
+    },
+    {
+      "run_id": 45798814211,
+      "job_id": 139836334113,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 152.0,
+      "job_s": 150.0,
+      "cache_s": 108.0,
+      "proof_s": 19.0
+    },
+    {
+      "run_id": 45796000157,
+      "job_id": 139826668825,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 150.0,
+      "job_s": 149.0,
+      "cache_s": 108.0,
+      "proof_s": 18.0
+    },
+    {
+      "run_id": 45793868140,
+      "job_id": 139819403029,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 155.0,
+      "job_s": 153.0,
+      "cache_s": 112.0,
+      "proof_s": 20.0
+    },
+    {
+      "run_id": 45791286229,
+      "job_id": 139810663768,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 152.0,
+      "job_s": 150.0,
+      "cache_s": 108.0,
+      "proof_s": 19.0
+    },
+    {
+      "run_id": 45788711965,
+      "job_id": 139801987587,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 152.0,
+      "job_s": 149.0,
+      "cache_s": 109.0,
+      "proof_s": 19.0
+    },
+    {
+      "run_id": 45787558596,
+      "job_id": 139798093168,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 151.0,
+      "job_s": 149.0,
+      "cache_s": 108.0,
+      "proof_s": 18.0
+    },
+    {
+      "run_id": 45785727924,
+      "job_id": 139791897151,
+      "event": "merge_group",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 152.0,
+      "job_s": 150.0,
+      "cache_s": 109.0,
+      "proof_s": 18.0
+    },
+    {
+      "run_id": 45849728935,
+      "job_id": 140012639851,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45846755584,
+      "job_id": 140002316942,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45843872233,
+      "job_id": 139992331199,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45838771916,
+      "job_id": 139974550655,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45835612009,
+      "job_id": 139963537104,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45831895618,
+      "job_id": 139950522730,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 8.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45829143405,
+      "job_id": 139940972561,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 8.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45826785648,
+      "job_id": 139932877814,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45825430952,
+      "job_id": 139928239137,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45822617329,
+      "job_id": 139918477230,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45819604913,
+      "job_id": 139908120261,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 8.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45816119776,
+      "job_id": 139896186482,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45813600093,
+      "job_id": 139887490429,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45812319052,
+      "job_id": 139883041492,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45809275539,
+      "job_id": 139872570108,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 8.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45807030366,
+      "job_id": 139864873539,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 648.0,
+      "verdict_s": 656.0,
+      "job_s": 8.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45804412655,
+      "job_id": 139855737914,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45801435170,
+      "job_id": 139845364423,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 8.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45799298208,
+      "job_id": 139838007658,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 8.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45796472136,
+      "job_id": 139828283445,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 10.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45794352631,
+      "job_id": 139821063381,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45791761657,
+      "job_id": 139812282750,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 10.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45789183632,
+      "job_id": 139803570243,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 10.0,
+      "job_s": 8.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45787996401,
+      "job_id": 139799587611,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 2.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    },
+    {
+      "run_id": 45786169769,
+      "job_id": 139793354494,
+      "event": "push",
+      "pool": "rh-big",
+      "conclusion": "success",
+      "queue_s": 1.0,
+      "verdict_s": 9.0,
+      "job_s": 7.0,
+      "cache_s": null,
+      "proof_s": null
+    }
+  ]
+}

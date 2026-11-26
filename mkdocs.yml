@@ -164,6 +164,7 @@ nav:
   - Self-hosted runner disk writes: docs/benchmarks/2026-11-17-self-hosted-disk.md
   - Shard CPU placement on shared nodes: docs/benchmarks/2026-11-17-shard-cpus.md
   - Bytecode before parallel test shards: docs/benchmarks/2026-11-17-shard-bytecode.md
+  - How Lean contributors can get useful feedback sooner: lean-preflight-case-study.md
 - Contributing:
   - Development setup: CONTRIBUTING.md
   - Releasing: RELEASING.md

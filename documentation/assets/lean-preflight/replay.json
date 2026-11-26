@@ -1,0 +1,136 @@
+[
+  {
+    "run_id": 45810661687,
+    "base": "bd15838ed6219289a212b94a70dde9e7281893a8",
+    "head": "c71d30f69d8dfd95a8de9fe16501923867e43ab5",
+    "plan_seconds": 6.001,
+    "mode": "targeted",
+    "changed_files": 360,
+    "planned_modules": 808,
+    "explicit_lake_targets": 3,
+    "observed_error_files": [
+      "src/Lib/DiscreteSeries/CuspKernel.lean"
+    ],
+    "unselected_error_files": [],
+    "unselected_by_diff_alone": [],
+    "error_dependencies": {
+      "src/Lib/DiscreteSeries/CuspKernel.lean": [
+        "src/Lib/DiscreteSeries/CuspKernel.lean"
+      ]
+    },
+    "command_for_first_error": [
+      "lake",
+      "build",
+      "+Lib.DiscreteSeries.CuspKernel"
+    ]
+  },
+  {
+    "run_id": 45816380570,
+    "base": "b6579d3ca142665397e4ccd254cda914325a65da",
+    "head": "2649fc59f5fb47deb45d5138a63680bbde8a4f8b",
+    "plan_seconds": 6.236,
+    "mode": "targeted",
+    "changed_files": 361,
+    "planned_modules": 799,
+    "explicit_lake_targets": 3,
+    "observed_error_files": [
+      "src/Lib/General/Analysis/HolomorphicIntegrals.lean",
+      "src/Lib/PadicHodge/Crystalline/HodgeTateForms.lean"
+    ],
+    "unselected_error_files": [],
+    "unselected_by_diff_alone": [
+      "src/Lib/PadicHodge/Crystalline/HodgeTateForms.lean"
+    ],
+    "error_dependencies": {
+      "src/Lib/General/Analysis/HolomorphicIntegrals.lean": [
+        "src/Lib/General/Analysis/HolomorphicIntegrals.lean"
+      ],
+      "src/Lib/PadicHodge/Crystalline/HodgeTateForms.lean": [
+        "src/Lib/General/NumberTheory/CoefficientRings.lean",
+        "src/Lib/PadicHodge/Crystalline/HodgeTateForms.lean"
+      ]
+    },
+    "command_for_first_error": [
+      "lake",
+      "build",
+      "+Lib.General.Analysis.HolomorphicIntegrals"
+    ]
+  },
+  {
+    "run_id": 45820433880,
+    "base": "f40d77cd7887cbb470dadea0b421b324bc23587b",
+    "head": "ee3ca55c2b553a59ede7d44b7bfa4b11b5d5b0cf",
+    "plan_seconds": 7.083,
+    "mode": "targeted",
+    "changed_files": 770,
+    "planned_modules": 799,
+    "explicit_lake_targets": 3,
+    "observed_error_files": [
+      "src/Lib/Adelic/Unitary/Defs.lean",
+      "src/Lib/ClassField/Places/DecompositionCyclotomic.lean",
+      "src/Lib/DiscreteSeries/FlenstedJensen/Defs.lean",
+      "src/Lib/General/Algebra/LongExactSequences.lean",
+      "src/Lib/Weil/Fock/Basic.lean"
+    ],
+    "unselected_error_files": [],
+    "unselected_by_diff_alone": [],
+    "error_dependencies": {
+      "src/Lib/Adelic/Unitary/Defs.lean": [
+        "src/Lib/Adelic/Unitary/Defs.lean"
+      ],
+      "src/Lib/ClassField/Places/DecompositionCyclotomic.lean": [
+        "src/Lib/ClassField/Places/DecompositionCyclotomic.lean"
+      ],
+      "src/Lib/DiscreteSeries/FlenstedJensen/Defs.lean": [
+        "src/Lib/DiscreteSeries/FlenstedJensen/Defs.lean"
+      ],
+      "src/Lib/General/Algebra/LongExactSequences.lean": [
+        "src/Lib/General/Algebra/LongExactSequences.lean"
+      ],
+      "src/Lib/Weil/Fock/Basic.lean": [
+        "src/Lib/Weil/Fock/Basic.lean"
+      ]
+    },
+    "command_for_first_error": [
+      "lake",
+      "build",
+      "+Lib.DiscreteSeries.FlenstedJensen.Defs"
+    ]
+  },
+  {
+    "run_id": 45820942055,
+    "base": "f40d77cd7887cbb470dadea0b421b324bc23587b",
+    "head": "44d8acdacd8a710d38b4fa852f4a7e868e212d28",
+    "plan_seconds": 7.327,
+    "mode": "targeted",
+    "changed_files": 1,
+    "planned_modules": 689,
+    "explicit_lake_targets": 3,
+    "observed_error_files": [
+      "src/Lib/Adelic/Adeles/IdeleModulus.lean",
+      "src/Lib/DiscreteSeries/Haar/CayleyChart.lean"
+    ],
+    "unselected_error_files": [],
+    "unselected_by_diff_alone": [
+      "src/Lib/Adelic/Adeles/IdeleModulus.lean",
+      "src/Lib/DiscreteSeries/Haar/CayleyChart.lean"
+    ],
+    "error_dependencies": {
+      "src/Lib/Adelic/Adeles/IdeleModulus.lean": [
+        "src/Lib/General/Groups/CongruenceSubgroups.lean",
+        "src/Lib/Weil/DualPair/Kronecker.lean",
+        "src/Lib/Adelic/Adeles/IdeleModulus.lean"
+      ],
+      "src/Lib/DiscreteSeries/Haar/CayleyChart.lean": [
+        "src/Lib/General/Groups/CongruenceSubgroups.lean",
+        "src/Lib/General/LinearAlgebra/HermitianMatrices.lean",
+        "src/Lib/DiscreteSeries/Haar/CayleyChart.lean"
+      ]
+    },
+    "command_for_first_error": [
+      "lake",
+      "build",
+      "+Lib.DiscreteSeries.Haar.CayleyChart"
+    ]
+  }
+]

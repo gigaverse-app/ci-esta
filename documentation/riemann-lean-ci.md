@@ -93,3 +93,5 @@ For the Riemann formalization, pick an open issue and propose a change a reviewe
 If you maintain a Lean project, pick a representative proof change and measure its path to a verdict. Record runner wait and setup separately, and keep the full proof checks in both runs. If dependency hydration dominates, try a trusted seed and compare a hit with a fresh job. If module setup or proof elaboration dominates, use a warm workspace to isolate the repeated work and bring that benchmark upstream. Share the revision, toolchain, runner, and run links so the next contributor can repeat the experiment. [Measure your CI critical path](../docs/tutorials/measure-critical-path.md) · [Prehydrate Lean dependencies](../docs/lean-packages.md)
 
 The original release made the proof available for others to check. The cleanup will determine how easily another person can understand a step, change it, and check it again.
+
+See [How Lean contributors can get useful feedback sooner](lean-preflight-case-study.md) for the fork queue measurement and a replay of historical proof failures.
