@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.36.0](https://github.com/gigaverse-app/ci-esta/compare/v1.35.1...v1.36.0) (2026-11-26)
+
+
+### Features
+
+* **lean:** derive Lake retry commands from failed build logs ([6020195](https://github.com/gigaverse-app/ci-esta/commit/6020195a1104244cd107b06ca7a860a789c7aa3f))
+
 ## [1.35.1](https://github.com/gigaverse-app/ci-esta/compare/v1.35.0...v1.35.1) (2026-11-26)
 
 
