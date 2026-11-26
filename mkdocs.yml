@@ -156,7 +156,7 @@ nav:
 - Benchmarks and evidence:
   - When CI can be 10× faster and cheaper: adoption-case-studies.md
   - "From the trenches: faster, cheaper CI": case-study.md
-  - Faster CI for the Riemann Hypothesis proof: riemann-lean-ci.md
+  - 2× faster CI for the Riemann Hypothesis proof: riemann-lean-ci.md
   - CI routing and reporting results: docs/benchmarks/2026-10-22.md
   - Toolkit adoption and critical paths: docs/benchmarks/2026-10-23-toolkit.md
   - Parallel conformance test results: docs/benchmarks/2026-10-23-critical-execution.md
