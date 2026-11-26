@@ -4,8 +4,8 @@ A workflow is not a global input. Each job is a node: it runs the lanes its cond
 (`fromJSON(needs.PLANNER.outputs.lanes).LANE`), or every lane when it is the planner itself, and it
 depends on the repository files it executes: paths named in `run`, `with` and local `uses` values,
 followed into composite, JavaScript and Docker actions and reusable workflows, plus the files an
-executed file declares it reads (`# gv:test-dependency: PATH`, pytest-selective's syntax, in a `#` or
-`//` comment), since no command line names what a script opens by path. A changed job selects
+executed file declares it reads in a selective-deps manifest or a `gv:test-dependency` comment,
+since no command line names what a script opens by path. A changed job selects
 its lanes; a changed file selects the lanes of the jobs that depend on it; a change outside `jobs:`
 selects every lane the workflow runs. A file no job names, like a pull-request template, selects nothing.
 """
@@ -18,10 +18,12 @@ import re
 import subprocess
 import tomllib
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
+from selective_deps import DependencyDeclarationError, dependency_edges, file_of, is_declaration
 
 from ci_esta.git import git
 
@@ -84,6 +86,8 @@ class Job:
     job_lanes: set[str] = field(default_factory=set)
     #: Python modules the job runs (`python -m X`, a console script), directly or through its local actions.
     modules: set[str] = field(default_factory=set)
+    #: Raw inputs that select the job without contributing their own dependency edges.
+    content_inputs: set[str] = field(default_factory=set)
 
 
 def strings(value: Any) -> list[str]:
@@ -306,6 +310,7 @@ class WorkflowGraph:
         ]
         seen = set() if seen is None else seen
         inputs = self.references(strings(metadata), seen)
+        content_inputs: set[str] = set()
         from pytest_selective.impact_graph import within
 
         foreign = foreign_checkouts(job)
@@ -321,12 +326,17 @@ class WorkflowGraph:
             called = uses.removeprefix("./")
             if is_workflow(called) and called not in seen:
                 seen.add(called)
-                inputs |= self.reusable(called, seen)
+                called_inputs, called_contents = self.reusable(called, seen)
+                inputs |= called_inputs
+                content_inputs |= called_contents
         for directory in local_actions(job):
             if directory == "." and directory not in seen:
                 # `uses: ./` is the repository's own action, which no path token names.
                 seen.add(directory)
                 inputs |= self.action(directory, seen)
+        declared, contents = self.declared_inputs(inputs)
+        inputs |= declared
+        content_inputs |= contents
         condition = job.get("if") if isinstance(job, dict) else None
         job_lanes = lane_references(str(condition)) if condition is not None else set()
         commands += [*strings(metadata), *(text for path in sorted(inputs) for text in self.action_texts.get(path, []))]
@@ -336,6 +346,7 @@ class WorkflowGraph:
             packages=packages,
             job_lanes=job_lanes & lanes or lanes,
             modules=self.modules(commands),
+            content_inputs=content_inputs,
         )
 
     def console_scripts(self) -> dict[str, str]:
@@ -374,9 +385,6 @@ class WorkflowGraph:
             candidate = candidate.rstrip(".,")
             if candidate in self.files:
                 found.add(candidate)
-                if not is_workflow(candidate) and candidate not in seen:
-                    seen.add(candidate)
-                    found |= self.declared(candidate)
             elif candidate in self.directories and candidate not in seen:
                 seen.add(candidate)
                 found |= self.action(candidate, seen)
@@ -453,22 +461,44 @@ class WorkflowGraph:
             if isinstance(step, dict) and isinstance(step.get("run"), str)
         ]
 
-    def declared(self, path: str) -> set[str]:
-        """Files `path` declares it reads, and theirs in turn, in pytest-selective's syntax; an invalid one raises."""
+    @cached_property
+    def manifest_edges(self) -> dict[str, set[str]]:
+        manifests = {}
+        for path in sorted(path for path in self.files if is_declaration(path)):
+            source = self.text(path)
+            if source is None:
+                raise DependencyDeclarationError(f"{self.revision}:{path}: cannot read dependency declaration")
+            manifests[path] = source.encode("utf-8", errors="surrogateescape")
+        return dependency_edges(manifests, self.files, revision=self.revision)
+
+    def direct_declarations(self, path: str) -> set[str]:
+        """Read each file's direct edges once, even when several jobs reach it."""
         from pytest_selective.impact_graph import declared_inputs, dependency_comment
 
         if path not in self.declarations:
-            self.declarations[path] = set()
             text = self.text(path) or ""
             files = dict.fromkeys(self.files, "") if "gv:test-dependency" in text else {}
-            found: set[str] = set()
+            found = set(self.manifest_edges.get(path, ()))
             for number, line in enumerate(text.splitlines() if files else [], 1):
                 if (match := DECLARATION_LINE.match(line)) and (comment := dependency_comment(match[1], number)):
                     found |= declared_inputs(comment, files, path)
-            for target in sorted(found):
-                found |= self.declared(target)
             self.declarations[path] = found
         return self.declarations[path]
+
+    def declared_inputs(self, inputs: set[str]) -> tuple[set[str], set[str]]:
+        """Follow executable dependencies transitively and stop at raw content."""
+        imports: set[str] = set()
+        contents: set[str] = set()
+        pending = [path for path in inputs if not is_workflow(path)]
+        while pending:
+            node = pending.pop()
+            path = file_of(node)
+            if path != node:
+                contents.add(path)
+            elif path not in imports:
+                imports.add(path)
+                pending.extend(self.direct_declarations(path))
+        return imports, contents
 
     def action(self, directory: str, seen: set[str]) -> set[str]:
         """A local action's metadata and the files its steps, entry points or image use."""
@@ -492,10 +522,11 @@ class WorkflowGraph:
                 )
         return set()
 
-    def reusable(self, path: str, seen: set[str]) -> set[str]:
+    def reusable(self, path: str, seen: set[str]) -> tuple[set[str], set[str]]:
         """A called workflow's own executed files; its jobs run inside the caller's job."""
         document = self.documents.get(path) or load_workflow(self.repo, self.revision, path)
-        return set().union(*(self.describe(document, job, seen).inputs for job in document["jobs"].values()))
+        jobs = [self.describe(document, job, seen) for job in document["jobs"].values()]
+        return set().union(*(job.inputs for job in jobs)), set().union(*(job.content_inputs for job in jobs))
 
     def package_lanes(self) -> set[str]:
         """Lanes gating a job that builds the package, by its job-level condition; a planner job is not one."""
@@ -530,7 +561,7 @@ def changed_job_lanes(before: WorkflowGraph, after: WorkflowGraph, changed: set[
                     reasons[f"workflow job changed: {path}#{name}"] = lanes
     for graph in (before, after):
         for (path, name), job in graph.jobs.items():
-            for file in sorted(job.inputs & changed):
+            for file in sorted((job.inputs | job.content_inputs) & changed):
                 if job.lanes:
                     reasons.setdefault(f"workflow input: {file} (run by {path}#{name})", set()).update(job.lanes)
     return reasons
