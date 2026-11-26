@@ -77,10 +77,24 @@ def restore(project: Path, seed: Path, elan_home: Path | None = None) -> bool:
         staged.rename(packages)
     if elan_home is not None:
         try:
+            configure_lake_cache(project)
             link_toolchains(seed, elan_home)
-        except OSError as error:
+        except (OSError, ValueError) as error:
             print(f"Elan will install the requested toolchain normally: {error}")
     return True
+
+
+def configure_lake_cache(project: Path) -> None:
+    """Keep Lake's artifact writes outside the linked, read-only toolchain."""
+    if "LAKE_CACHE_DIR" in os.environ:
+        return
+    if not (env_file := os.environ.get("GITHUB_ENV")):
+        raise ValueError("a linked toolchain requires GITHUB_ENV or an explicit LAKE_CACHE_DIR")
+    directory = str(project.resolve() / ".lake" / "cache")
+    if "\n" in directory or "\r" in directory:
+        raise ValueError("Lake cache path must fit on one line")
+    with Path(env_file).open("a", encoding="utf-8") as output:
+        output.write(f"LAKE_CACHE_DIR={directory}\n")
 
 
 def link_toolchains(seed: Path, elan_home: Path) -> None:

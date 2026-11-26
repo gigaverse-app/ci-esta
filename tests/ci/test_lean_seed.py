@@ -89,6 +89,7 @@ def test_interrupted_copy_leaves_no_partial_packages(
         restore(project, seed)
     assert list((project / ".lake").iterdir()) == []
 
+
 @pytest.mark.skipif(sys.platform != "linux", reason="Runner images use Linux directory symlinks")
 def test_elan_registry_is_private_and_existing_installations_are_preserved(tmp_path: Path) -> None:
     seed, home = tmp_path / "image", tmp_path / "home"
@@ -104,3 +105,28 @@ def test_elan_registry_is_private_and_existing_installations_are_preserved(tmp_p
     link_toolchains(seed, home)
     assert list(registry.iterdir()) == [registry / "job-only"]
     assert not (installed.parent / "job-only").exists()
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Runner images use Linux directory symlinks")
+@pytest.mark.parametrize("configured", [None, "", "/job/cache"])
+def test_linked_toolchain_gets_a_writable_lake_cache(
+    projects: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch, configured: str | None
+) -> None:
+    project, seed = projects
+    installed = seed / ".elan/toolchains/leanprover--lean4---v4.37.0-rc1"
+    (installed / "bin").mkdir(parents=True)
+    (installed / "bin/lean").touch()
+    output = project / "step.env"
+    monkeypatch.setenv("GITHUB_ENV", str(output))
+    if configured is None:
+        monkeypatch.delenv("LAKE_CACHE_DIR", raising=False)
+    else:
+        monkeypatch.setenv("LAKE_CACHE_DIR", configured)
+
+    elan_home = project / ".elan"
+    assert restore(project, seed, elan_home)
+    assert (elan_home / "toolchains" / installed.name).resolve() == installed
+    if configured is None:
+        assert output.read_text() == f"LAKE_CACHE_DIR={project / '.lake/cache'}\n"
+    else:
+        assert not output.exists()
