@@ -1,6 +1,7 @@
 """Public retention journeys, including independent concurrent writers."""
 
 import json
+import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from itertools import permutations
@@ -9,7 +10,12 @@ import pytest
 
 from ci_esta.testing.cli import main
 from ci_esta.testing.timing_history import Observation
-from ci_esta.testing.timing_store import TimingHistory, combine_histories, observation_stamp
+from ci_esta.testing.timing_store import (
+    TimingHistory,
+    combine_histories,
+    observation_stamp,
+    tracked_python_files,
+)
 
 
 def report(root, name, seconds):
@@ -166,3 +172,14 @@ def test_invalid_history_preserves_history_and_output(tmp_path, invalid):
         learn(tmp_path, "test_a.py", 10, 20)
     assert (tmp_path / "history.json").read_text() == invalid
     assert output.read_text() == '{"test_a.py":42}'
+
+
+def test_tracked_python_inventory_does_not_depend_on_literal_pathspecs(tmp_path, monkeypatch):
+    """With GIT_LITERAL_PATHSPECS=1, `git ls-files -- '*.py'` looks for a file named `*.py` and finds none."""
+    (tmp_path / "tests").mkdir()
+    for name in ("tests/test_a.py", "conftest.py", "README.md"):
+        (tmp_path / name).write_text("", encoding="utf-8")
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    subprocess.run(["git", "-C", str(tmp_path), "add", "-A"], check=True)
+    monkeypatch.setenv("GIT_LITERAL_PATHSPECS", "1")
+    assert tracked_python_files(tmp_path) == {"tests/test_a.py", "conftest.py"}

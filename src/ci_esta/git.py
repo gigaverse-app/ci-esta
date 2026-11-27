@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -21,6 +22,9 @@ def git(repo: Path, *args: str) -> str:
     # That copy is a standalone script an action runs without CI-esta installed, so it cannot import this.
     return subprocess.run(
         ["git", "-C", str(repo), *args],
+        # The pathspecs CI-esta passes are patterns such as `*.py`. With GIT_LITERAL_PATHSPECS=1 in the caller's
+        # environment Git would look for a file of that exact name and report an empty inventory.
+        env={**os.environ, "GIT_LITERAL_PATHSPECS": "0"},
         check=True,
         capture_output=True,
         text=True,
