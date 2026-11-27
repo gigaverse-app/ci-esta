@@ -27,7 +27,7 @@ No cache shortens a ten-hour queue. A contributor who can check a fix locally do
 
 ## A duplicate is a question for a mathematician
 
-Dry-lint ranks pairs of declarations and proof fragments that look alike. On this proof it produced the candidates behind 20 refactoring pull requests in two days. As of November 27, **18 are open, none is merged, and we withdrew 2**. The open ones remove 584 lines and add 324. An AI review agent run by the project has rated most of them ready; a maintainer still has to approve each one. [The pull requests](https://github.com/leanprover-community/riemann-hypothesis/pulls?q=is%3Apr+author%3Aaviadr1+refactor)
+Dry-lint ranks pairs of declarations and proof fragments that look alike. On this proof it produced the candidates behind 27 of the 30 refactoring pull requests we opened in two days. As of November 27, **28 are open, none is merged, and we withdrew 2**. The open ones remove 2,226 lines and add 562; one of them deletes 1,299 lines that nothing uses. An AI review agent run by the project has rated 27 of them ready; a maintainer still has to approve each one. [The pull requests](https://github.com/leanprover-community/riemann-hypothesis/pulls?q=is%3Apr+author%3Aaviadr1+refactor)
 
 The good ones share a shape: two definitions that passed the same data to the same construction, where one becomes an instance of the other, or one calculation proved twice inside a single theorem and now stated once. [Triangle lifts](https://github.com/leanprover-community/riemann-hypothesis/pull/8837) · [Radical coordinates](https://github.com/leanprover-community/riemann-hypothesis/pull/8856)
 
@@ -38,13 +38,13 @@ The withdrawn ones teach more.
 
 A similarity score is the start of a question. Is this the same mathematics, or two arguments that happen to be spelled alike? Would one statement of it read better than two? Only someone who understands the step can answer.
 
-There is also a rule about volume. The project asks contributors who want to make one kind of change in many places to open one pull request and wait for a maintainer's answer before opening the rest. We opened twenty. A tool that produces candidates quickly makes that rule matter more, and we should have followed it.
+There is also a rule about volume. The project asks contributors who want to make one kind of change in many places to open one pull request and wait for a maintainer's answer before opening the rest. We opened thirty. A tool that produces candidates quickly makes that rule matter more, and we should have followed it.
 
 ## Measure the tool before trusting its silence
 
 A scan that reports nothing is only reassuring if it looked everywhere. We compared dry-lint's Lean extractor with the declaration locations the compiler records. The first version found **8,690 of 21,842 declarations, 39.8%**. Six in ten declarations were invisible to it, so "no duplicates found" meant little. A parser change raised that to 77%. The declarations still missing sat behind wrappers such as `omit … in` and notation the grammar did not know, so we stopped asking a grammar where declarations end and read command boundaries from the source text. On the same build the extractor now finds **21,948 of 21,952**; the four it misses are `class abbrev` declarations. The same scanner, run on Mathlib without tuning, finds 241,301 of 241,397. [Coverage audit](https://github.com/gigaverse-app/dry-lint/pull/208) · [Parser change](https://github.com/gigaverse-app/dry-lint/pull/214) · [Command scanner](https://github.com/gigaverse-app/dry-lint/pull/219)
 
-Coverage paid for itself at once. With every declaration visible, the scan surfaced a private lemma that re-proved Mathlib's `continuous_finsetSum`, the continuity of a finite sum of continuous functions. Deleting it and calling Mathlib's lemma at its seven uses compiles. That is the first kind of change on the project's wanted list: use Mathlib's result and delete ours. [Branch](https://github.com/aviadr1/riemann-hypothesis/compare/main...aviadr1:riemann-hypothesis:claude/use-mathlib-continuous-finset-sum)
+Coverage paid for itself at once. With every declaration visible, the scan surfaced a private lemma that re-proved Mathlib's `continuous_finsetSum`, the continuity of a finite sum of continuous functions. Deleting it and calling Mathlib's lemma at its seven uses compiles. That is the first kind of change on the project's wanted list: use Mathlib's result and delete ours. [Pull request](https://github.com/leanprover-community/riemann-hypothesis/pull/9442)
 
 We then reviewed our own week of tool changes the way we would review someone else's, and found defects in each tool.
 
@@ -65,17 +65,37 @@ We then reviewed our own week of tool changes the way we would review someone el
 
 Selecting which Lean modules to rebuild is Lake's job, and it does it from the import graph. We looked for a role for test selection inside the Lean build and found none. It helps with the project's Python automation tests, where the selection matched a full run on every mutation we tried. [Selection in the project's CI](https://github.com/leanprover-community/riemann-hypothesis/pull/8672)
 
-## Try it on a Lean project
+## None of this is specific to Lean
+
+Each tool began as a Lean command and now works on any repository.
+
+- `ci-esta retry` reads a failed log and prints the command that reruns what failed: pytest test ids, Bun test files and Lake modules. [Guide](docs/failed-first.md#rerun-the-failures-on-your-machine)
+- `ci-esta queue` measures how long any workflow job waits for a runner, restores caches and works. It is the measurement behind the queue numbers above, with the workflow and job as options. [Guide](docs/tutorials/measure-critical-path.md#measure-the-wait-before-the-job-starts)
+- `dry-lint blocks` finds lines repeated inside functions in Python, TypeScript, Luau and Lean. It is the matcher we wrote for tactic proofs. [dry-lint's account of the same week](https://dry-lint.readthedocs.io/en/latest/docs/case-studies/riemann-proof/)
+
+Reviewing these tools a second time found more defects, in the same places as before: a planner that dropped importers of modules with quoted names, a statement comparison that took exponential time on shared types, and a test-selection lane that did not run when only a file's mode changed. Each is fixed with a test that failed first.
+
+## Try it
+
+```sh
+# From any failed CI log, the commands that rerun what failed
+gh run view RUN_ID --log-failed | ci-esta retry -
+
+# How long a job waits for a runner, restores caches and works
+ci-esta queue --repo OWNER/NAME --workflow ci.yml --job "tests"
+```
+
+On a Lean project:
 
 ```sh
 # Which workflow runs the proof build, and what to measure next
-ci-esta inspect
+ci-esta adoption
 
 # From a failed Lake log, the command that rebuilds what failed
 ci-esta-lean retry lake.log
 
 # Repeated declarations and proof fragments, for a person to judge
-uvx --from 'dry-lint[lean]>=1,<2' dry-lint lean-proof-blocks --lines 5
+uvx --from 'dry-lint[lean]>=1,<2' dry-lint blocks --extractor lean --lines 4
 ```
 
 The proof is true. Whether people can read it depends on work of this kind, done carefully, and on reviewers with the time to say no.
