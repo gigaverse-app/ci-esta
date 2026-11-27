@@ -25,7 +25,7 @@ class MeasurementIdentity(BaseModel):
     @classmethod
     def from_environment(cls, *, required: bool = False) -> Self:
         event_path = os.environ.get("GITHUB_EVENT_PATH")
-        event = _EventHead.model_validate_json(Path(event_path).read_text()) if event_path else _EventHead()
+        event = _EventHead.model_validate_json(Path(event_path).read_text(encoding="utf-8")) if event_path else _EventHead()
         if required and not all(os.environ.get(key) for key in ("GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "GITHUB_SHA")):
             raise ValueError("GitHub run identity is required")
         return cls(run_id=int(os.environ.get("GITHUB_RUN_ID", "0")),

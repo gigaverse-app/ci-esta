@@ -17,7 +17,7 @@ from ci_esta.testing.timing_store import learn_with_history
 
 def _event_pull_request() -> GitHubPullRequestV1 | None:
     try:
-        event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+        event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
         return GitHubPullRequestV1.model_validate(event["pull_request"])
     except (KeyError, TypeError, ValueError, OSError):
         return None

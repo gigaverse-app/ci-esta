@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 def record(kind: str) -> None:
-    event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
+    event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
     scope = os.environ["MEASUREMENT_SCOPE"]
     attempt = int(os.environ["GITHUB_RUN_ATTEMPT"])
     data = {
