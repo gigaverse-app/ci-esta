@@ -104,6 +104,12 @@ runners for the queue, a prepared environment for the caches, and selection or s
 for the work. `--pool LABEL` groups by the runner labels you name; without it, jobs are
 grouped by all their labels. The command reads the GitHub API through `gh`.
 
+It samples runs started by `pull_request`, `merge_group` and `push`. For a workflow that a
+schedule or another workflow starts, name its events: `--event schedule --event
+workflow_dispatch`. When no sampled job has the name you gave, the command lists the job
+names it saw on standard error; a matrix or reusable-workflow job is named as GitHub shows
+it, such as `tests (3.13, ubuntu-latest)` or `build / compile`.
+
 ## 5. Choose your next action
 
 - **Unrelated tests run:** follow the [safe lane-selection tutorial](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/).
