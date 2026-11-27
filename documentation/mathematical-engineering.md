@@ -69,8 +69,8 @@ Selecting which Lean modules to rebuild is Lake's job, and it does it from the i
 
 Each tool began as a Lean command and now works on any repository.
 
-- `ci-esta retry` reads a failed log and prints the command that reruns what failed: pytest test ids, Bun test files and Lake modules. [Guide](docs/failed-first.md#rerun-the-failures-on-your-machine)
-- `ci-esta queue` measures how long any workflow job waits for a runner, restores caches and works. It is the measurement behind the queue numbers above, with the workflow and job as options. [Guide](docs/tutorials/measure-critical-path.md#measure-the-wait-before-the-job-starts)
+- `ci-esta retry` reads a failed log and prints the command that reruns what failed: pytest test ids, Bun test files and Lake modules. [Guide](../docs/failed-first.md#rerun-the-failures-on-your-machine)
+- `ci-esta queue` measures how long any workflow job waits for a runner, restores caches and works. It is the measurement behind the queue numbers above, with the workflow and job as options. [Guide](../docs/tutorials/measure-critical-path.md#measure-the-wait-before-the-job-starts)
 - `dry-lint blocks` finds lines repeated inside functions in Python, TypeScript, Luau and Lean. It is the matcher we wrote for tactic proofs. [dry-lint's account of the same week](https://dry-lint.readthedocs.io/en/latest/docs/case-studies/riemann-proof/)
 
 Reviewing these tools a second time found more defects, in the same places as before: a planner that dropped importers of modules with quoted names, a statement comparison that took exponential time on shared types, and a test-selection lane that did not run when only a file's mode changed. Each is fixed with a test that failed first.
