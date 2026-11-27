@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.40.0](https://github.com/gigaverse-app/ci-esta/compare/v1.39.0...v1.40.0) (2026-11-27)
+
+
+### Features
+
+* **adoption:** stop advising Python selection for a workflow that calls plan-work ([#329](https://github.com/gigaverse-app/ci-esta/issues/329)) ([1b669ae](https://github.com/gigaverse-app/ci-esta/commit/1b669ae41a2b4afec00bc10a1f0b0b22bf3147c0))
+* **queue:** measure workflows started by any event, and say why a report is empty ([#328](https://github.com/gigaverse-app/ci-esta/issues/328)) ([8034afd](https://github.com/gigaverse-app/ci-esta/commit/8034afd25b74f73e320b83a54bc47d682528c14a))
+
+
+### Bug fixes
+
+* **git:** keep the tracked-file inventory when GIT_LITERAL_PATHSPECS is set ([#331](https://github.com/gigaverse-app/ci-esta/issues/331)) ([581725a](https://github.com/gigaverse-app/ci-esta/commit/581725abef76bd0120e3436a20ac1fd487fadf3c))
+* read the GitHub event payload as UTF-8 whatever the locale ([#330](https://github.com/gigaverse-app/ci-esta/issues/330)) ([7446451](https://github.com/gigaverse-app/ci-esta/commit/7446451b78fc02650a1d82455437ed6c041158a2))
+* **retry:** find Bun failures in GitHub Actions logs and name the file each belongs to ([#326](https://github.com/gigaverse-app/ci-esta/issues/326)) ([9e082e7](https://github.com/gigaverse-app/ci-esta/commit/9e082e73194bff67a84997399fc741cd52504705))
+* **retry:** name the test file when pytest prints no FAILED line for a failure ([#327](https://github.com/gigaverse-app/ci-esta/issues/327)) ([1a593e0](https://github.com/gigaverse-app/ci-esta/commit/1a593e01877cc5f640f537c15554767c977e6c5c))
+
 ## [1.39.0](https://github.com/gigaverse-app/ci-esta/compare/v1.38.1...v1.39.0) (2026-11-27)
 
 
