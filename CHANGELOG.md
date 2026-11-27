@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.38.1](https://github.com/gigaverse-app/ci-esta/compare/v1.38.0...v1.38.1) (2026-11-27)
+
+
+### Documentation
+
+* report the Lean extractor's coverage after the command scanner ([#316](https://github.com/gigaverse-app/ci-esta/issues/316)) ([5515ab3](https://github.com/gigaverse-app/ci-esta/commit/5515ab38e32fad9dd73ce2a03e267476a88c7469))
+
 ## [1.38.0](https://github.com/gigaverse-app/ci-esta/compare/v1.37.0...v1.38.0) (2026-11-27)
 
 
