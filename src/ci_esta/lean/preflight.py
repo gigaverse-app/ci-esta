@@ -12,6 +12,7 @@ from pathlib import Path, PurePosixPath
 from selective_deps import dependency_edges, file_of, is_declaration
 
 from ci_esta.git import git
+from ci_esta.lean.retry import components, declared_roots, spell
 
 DOCS = {
     "README.md",
@@ -32,8 +33,32 @@ def names(data):
     return {path for path in data.split("\0") if path}
 
 
-def module(path):
-    return ".".join(PurePosixPath(path).relative_to("src").with_suffix("").parts)
+def module(path, roots):
+    """The module name Lake accepts after `+` for a source under one of `roots`, which are deepest first."""
+    path = PurePosixPath(path)
+    name = spell(path.relative_to(next(root for root in roots if path.is_relative_to(root))).with_suffix("").parts)
+    if name is None:
+        raise ValueError(f"{path} has no Lake module name")
+    return name
+
+
+def respelled(name):
+    """A module name as `module` spells it, whether quoted as Lean and Lake print it or not quoted at all."""
+    parts = components(name)
+    return spell(parts) if parts else None
+
+
+def source_roots(repo, revision, inventory):
+    """Lake's source directories at `revision`: those `lakefile.toml` declares, else `src` or the package root."""
+    lakefiles = blobs(repo, revision, sorted({"lakefile.toml", "lakefile.lean"} & inventory.keys()))
+    if "lakefile.toml" in lakefiles:
+        return declared_roots(lakefiles["lakefile.toml"].decode("utf-8", errors="replace"))
+    # A `lakefile.lean` is a program this cannot evaluate. If it sets `srcDir`, or Lean sources sit
+    # under `src`, keep the `src` layout this planner has always assumed; otherwise Lake's default.
+    legacy = b"srcDir" in lakefiles.get("lakefile.lean", b"") or any(
+        path.startswith("src/") and path.endswith(".lean") for path in inventory
+    )
+    return [PurePosixPath("src" if legacy else ".")]
 
 
 def blobs(repo, revision, paths):
@@ -69,7 +94,10 @@ def snapshot(repo, revision, lean, temporary):
     for row in names(git(repo, "ls-tree", "-r", "-z", revision)):
         metadata, path = row.split("\t", 1)
         inventory[path] = metadata.split()[0]
-    sources = sorted(p for p in inventory if p.startswith("src/") and p.endswith(".lean"))
+    roots = source_roots(repo, revision, inventory)
+    sources = sorted(
+        p for p in inventory if p.endswith(".lean") and any(PurePosixPath(p).is_relative_to(root) for root in roots)
+    )
     declaration_paths = sorted(p for p in inventory if is_declaration(p))
     if any(inventory[p] not in {"100644", "100755"} for p in sources + declaration_paths):
         raise ValueError(f"{revision} contains a non-regular Lean source or dependency declaration")
@@ -78,7 +106,7 @@ def snapshot(repo, revision, lean, temporary):
     edges = dependency_edges(manifests, inventory, revision=revision)
     files = []
     imports = {}
-    modules = {module(path): path for path in sources}
+    modules = {module(path, roots): path for path in sources}
     if len(modules) != len(sources):
         raise ValueError("duplicate module paths")
     for index, path in enumerate(sources):
@@ -104,7 +132,7 @@ def snapshot(repo, revision, lean, temporary):
             detail = diagnostic[0] if diagnostic else f"exit status {parsed.returncode}"
             raise ValueError(f"cannot parse Lean headers at {revision}: {detail}")
         for path, line in zip(sources, parsed.stdout.splitlines(), strict=True):
-            imports[path] = {modules[m] for m in json.loads(line) if m in modules}
+            imports[path] = {modules[m] for m in map(respelled, json.loads(line)) if m in modules}
             edges.setdefault(path, set()).update(imports[path])
     return modules, edges, imports
 
@@ -115,7 +143,7 @@ def plan(repo, base, head, lean, previous_failures=()):
     )
     changed = names(git(repo, "diff", "--name-only", "--no-renames", "-z", base, head, "--"))
     if not changed and not previous_failures:
-        return {"mode": "none", "changed": sorted(changed), "modules": []}
+        return {"mode": "none", "changed": sorted(changed), "modules": [], "retry_command": [], "command": []}
     with tempfile.TemporaryDirectory() as directory:
         old_modules, old_edges, _ = snapshot(repo, base, lean, Path(directory))
         new_modules, new_edges, new_imports = snapshot(repo, head, lean, Path(directory))
@@ -144,8 +172,9 @@ def plan(repo, base, head, lean, previous_failures=()):
 
     # A failure may be given as a source path or as the module name Lake and `retry` print.
     failures = {
-        new_modules.get(failure) or old_modules.get(failure) or posixpath.normpath(failure.replace("\\", "/"))
+        new_modules.get(name) or old_modules.get(name) or posixpath.normpath(failure.replace("\\", "/"))
         for failure in previous_failures
+        for name in [respelled(failure)]
     }
     if unknown := sorted(failures - set(old_modules.values()) - set(new_modules.values())):
         raise UnknownFailure(f"not a Lean source at {base[:12]} or {head[:12]}: {', '.join(unknown)}")
@@ -197,7 +226,8 @@ def plan(repo, base, head, lean, previous_failures=()):
 def uncommitted(repo, head):
     """Work the plan cannot see: changes not yet committed when `head` is the checked-out commit."""
     revisions = [git(repo, "rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}") for ref in (head, "HEAD")]
-    if revisions[0] != revisions[1]:
+    # A bare repository has no working tree, so nothing in it can be uncommitted.
+    if revisions[0] != revisions[1] or git(repo, "rev-parse", "--is-inside-work-tree").strip() != "true":
         return []
     return sorted(
         names(git(repo, "diff", "--name-only", "--no-renames", "-z", "HEAD", "--"))

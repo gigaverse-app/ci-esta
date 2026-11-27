@@ -26,7 +26,7 @@ _NAME = re.compile(r"(?:«([^«»]+)»|([^.«»/:\s]+))(?:\.|$)")
 _SIMPLE = re.compile(r"[^\W\d][\w'!?]*")
 
 
-def _components(name: str) -> tuple[str, ...] | None:
+def components(name: str) -> tuple[str, ...] | None:
     """Split a module name as Lake prints it, `A.«b c».D`; None for any other target."""
     parts, position = [], 0
     while position < len(name):
@@ -38,7 +38,7 @@ def _components(name: str) -> tuple[str, ...] | None:
     return tuple(parts) if parts and not name.endswith(".") else None
 
 
-def _spell(parts: Iterable[str]) -> str | None:
+def spell(parts: Iterable[str]) -> str | None:
     """A module name Lake accepts after `+`, quoting components that are not plain identifiers."""
     spelled = []
     for part in parts:
@@ -69,10 +69,18 @@ def project_directory(start: Path) -> Path:
 
 def source_roots(project: Path) -> list[PurePosixPath]:
     """Source directories a declarative lakefile names, deepest first; `.` when it cannot be read."""
+    try:
+        return declared_roots((project / "lakefile.toml").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return [PurePosixPath(".")]
+
+
+def declared_roots(lakefile: str) -> list[PurePosixPath]:
+    """Source directories the text of a `lakefile.toml` names, deepest first; `.` when it is not valid TOML."""
     roots = {PurePosixPath(".")}
     try:
-        config = tomllib.loads((project / "lakefile.toml").read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        config = tomllib.loads(lakefile)
+    except ValueError:
         return list(roots)
     package = config.get("srcDir", ".")
     libraries = [*config.get("lean_lib", []), *config.get("lean_exe", [])]
@@ -105,7 +113,7 @@ def targets(
     skipped = [] if skipped is None else skipped
 
     def lake_target(name: str) -> None:
-        parts = _components(name)
+        parts = components(name)
         if parts is None:
             return  # A library, executable or facet such as `pkg/Lib:default`; its modules are listed separately.
         path = by_suffix.get(parts)
@@ -131,7 +139,7 @@ def targets(
             if path.is_absolute() or path not in tracked or not (project / path).is_file():
                 continue
             root = next((root for root in roots if path.is_relative_to(root)), None)
-            name = _spell(path.relative_to(root).with_suffix("").parts) if root is not None else None
+            name = spell(path.relative_to(root).with_suffix("").parts) if root is not None else None
             if name:
                 modules[name] = None
                 reported.add(path)
