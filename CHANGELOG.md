@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.38.0](https://github.com/gigaverse-app/ci-esta/compare/v1.37.0...v1.38.0) (2026-11-27)
+
+
+### Features
+
+* **adoption:** recognize lean-action and chained Lake builds as the proof workflow ([#312](https://github.com/gigaverse-app/ci-esta/issues/312)) ([61ca195](https://github.com/gigaverse-app/ci-esta/commit/61ca19529dc991d673260ebd4ef037bbcd9d8c1b))
+
+
+### Bug fixes
+
+* **actions:** report a Lean seed miss when python3 has no tomllib ([#311](https://github.com/gigaverse-app/ci-esta/issues/311)) ([89fb952](https://github.com/gigaverse-app/ci-esta/commit/89fb95276af50fcb61716230f2690e2d633b5935))
+* **lean:** stop preflight from reporting nothing to do when it missed work ([#310](https://github.com/gigaverse-app/ci-esta/issues/310)) ([86acdf7](https://github.com/gigaverse-app/ci-esta/commit/86acdf7468791a687bd6ca57c227e954f2792db0))
+* **lean:** take retry targets from Lake's own failure lines ([#309](https://github.com/gigaverse-app/ci-esta/issues/309)) ([c74f701](https://github.com/gigaverse-app/ci-esta/commit/c74f70193e3313d3030253e43ae96f50b275ca93))
+
 ## [1.37.0](https://github.com/gigaverse-app/ci-esta/compare/v1.36.0...v1.37.0) (2026-11-27)
 
 
