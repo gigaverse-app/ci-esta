@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.37.0](https://github.com/gigaverse-app/ci-esta/compare/v1.36.0...v1.37.0) (2026-11-27)
+
+
+### Features
+
+* **lean:** compare compiled declaration types across builds ([64416a3](https://github.com/gigaverse-app/ci-esta/commit/64416a39119d53237f69c4abe4c060637b784c18))
+
 ## [1.36.0](https://github.com/gigaverse-app/ci-esta/compare/v1.35.1...v1.36.0) (2026-11-26)
 
 
