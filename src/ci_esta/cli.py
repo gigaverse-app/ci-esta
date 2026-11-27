@@ -81,6 +81,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     commands.add_parser("retry", add_help=False,
                         help="Print the commands that rerun the pytest, Bun and Lake failures in a log")
+    commands.add_parser("queue", add_help=False,
+                        help="Measure how long a job waits for a runner, restores caches and works")
     commands.add_parser("checkpoint", add_help=False, help="Install or dispatch scheduled full-validation workflows")
     if argv is None:
         argv = sys.argv[1:]
@@ -92,6 +94,11 @@ def main(argv: list[str] | None = None) -> int:
         from ci_esta.retry import main as retry
 
         return retry(argv[1:])
+    if argv[:1] == ["queue"]:
+        from ci_esta.lean.queue_report import main as queue
+
+        queue(argv[1:], lean=False)
+        return 0
     if argv[:1] == ["lanes"]:
         with requires_selection("ci-esta lanes"):
             from ci_esta.testing.lane_report import main as lanes
