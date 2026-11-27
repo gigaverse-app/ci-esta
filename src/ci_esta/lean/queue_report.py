@@ -4,12 +4,15 @@ import argparse
 import json
 import statistics
 import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from math import ceil
 
+from ci_esta.pagination import collect_pages
 from ci_esta.timing import iso_elapsed_seconds
 
+EVENTS = ("pull_request", "merge_group", "push")
 POOLS = {"rh-big", "rh-pr-fork", "rh-pr-trusted"}
 CACHE = {
     "Restore Mathlib's cache",
@@ -64,8 +67,20 @@ def main(argv: list[str] | None = None, *, lean: bool = True):
                         help="A step that does the job's real work; repeat for each. Their time is work_s")
     parser.add_argument("--pool", action="append", metavar="LABEL",
                         help="A runner label that names a pool; repeat for each. Default: group by all labels")
+    parser.add_argument("--event", action="append", metavar="NAME",
+                        help="An event that starts the workflow, such as schedule or workflow_dispatch; "
+                        f"repeat for each. Default: {', '.join(EVENTS)}")
     parser.add_argument("--per-event", type=int, default=20, choices=range(1, 101), metavar="1-100")
     args = parser.parse_args(argv)
+    try:
+        report(args, lean)
+    except subprocess.CalledProcessError as error:
+        # `gh` has already written GitHub's answer, such as `Not Found (HTTP 404)`, to standard error.
+        print(f"{parser.prog}: {' '.join(error.cmd)} failed; check --repo and --workflow", file=sys.stderr)
+        raise SystemExit(1) from None
+
+
+def report(args: argparse.Namespace, lean: bool) -> None:
     workflow = f"actions/workflows/{args.workflow}/runs"
     cache = set(args.cache_step or (CACHE if lean else ()))
     work = set(args.work_step or (PROOF if lean else ()))
@@ -75,12 +90,19 @@ def main(argv: list[str] | None = None, *, lean: bool = True):
     def api(path):
         return json.loads(subprocess.check_output(["gh", "api", f"repos/{args.repo}/{path}"], text=True))
 
+    def all_jobs(path):
+        """Every job of a run: GitHub returns at most 100 per page, and a large matrix has more."""
+        jobs = collect_pages(
+            lambda page: api(f"{path}?per_page=100" + (f"&page={page}" if page > 1 else ""))["jobs"]
+        )
+        seen.update(job["name"] for job in jobs)
+        return jobs
+
     def runs(event, status, limit):
         return api(f"{workflow}?event={event}&status={status}&per_page={limit}")
 
     def completed(run):
-        path = f"actions/runs/{run['id']}/attempts/{run['run_attempt']}/jobs?per_page=100"
-        jobs = api(path)["jobs"]
+        jobs = all_jobs(f"actions/runs/{run['id']}/attempts/{run['run_attempt']}/jobs")
         rows = []
         for job in jobs:
             if job["name"] != args.job or job["conclusion"] not in {
@@ -112,7 +134,7 @@ def main(argv: list[str] | None = None, *, lean: bool = True):
         return rows
 
     def live(run):
-        jobs = api(f"actions/runs/{run['id']}/jobs?per_page=100")["jobs"]
+        jobs = all_jobs(f"actions/runs/{run['id']}/jobs")
         return [
             {
                 "run_id": run["id"],
@@ -128,8 +150,9 @@ def main(argv: list[str] | None = None, *, lean: bool = True):
             if job["name"] == args.job and job["status"] in {"queued", "in_progress"}
         ]
 
+    seen: set[str] = set()
+    events = tuple(dict.fromkeys(args.event or EVENTS))
     with ThreadPoolExecutor(max_workers=6) as pool:
-        events = ("pull_request", "merge_group", "push")
         samples = list(pool.map(lambda event: runs(event, "completed", args.per_event), events))
         queued = list(pool.map(lambda event: runs(event, "queued", args.per_event), events))
         running = list(pool.map(lambda event: runs(event, "in_progress", args.per_event), events))
@@ -179,6 +202,14 @@ def main(argv: list[str] | None = None, *, lean: bool = True):
         "jobs": jobs,
     }
     print(json.dumps(result, indent=2))
+    if not jobs and not live_jobs:
+        prog = "ci-esta-lean queue" if lean else "ci-esta queue"
+        if seen:
+            print(f"{prog}: no job named {args.job!r} in the sampled runs; their jobs: "
+                  f"{', '.join(sorted(seen))}", file=sys.stderr)
+        else:
+            print(f"{prog}: {args.workflow} has no runs started by {', '.join(events)}; "
+                  "name the events that start it with --event", file=sys.stderr)
 
 
 if __name__ == "__main__":
