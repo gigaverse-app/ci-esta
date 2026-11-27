@@ -7,13 +7,13 @@ partial def normalize (expr : Expr) : StateM (Std.HashMap ExprStructEq Expr) Exp
   let key := ExprStructEq.mk expr
   if let some core := (← get)[key]? then return core
   let core ← match expr with
-    | .forallE _ domain body info => return .forallE .anonymous (← normalize domain) (← normalize body) info
-    | .lam _ domain body info => return .lam .anonymous (← normalize domain) (← normalize body) info
+    | .forallE _ domain body info => pure <| .forallE .anonymous (← normalize domain) (← normalize body) info
+    | .lam _ domain body info => pure <| .lam .anonymous (← normalize domain) (← normalize body) info
     | .letE _ type value body nonDep =>
-      return .letE .anonymous (← normalize type) (← normalize value) (← normalize body) nonDep
-    | .app fn arg => return .app (← normalize fn) (← normalize arg)
+      pure <| .letE .anonymous (← normalize type) (← normalize value) (← normalize body) nonDep
+    | .app fn arg => pure <| .app (← normalize fn) (← normalize arg)
     | .mdata _ body => normalize body
-    | .proj type index body => return .proj type index (← normalize body)
+    | .proj type index body => pure <| .proj type index (← normalize body)
     | atom => pure atom
   modify (·.insert key core)
   return core
