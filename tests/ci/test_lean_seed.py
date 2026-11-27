@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts.ci import lean_seed
 from scripts.ci.lean_seed import link_toolchains, restore
 
 
@@ -130,3 +131,20 @@ def test_linked_toolchain_gets_a_writable_lake_cache(
         assert output.read_text() == f"LAKE_CACHE_DIR={project / '.lake/cache'}\n"
     else:
         assert not output.exists()
+
+
+def test_a_python_without_tomllib_takes_normal_hydration_instead_of_failing_the_job(
+    projects: tuple[Path, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Ubuntu 22.04's python3 is 3.10, which has no tomllib."""
+    project, seed = projects
+    output = tmp_path / "output"
+    monkeypatch.setitem(sys.modules, "tomllib", None)
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output))
+    monkeypatch.setattr(sys, "argv", ["lean_seed.py", "--seed", str(seed), "--project", str(project)])
+
+    lean_seed.main()
+
+    assert output.read_text() == "cache-hit=false\n"
+    assert "tomllib" in capsys.readouterr().out
+    assert not (project / ".lake/packages").exists()

@@ -6,7 +6,7 @@ See the [Riemann Hypothesis case study](../documentation/riemann-lean-ci.md) for
 
 ## Prepare a seed
 
-The action uses Python 3.11+, Git and GNU `cp`. Use an unprivileged image-builder account and a clean checkout of a trusted revision on the same Linux runner image and architecture. Install the pinned toolchain and hydrate the dependencies exactly as CI would, for example:
+The action uses Python 3.11+, Git and GNU `cp`. With an older `python3` it reports a miss and the job hydrates normally. Use an unprivileged image-builder account and a clean checkout of a trusted revision on the same Linux runner image and architecture. Install the pinned toolchain and hydrate the dependencies exactly as CI would, for example:
 
 ```sh
 lake exe mathlib/cache get
