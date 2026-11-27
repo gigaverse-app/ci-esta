@@ -37,20 +37,23 @@ build log or download a finished GitHub Actions job log, then run this from the 
 where you want to test the fix:
 
 ```sh
-ci-esta-lean retry lake.log --source-root src
+ci-esta-lean retry lake.log
 ```
 
 For the Cayley-chart example, GitHub CLI can download the original job log:
 
 ```sh
 gh api repos/leanprover-community/riemann-hypothesis/actions/jobs/139912708645/logs > lake.log
-ci-esta-lean retry lake.log --source-root src
+ci-esta-lean retry lake.log
 ```
 
-Use the Lake source directory relative to the Git root. Omit `--source-root` for
-projects with Lean sources at the Git root. The command prints a `lake build` line
-for matching tracked files still present in the checkout, once per module and in
-diagnostic order. If no modules match, review the original failure or run the usual
+Run it in the Lake project directory, or pass that directory with `--repo`. The
+command takes module names from Lake's own failure lines, so it also reports a bad
+import or a compiler that was killed. For a log reduced to its `error:` lines it
+reads `srcDir` from `lakefile.toml`; pass `--source-root` for a `lakefile.lean`
+project that sets one. It prints a `lake build` line for matching tracked files
+still present in the checkout, once per module and in log order, and names on
+standard error any failure it could not match. If no modules match, review the original failure or run the usual
 build. A targeted retry gives early feedback before the full build and axiom checks.
 
 Run the reported `retry_command` first. In the replay it was `lake build +Lib.DiscreteSeries.Haar.CayleyChart`. Hydration is additional on a cold checkout. Keep the required full build, `sorry` scan, and axiom checks as the merge gate. A good first pilot would make the retry available to fork contributors and measure the time until it reports a failing module, alongside the regular gate.
