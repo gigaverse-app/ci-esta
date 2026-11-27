@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.39.0](https://github.com/gigaverse-app/ci-esta/compare/v1.38.1...v1.39.0) (2026-11-27)
+
+
+### Features
+
+* **cli:** measure runner wait, cache and work time for any workflow job ([#319](https://github.com/gigaverse-app/ci-esta/issues/319)) ([846cf3c](https://github.com/gigaverse-app/ci-esta/commit/846cf3cbd28fedb5ad3028feaba40eeca78b2199))
+* **cli:** print the commands that rerun pytest, Bun and Lake failures from a log ([#318](https://github.com/gigaverse-app/ci-esta/issues/318)) ([243b12c](https://github.com/gigaverse-app/ci-esta/commit/243b12c6b50b06b077998d48baef46fc6a2568b8))
+
 ## [1.38.1](https://github.com/gigaverse-app/ci-esta/compare/v1.38.0...v1.38.1) (2026-11-27)
 
 
