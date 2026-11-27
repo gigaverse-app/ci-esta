@@ -4,6 +4,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -104,6 +105,76 @@ def test_previous_failure_retries_even_for_an_unrelated_edit(repo):
     result = plan(repo, base, commit(repo), LEAN, ["src/Caller.lean"])
     assert result["retry_command"] == ["lake", "build", "+Caller"]
     assert result["command"] == ["lake", "build", "+Final"]
+
+
+def test_previous_failure_accepts_the_module_name_lake_prints(repo):
+    base = commit(repo)
+    write(repo, "README.md", "# Changed\n")
+    result = plan(repo, base, commit(repo), LEAN, ["Caller", "./src/Independent.lean"])
+    assert result["retry_command"] == ["lake", "build", "+Caller", "+Independent"]
+
+
+@pytest.mark.parametrize("arguments", [["HEAD", "HEAD"], ["HEAD~1", "HEAD"]])
+def test_previous_failure_naming_no_source_is_an_error_not_an_empty_plan(repo, arguments, capsys):
+    commit(repo)
+    write(repo, "src/Base.lean", "def x := 1\n")
+    commit(repo)
+
+    with pytest.raises(SystemExit) as error:
+        preflight.main([*arguments, "--repo", str(repo), "--lean", LEAN, "--previous-failure", "Caller.lean"])
+
+    assert error.value.code == 2
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert "Caller.lean" in output.err
+
+
+def test_previous_failure_removed_at_head_is_not_retried(repo):
+    base = commit(repo)
+    (repo / "src/Independent.lean").unlink()
+    result = plan(repo, base, commit(repo), LEAN, ["src/Independent.lean"])
+    assert result["retry_command"] == []
+
+
+def test_non_ascii_module_names_keep_their_importers_under_a_non_utf8_locale(repo):
+    write(repo, "src/\u00dcn\u00ef.lean", "def u := 0\n")
+    write(repo, "src/Reader.lean", "import \u00dcn\u00ef\n")
+    base = commit(repo)
+    write(repo, "src/\u00dcn\u00ef.lean", "def u := 1\n")
+    commit(repo)
+    environment = os.environ | {"LC_ALL": "C", "PYTHONCOERCECLOCALE": "0", "PYTHONUTF8": "0", "PYTHONIOENCODING": "utf-8"}
+
+    output = subprocess.check_output(
+        [sys.executable, "-m", "ci_esta.lean.preflight", base, "HEAD", "--repo", str(repo), "--lean", LEAN],
+        env=environment,
+    )
+
+    assert json.loads(output)["command"] == ["lake", "build", "+Reader"]
+
+
+def test_uncommitted_work_is_reported_beside_a_plan_for_the_checked_out_commit(repo, capsys):
+    base = commit(repo)
+    write(repo, "src/Base.lean", "def x := 1\n")
+    write(repo, "src/New.lean", "def z := 0\n")
+
+    preflight.main([base, "--repo", str(repo), "--lean", LEAN])
+
+    output = capsys.readouterr()
+    result = json.loads(output.out)
+    assert result["mode"] == "none"
+    assert result["uncommitted"] == ["src/Base.lean", "src/New.lean"]
+    assert "uncommitted" in output.err
+
+
+def test_a_plan_for_another_commit_ignores_the_working_tree(repo, capsys):
+    base = commit(repo)
+    write(repo, "README.md", "# Changed\n")
+    commit(repo)
+    write(repo, "src/Base.lean", "def x := 1\n")
+
+    preflight.main([base, base, "--repo", str(repo), "--lean", LEAN])
+
+    assert "uncommitted" not in json.loads(capsys.readouterr().out)
 
 
 def test_renamed_binders_match_but_implicit_binders_do_not(tmp_path):
