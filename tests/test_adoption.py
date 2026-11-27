@@ -138,6 +138,27 @@ def test_bun_consumer_is_not_told_to_adopt_python_selection(tmp_path):
     assert "bun-reporting" in {item["id"] for item in report["suggestions"]}
 
 
+def test_plan_work_counts_as_python_selection(tmp_path):
+    """The shape of dry-lint's ci.yml: plan-work selects whole lanes and the pytest job runs when its lane does."""
+    write(tmp_path, ".github/workflows/ci.yml", """
+jobs:
+  plan:
+    steps:
+      - id: plan
+        uses: gigaverse-app/ci-esta/actions/plan-work@v1
+  test:
+    needs: plan
+    if: fromJSON(needs.plan.outputs.lanes).test
+    steps:
+      - run: uv run --no-sync pytest -q --cov --cov-report=term-missing --cov-fail-under=100
+""")
+    assert "python-selection" not in {item["id"] for item in audit(tmp_path)["suggestions"]}
+    # A second workflow runs pytest with no selector of its own; plan-work in ci.yml does not select its jobs.
+    write(tmp_path, ".github/workflows/dryer.yml", "jobs: {dryer: {steps: [{run: 'uv run --no-sync pytest -q'}]}}")
+    (advice,) = [item for item in audit(tmp_path)["suggestions"] if item["id"] == "python-selection"]
+    assert advice["evidence"] == [".github/workflows/dryer.yml"]
+
+
 def test_inventory_does_not_publish_arbitrary_action_inputs(tmp_path):
     write(tmp_path, ".github/workflows/test.yml", """
 jobs:

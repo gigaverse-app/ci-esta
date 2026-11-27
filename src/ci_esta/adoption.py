@@ -422,8 +422,12 @@ def inspect(root: Path, *, ignore: set[str] | None = None) -> AdoptionReport:
         advise("checkpoint-policy", "Review the copied full-run policy. Prefer the selector's auto default when equivalent; preserve coverage or manual-experiment overrides.", copied)
     python = [path for path, command in commands if PYTHON_TESTS.search(command)]
     bun = [path for path, command in commands if BUN_TESTS.search(command)]
-    if python and not selectors:
-        advise("python-selection", "No shared Python selector call found. Consider file selection before collection or whole-lane selection before provisioning services; inspect existing scripts first. Measure first: selection pays only when tests, not setup, dominate the critical path.", python)
+    # plan-work is CI-esta's own lane selector, with the same `lanes` output as plan-lanes. It selects the
+    # jobs of the workflow that calls it, so the pytest runs of other workflows are still unselected.
+    planned = {item.source for item in ci("plan-work")}
+    unselected = [path for path in python if path not in planned]
+    if unselected and not selectors:
+        advise("python-selection", "No shared Python selector call found. Consider file selection before collection or whole-lane selection before provisioning services; inspect existing scripts first. Measure first: selection pays only when tests, not setup, dominate the critical path.", unselected)
     runners = [path for path, command in commands if PYTHON_TESTS.search(command) or BUN_TESTS.search(command)]
     bun_runs = ci("run-bun-tests")
     if runners or bun_runs:
