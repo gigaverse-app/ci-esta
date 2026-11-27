@@ -6,7 +6,6 @@ import os
 import re
 import subprocess
 import tempfile
-import tomllib
 from pathlib import Path
 
 
@@ -42,6 +41,9 @@ def matching_inputs(project: Path, seed: Path) -> bool:
     toolchain = (project / "lean-toolchain").read_text().strip()
     if not re.fullmatch(r"leanprover/lean4:v\d+\.\d+\.\d+(?:-rc\d+)?", toolchain):
         return False
+    # Imported here so a runner whose python3 predates 3.11 reports a miss instead of failing the job.
+    import tomllib
+
     config = tomllib.loads((project / "lakefile.toml").read_text(encoding="utf-8"))
     if config.get("packagesDir", ".lake/packages") != ".lake/packages" or config.get(
         "manifestFile", "lake-manifest.json"
@@ -122,7 +124,7 @@ def main() -> None:
     elan_home = Path(os.environ.get("ELAN_HOME") or Path.home() / ".elan") if args.link_toolchains else None
     try:
         hit = restore(args.project, args.seed, elan_home)
-    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
+    except (OSError, ValueError, RuntimeError, ImportError, subprocess.CalledProcessError) as error:
         print(f"Lake dependency seed unavailable: {error}")
         hit = False
     result = str(hit).lower()
