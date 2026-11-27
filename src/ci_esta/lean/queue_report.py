@@ -1,4 +1,4 @@
-"""Measure required Lake jobs using GitHub Actions timestamps and runner labels."""
+"""Measure how long one GitHub Actions job waits for a runner, restores caches and works, per runner pool."""
 
 import argparse
 import json
@@ -10,7 +10,6 @@ from math import ceil
 
 from ci_esta.timing import iso_elapsed_seconds
 
-WORKFLOW = "actions/workflows/build.yml/runs"
 POOLS = {"rh-big", "rh-pr-fork", "rh-pr-trusted"}
 CACHE = {
     "Restore Mathlib's cache",
@@ -42,29 +41,49 @@ def summary(values):
     }
 
 
-def runner_pool(job):
-    pools = POOLS.intersection(job["labels"])
-    return next(iter(pools)) if len(pools) == 1 else "other"
+def runner_pool(job, pools=POOLS):
+    """The one named pool among the job's runner labels; with no pools named, the labels themselves."""
+    if not pools:
+        return ",".join(sorted(job["labels"])) or "other"
+    matched = set(pools).intersection(job["labels"])
+    return next(iter(matched)) if len(matched) == 1 else "other"
 
 
-def main(argv: list[str] | None = None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repo", default="leanprover-community/riemann-hypothesis")
+def main(argv: list[str] | None = None, *, lean: bool = True):
+    """`lean` supplies the Riemann Hypothesis project's workflow, job, steps and pools as defaults."""
+    parser = argparse.ArgumentParser(prog="ci-esta-lean queue" if lean else "ci-esta queue", description=__doc__)
+    parser.add_argument("--repo", required=not lean, default="leanprover-community/riemann-hypothesis" if lean else None,
+                        help="OWNER/NAME on GitHub")
+    parser.add_argument("--workflow", required=not lean, default="build.yml" if lean else None,
+                        help="Workflow file name, such as ci.yml")
+    parser.add_argument("--job", required=not lean, default="lake build" if lean else None,
+                        help="Exact name of the job to measure")
+    parser.add_argument("--cache-step", action="append", metavar="NAME",
+                        help="A step that restores a cache; repeat for each. Their time is cache_s")
+    parser.add_argument("--work-step", action="append", metavar="NAME",
+                        help="A step that does the job's real work; repeat for each. Their time is work_s")
+    parser.add_argument("--pool", action="append", metavar="LABEL",
+                        help="A runner label that names a pool; repeat for each. Default: group by all labels")
     parser.add_argument("--per-event", type=int, default=20, choices=range(1, 101), metavar="1-100")
     args = parser.parse_args(argv)
+    workflow = f"actions/workflows/{args.workflow}/runs"
+    cache = set(args.cache_step or (CACHE if lean else ()))
+    work = set(args.work_step or (PROOF if lean else ()))
+    pools = set(args.pool or (POOLS if lean else ()))
+    work_key = "proof_s" if lean else "work_s"
 
     def api(path):
         return json.loads(subprocess.check_output(["gh", "api", f"repos/{args.repo}/{path}"], text=True))
 
     def runs(event, status, limit):
-        return api(f"{WORKFLOW}?event={event}&status={status}&per_page={limit}")
+        return api(f"{workflow}?event={event}&status={status}&per_page={limit}")
 
     def completed(run):
-        path = f"actions/runs/{run['id']}/attempts/{run['run_attempt']}/jobs"
+        path = f"actions/runs/{run['id']}/attempts/{run['run_attempt']}/jobs?per_page=100"
         jobs = api(path)["jobs"]
         rows = []
         for job in jobs:
-            if job["name"] != "lake build" or job["conclusion"] not in {
+            if job["name"] != args.job or job["conclusion"] not in {
                 "success",
                 "failure",
                 "timed_out",
@@ -77,7 +96,7 @@ def main(argv: list[str] | None = None):
                     "run_id": run["id"],
                     "job_id": job["id"],
                     "event": run["event"],
-                    "pool": runner_pool(job),
+                    "pool": runner_pool(job, pools),
                     "conclusion": job["conclusion"],
                     "queue_s": iso_elapsed_seconds(job["created_at"], job["started_at"])
                     if job.get("created_at")
@@ -86,19 +105,19 @@ def main(argv: list[str] | None = None):
                     if run["run_attempt"] == 1
                     else None,
                     "job_s": iso_elapsed_seconds(job["started_at"], job["completed_at"]),
-                    "cache_s": phase(job, CACHE),
-                    "proof_s": phase(job, PROOF),
+                    "cache_s": phase(job, cache),
+                    work_key: phase(job, work),
                 }
             )
         return rows
 
     def live(run):
-        jobs = api(f"actions/runs/{run['id']}/jobs")["jobs"]
+        jobs = api(f"actions/runs/{run['id']}/jobs?per_page=100")["jobs"]
         return [
             {
                 "run_id": run["id"],
                 "job_id": job["id"],
-                "pool": runner_pool(job),
+                "pool": runner_pool(job, pools),
                 "event": run["event"],
                 "status": job["status"],
                 "created_at": job.get("created_at"),
@@ -106,7 +125,7 @@ def main(argv: list[str] | None = None):
                 "active_steps": [s["name"] for s in job["steps"] if s["status"] == "in_progress"],
             }
             for job in jobs
-            if job["name"] == "lake build" and job["status"] in {"queued", "in_progress"}
+            if job["name"] == args.job and job["status"] in {"queued", "in_progress"}
         ]
 
     with ThreadPoolExecutor(max_workers=6) as pool:
@@ -140,7 +159,9 @@ def main(argv: list[str] | None = None):
     result = {
         "repository": args.repo,
         "collected_at": now,
-        "cohort": "Most recent completed build workflow runs per event, up to --per-event. "
+        "workflow": args.workflow,
+        "job": args.job,
+        "cohort": "Most recent completed workflow runs per event, up to --per-event. "
         "Job durations include failures and exclude cancellations. Queue is measured from job creation. "
         "Verdict is measured from workflow creation and excludes reruns. Missing timings are null. "
         "Live rows sample the newest queued and running workflows per event. Waiting jobs are right-censored.",
@@ -150,7 +171,7 @@ def main(argv: list[str] | None = None):
             {
                 "event": e,
                 "pool": p,
-                **{k: summary(row[k] for row in rows) for k in ("queue_s", "verdict_s", "job_s", "cache_s", "proof_s")},
+                **{k: summary(row[k] for row in rows) for k in ("queue_s", "verdict_s", "job_s", "cache_s", work_key)},
             }
             for (e, p), rows in sorted(groups.items())
         ],

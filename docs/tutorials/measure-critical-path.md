@@ -87,6 +87,23 @@ comparing its cold baseline against a warm candidate would overstate the benefit
 Use that evidence format for your own experiment rather than copying its worker
 count or assuming the same bottleneck.
 
+## Measure the wait before the job starts
+
+A run report covers one run. To see how long a job waits for a runner across recent runs,
+and how its time splits between restoring caches and doing work, sample the workflow:
+
+```sh
+ci-esta queue --repo OWNER/NAME --workflow ci.yml --job "tests" \
+  --cache-step "Restore uv cache" --work-step "Run tests"
+```
+
+It prints JSON. For each event and runner pool it gives the median and 95th percentile of
+`queue_s` (job created to job started), `cache_s`, `work_s` and `job_s`, and it lists the
+jobs queued or running now. The three numbers call for different fixes: more or faster
+runners for the queue, a prepared environment for the caches, and selection or sharding
+for the work. `--pool LABEL` groups by the runner labels you name; without it, jobs are
+grouped by all their labels. The command reads the GitHub API through `gh`.
+
 ## 5. Choose your next action
 
 - **Unrelated tests run:** follow the [safe lane-selection tutorial](https://pytest-selective.readthedocs.io/en/latest/docs/tutorials/skip-unrelated-ci/).
