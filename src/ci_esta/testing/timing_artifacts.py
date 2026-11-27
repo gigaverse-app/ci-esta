@@ -59,7 +59,7 @@ Exceeding the budget fails without publishing a truncated replacement.
 
 def history_branch() -> str:
     return os.environ.get("INPUT_HISTORY_BRANCH") or json.loads(
-        Path(os.environ["GITHUB_EVENT_PATH"]).read_text()
+        Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8")
     )["repository"]["default_branch"]
 
 

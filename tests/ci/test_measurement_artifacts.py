@@ -95,3 +95,44 @@ def test_download_cache_outcomes_require_restore_evidence(tmp_path, restore, hit
     assert "unavailable" in sticky
     assert "Every recorded environment passed locked synchronization" not in sticky
     assert "Cache time saved is unavailable" in sticky
+
+
+# GitHub writes the event payload as UTF-8. A pull request title with a curly quote, as GitHub's own editor
+# and most phones produce, holds bytes that Windows-1252 and ASCII cannot decode.
+EVENT = {
+    "pull_request": {"number": 7, "title": "fix: don\u2019t drop \u201cquoted\u201d titles", "head": {"sha": "a" * 40}},
+    "repository": {"default_branch": "main"},
+}
+# A locale whose encoding is ASCII, as on a host where Python's UTF-8 mode is off.
+ASCII_LOCALE = {"LC_ALL": "C", "PYTHONCOERCECLOCALE": "0", "PYTHONUTF8": "0"}
+
+
+def test_cache_producer_reads_a_utf8_event_payload_whatever_the_locale(tmp_path):
+    event = tmp_path / "event.json"
+    event.write_text(json.dumps(EVENT, ensure_ascii=False), encoding="utf-8")
+    output = tmp_path / "outputs"
+    completed = subprocess.run([sys.executable, "scripts/ci/record_measurement.py", "cache"], check=True, env={
+        **os.environ, **ASCII_LOCALE, "GITHUB_EVENT_PATH": str(event), "GITHUB_SHA": "b" * 40,
+        "GITHUB_RUN_ID": "431", "GITHUB_RUN_ATTEMPT": "1", "GITHUB_JOB": "tests",
+        "RUNNER_TEMP": str(tmp_path), "GITHUB_OUTPUT": str(output), "MEASUREMENT_SCOPE": ".:key",
+        "CACHE_ENABLED": "true", "CACHE_HIT": "true", "CACHE_USABLE": "true",
+        "CACHE_RESTORE_OUTCOME": "success", "CACHE_SYNC_SECONDS": "1.25",
+    }, capture_output=True, text=True)
+    # The script reports any failure as a warning and exits 0, so the measurement itself is the evidence.
+    assert "::warning::" not in completed.stdout
+    outputs = dict(line.split("=", 1) for line in output.read_text(encoding="utf-8").splitlines())
+    assert MEASUREMENT.validate_json(Path(outputs["measurement-path"]).read_bytes()).head_sha == "a" * 40
+
+
+@pytest.mark.parametrize("script,expected", [
+    ("from ci_esta.measurements import MeasurementIdentity as M; print(M.from_environment().head_sha)", "a" * 40),
+    ("from ci_esta.testing.timing_artifacts import history_branch; print(history_branch())", "main"),
+    ("from ci_esta.testing.timing_feedback import _event_pull_request as pr; print(pr().number)", "7"),
+], ids=["measurement identity", "history branch", "pull request"])
+def test_python_readers_take_a_utf8_event_payload_whatever_the_locale(tmp_path, script, expected):
+    event = tmp_path / "event.json"
+    event.write_text(json.dumps(EVENT, ensure_ascii=False), encoding="utf-8")
+    environment = {**os.environ, **ASCII_LOCALE, "GITHUB_EVENT_PATH": str(event), "GITHUB_SHA": "b" * 40}
+    environment.pop("INPUT_HISTORY_BRANCH", None)
+    completed = subprocess.run([sys.executable, "-c", script], env=environment, capture_output=True, text=True)
+    assert (completed.returncode, completed.stdout.strip()) == (0, expected), completed.stderr
