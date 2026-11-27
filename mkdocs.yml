@@ -165,6 +165,7 @@ nav:
   - Shard CPU placement on shared nodes: docs/benchmarks/2026-11-17-shard-cpus.md
   - Bytecode before parallel test shards: docs/benchmarks/2026-11-17-shard-bytecode.md
   - How Lean contributors can get useful feedback sooner: lean-preflight-case-study.md
+  - "Mathematical engineering: after the proof is true": mathematical-engineering.md
 - Contributing:
   - Development setup: CONTRIBUTING.md
   - Releasing: RELEASING.md
