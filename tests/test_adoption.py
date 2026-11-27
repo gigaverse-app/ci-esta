@@ -617,3 +617,21 @@ def test_lake_build_identifies_the_proof_workflow(tmp_path):
     report = audit(tmp_path)
     assert [flow["jobs"][0]["test_commands"] for flow in report["workflows"]] == [[], ["lake build"]]
     assert any("--workflow proof.yml" in step for step in report["next_steps"])
+
+
+@pytest.mark.parametrize(("step", "expected"), [
+    ({"uses": "leanprover/lean-action@v1"}, ["lake build"]),
+    ({"uses": "leanprover/lean-action@v1", "with": {"build": False, "lint": True}}, []),
+    ({"run": "lake exe cache get && lake build"}, ["lake build"]),
+    ({"run": '"$HOME/.elan/bin/lake" build'}, ["lake build"]),
+    ({"run": "time lake build"}, ["lake build"]),
+    ({"run": "LAKE_CACHE_DIR=cache lake --wfail build Mathlib"}, ["lake build"]),
+    ({"run": "echo run lake build locally"}, []),
+    ({"run": "snowflake build"}, []),
+    ({"run": "lake exe cache get"}, []),
+])
+def test_lake_build_is_found_however_lean_projects_usually_run_it(tmp_path, step, expected):
+    write(tmp_path, ".github/workflows/ci.yml", json.dumps({
+        "on": "pull_request", "jobs": {"check": {"steps": [step]}},
+    }))
+    assert audit(tmp_path)["workflows"][0]["jobs"][0]["test_commands"] == expected

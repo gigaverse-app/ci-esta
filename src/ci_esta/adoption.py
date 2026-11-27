@@ -22,7 +22,14 @@ GATE_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/selected-gates/"
 FAILED_FIRST_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/failed-first/"
 PYTHON_TESTS = re.compile(r"\b(pytest|tox|nox)(?:\s|$)")
 BUN_TESTS = re.compile(r"\bbun\s+test\b")
-LAKE_BUILD = re.compile(r"(?m)^[ \t]*(?:exec[ \t]+)?lake[ \t]+(?:-q[ \t]+)?build\b")
+# `lake build` in command position: after a line start or `&&`, `||`, `;`, behind `exec`/`time`, environment
+# assignments, a path to the binary and Lake's own flags. Not `echo 'lake build'`.
+LAKE_BUILD = re.compile(
+    r"""(?m)(?:^|&&|\|\||;)[ \t]*(?:(?:exec|time)[ \t]+)?(?:\w+=\S*[ \t]+)*"""
+    r"""["']?(?:[^\s"']*/)?lake["']?(?:[ \t]+-\S+)*[ \t]+build\b"""
+)
+# The Lean community's standard action runs `lake build` unless told not to.
+LEAN_ACTION = "leanprover/lean-action"
 BUN_RUNNER = "gigaverse-app/ci-esta/actions/run-bun-tests"
 # Jobs that still run after a failed prerequisite; a gate reached only through one can miss that failure.
 RUNS_AFTER_FAILURE = re.compile(r"always\(\)|!\s*cancelled\(\)|failure\(\)")
@@ -188,7 +195,8 @@ def _summarize(source: str, parsed: _Source, raw: dict) -> WorkflowSummary:
         commands = [command for step in job.steps if step.run for command in PYTHON_TESTS.findall(step.run)]
         commands += ["bun test" for step in job.steps
                      if BUN_TESTS.search(step.run) or step.uses.split("@", 1)[0] == BUN_RUNNER]
-        commands += ["lake build" for step in job.steps if LAKE_BUILD.search(step.run)]
+        commands += ["lake build" for step in job.steps if LAKE_BUILD.search(step.run) or (
+            step.uses.split("@", 1)[0] == LEAN_ACTION and str(step.inputs.get("build", "true")).lower() != "false")]
         aggregates = any(step.uses.startswith(GATE_ACTIONS) for step in job.steps)
         after_failure = bool(RUNS_AFTER_FAILURE.search(str(job.condition or "")))
         # A reusable-workflow call does work of its own; `always()` there orders it (one device, one tunnel),
