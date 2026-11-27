@@ -144,7 +144,7 @@ lake build +Lib.Broken
 
 | Tool | What it reads in the log | What it prints |
 | --- | --- | --- |
-| pytest | `FAILED` and `ERROR` lines of the short test summary | the test ids, and the file for a collection error |
+| pytest | `FAILED` and `ERROR` lines of the short test summary; the progress lines when `-r` leaves failures out of it | the test ids, and the file for a collection error or a failure the summary does not name |
 | Bun | `(fail)` lines and errors outside a test, under each file's heading | the test files |
 | Lake | failed build jobs and `error:` lines with a Lean source | the modules, as `+Module` targets |
 

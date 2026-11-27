@@ -11,6 +11,9 @@ from pathlib import Path
 from ci_esta.lean import retry as lake
 
 _LEAD = re.compile(lake._PREFIX)
+# pytest's progress: `path.py ..F.x [ 29%]`, continued on lines without the path. It names the files with a
+# failure even when `-r` leaves failures out of the summary, as `-rxX` does.
+_PYTEST_PROGRESS = re.compile(r"(?:(\S+\.py) )?([.FEsxX]+)(?:\s+\[\s*\d+%\])?$")
 # pytest's short test summary: `FAILED path.py::test[param] - message`, `ERROR path.py - message`.
 _PYTEST = re.compile(r"(?:FAILED|ERROR) (\S+\.py(?:::\S.*)?)$")
 # Bun prints each test file's path on a line of its own before that file's results. On GitHub Actions it
@@ -37,15 +40,33 @@ def _test_id(summary: str) -> str:
 
 
 def pytest_ids(repo: Path, lines: Iterable[str], skipped: list[str]) -> list[str]:
-    """Failed and errored test ids in log order. `skipped` collects ids whose file is not in `repo`."""
+    """Failed and errored test ids in log order. `skipped` collects ids whose file is not in `repo`.
+
+    A file whose progress shows a failure that no summary line names is returned whole, after the ids.
+    """
     found: dict[str, None] = {}
+    named: set[str] = set()
+    unnamed: dict[str, None] = {}
+    progressing = None
     for line in lines:
-        if summary := _PYTEST.match(line):
+        progress = _PYTEST_PROGRESS.match(line)
+        progressing = (progress[1] or progressing) if progress else None
+        if progress and progressing and ("F" in progress[2] or "E" in progress[2]):
+            unnamed[progressing] = None
+        elif summary := _PYTEST.match(line):
             test = _test_id(summary[1])
+            named.add(test.partition("::")[0])
             if (repo / test.partition("::")[0]).is_file():
                 found[test] = None
             else:
                 skipped.append(test)
+    for file in unnamed:
+        if file in named:
+            continue
+        if (repo / file).is_file():
+            found[file] = None
+        else:
+            skipped.append(file)
     return list(found)
 
 

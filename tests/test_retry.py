@@ -132,6 +132,41 @@ def test_retry_prints_the_lake_command_next_to_the_others(tmp_path, capsys):
     assert capsys.readouterr().out.splitlines()[1:] == ["lake build +Lib.Broken"]
 
 
+# Trimmed from a job that ran `pytest demos/procrastinate_demo_django -rxX`: `-rxX` lists expected failures
+# only, so no `FAILED` line names the two tests that failed.
+PYTEST_WITHOUT_FAILED_LINES = """\
+2026-11-08T18:03:04.1000029Z ============================= test session starts ==============================
+2026-11-08T18:03:04.1000360Z collected 68 items
+2026-11-08T18:03:04.1000409Z 
+2026-11-08T18:03:11.9000087Z demos/procrastinate_demo_django/test_demo_django.py .....x...F..x....... [ 29%]
+2026-11-08T18:03:11.9000133Z .x....x.xx.....x...F..x........................                          [ 98%]
+2026-11-08T18:03:11.9000233Z demos/procrastinate_demo_django/test_handoff_inventory.py .              [100%]
+2026-11-08T18:03:11.9000280Z 
+2026-11-08T18:03:11.9000380Z =================================== FAILURES ===================================
+2026-11-08T18:03:11.9000473Z _ TestTheDemoAsShipped.test_due_work_contract[B-assert_lease_renewal_is_fenced] _
+2026-11-08T18:03:11.9000528Z package/src/pytest_obligation/profiles/bounded_ownership.py:566: AssertionError
+2026-11-08T18:03:11.9000661Z =========================== short test summary info ============================
+2026-11-08T18:03:11.9000736Z XFAIL demos/procrastinate_demo_django/test_demo_django.py::TestTheDemoAsShipped::test_due_work_contract[C-known_gap] - index_book records no attempt
+2026-11-08T18:03:11.9000841Z =================== 2 failed, 58 passed, 8 xfailed in 6.80s ====================
+"""
+
+
+def test_retry_names_the_file_when_pytest_prints_no_failed_line(tmp_path, capsys):
+    repo = checkout(tmp_path, "demos/procrastinate_demo_django/test_demo_django.py", "tests/test_a.py")
+    log = tmp_path / "job.log"
+    log.write_text(PYTEST_WITHOUT_FAILED_LINES, encoding="utf-8")
+    assert cli.main(["retry", str(log), "--repo", str(repo)]) == 0
+    assert capsys.readouterr() == ("pytest demos/procrastinate_demo_django/test_demo_django.py\n", "")
+    # A file the summary already names by test is not added whole, and a file not in the checkout is reported.
+    progress = "tests/test_a.py .F.E [ 50%]\ntests/test_gone.py F [100%]\n"
+    log.write_text(progress + "FAILED tests/test_a.py::test_one - AssertionError\n", encoding="utf-8")
+    assert cli.main(["retry", str(log), "--repo", str(repo)]) == 0
+    assert capsys.readouterr() == (
+        "pytest tests/test_a.py::test_one\n",
+        "ci-esta retry: not in this checkout: tests/test_gone.py\n",
+    )
+
+
 def test_retry_says_when_the_log_names_nothing_it_can_rerun(tmp_path, capsys):
     log = tmp_path / "ci.log"
     log.write_text("ERROR: usage: pytest [options]\nFAILED to connect - retrying\nsrc/notes.test.md:\n(fail) x\n")
