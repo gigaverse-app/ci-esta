@@ -2,7 +2,9 @@
 
 import argparse
 import json
+import posixpath
 import subprocess
+import sys
 import tempfile
 from collections import defaultdict, deque
 from pathlib import Path, PurePosixPath
@@ -20,6 +22,10 @@ DOCS = {
     "REFERENCES.md",
     "ATTRIBUTION.md",
 }
+
+
+class UnknownFailure(Exception):
+    """A previous failure that names no Lean source at either revision, so no plan can honour it."""
 
 
 def names(data):
@@ -89,6 +95,8 @@ def snapshot(repo, revision, lean, temporary):
             ],
             capture_output=True,
             text=True,
+            # Lean writes UTF-8 whatever the locale. Decoding a module name any other way loses its import edges.
+            encoding="utf-8",
             check=False,
         )
         if parsed.returncode:
@@ -134,7 +142,14 @@ def plan(repo, base, head, lean, previous_failures=()):
             "command": ["lake", "build"],
         }
 
-    retry = set(previous_failures) & set(new_modules.values())
+    # A failure may be given as a source path or as the module name Lake and `retry` print.
+    failures = {
+        new_modules.get(failure) or old_modules.get(failure) or posixpath.normpath(failure.replace("\\", "/"))
+        for failure in previous_failures
+    }
+    if unknown := sorted(failures - set(old_modules.values()) - set(new_modules.values())):
+        raise UnknownFailure(f"not a Lean source at {base[:12]} or {head[:12]}: {', '.join(unknown)}")
+    retry = failures & set(new_modules.values())
     predecessors = {node: None for p in sorted(changed | retry) for node in (p, f"@contents:{p}")}
     pending = deque(predecessors)
     while pending:
@@ -179,6 +194,17 @@ def plan(repo, base, head, lean, previous_failures=()):
     }
 
 
+def uncommitted(repo, head):
+    """Work the plan cannot see: changes not yet committed when `head` is the checked-out commit."""
+    revisions = [git(repo, "rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}") for ref in (head, "HEAD")]
+    if revisions[0] != revisions[1]:
+        return []
+    return sorted(
+        names(git(repo, "diff", "--name-only", "--no-renames", "-z", "HEAD", "--"))
+        | names(git(repo, "ls-files", "-z", "--others", "--exclude-standard"))
+    )
+
+
 def main(argv: list[str] | None = None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("base")
@@ -190,11 +216,20 @@ def main(argv: list[str] | None = None):
         action="append",
         default=[],
         metavar="PATH",
-        help="build these existing diagnostic files first, even if the new diff leaves them alone",
+        help="build this previously failing source file or module first, even if the new diff leaves it alone",
     )
     args = parser.parse_args(argv)
     try:
         result = plan(args.repo, args.base, args.head, args.lean, args.previous_failure)
+        if pending := uncommitted(args.repo, args.head):
+            result["uncommitted"] = pending
+            print(
+                f"ci-esta-lean preflight: the plan covers committed trees only; {len(pending)} uncommitted "
+                "path(s) are listed under 'uncommitted'",
+                file=sys.stderr,
+            )
+    except UnknownFailure as error:
+        parser.error(f"--previous-failure: {error}")
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         result = {"mode": "full", "reason": str(error), "command": ["lake", "build"]}
     print(json.dumps(result, indent=2))
