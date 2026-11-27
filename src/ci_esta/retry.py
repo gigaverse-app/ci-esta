@@ -11,11 +11,11 @@ from pathlib import Path
 from ci_esta.lean import retry as lake
 
 _LEAD = re.compile(lake._PREFIX)
-# pytest's short test summary: `FAILED path.py::test[param] - message`, `ERROR path.py - message`.
-_PYTEST = re.compile(r"(?:FAILED|ERROR) (\S+\.py(?:::\S.*)?)$")
 # pytest's progress: `path.py ..F.x [ 29%]`, continued on lines without the path. It names the files with a
 # failure even when `-r` leaves failures out of the summary, as `-rxX` does.
 _PYTEST_PROGRESS = re.compile(r"(?:(\S+\.py) )?([.FEsxX]+)(?:\s+\[\s*\d+%\])?$")
+# pytest's short test summary: `FAILED path.py::test[param] - message`, `ERROR path.py - message`.
+_PYTEST = re.compile(r"(?:FAILED|ERROR) (\S+\.py(?:::\S.*)?)$")
 # Bun prints each test file's path on a line of its own before that file's results.
 _BUN_FILE = re.compile(r"(\S.*\.(?:test|spec)\.[cm]?[jt]sx?):$")
 _BUN_FAILED = re.compile(r"\(fail\) |# Unhandled error between tests$")
