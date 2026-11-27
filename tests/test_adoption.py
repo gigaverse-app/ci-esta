@@ -629,6 +629,36 @@ def test_lake_build_identifies_the_proof_workflow(tmp_path):
     ({"run": "echo run lake build locally"}, []),
     ({"run": "snowflake build"}, []),
     ({"run": "lake exe cache get"}, []),
+    # lean-action builds when `build` is "true", or when `auto-config` is on and `build` is not "false".
+    ({"uses": "Leanprover/Lean-Action@v1"}, ["lake build"]),
+    ({"uses": "leanprover/lean-action@v1", "with": {"auto-config": False, "lint": True}}, []),
+    ({"uses": "leanprover/lean-action@v1", "with": {"auto-config": "false", "test": "true"}}, []),
+    ({"uses": "leanprover/lean-action@v1", "with": {"auto-config": False, "build": True}}, ["lake build"]),
+    ({"uses": "leanprover/lean-action@v1", "with": {"build": "default"}}, ["lake build"]),
+    # Text that mentions the command without running it.
+    ({"run": "echo 'next step; lake build'"}, []),
+    ({"run": "# to reproduce: lake exe cache get && lake build"}, []),
+    ({"run": "lake exe cache get  # then lake build\necho done"}, []),
+    ({"run": "echo \"don't\" # isn't run: lake build"}, []),
+    ({"run": "lake build-release"}, []),
+    ({"run": "lake -d build test"}, []),
+    ({"run": "bash build.sh lake build"}, []),
+    # The command behind the wrappers and separators a shell allows.
+    ({"run": "if ! lake build; then exit 1; fi"}, ["lake build"]),
+    ({"run": "lake -d proof build"}, ["lake build"]),
+    ({"run": "env LEAN_ABORT_ON_PANIC=1 lake build"}, ["lake build"]),
+    ({"run": "lake exe cache get | tee log; nice lake build"}, ["lake build"]),
+    ({"run": "nice -n 10 timeout 30m lake build"}, ["lake build"]),
+    ({"run": "elan run stable lake build"}, ["lake build"]),
+    ({"run": "elan run --install leanprover/lean4:v4.37.0 lake build --wfail"}, ["lake build"]),
+    ({"run": "bash -c 'lake build'"}, ["lake build"]),
+    ({"run": "bash -euo pipefail -c 'cd proof && lake build'"}, ["lake build"]),
+    ({"run": "( cd proof && lake build )"}, ["lake build"]),
+    ({"run": "cd proof\nlake build | tee out.log"}, ["lake build"]),
+    ({"run": "lake update && lake exe cache get &&\n  lake build --wfail"}, ["lake build"]),
+    ({"run": "lake build\\\n  Mathlib"}, ["lake build"]),
+    ({"run": "lake exe cache get & lake build"}, ["lake build"]),
+    ({"run": "echo 'two\nlines'\nlake build"}, ["lake build"]),
 ])
 def test_lake_build_is_found_however_lean_projects_usually_run_it(tmp_path, step, expected):
     write(tmp_path, ".github/workflows/ci.yml", json.dumps({

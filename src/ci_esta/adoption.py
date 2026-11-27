@@ -8,7 +8,9 @@ the next step is a concrete measurement, not a generic suggestion.
 from __future__ import annotations
 
 import re
-from pathlib import Path
+import shlex
+from collections.abc import Iterator
+from pathlib import Path, PurePosixPath
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -22,13 +24,15 @@ GATE_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/selected-gates/"
 FAILED_FIRST_GUIDE = "https://ci-esta.readthedocs.io/en/latest/docs/failed-first/"
 PYTHON_TESTS = re.compile(r"\b(pytest|tox|nox)(?:\s|$)")
 BUN_TESTS = re.compile(r"\bbun\s+test\b")
-# `lake build` in command position: after a line start or `&&`, `||`, `;`, behind `exec`/`time`, environment
-# assignments, a path to the binary and Lake's own flags. Not `echo 'lake build'`.
-LAKE_BUILD = re.compile(
-    r"""(?m)(?:^|&&|\|\||;)[ \t]*(?:(?:exec|time)[ \t]+)?(?:\w+=\S*[ \t]+)*"""
-    r"""["']?(?:[^\s"']*/)?lake["']?(?:[ \t]+-\S+)*[ \t]+build\b"""
-)
-# The Lean community's standard action runs `lake build` unless told not to.
+# Words a shell or a wrapper program puts in front of the command it runs, as in `if ! nice lake build`.
+COMMAND_PREFIXES = frozenset({"!", "{", "if", "then", "elif", "else", "while", "until", "do",
+                              "time", "exec", "command", "env", "nice", "nohup", "sudo", "timeout"})
+# What may follow such a word before the command: its options, `NAME=value`, and a priority or duration.
+PREFIX_ARGUMENT = re.compile(r"-.*|\w+=.*|\d+[smhd]?")
+SHELLS = frozenset({"bash", "sh", "dash", "zsh"})
+# Lake options that take their value as the next word, as in `lake -d proof build`.
+LAKE_VALUE_OPTIONS = frozenset({"-d", "--dir", "-f", "--file", "-K", "--packages", "--log-level", "--fail-level"})
+# The Lean community's standard action, which GitHub resolves whatever the letter case.
 LEAN_ACTION = "leanprover/lean-action"
 BUN_RUNNER = "gigaverse-app/ci-esta/actions/run-bun-tests"
 # Jobs that still run after a failed prerequisite; a gate reached only through one can miss that failure.
@@ -173,6 +177,73 @@ class AdoptionReport(BaseModel):
     limitations: list[str] = Field(default_factory=list)
 
 
+def _shell_commands(script: str) -> Iterator[list[str]]:
+    """Each simple command of a shell script as its words, with quotes resolved and comments dropped."""
+    pending = ""
+    # A backslash before a line end continues the command on the next line.
+    for line in script.replace("\\\n", "").splitlines():
+        lexer = shlex.shlex(pending + line, posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        try:
+            tokens = list(lexer)
+        except ValueError:
+            # A quotation still open at the line end runs on, so read it together with the next line.
+            pending += line + "\n"
+            continue
+        pending = ""
+        words: list[str] = []
+        for token in [*tokens, ";"]:
+            if not token.strip(lexer.punctuation_chars):
+                if words:
+                    yield words
+                words = []
+            else:
+                words.append(token)
+
+
+def _runs_lake_build(script: str) -> bool:
+    """Whether a shell script runs `lake build`, rather than naming it in an argument, a string or a comment."""
+    for words in _shell_commands(script):
+        while words:
+            if words[0] in COMMAND_PREFIXES:
+                words = words[1:]
+                while words and PREFIX_ARGUMENT.fullmatch(words[0]):
+                    words = words[1:]
+            elif re.fullmatch(r"\w+=.*", words[0]):
+                words = words[1:]
+            elif words[:2] == ["elan", "run"]:
+                words = words[2:]  # `elan run [options] <toolchain> <command>`
+                while words and words[0].startswith("-"):
+                    words = words[1:]
+                words = words[1:]
+            else:
+                break
+        if not words:
+            continue
+        program, arguments = PurePosixPath(words[0]).name, words[1:]
+        if program in SHELLS:
+            # `bash -c '<script>'`, also spelled `-ec` or after other options.
+            inline = next((position for position, word in enumerate(arguments)
+                           if re.fullmatch(r"-[a-z]*c", word)), None)
+            if inline is not None and _runs_lake_build(" ".join(arguments[inline + 1:inline + 2])):
+                return True
+        elif program == "lake":
+            while arguments and arguments[0].startswith("-"):
+                arguments = arguments[2 if arguments[0] in LAKE_VALUE_OPTIONS else 1:]
+            if arguments[:1] == ["build"]:
+                return True
+    return False
+
+
+def _lean_action_builds(step: _Step) -> bool:
+    """lean-action runs `lake build` when `build` is true, or when `auto-config` is on and `build` is not false."""
+    if step.uses.split("@", 1)[0].lower() != LEAN_ACTION:
+        return False
+    build, auto_config = (str(step.inputs.get(name, default)).lower()
+                          for name, default in (("build", "default"), ("auto-config", "true")))
+    return build == "true" or (auto_config == "true" and build != "false")
+
+
 def _triggers(raw: dict) -> list[str]:
     # YAML 1.1 reads the bare key `on` as boolean true.
     events = raw.get("on", raw.get(True))
@@ -195,8 +266,7 @@ def _summarize(source: str, parsed: _Source, raw: dict) -> WorkflowSummary:
         commands = [command for step in job.steps if step.run for command in PYTHON_TESTS.findall(step.run)]
         commands += ["bun test" for step in job.steps
                      if BUN_TESTS.search(step.run) or step.uses.split("@", 1)[0] == BUN_RUNNER]
-        commands += ["lake build" for step in job.steps if LAKE_BUILD.search(step.run) or (
-            step.uses.split("@", 1)[0] == LEAN_ACTION and str(step.inputs.get("build", "true")).lower() != "false")]
+        commands += ["lake build" for step in job.steps if _runs_lake_build(step.run) or _lean_action_builds(step)]
         aggregates = any(step.uses.startswith(GATE_ACTIONS) for step in job.steps)
         after_failure = bool(RUNS_AFTER_FAILURE.search(str(job.condition or "")))
         # A reusable-workflow call does work of its own; `always()` there orders it (one device, one tunnel),
