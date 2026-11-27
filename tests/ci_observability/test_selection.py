@@ -1,4 +1,7 @@
+import os
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -336,6 +339,51 @@ def test_a_selection_outside_the_floor_without_a_funnel_is_not_worth_opening() -
 
     assert "Your changes are outside the startup floor." in markdown
     assert not any(summary.startswith(WORTH_OPENING) for summary in summaries(markdown))
+
+
+# A locale whose encoding is ASCII, as on a host where Python's UTF-8 mode is off.
+ASCII_LOCALE = {"LC_ALL": "C", "PYTHONCOERCECLOCALE": "0", "PYTHONUTF8": "0"}
+
+
+def test_cli_reads_and_writes_utf8_whatever_the_locale(tmp_path: Path) -> None:
+    branch = "fix/na\u00efve-parser"
+    reference = REFERENCES[0].model_copy(update={"head_branch": branch})
+    paths = {name: tmp_path / f"{name}.json" for name in ("explanation", "pytest", "reference")}
+    paths["explanation"].write_text(explanation().model_dump_json(), encoding="utf-8")
+    paths["pytest"].write_text(AI_TIMINGS.model_dump_json(), encoding="utf-8")
+    paths["reference"].write_text(reference.model_dump_json(), encoding="utf-8")
+    out = tmp_path / "section.md"
+
+    completed = subprocess.run(
+        [sys.executable, "-c", "import sys; from ci_esta.ci_observability.enrichment.cli import main; sys.exit(main())",
+         "render-selection", "--explanation", str(paths["explanation"]), "--pytest", str(paths["pytest"]),
+         "--reference", str(paths["reference"]), "--out", str(out)],
+        env=os.environ | ASCII_LOCALE,
+        capture_output=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr.decode(errors="replace")
+    assert out.read_text(encoding="utf-8") == render(explanation(), AI_TIMINGS, [reference])
+
+
+@pytest.mark.parametrize(
+    "script",
+    [
+        "from ci_esta.testing.junit import write_pytest_paths_file as write; write([NAME], OUT)",
+        "from ci_esta.ci_observability.enrichment.prometheus import parse_prometheus as parse\n"
+        "OUT.write_bytes(('# ' + NAME + chr(10)).encode('utf-8')); parse(OUT)",
+    ],
+    ids=["selected test paths", "prometheus text"],
+)
+def test_text_files_are_utf8_whatever_the_locale(tmp_path: Path, script: str) -> None:
+    out = tmp_path / "out.txt"
+    name = "tests/test_na\u00efve.py"
+    prelude = f"from pathlib import Path; OUT = Path({str(out)!r}); NAME = {name!a}\n"
+
+    subprocess.run([sys.executable, "-c", prelude + script], env=os.environ | ASCII_LOCALE, check=True)
+
+    assert name in out.read_text(encoding="utf-8")
 
 
 def test_cli_renders_the_section_from_saved_artifacts(tmp_path: Path) -> None:

@@ -78,7 +78,7 @@ def _write_measurements(config: LocalShardRunConfig, intervals: list[ShardInterv
             pool=f"{os.environ.get('GITHUB_JOB', 'local')}:{min(config.shard_indices)}-{max(config.shard_indices)}",
             configured_shards=config.shard_count, cpu_count=os.cpu_count(), shards=intervals,
         )
-        (config.log_dir / "ci-esta-shards.json").write_text(measurement.model_dump_json(indent=2) + "\n")
+        (config.log_dir / "ci-esta-shards.json").write_text(measurement.model_dump_json(indent=2) + "\n", encoding="utf-8")
     except Exception as error:
         print(f"::warning::Shard measurements unavailable: {error}", flush=True)
 

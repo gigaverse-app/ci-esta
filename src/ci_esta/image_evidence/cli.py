@@ -70,5 +70,5 @@ def main(argv: list[str] | None = None) -> None:
     else:
         plan = prepare_pull_plan(args.directory)
         snapshot = args.directory / "pull-plan.json"
-        snapshot.write_text(plan.model_dump_json(indent=2) + "\n")
+        snapshot.write_text(plan.model_dump_json(indent=2) + "\n", encoding="utf-8")
         subprocess.run(["bash", str(Path(__file__).with_name("pulls.sh")), str(args.directory)], check=True)

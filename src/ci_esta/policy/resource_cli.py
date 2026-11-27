@@ -54,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
             providers=() if reasons else tuple(providers),
         )
     result = ResourcePlan(work=decisions)
-    destination.write_text(result.model_dump_json(indent=2) + "\n")
+    destination.write_text(result.model_dump_json(indent=2) + "\n", encoding="utf-8")
     return int(any(item.status == "unavailable" for item in decisions.values()))
 
 

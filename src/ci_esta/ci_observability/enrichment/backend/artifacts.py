@@ -85,7 +85,7 @@ def build_extension(
     metadata = None
     if metadata_path.exists():
         try:
-            metadata = PytestTimingMetadata.model_validate_json(metadata_path.read_text())
+            metadata = PytestTimingMetadata.model_validate_json(metadata_path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as error:
             unavailable.append(f"pytest timing metadata invalid: {error}")
 

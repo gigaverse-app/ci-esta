@@ -50,8 +50,8 @@ class PullPlan(BaseModel):
 
 
 def prepare_pull_plan(directory: Path) -> PullPlan:
-    inputs = PullInputs.model_validate_json((directory / "inputs.json").read_text())
-    return resolve_plan(inputs, (directory / "results.jsonl").read_text())
+    inputs = PullInputs.model_validate_json((directory / "inputs.json").read_text(encoding="utf-8"))
+    return resolve_plan(inputs, (directory / "results.jsonl").read_text(encoding="utf-8"))
 
 
 def resolve_plan(inputs: PullInputs, records: str) -> PullPlan:
@@ -79,13 +79,13 @@ def prepare_sequence(directory: Path, name: str, sequence: tuple[str, ...]) -> P
     """Create a separately owned empty-store sequence without renaming scenarios."""
     if not name or any(character not in "abcdefghijklmnopqrstuvwxyz0123456789-" for character in name):
         raise ValueError("Sequence directory must be a simple lowercase name")
-    inputs = json.loads((directory / "inputs.json").read_text())
+    inputs = json.loads((directory / "inputs.json").read_text(encoding="utf-8"))
     inputs["prefix"] += "-" + name
     inputs["pull_sequence"] = sequence
-    records = (directory / "results.jsonl").read_text()
+    records = (directory / "results.jsonl").read_text(encoding="utf-8")
     resolve_plan(PullInputs.model_validate(inputs), records)
     output = directory / name
     output.mkdir()
-    (output / "inputs.json").write_text(json.dumps(inputs, indent=2) + "\n")
-    (output / "results.jsonl").write_text(records)
+    (output / "inputs.json").write_text(json.dumps(inputs, indent=2) + "\n", encoding="utf-8")
+    (output / "results.jsonl").write_text(records, encoding="utf-8")
     return output

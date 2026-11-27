@@ -73,7 +73,7 @@ def main() -> int:
                 return 0
             return result.exit_code
         if args.operation == "report" and not args.json_input:
-            execution = BunExecution.model_validate_json(Path(os.environ["BUN_EXECUTION_FILE"]).read_text())
+            execution = BunExecution.model_validate_json(Path(os.environ["BUN_EXECUTION_FILE"]).read_text(encoding="utf-8"))
             write_json(Path(os.environ.get("BUN_WORK_REPORT") or "ci-work-selection.json"),
                        work_selection_report(execution, report_context()))
             return 0

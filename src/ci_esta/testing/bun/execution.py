@@ -30,7 +30,7 @@ class Timings(BaseModel):
 
 
 def write_json(path: Path, value: BaseModel) -> None:
-    path.write_text(value.model_dump_json(by_alias=True, exclude_none=False, indent=2) + "\n")
+    path.write_text(value.model_dump_json(by_alias=True, exclude_none=False, indent=2) + "\n", encoding="utf-8")
 
 
 
@@ -45,7 +45,7 @@ def _execute_batch(request: RunRequest, index: int, files: list[str], affected: 
                           kind=kind).report_name
     timings = request.output_directory / f"timings-{name}.json"
     junit = request.output_directory / f"junit-{name}.xml"
-    timings.write_text('{"version":1,"files":{}}')
+    timings.write_text('{"version":1,"files":{}}', encoding="utf-8")
     junit.unlink(missing_ok=True)
     command = [request.bun, "test", *(f"./{file}" for file in files), *request.args,
                *(arg for path in request.preloads for arg in ["--preload", f"./{path}"]),
@@ -65,7 +65,7 @@ def _execute_batch(request: RunRequest, index: int, files: list[str], affected: 
         status, error = 1, str(failure)
     executed = None
     try:
-        values = Timings.model_validate_json(timings.read_text()).files
+        values = Timings.model_validate_json(timings.read_text(encoding="utf-8")).files
         if any(file not in files or not math.isfinite(duration) or duration < 0 for file, duration in values.items()):
             raise ValueError("Invalid Bun execution timings")
         executed = sorted(values)
@@ -111,7 +111,7 @@ def run_bun_tests(request: RunRequest) -> BunExecution:
     costs = {}
     if history is not None:
         try:
-            costs = {path: value for path, value in Timings.model_validate_json(history.read_text()).files.items()
+            costs = {path: value for path, value in Timings.model_validate_json(history.read_text(encoding="utf-8")).files.items()
                      if path in inventory.files and math.isfinite(value) and value >= 0}
         except (OSError, ValueError):
             pass  # Scheduling hints are optional; malformed history cannot suppress work.
@@ -179,10 +179,10 @@ def run_bun_tests(request: RunRequest) -> BunExecution:
     if history is not None and result.exit_code == 0:
         for batch in executions:
             timings = request.output_directory / f"timings-{batch.report_name}.json"
-            observed = Timings.model_validate_json(timings.read_text()).files
+            observed = Timings.model_validate_json(timings.read_text(encoding="utf-8")).files
             costs.update({path: value for path, value in observed.items() if path in (result.executed_files or [])})
         history.parent.mkdir(parents=True, exist_ok=True)
-        history.write_text(json.dumps({"version": 1, "files": costs}) + "\n")
+        history.write_text(json.dumps({"version": 1, "files": costs}) + "\n", encoding="utf-8")
     write_json(request.output_directory / "execution-selection.json", result)
     if os.environ.get("GITHUB_RUN_ID"):
         write_json(request.output_directory / "ci-work-selection.json", work_selection_report(result, report_context()))

@@ -31,7 +31,7 @@ def safe_path(value: str) -> bool:
 
 
 def read_inventory(path: Path, cwd: Path) -> Inventory:
-    inventory = Inventory.model_validate_json(path.read_text())
+    inventory = Inventory.model_validate_json(path.read_text(encoding="utf-8"))
     if len(set(inventory.files)) != len(inventory.files) or len(set(inventory.always_run_files)) != len(inventory.always_run_files):
         raise ValueError("Duplicate inventory entries")
     for file in inventory.files:
@@ -158,7 +158,7 @@ def plan_affected_tests(request: SelectionRequest) -> SelectionPlan:
 
 def read_test_selection(path: Path, request: SelectionRequest) -> SelectionPlan:
     try:
-        saved = SelectionPlan.model_validate_json(path.read_text())
+        saved = SelectionPlan.model_validate_json(path.read_text(encoding="utf-8"))
         actual = plan_affected_tests(request.model_copy(update={
             "base": saved.base, "validated_head": saved.validated_head or "", "full": request.full or saved.mode == "full",
         }))
