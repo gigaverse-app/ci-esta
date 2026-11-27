@@ -79,6 +79,8 @@ def main(argv: list[str] | None = None) -> int:
     commands.add_parser(
         "lanes", add_help=False, help="Show the lanes, where each came from, and why a plan runs or skips them"
     )
+    commands.add_parser("retry", add_help=False,
+                        help="Print the commands that rerun the pytest, Bun and Lake failures in a log")
     commands.add_parser("checkpoint", add_help=False, help="Install or dispatch scheduled full-validation workflows")
     if argv is None:
         argv = sys.argv[1:]
@@ -86,6 +88,10 @@ def main(argv: list[str] | None = None) -> int:
         from ci_esta.checkpoint import main as checkpoint
 
         return checkpoint(argv[1:])
+    if argv[:1] == ["retry"]:
+        from ci_esta.retry import main as retry
+
+        return retry(argv[1:])
     if argv[:1] == ["lanes"]:
         with requires_selection("ci-esta lanes"):
             from ci_esta.testing.lane_report import main as lanes
