@@ -13,9 +13,13 @@ from ci_esta.lean import retry as lake
 _LEAD = re.compile(lake._PREFIX)
 # pytest's short test summary: `FAILED path.py::test[param] - message`, `ERROR path.py - message`.
 _PYTEST = re.compile(r"(?:FAILED|ERROR) (\S+\.py(?:::\S.*)?)$")
-# Bun prints each test file's path on a line of its own before that file's results.
-_BUN_FILE = re.compile(r"(\S.*\.(?:test|spec)\.[cm]?[jt]sx?):$")
+# Bun prints each test file's path on a line of its own before that file's results. On GitHub Actions it
+# opens a log group there, which a job log shows as `##[group]` and captured output as `::group::`.
+_BUN_FILE = re.compile(r"(?:##\[group\]|::group::)?(\S.*\.(?:test|spec)\.[cm]?[jt]sx?):$")
 _BUN_FAILED = re.compile(r"\(fail\) |# Unhandled error between tests$")
+# Where a file's results end: its log group closes, the next `bun test` starts, or Bun lists the run's
+# failed and skipped tests again, this time under no file.
+_BUN_END = re.compile(r"(?:##\[endgroup\]|::endgroup::)$|bun test v\d|\d+ tests? \w+:$")
 
 
 def _plain(raw: str) -> str:
@@ -52,6 +56,8 @@ def bun_files(repo: Path, lines: Iterable[str], skipped: list[str]) -> list[str]
     for line in lines:
         if file := _BUN_FILE.match(line):
             current = file[1]
+        elif _BUN_END.match(line):
+            current = None
         elif current and _BUN_FAILED.match(line):
             if (repo / current).is_file():
                 # Bun reads a bare argument as a filter on file names, and a path that starts with ./ as one file.

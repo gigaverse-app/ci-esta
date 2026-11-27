@@ -40,6 +40,37 @@ error: expect(received).toBe(expected)
  2 fail
 """
 
+# Trimmed from a GitHub Actions job log of a Bun suite run in parallel batches. Bun opens a log group per
+# file there, and after the last file repeats every failure under `N tests failed:`.
+BUN_ON_GITHUB = """\
+2026-11-25T21:13:14.5590848Z bun test v1.4.2 (744846f84) 4x PARALLEL
+2026-11-25T21:13:15.4041113Z ##[group]src/api/generatedZodImports.test.ts:
+2026-11-25T21:13:15.4050935Z error: expect(received).toContain(expected)
+2026-11-25T21:13:15.4721316Z ##[error]Expected to contain: "import * as z from 'zod/v4';"
+2026-11-25T21:13:15.4731872Z (fail) %s builds on the zod/v4 subpath [1.38ms]
+2026-11-25T21:13:15.4732011Z (pass) %s builds on the zod/v4 subpath [0.25ms]
+2026-11-25T21:13:15.4732342Z 
+2026-11-25T21:13:15.4732571Z ##[endgroup]
+2026-11-25T21:13:25.9101122Z 
+2026-11-25T21:13:25.9101344Z ##[group]src/mock-harness/mcp/tools/run.test.ts:
+2026-11-25T21:13:25.9101822Z (pass) a command > leaves its mutation to be collected once it settled [1.41ms]
+2026-11-25T21:13:25.9102059Z 
+2026-11-25T21:13:25.9102263Z ##[endgroup]
+2026-11-25T21:13:25.9180911Z 
+2026-11-25T21:13:25.9181620Z 1 tests failed:
+2026-11-25T21:13:25.9182262Z (fail) %s builds on the zod/v4 subpath [1.38ms]
+2026-11-25T21:13:25.9182811Z 
+2026-11-25T21:13:25.9183055Z  1 fail
+2026-11-25T21:13:25.9183494Z Ran 3598 tests across 88 files. [12.34s]
+2026-11-25T21:13:25.9410873Z bun test v1.4.2 (744846f84) 4x PARALLEL
+2026-11-25T21:13:26.1001100Z ##[group]src/mock-harness/host/in-process.test.ts:
+2026-11-25T21:13:26.1002200Z killed 1 dangling process
+2026-11-25T21:13:26.1003300Z 
+2026-11-25T21:13:26.1004400Z # Unhandled error between tests
+2026-11-25T21:13:26.1005500Z -------------------------------
+2026-11-25T21:13:26.1006600Z error: expect(received).toEqual(expected)
+"""
+
 
 def checkout(tmp_path, *paths):
     for path in paths:
@@ -62,6 +93,22 @@ def test_retry_prints_pytest_ids_and_bun_files_that_failed(tmp_path, capsys):
         "bun test ./tests/broken.test.ts ./tests/unit/math.test.ts",
     ]
     assert err == "ci-esta retry: not in this checkout: tests/test_gone.py::test_removed\n"
+
+
+def test_retry_reads_the_file_of_a_bun_failure_from_a_github_actions_log(tmp_path, capsys):
+    files = ["src/api/generatedZodImports.test.ts", "src/mock-harness/mcp/tools/run.test.ts"]
+    repo = checkout(tmp_path, *files, "src/mock-harness/host/in-process.test.ts")
+    log = tmp_path / "job.log"
+    log.write_text("\ufeff" + BUN_ON_GITHUB, encoding="utf-8")
+    assert cli.main(["retry", str(log), "--repo", str(repo)]) == 0
+    # The failure Bun repeats after the last file belongs to the first file, not to the one printed before it.
+    expected = "bun test ./src/api/generatedZodImports.test.ts ./src/mock-harness/host/in-process.test.ts\n"
+    assert capsys.readouterr() == (expected, "")
+    # Output captured from the step itself still holds the workflow commands GitHub would have rewritten.
+    captured = "".join(line.partition("Z ")[2] + "\n" for line in BUN_ON_GITHUB.splitlines())
+    log.write_text(captured.replace("##[group]", "::group::").replace("##[endgroup]", "::endgroup::"), encoding="utf-8")
+    assert cli.main(["retry", str(log), "--repo", str(repo)]) == 0
+    assert capsys.readouterr() == (expected, "")
 
 
 def test_retry_reads_github_job_logs_from_stdin(tmp_path, capsys, monkeypatch):
