@@ -42,7 +42,9 @@ There is also a rule about volume. The project asks contributors who want to mak
 
 ## Measure the tool before trusting its silence
 
-A scan that reports nothing is only reassuring if it looked everywhere. We compared dry-lint's Lean extractor with the declaration locations the compiler records. The first version found **8,690 of 21,842 declarations, 39.8%**. Six in ten declarations were invisible to it, so "no duplicates found" meant little. After a parser change the figure is **16,875 of 21,971, 77%**. [Coverage audit](https://github.com/gigaverse-app/dry-lint/pull/208) · [Parser change](https://github.com/gigaverse-app/dry-lint/pull/214)
+A scan that reports nothing is only reassuring if it looked everywhere. We compared dry-lint's Lean extractor with the declaration locations the compiler records. The first version found **8,690 of 21,842 declarations, 39.8%**. Six in ten declarations were invisible to it, so "no duplicates found" meant little. A parser change raised that to 77%. The declarations still missing sat behind wrappers such as `omit … in` and notation the grammar did not know, so we stopped asking a grammar where declarations end and read command boundaries from the source text. On the same build the extractor now finds **21,948 of 21,952**; the four it misses are `class abbrev` declarations. The same scanner, run on Mathlib without tuning, finds 241,301 of 241,397. [Coverage audit](https://github.com/gigaverse-app/dry-lint/pull/208) · [Parser change](https://github.com/gigaverse-app/dry-lint/pull/214) · [Command scanner](https://github.com/gigaverse-app/dry-lint/pull/219)
+
+Coverage paid for itself at once. With every declaration visible, the scan surfaced a private lemma that re-proved Mathlib's `continuous_finsetSum`, the continuity of a finite sum of continuous functions. Deleting it and calling Mathlib's lemma at its seven uses compiles. That is the first kind of change on the project's wanted list: use Mathlib's result and delete ours. [Branch](https://github.com/aviadr1/riemann-hypothesis/compare/main...aviadr1:riemann-hypothesis:claude/use-mathlib-continuous-finset-sum)
 
 We then reviewed our own week of tool changes the way we would review someone else's, and found defects in each tool.
 
@@ -73,7 +75,7 @@ ci-esta inspect
 ci-esta-lean retry lake.log
 
 # Repeated declarations and proof fragments, for a person to judge
-uvx --from 'dry-lint[lean]>=1.16,<2' dry-lint lean-proof-blocks --lines 5
+uvx --from 'dry-lint[lean]>=1,<2' dry-lint lean-proof-blocks --lines 5
 ```
 
 The proof is true. Whether people can read it depends on work of this kind, done carefully, and on reviewers with the time to say no.
