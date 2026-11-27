@@ -65,4 +65,21 @@ ci-esta-lean statements Main New.Reduction.OneSidedBound
 
 Scanning 801 modules with a compiled version found one exact match. The public theorem `LFunction_ne_zero_of_half_lt_re` already delegates to `New.grh` and provides the named theorem used by the challenge workflow. The scan took **123 seconds** and peaked at about **22 GiB**. That result supports running the check on a small shortlist selected by dry-lint. Useful generalizations can have different elaborated statement types. [Scanner output](assets/lean-preflight/theorem-matches.json) · [Public theorem](https://github.com/leanprover-community/riemann-hypothesis/blob/c5451bd3ba92480e05c4218f5221bb2900c58706/src/Main.lean#L17)
 
+### Check a proof refactor against the baseline
+
+Build both revisions with the pinned Lean compiler. Keep the baseline module's
+`.olean` before rebuilding the second revision, or build in separate checkouts.
+Compare the compiled types by their fully qualified names.
+
+```sh
+ci-esta-lean compare /tmp/base-Main.olean .lake/build/lib/lean/Main.olean \
+  riemannHypothesis riemannZeta_eq_zero_re LFunction_ne_zero_of_half_lt_re \
+  LFunction_eq_zero_re LFunction_eq_zero_re_of_isPrimitive
+```
+
+Use trusted artifacts from both builds. The comparison ignores binder and universe
+parameter names and preserves binder visibility and the elaborated type structure.
+It exits unsuccessfully if a requested declaration is missing or its type changed.
+Run the project's proof build and axiom checks alongside this review.
+
 The two most immediate changes serve different people. A prepared cache gives runner operators back time on every matching job. A targeted retry gives proof authors a way to inspect the failure they are trying to fix. Together they shorten the path from a diagnostic to a checked patch.

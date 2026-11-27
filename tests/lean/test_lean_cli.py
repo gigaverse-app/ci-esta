@@ -6,7 +6,7 @@ import pytest
 from ci_esta.lean import cli, queue_report
 
 
-@pytest.mark.parametrize("command", ["preflight", "queue", "retry", "statements"])
+@pytest.mark.parametrize("command", ["preflight", "queue", "retry", "statements", "compare"])
 def test_subcommand_help(command, capsys):
     with pytest.raises(SystemExit) as error:
         cli.main([command, "--help"])

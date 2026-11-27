@@ -20,6 +20,10 @@ partial def normalize (expr : Expr) : StateM (Std.HashMap ExprStructEq Expr) Exp
 
 def statementCore (expr : Expr) : Expr := (normalize expr).run' {}
 
+def normalizedType (info : ConstantInfo) : ExprStructEq :=
+  let levels := (List.range info.levelParams.length).map (fun i => Level.param (.num `u i))
+  ExprStructEq.mk (statementCore (info.instantiateTypeLevelParams levels))
+
 structure Candidate where
   owner : Name
   name : Name
@@ -57,9 +61,7 @@ def exactGroups (modules : Array Name) : IO (Array (Array (String × String))) :
       let name := info.name
       if !eligible name || seen.contains name then continue
       seen := seen.insert name
-      let levels := (List.range info.levelParams.length).map (fun i => Level.param (.num `u i))
-      let core := statementCore (info.instantiateTypeLevelParams levels)
-      let key := ExprStructEq.mk core
+      let key := normalizedType info
       groups := groups.alter key (fun group =>
         some ((group.getD #[]).push {owner, name, needsVerification}))
   let candidates := (groups.toArray.map Prod.snd).filter (·.size > 1)
@@ -78,7 +80,36 @@ def exactGroups (modules : Array Name) : IO (Array (Array (String × String))) :
       |>.map fun c => (c.owner.toString, c.name.toString)
     if names.size < 2 then none else some (names.qsort (fun a b => a.2 < b.2))
 
-def main (args : List String) : IO Unit := do
+def selectedTypes (path : System.FilePath) (wanted : Std.HashSet String) :
+    IO (Std.HashMap String ConstantInfo) := do
+  let (data, _) ← readModuleData path
+  let mut found := {}
+  for info in data.constants do
+    let name := info.name.toString
+    if wanted.contains name then
+      found := found.insert name info
+  return found
+
+def compareTypes (before after : System.FilePath) (names : List String) : IO UInt32 := do
+  let wanted : Std.HashSet String := .ofList names
+  let oldTypes ← selectedTypes before wanted
+  let newTypes ← selectedTypes after wanted
+  let results := names.eraseDups.map fun name =>
+    let status := match oldTypes[name]?, newTypes[name]? with
+      | some old, some new =>
+        if old.levelParams.length == new.levelParams.length && normalizedType old == normalizedType new
+        then "unchanged" else "changed"
+      | none, some _ => "missing-before"
+      | some _, none => "missing-after"
+      | none, none => "missing-both"
+    (name, status)
+  IO.println (toJson (results.map fun (name, status) =>
+    Json.mkObj [("declaration", toJson name), ("status", toJson status)])).compress
+  return if results.all (·.2 == "unchanged") then 0 else 1
+
+def main (args : List String) : IO UInt32 := do
+  if let "--compare" :: before :: after :: name :: names := args then
+    return ← compareTypes before after (name :: names)
   if args.isEmpty then
     throw (IO.userError "Supply one or more built Lean modules")
   initSearchPath (← findSysroot)
@@ -86,3 +117,4 @@ def main (args : List String) : IO Unit := do
   let groups := (← exactGroups modules).qsort (fun a b => a[0]!.2 < b[0]!.2)
   IO.println (toJson (groups.map (·.map fun (owner, name) =>
     Json.mkObj [("module", toJson owner), ("theorem", toJson name)]))).compress
+  return 0

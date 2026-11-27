@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ci_esta.lean import preflight
+from ci_esta.lean import cli, preflight
 from ci_esta.lean.preflight import plan
 
 LEAN = shutil.which("lean")
@@ -126,4 +126,34 @@ def test_renamed_binders_match_but_implicit_binders_do_not(tmp_path):
             {"module": "Example", "theorem": "left"},
             {"module": "Example", "theorem": "right"},
         ]
+    ]
+
+
+def test_compare_reports_changed_and_missing_declaration_types(tmp_path, capfd):
+    source = tmp_path / "Proof.lean"
+    for artifact, text in [
+        (
+            "before.olean",
+            "theorem stable (n : Nat) : n = n := rfl\n"
+            "theorem visibility (n : Nat) : n = n := rfl\n"
+            "theorem removed : True := True.intro\n",
+        ),
+        (
+            "after.olean",
+            "theorem stable (m : Nat) : m = m := by rfl\n"
+            "theorem visibility {n : Nat} : n = n := rfl\n"
+            "theorem added : True := True.intro\n",
+        ),
+    ]:
+        source.write_text(text, encoding="utf-8")
+        subprocess.run([LEAN, "-o", artifact, source.name], cwd=tmp_path, check=True)
+    args = ["compare", str(tmp_path / "before.olean"), str(tmp_path / "after.olean"), "--lean", LEAN]
+    assert cli.main([*args, "stable"]) == 0
+    assert json.loads(capfd.readouterr().out) == [{"declaration": "stable", "status": "unchanged"}]
+    assert cli.main([*args, "visibility", "removed", "added", "missing"]) == 1
+    assert json.loads(capfd.readouterr().out) == [
+        {"declaration": "visibility", "status": "changed"},
+        {"declaration": "removed", "status": "missing-after"},
+        {"declaration": "added", "status": "missing-before"},
+        {"declaration": "missing", "status": "missing-both"},
     ]
