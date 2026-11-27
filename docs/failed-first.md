@@ -126,3 +126,31 @@ reviewed:
     evidence: .github/workflows/tests.yml
     reason: Every run is a full run that finishes in under a minute.
 ```
+
+## Rerun the failures on your machine
+
+The steps above re-run failures in CI. To get the same answer before you push, give a
+failed log to `ci-esta retry`. It prints one command per tool, naming only what failed:
+
+```sh
+gh run view 123456 --log-failed | uvx --from 'ci-esta>=1,<2' ci-esta retry -
+```
+
+```text
+pytest 'tests/test_a.py::test_param[a - b]' tests/test_a.py::TestK::test_m tests/test_collect.py
+bun test ./tests/broken.test.ts ./tests/unit/math.test.ts
+lake build +Lib.Broken
+```
+
+| Tool | What it reads in the log | What it prints |
+| --- | --- | --- |
+| pytest | `FAILED` and `ERROR` lines of the short test summary | the test ids, and the file for a collection error |
+| Bun | `(fail)` lines and errors outside a test, under each file's heading | the test files |
+| Lake | failed build jobs and `error:` lines with a Lean source | the modules, as `+Module` targets |
+
+Run it in the directory the failed command ran in, or pass `--repo`. A saved log file works
+in place of `-`. Anything the log names that is not in your checkout is listed on standard
+error and left out of the command. Add your own runner in front, such as `uv run`.
+
+The command only reads the log and prints. A passing rerun shows that those tests pass
+now; the full suite in CI still decides the pull request.
