@@ -46,4 +46,4 @@ def write_pytest_metadata(
         total_test_seconds=parse_duration_seconds(total_time),
     )
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(metadata.model_dump_json(indent=2) + "\n")
+    output.write_text(metadata.model_dump_json(indent=2) + "\n", encoding="utf-8")

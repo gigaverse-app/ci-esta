@@ -50,7 +50,7 @@ def verify(policy: Path | None, cases: Path, *, work: str = "", lanes: str = "")
                     f"{case['name']}: exit {result.returncode}, expected {expected_exit}: {result.stderr}"
                 )
             if expected_exit == 0:
-                plan = json.loads(output.read_text())
+                plan = json.loads(output.read_text(encoding="utf-8"))
                 actual = sorted(item["work"]["id"] for item in plan["decisions"] if item["status"] == "run")
                 if actual != sorted(case["expected"]):
                     raise AssertionError(f"{case['name']}: {actual}, expected {case['expected']}")
@@ -85,7 +85,7 @@ def verify_workflows(cases: Path) -> None:
         }
         with tempfile.TemporaryDirectory() as directory:
             fixture = Path(directory) / "case.json"
-            fixture.write_text(json.dumps([normalized]))
+            fixture.write_text(json.dumps([normalized]), encoding="utf-8")
             verify(Path(policy) if policy else None, fixture)
 
 

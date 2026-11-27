@@ -52,13 +52,14 @@ def _build_backend(args: argparse.Namespace) -> None:
         args.artifacts_dir,
         collect_github_enrichment(),
     )
-    args.out.write_text(extension.model_dump_json(indent=2) + "\n")
+    args.out.write_text(extension.model_dump_json(indent=2) + "\n", encoding="utf-8")
     args.signals_out.write_text(
         json.dumps(
             [signal.model_dump(mode="json") for signal in build_repository_signals(extension)],
             indent=2,
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
 
 
@@ -71,9 +72,9 @@ def _legacy_metrics(args: argparse.Namespace) -> None:
         BackendExtensions,
     )
 
-    report = SharedReport.model_validate_json(args.report.read_text())
-    extension = BackendExtensions.model_validate_json(args.extension.read_text())
-    args.out.write_text(render_legacy_metrics(report, extension))
+    report = SharedReport.model_validate_json(args.report.read_text(encoding="utf-8"))
+    extension = BackendExtensions.model_validate_json(args.extension.read_text(encoding="utf-8"))
+    args.out.write_text(render_legacy_metrics(report, extension), encoding="utf-8")
 
 
 def _adopt_legacy_sticky(args: argparse.Namespace) -> None:
@@ -95,13 +96,14 @@ def _build_ai(args: argparse.Namespace) -> None:
             pytest_wall_time=args.pytest_wall_time,
             pytest_total_time=args.pytest_total_time,
         )
-    args.out.write_text(json.dumps(extension.model_dump(mode="json"), indent=2) + "\n")
+    args.out.write_text(json.dumps(extension.model_dump(mode="json"), indent=2) + "\n", encoding="utf-8")
     args.signals_out.write_text(
         json.dumps(
             [signal.model_dump(mode="json") for signal in build_ai_repository_signals(extension)],
             indent=2,
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
 
 
@@ -113,8 +115,8 @@ def _render_selection(args: argparse.Namespace) -> None:
 
     section = SelectionSectionV1(
         explanation=SelectionExplanation.model_validate_json(args.explanation.read_text(encoding="utf-8")),
-        pytest=PytestTimingMetadata.model_validate_json(args.pytest.read_text()) if args.pytest else None,
-        references=[FullSuiteReferenceV1.model_validate_json(path.read_text()) for path in args.reference],
+        pytest=PytestTimingMetadata.model_validate_json(args.pytest.read_text(encoding="utf-8")) if args.pytest else None,
+        references=[FullSuiteReferenceV1.model_validate_json(path.read_text(encoding="utf-8")) for path in args.reference],
     )
     args.out.write_text(render_selection_section(section), encoding="utf-8")
 

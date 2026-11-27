@@ -341,7 +341,7 @@ def write_pytest_paths_file(paths: list[str], output: Path) -> None:
     """
     output.parent.mkdir(parents=True, exist_ok=True)
     content = "\n".join(paths)
-    output.write_text(f"{content}\n" if content else "")
+    output.write_text(f"{content}\n" if content else "", encoding="utf-8")
 
 
 def write_failure_canary_file(plan: PytestFailureCanaryPlan, output: Path) -> None:

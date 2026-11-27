@@ -88,7 +88,7 @@ def restore() -> None:
         if output.exists() and has_history:
             # A committed seed remains useful for files never measured by this
             # history. Replace all nodes of observed files, never add their cost twice.
-            seed = json.loads(output.read_text())
+            seed = json.loads(output.read_text(encoding="utf-8"))
             measured = {node.split("::", 1)[0] for node in state.observations}
             for node, seconds in seed.items():
                 if node.split("::", 1)[0] not in measured:

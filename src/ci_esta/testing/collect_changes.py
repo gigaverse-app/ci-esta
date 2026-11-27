@@ -10,7 +10,7 @@ from ci_esta.testing.baseline_policy import FailureEvidence, collect_plan
 
 def read_paths(path: str) -> tuple[str, ...] | None:
     file = Path(path)
-    return tuple(file.read_text().splitlines()) if path and file.is_file() else None
+    return tuple(file.read_text(encoding="utf-8").splitlines()) if path and file.is_file() else None
 
 
 def main() -> None:
@@ -42,7 +42,7 @@ def main() -> None:
         path = Path(name)
         path.unlink(missing_ok=True)
         if item is not None and item.paths is not None:
-            path.write_text("".join(value + "\n" for value in item.paths))
+            path.write_text("".join(value + "\n" for value in item.paths), encoding="utf-8")
     Path("changed-files.tmp").unlink(missing_ok=True)
     print(f"::notice::{result.primary.reason}")
     if result.primary.paths is None:

@@ -194,7 +194,7 @@ def save_events(api: Kube, name: str, uid: str, out: Path) -> PodEvents:
     for attempt in range(6):
         raw = api.request("get", "events", "--field-selector", f"involvedObject.uid={uid}", "-o", "json")
         events = PodEvents.model_validate_json(raw)
-        (out / f"{name}-events.json").write_text(raw + "\n")
+        (out / f"{name}-events.json").write_text(raw + "\n", encoding="utf-8")
         if any(event.reason == "Pulled" for event in events.items) or attempt == 5:
             return events
         time.sleep(1)
@@ -208,7 +208,7 @@ def observe_pod(api: Kube, name: str, out: Path, created: str, *, started: float
     # probe; its UID still lets us retrieve the eviction events after deletion.
     state = PodObservation.model_validate_json(created)
     uid = state.metadata.uid
-    (out / f"{name}-pod.json").write_text(created + "\n")
+    (out / f"{name}-pod.json").write_text(created + "\n", encoding="utf-8")
     deadline = time.monotonic() + 210
     try:
         while True:
@@ -218,7 +218,7 @@ def observe_pod(api: Kube, name: str, out: Path, created: str, *, started: float
             state = PodObservation.model_validate_json(raw)
             if state.metadata.uid != uid:
                 raise RuntimeError(f"Probe pod replaced: {name}; refusing replacement evidence")
-            (out / f"{name}-pod.json").write_text(raw + "\n")
+            (out / f"{name}-pod.json").write_text(raw + "\n", encoding="utf-8")
             if state.status.phase in ("Succeeded", "Failed"):
                 break
             if time.monotonic() >= deadline:
@@ -227,7 +227,7 @@ def observe_pod(api: Kube, name: str, out: Path, created: str, *, started: float
         elapsed = time.monotonic() - started
     finally:
         events = save_events(api, name, uid, out)
-    (out / f"{name}.log").write_text(api.request("logs", name) + "\n")
+    (out / f"{name}.log").write_text(api.request("logs", name) + "\n", encoding="utf-8")
     return NodeObservation(
         pod=state,
         observed_seconds_including_client_polling=elapsed,
@@ -266,7 +266,8 @@ def run_node_probes(evidence: Path, plan: PullPlan, config: NodeProbeConfig, obs
             },
             indent=2,
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
     api = Kube(config)
     owner = uuid.uuid4().hex
@@ -294,9 +295,9 @@ def run_node_probes(evidence: Path, plan: PullPlan, config: NodeProbeConfig, obs
                             **observed.model_dump(exclude={"pod"}),
                         }
                     )
-                    with (out / "results.jsonl").open("a") as stream:
+                    with (out / "results.jsonl").open("a", encoding="utf-8") as stream:
                         stream.write(row + "\n")
                     print(row, flush=True)
                     if state.status.phase != "Succeeded":
                         raise ValueError(f"Runtime probe failed: {name}; inspect saved pod, events and logs")
-    (out / "cleanup.json").write_text(json.dumps({"owned_pods_remaining": 0, "owner": owner}) + "\n")
+    (out / "cleanup.json").write_text(json.dumps({"owned_pods_remaining": 0, "owner": owner}) + "\n", encoding="utf-8")

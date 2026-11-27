@@ -101,7 +101,7 @@ def dependency_proof(
         raise ValueError(baseline.reason)
     merge_base = baseline.base
     return selection_proof(
-        json.loads(report_path.read_text()),
+        json.loads(report_path.read_text(encoding="utf-8")),
         base_tree=git(Path("."), "rev-parse", f"{merge_base}^{{tree}}").strip(),
         head_tree=git(Path("."), "rev-parse", f"{head}^{{tree}}").strip(),
         tests=tests,
