@@ -95,3 +95,5 @@ If you maintain a Lean project, pick a representative proof change and measure i
 The original release made the proof available for others to check. The cleanup will determine how easily another person can understand a step, change it, and check it again.
 
 See [How Lean contributors can get useful feedback sooner](lean-preflight-case-study.md) for the fork queue measurement and a replay of historical proof failures.
+
+See [Mathematical engineering](mathematical-engineering.md) for what a week of this work taught us, including the pull requests we withdrew.
