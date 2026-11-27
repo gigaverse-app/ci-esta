@@ -6,7 +6,7 @@ See the [Riemann Hypothesis case study](../documentation/riemann-lean-ci.md) for
 
 ## Prepare a seed
 
-The action uses Python 3.11+, Git and GNU `cp`. With an older `python3` it reports a miss and the job hydrates normally. Use an unprivileged image-builder account and a clean checkout of a trusted revision on the same Linux runner image and architecture. Install the pinned toolchain and hydrate the dependencies exactly as CI would, for example:
+The action uses Python 3.11+, Git and GNU `cp`. With an older `python3` (3.8 to 3.10) it reports a miss and the job hydrates normally. Use an unprivileged image-builder account and a clean checkout of a trusted revision on the same Linux runner image and architecture. Install the pinned toolchain and hydrate the dependencies exactly as CI would, for example:
 
 ```sh
 lake exe mathlib/cache get
@@ -19,8 +19,9 @@ Place the seed and workspace on the same reflink-capable filesystem (for example
 To reuse the compiler as well, provision the seed's own `.elan/toolchains` with Elan for the pinned Lean release. Set `link-elan-toolchains: 'true'` and run the action before your ordinary Elan setup. CI-esta links each installed toolchain into a fresh, private Elan registry. Elan selects the requested version and installs any missing version normally. Existing job registries are left alone.
 
 With linked toolchains, Lake needs a writable artifact cache for dependencies that
-the seed did not hydrate. The action defaults `LAKE_CACHE_DIR` to the project's
-`.lake/cache`. An explicit `LAKE_CACHE_DIR` takes precedence.
+the seed did not hydrate. When it links a toolchain, the action defaults
+`LAKE_CACHE_DIR` to the project's `.lake/cache`. An explicit `LAKE_CACHE_DIR`
+takes precedence, and a job whose registry was left alone keeps Lake's own default.
 
 ## Use the seed
 

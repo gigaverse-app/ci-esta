@@ -1,6 +1,8 @@
 """Exercise the filesystem boundary of the runner-local Lean dependency cache."""
 
+import ast
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -131,6 +133,59 @@ def test_linked_toolchain_gets_a_writable_lake_cache(
         assert output.read_text() == f"LAKE_CACHE_DIR={project / '.lake/cache'}\n"
     else:
         assert not output.exists()
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Runner images use Linux directory symlinks")
+@pytest.mark.parametrize("registry", ["existing", "no seed toolchains"])
+def test_lake_cache_is_left_alone_when_no_toolchain_was_linked(
+    projects: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch, registry: str
+) -> None:
+    project, seed = projects
+    elan_home = project / ".elan"
+    if registry == "existing":
+        installed = seed / ".elan/toolchains/leanprover--lean4---v4.37.0-rc1"
+        (installed / "bin").mkdir(parents=True)
+        (installed / "bin/lean").touch()
+        (elan_home / "toolchains/job-only").mkdir(parents=True)
+    output = project / "step.env"
+    monkeypatch.setenv("GITHUB_ENV", str(output))
+    monkeypatch.delenv("LAKE_CACHE_DIR", raising=False)
+
+    assert restore(project, seed, elan_home)
+
+    assert not output.exists()
+    assert registry != "existing" or list((elan_home / "toolchains").iterdir()) == [elan_home / "toolchains/job-only"]
+
+
+SEED_SCRIPT = Path(lean_seed.__file__)
+
+
+def test_the_script_is_valid_for_every_python3_a_runner_may_have() -> None:
+    """The action runs the runner's own `python3`, so the script must load before it can report a miss."""
+    ast.parse(SEED_SCRIPT.read_text(encoding="utf-8"), feature_version=(3, 8))
+    # `Path | None` is valid syntax everywhere but raises on 3.9 and older if the annotation is evaluated.
+    assert all(isinstance(annotation, str) for annotation in restore.__annotations__.values())
+
+
+@pytest.mark.parametrize("python", ["python3.8", "python3.9", "python3.10"])
+def test_an_older_python3_reports_a_miss(projects: tuple[Path, Path], tmp_path: Path, python: str) -> None:
+    project, seed = projects
+    interpreter = shutil.which(python)
+    if interpreter is None:
+        pytest.skip(f"{python} is not installed")
+    output = tmp_path / "output"
+
+    completed = subprocess.run(
+        [interpreter, "-I", str(SEED_SCRIPT), "--seed", str(seed), "--project", str(project), "--link-toolchains"],
+        env=os.environ | {"GITHUB_OUTPUT": str(output), "ELAN_HOME": str(tmp_path / "elan")},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert output.read_text() == "cache-hit=false\n"
+    assert "tomllib" in completed.stdout
 
 
 def test_a_python_without_tomllib_takes_normal_hydration_instead_of_failing_the_job(

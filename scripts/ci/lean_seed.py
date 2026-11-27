@@ -1,5 +1,9 @@
 """Restore prehydrated Lake dependencies from a trusted, runner-local checkout."""
 
+# The action runs this with the runner's own python3. Annotations stay unevaluated so that one older
+# than 3.10, which cannot evaluate `Path | None`, still loads the script and reports a miss.
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -79,32 +83,35 @@ def restore(project: Path, seed: Path, elan_home: Path | None = None) -> bool:
         staged.rename(packages)
     if elan_home is not None:
         try:
-            configure_lake_cache(project)
-            link_toolchains(seed, elan_home)
+            # Decide where the cache goes before linking, so a toolchain is never linked without one.
+            lake_cache = lake_cache_setting(project)
+            if link_toolchains(seed, elan_home) and lake_cache:
+                with Path(os.environ["GITHUB_ENV"]).open("a", encoding="utf-8") as output:
+                    output.write(lake_cache)
         except (OSError, ValueError) as error:
             print(f"Elan will install the requested toolchain normally: {error}")
     return True
 
 
-def configure_lake_cache(project: Path) -> None:
-    """Keep Lake's artifact writes outside the linked, read-only toolchain."""
+def lake_cache_setting(project: Path) -> str:
+    """The GITHUB_ENV line keeping Lake's artifact writes outside a linked, read-only toolchain; empty if set."""
     if "LAKE_CACHE_DIR" in os.environ:
-        return
-    if not (env_file := os.environ.get("GITHUB_ENV")):
+        return ""
+    if not os.environ.get("GITHUB_ENV"):
         raise ValueError("a linked toolchain requires GITHUB_ENV or an explicit LAKE_CACHE_DIR")
     directory = str(project.resolve() / ".lake" / "cache")
     if "\n" in directory or "\r" in directory:
         raise ValueError("Lake cache path must fit on one line")
-    with Path(env_file).open("a", encoding="utf-8") as output:
-        output.write(f"LAKE_CACHE_DIR={directory}\n")
+    return f"LAKE_CACHE_DIR={directory}\n"
 
 
-def link_toolchains(seed: Path, elan_home: Path) -> None:
-    """Offer installed toolchains by Elan's own names in a fresh, job-private registry."""
+def link_toolchains(seed: Path, elan_home: Path) -> bool:
+    """Offer installed toolchains by Elan's own names in a fresh, job-private registry; True if any was linked."""
     installed = seed / ".elan" / "toolchains"
     registry = elan_home / "toolchains"
     if not installed.is_dir() or os.path.lexists(registry):
-        return
+        return False
+    linked = False
     elan_home.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=elan_home) as staging:
         staged = Path(staging) / "toolchains"
@@ -112,7 +119,9 @@ def link_toolchains(seed: Path, elan_home: Path) -> None:
         for toolchain in installed.iterdir():
             if (toolchain / "bin" / "lean").is_file():
                 (staged / toolchain.name).symlink_to(toolchain, target_is_directory=True)
+                linked = True
         staged.rename(registry)
+    return linked
 
 
 def main() -> None:
